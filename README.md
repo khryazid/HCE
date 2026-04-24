@@ -1,36 +1,112 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# HCE Multiespecialidad (SaaS Nivel 2)
 
-## Getting Started
+Plataforma de gestion de historias clinicas multiespecialidad construida con:
 
-First, run the development server:
+- Next.js (App Router) + Tailwind CSS
+- Supabase (PostgreSQL + Auth)
+- IndexedDB (`idb`) para persistencia local
+- `next-pwa` para arquitectura offline-first
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Estado de la Implementacion
+
+Esta iteracion deja operativa una version funcional offline-first:
+
+- Autenticacion real con Supabase (registro e inicio de sesion).
+- Registro de medico con soporte de multiples especialidades.
+- Flujos de acceso separados: `/login` y `/registro`.
+- Onboarding inicial obligatorio de perfil profesional del medico.
+- Dashboard con carga de perfil tenant y especialidades del medico.
+- Dashboard con KPIs clinicos, actividad reciente y alertas operativas.
+- Flujo de consulta guiado en 4 pasos con paciente rapido, diagnostico CIE y confirmacion.
+- Sugerencias CIE asistidas por Gemini con fallback al catalogo local.
+- Selector de tipo de registro en Consultas: consulta completa o seguimiento con foco en evolucion.
+- Indicador de seguimiento pendiente al seleccionar paciente y alta rapida de control.
+- Acceso directo desde historial de pacientes para abrir seguimiento precargado sin pasar por el paso 1.
+- Modulo de tratamientos predeterminados con CRUD y versionado por medico.
+- Timeline de evolucion/seguimiento por paciente.
+- Pacientes como historial clinico navegable; el alta se hace desde Consultas.
+- Ajustes de membrete profesional y generacion PDF de consulta.
+- Logo profesional local por medico (guardado en navegador, sin Supabase) para incluir en el PDF.
+- CRUD local-first de pacientes y consultas.
+- Cifrado local de PHI con WebCrypto (AES-GCM).
+- Cola de sincronizacion con panel visual para reintento y descarte.
+- PWA con fallback a `/offline`.
+- SQL inicial de Supabase con RLS por `doctor_id` y auditoria append-only.
+
+## Estructura Principal
+
+```text
+/
+├── app/
+│   ├── (auth)/
+│   ├── (dashboard)/
+│   │   ├── pacientes/
+│   │   ├── consultas/
+│   │   └── especialidades/
+│   ├── layout.tsx
+│   └── page.tsx
+├── components/
+│   ├── ui/
+│   └── clinical/
+├── lib/
+│   ├── supabase/
+│   ├── db/
+│   └── sync/
+├── types/
+└── public/
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Variables de Entorno
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Copiar `.env.example` a `.env.local` y completar:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+GEMINI_API_KEY=
+GEMINI_MODEL=gemini-2.0-flash
+```
 
-## Learn More
+`GEMINI_API_KEY` es opcional. Si no esta presente, la pantalla de consultas usa solo el catalogo local de CIE.
 
-To learn more about Next.js, take a look at the following resources:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Comandos
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+npm install
+npm run dev
+npm run lint
+npm run typecheck
+npm run test
+npm run build
+```
 
-## Deploy on Vercel
+## Skill Frontend del Proyecto
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Para mantener consistencia de UI/UX en nuevas pantallas y ajustes visuales, usar esta guia:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `FRONTEND_SKILL.md`
+
+## SQL Supabase (Produccion)
+
+El script consolidado para montar todo en una sola ejecucion esta en:
+
+- `lib/supabase/000_production_full_schema.sql`
+
+Scripts historicos (opcional, referencia):
+
+- `lib/supabase/001_init_schema.sql`
+- `lib/supabase/002_iteration2_followups.sql`
+
+Incluye:
+
+- tablas de dominio clinico,
+- politicas RLS para aislamiento por tenant,
+- `audit_logs` inmutable,
+- funcion `log_audit_event(...)` con hash encadenado.
+
+## Siguientes pasos recomendados
+
+1. Implementar ajustes de membrete profesional por medico para salida PDF.
+2. Construir flujo guiado de nueva consulta por pasos.
+3. Añadir timeline de evolucion y seguimiento por paciente.

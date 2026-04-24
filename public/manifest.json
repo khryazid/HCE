@@ -1,0 +1,19 @@
+{
+  "name": "HCE Multiespecialidad",
+  "short_name": "HCE",
+  "description": "Plataforma de gestion de historias clinicas multiespecialidad offline-first.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f6f8f6",
+  "theme_color": "#0e766e",
+  "lang": "es",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
