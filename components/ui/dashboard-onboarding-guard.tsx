@@ -40,13 +40,6 @@ export function DashboardOnboardingGuard() {
           }
           return;
         }
-
-        if (isReady && isOnboardingPage) {
-          if (active) {
-            router.replace("/dashboard");
-          }
-          return;
-        }
       } finally {
         if (active) {
           setReady(true);

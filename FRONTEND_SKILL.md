@@ -80,3 +80,11 @@ Usar esta guia para cambios en:
 - `components/clinical/` para visualizaciones clinicas con foco en legibilidad.
 
 En PRs o entregas internas, incluir una nota corta de que reglas de esta guia se validaron.
+
+## Plantilla de PR
+
+Para estandarizar revisiones de cambios visuales, usar la plantilla:
+
+- `.github/PULL_REQUEST_TEMPLATE.md`
+
+Cuando el cambio toque login/registro, completar tambien el bloque `Checklist Auth (login/registro)` dentro de esa plantilla.

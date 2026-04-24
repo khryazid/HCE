@@ -1,13 +1,20 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getSupabaseClient } from "@/lib/supabase/client";
+import { useTenant } from "@/lib/supabase/tenant-context";
 import {
   readOnboardingProfile,
   saveOnboardingProfile,
   type DoctorOnboardingProfile,
 } from "@/lib/supabase/onboarding";
+import {
+  loadLetterheadSettings,
+  saveLetterheadSettings,
+  type LetterheadSettings,
+} from "@/lib/local-data/letterhead";
 
 type OnboardingFormState = {
   professionalTitle: string;
@@ -29,6 +36,11 @@ const INITIAL_STATE: OnboardingFormState = {
   professionalAddress: "",
   publicContactEmail: "",
   signatureName: "",
+};
+
+const EMPTY_LETTERHEAD_STATE: Pick<LetterheadSettings, "specialties" | "logo_data_url"> = {
+  specialties: "",
+  logo_data_url: "",
 };
 
 function toProfile(state: OnboardingFormState): DoctorOnboardingProfile {
@@ -59,10 +71,13 @@ function fromMetadata(profile: DoctorOnboardingProfile): OnboardingFormState {
 
 export default function OnboardingPage() {
   const router = useRouter();
+  const { tenant } = useTenant();
   const [form, setForm] = useState<OnboardingFormState>(INITIAL_STATE);
+  const [letterhead, setLetterhead] = useState(EMPTY_LETTERHEAD_STATE);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -98,14 +113,71 @@ export default function OnboardingPage() {
     };
   }, [router]);
 
+  useEffect(() => {
+    if (!tenant) {
+      return;
+    }
+
+    const localLetterhead = loadLetterheadSettings(tenant.doctor_id, tenant.clinic_id);
+
+    setLetterhead((current) => ({
+      specialties:
+        current.specialties ||
+        localLetterhead.specialties ||
+        tenant.specialties.join(", "),
+      logo_data_url: localLetterhead.logo_data_url || current.logo_data_url,
+    }));
+  }, [tenant]);
+
+  async function handleLogoSelected(file: File | null) {
+    if (!file) {
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      setError("El logo debe ser una imagen valida (PNG, JPG o WEBP).");
+      return;
+    }
+
+    if (file.size > 700_000) {
+      setError("El logo es muy pesado. Usa una imagen menor a 700KB.");
+      return;
+    }
+
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.onerror = () => reject(new Error("No se pudo leer el archivo."));
+      reader.readAsDataURL(file);
+    });
+
+    setLetterhead((current) => ({ ...current, logo_data_url: dataUrl }));
+    setError(null);
+  }
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSaving(true);
     setError(null);
+    setSuccessMessage(null);
 
     try {
       await saveOnboardingProfile(toProfile(form));
-      router.replace("/dashboard");
+
+      if (tenant) {
+        saveLetterheadSettings(tenant.doctor_id, tenant.clinic_id, {
+          doctor_name: form.signatureName,
+          professional_title: form.professionalTitle,
+          specialties: letterhead.specialties || tenant.specialties.join(", "),
+          address: form.professionalAddress,
+          phone_primary: form.primaryPhone,
+          phone_secondary: form.secondaryPhone || "",
+          contact_email: form.publicContactEmail || "",
+          logo_data_url: letterhead.logo_data_url,
+        });
+      }
+
+      setSuccessMessage("Perfil actualizado correctamente. Puedes seguir editando cuando lo necesites.");
     } catch (submitError) {
       setError(
         submitError instanceof Error
@@ -125,13 +197,13 @@ export default function OnboardingPage() {
     <section className="mx-auto w-full max-w-3xl space-y-6">
       <header className="rounded-3xl border border-cyan-100 bg-cyan-50/70 p-6">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-800">
-          Perfil Profesional Inicial
+          Perfil Profesional
         </p>
         <h1 className="mt-2 text-2xl font-semibold text-slate-900">
-          Completa tus datos obligatorios de medico
+          Edita tus datos profesionales
         </h1>
         <p className="mt-2 text-sm text-slate-700">
-          Este paso se solicita una sola vez para habilitar dashboard, consultas y documentos clinicos.
+          Esta pagina centraliza perfil profesional y datos de membrete para PDF.
         </p>
       </header>
 
@@ -235,9 +307,65 @@ export default function OnboardingPage() {
           />
         </label>
 
+        <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:col-span-2">
+          <div>
+            <p className="text-sm font-semibold text-slate-900">Logo profesional para PDF</p>
+            <p className="text-xs text-slate-600">Se guarda en este navegador (localStorage), sin enviarse a Supabase.</p>
+          </div>
+
+          <input
+            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            onChange={(event) => {
+              const file = event.target.files?.[0] ?? null;
+              void handleLogoSelected(file);
+            }}
+          />
+
+          {letterhead.logo_data_url ? (
+            <div className="flex items-center gap-4">
+              <Image
+                src={letterhead.logo_data_url}
+                alt="Logo profesional"
+                width={64}
+                height={64}
+                unoptimized
+                className="h-16 w-16 rounded-xl border border-slate-200 bg-white object-contain p-1"
+              />
+              <button
+                type="button"
+                onClick={() => setLetterhead((current) => ({ ...current, logo_data_url: "" }))}
+                className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700"
+              >
+                Quitar logo
+              </button>
+            </div>
+          ) : null}
+        </div>
+
+        <label className="space-y-2 text-sm font-medium text-slate-700 sm:col-span-2">
+          <span>Especialidades para membrete PDF</span>
+          <input
+            className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none ring-cyan-600 focus:ring-2"
+            value={letterhead.specialties}
+            onChange={(event) =>
+              setLetterhead((current) => ({ ...current, specialties: event.target.value }))
+            }
+            placeholder="Ej: Pediatria, Medicina general"
+            required
+          />
+        </label>
+
         {error ? (
           <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 sm:col-span-2">
             {error}
+          </p>
+        ) : null}
+
+        {successMessage ? (
+          <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 sm:col-span-2">
+            {successMessage}
           </p>
         ) : null}
 
@@ -246,7 +374,7 @@ export default function OnboardingPage() {
           disabled={saving}
           className="sm:col-span-2 inline-flex items-center justify-center rounded-xl bg-cyan-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-cyan-800 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {saving ? "Guardando..." : "Guardar y continuar"}
+          {saving ? "Guardando..." : "Guardar cambios"}
         </button>
       </form>
     </section>

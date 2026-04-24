@@ -1,10 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { getSupabaseClient } from "@/lib/supabase/client";
-import { loadTenantProfile, type TenantProfile } from "@/lib/supabase/profile";
+import { useEffect, useMemo, useState } from "react";
+import { useTenant } from "@/lib/supabase/tenant-context";
+import { DashboardSkeleton } from "@/components/ui/skeletons";
 import { listClinicalRecordsByTenant, listPatientsByTenant, listSyncQueueItems } from "@/lib/db/indexeddb";
 import type { ClinicalRecordRecord } from "@/types/consultation";
 import type { PatientRecord } from "@/types/patient";
@@ -53,6 +52,19 @@ type ActivityItem =
       patientId: string;
     };
 
+type FollowUpPanelFilter = "urgentes" | "vencidos" | "proximos";
+
+type FollowUpPanelItem = {
+  recordId: string;
+  patientId: string;
+  patientName: string;
+  diagnosis: string;
+  specialtyKind: string;
+  dueDate: string;
+  isOverdue: boolean;
+  isUrgent: boolean;
+};
+
 function getStartOfToday() {
   const date = new Date();
   date.setHours(0, 0, 0, 0);
@@ -65,9 +77,6 @@ function calculateMetrics(
   queue: Awaited<ReturnType<typeof listSyncQueueItems>>,
 ): DashboardMetrics {
   const startOfToday = getStartOfToday();
-  const now = new Date();
-  const thirtyDaysAgo = new Date(now);
-  thirtyDaysAgo.setDate(now.getDate() - 30);
 
   const consultationsToday = records.filter(
     (record) => new Date(record.created_at) >= startOfToday,
@@ -86,24 +95,18 @@ function calculateMetrics(
     .sort((first, second) => second.total - first.total)
     .slice(0, 4);
 
-  const latestConsultationByPatient = new Map<string, Date>();
-  for (const record of records) {
-    const createdAt = new Date(record.created_at);
-    const previous = latestConsultationByPatient.get(record.patient_id);
+  const followUpPending = records.filter((record) => {
+    const specialtyData = record.specialty_data as Record<string, unknown>;
+    const nextFollowUpDate =
+      typeof specialtyData.next_follow_up_date === "string"
+        ? specialtyData.next_follow_up_date.trim()
+        : "";
 
-    if (!previous || createdAt > previous) {
-      latestConsultationByPatient.set(record.patient_id, createdAt);
-    }
-  }
-
-  const followUpPending = patients.filter((patient) => {
-    const latest = latestConsultationByPatient.get(patient.id);
-
-    if (!latest) {
-      return true;
+    if (!nextFollowUpDate) {
+      return false;
     }
 
-    return latest < thirtyDaysAgo;
+    return !Number.isNaN(Date.parse(nextFollowUpDate));
   }).length;
 
   const incompleteRecords = records.filter(
@@ -161,67 +164,43 @@ function buildActivityFeed(
 }
 
 export default function DashboardPage() {
-  const router = useRouter();
-  const [displayName, setDisplayName] = useState<string | null>(null);
-  const [profile, setProfile] = useState<TenantProfile | null>(null);
+  const { tenant, session, loading: tenantLoading, error: tenantError } = useTenant();
   const [metrics, setMetrics] = useState<DashboardMetrics>(EMPTY_METRICS);
   const [activity, setActivity] = useState<ActivityItem[]>([]);
   const [selectedActivity, setSelectedActivity] = useState<ActivityItem | null>(null);
-  const [profileError, setProfileError] = useState<string | null>(null);
+  const [patientsData, setPatientsData] = useState<PatientRecord[]>([]);
+  const [recordsData, setRecordsData] = useState<ClinicalRecordRecord[]>([]);
+  const [followUpFilter, setFollowUpFilter] = useState<FollowUpPanelFilter>("urgentes");
   const [loading, setLoading] = useState(true);
 
+  const displayName =
+    tenant?.full_name ||
+    (typeof session?.user.user_metadata?.full_name === "string"
+      ? session.user.user_metadata.full_name
+      : null) ||
+    session?.user.email ||
+    null;
+
   useEffect(() => {
+    if (tenantLoading || !tenant) {
+      return;
+    }
+
     let active = true;
 
-    const loadSession = async () => {
+    const loadData = async () => {
       try {
-        const supabase = getSupabaseClient();
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-
-        if (!session) {
-          router.replace("/login");
-          return;
-        }
-
-        const tenantProfile = await loadTenantProfile(session.user.id);
-
-        if (!tenantProfile) {
-          setProfileError(
-            "No se encontro perfil de tenant para esta cuenta. Revisa la tabla profiles en Supabase.",
-          );
-        }
-
-        if (tenantProfile) {
-          const [patients, records, queue] = await Promise.all([
-            listPatientsByTenant(tenantProfile.doctor_id, tenantProfile.clinic_id),
-            listClinicalRecordsByTenant(tenantProfile.doctor_id, tenantProfile.clinic_id),
-            listSyncQueueItems(),
-          ]);
-
-          if (active) {
-            setMetrics(calculateMetrics(patients, records, queue));
-            setActivity(buildActivityFeed(patients, records));
-          }
-        }
+        const [patients, records, queue] = await Promise.all([
+          listPatientsByTenant(tenant.doctor_id, tenant.clinic_id),
+          listClinicalRecordsByTenant(tenant.doctor_id, tenant.clinic_id),
+          listSyncQueueItems(),
+        ]);
 
         if (active) {
-          setProfile(tenantProfile);
-          setDisplayName(
-            tenantProfile?.full_name ||
-              (typeof session.user.user_metadata?.full_name === "string"
-                ? session.user.user_metadata.full_name
-                : null) ||
-              session.user.email ||
-              null,
-          );
-        }
-      } catch (error) {
-        if (active) {
-          setProfileError(
-            error instanceof Error ? error.message : "No se pudo cargar el tenant.",
-          );
+          setPatientsData(patients);
+          setRecordsData(records);
+          setMetrics(calculateMetrics(patients, records, queue));
+          setActivity(buildActivityFeed(patients, records));
         }
       } finally {
         if (active) {
@@ -230,20 +209,93 @@ export default function DashboardPage() {
       }
     };
 
-    void loadSession();
+    void loadData();
 
     return () => {
       active = false;
     };
-  }, [router]);
+  }, [tenant, tenantLoading]);
 
-  if (loading) {
-    return (
-      <section className="space-y-4">
-        <h1 className="text-2xl font-semibold text-slate-900">Panel Clinico</h1>
-        <p className="text-sm text-slate-600">Cargando sesion...</p>
-      </section>
+  const followUpItems = useMemo(() => {
+    const patientById = new Map(patientsData.map((patient) => [patient.id, patient]));
+    const now = Date.now();
+    const urgentWindowMs = 48 * 60 * 60 * 1000;
+
+    const items: FollowUpPanelItem[] = [];
+
+    for (const record of recordsData) {
+      const specialtyData = record.specialty_data as Record<string, unknown>;
+      const dueDateRaw =
+        typeof specialtyData.next_follow_up_date === "string"
+          ? specialtyData.next_follow_up_date.trim()
+          : "";
+
+      if (!dueDateRaw) {
+        continue;
+      }
+
+      const dueDateMs = Date.parse(dueDateRaw);
+      if (Number.isNaN(dueDateMs)) {
+        continue;
+      }
+
+      const diagnosis =
+        typeof specialtyData.diagnosis === "string" && specialtyData.diagnosis.trim().length > 0
+          ? specialtyData.diagnosis.trim()
+          : record.chief_complaint;
+
+      const patient = patientById.get(record.patient_id);
+      const isOverdue = dueDateMs < now;
+      const isUrgent = !isOverdue && dueDateMs <= now + urgentWindowMs;
+
+      items.push({
+        recordId: record.id,
+        patientId: record.patient_id,
+        patientName: patient?.full_name ?? "Paciente sin nombre",
+        diagnosis,
+        specialtyKind: record.specialty_kind,
+        dueDate: dueDateRaw,
+        isOverdue,
+        isUrgent,
+      });
+    }
+
+    return items.sort((a, b) => Date.parse(a.dueDate) - Date.parse(b.dueDate));
+  }, [patientsData, recordsData]);
+
+  const filteredFollowUpItems = useMemo(() => {
+    return followUpItems.filter((item) => {
+      if (followUpFilter === "vencidos") {
+        return item.isOverdue;
+      }
+
+      if (followUpFilter === "urgentes") {
+        return !item.isOverdue && item.isUrgent;
+      }
+
+      return !item.isOverdue && !item.isUrgent;
+    });
+  }, [followUpFilter, followUpItems]);
+
+  const followUpCounts = useMemo(() => {
+    return followUpItems.reduce(
+      (acc, item) => {
+        if (item.isOverdue) {
+          acc.vencidos += 1;
+        } else if (item.isUrgent) {
+          acc.urgentes += 1;
+        } else {
+          acc.proximos += 1;
+        }
+
+        return acc;
+      },
+      { urgentes: 0, vencidos: 0, proximos: 0 } as Record<FollowUpPanelFilter, number>,
     );
+  }, [followUpItems]);
+
+  if (tenantLoading || loading) {
+    return <DashboardSkeleton />;
   }
 
   return (
@@ -258,8 +310,8 @@ export default function DashboardPage() {
               Hola{displayName ? `, ${displayName}` : ""}
             </h1>
             <p className="max-w-2xl text-sm leading-7 text-slate-700">
-              {profile
-                ? `${profile.full_name} trabaja con ${profile.specialties.join(", ")} dentro de un entorno privado y sin exponer datos internos.`
+              {tenant
+                ? `${tenant.full_name} trabaja con ${tenant.specialties.join(", ")} dentro de un entorno privado y sin exponer datos internos.`
                 : "Cargando perfil profesional..."}
             </p>
           </div>
@@ -267,13 +319,13 @@ export default function DashboardPage() {
           <div className="grid gap-3 sm:grid-cols-2 lg:w-[28rem]">
             <Link
               href="/consultas"
-              className="rounded-2xl bg-teal-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-teal-800"
+              className="hce-btn-primary py-3"
             >
               Nueva consulta
             </Link>
             <Link
               href="/pacientes"
-              className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
+              className="hce-btn-secondary py-3"
             >
               Ver pacientes
             </Link>
@@ -281,9 +333,9 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      {profileError ? (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-          {profileError}
+      {tenantError ? (
+        <div className="hce-alert-warning">
+          {tenantError}
         </div>
       ) : null}
 
@@ -328,7 +380,7 @@ export default function DashboardPage() {
           </div>
           <div className="mt-3 space-y-2">
             {activity.length === 0 ? (
-              <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-600">
+              <div className="hce-empty">
                 Aun no hay actividad reciente.
               </div>
             ) : (
@@ -375,7 +427,7 @@ export default function DashboardPage() {
               </div>
               <Link
                 href={selectedActivity.type === "consultation" ? "/consultas" : "/pacientes"}
-                className="inline-flex rounded-xl bg-teal-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-800"
+                className="hce-btn-primary"
               >
                 Abrir modulo relacionado
               </Link>
@@ -387,6 +439,66 @@ export default function DashboardPage() {
           )}
         </article>
       </div>
+
+      <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-sm font-semibold text-slate-900">Panel de seguimientos pendientes</h2>
+            <p className="text-xs text-slate-500">Filtra por urgentes, vencidos o proximos para priorizar controles.</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {([
+              ["urgentes", "Urgentes"],
+              ["vencidos", "Vencidos"],
+              ["proximos", "Proximos"],
+            ] as Array<[FollowUpPanelFilter, string]>).map(([filter, label]) => (
+              <button
+                key={filter}
+                type="button"
+                onClick={() => setFollowUpFilter(filter)}
+                className={`hce-chip ${
+                  followUpFilter === filter
+                    ? "border-teal-300 bg-teal-50 text-teal-900"
+                    : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                }`}
+              >
+                {label} ({followUpCounts[filter]})
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-4 space-y-2">
+          {filteredFollowUpItems.length === 0 ? (
+            <div className="hce-empty">
+              No hay seguimientos en este filtro.
+            </div>
+          ) : (
+            filteredFollowUpItems.map((item) => (
+              <div
+                key={item.recordId}
+                className="rounded-xl border border-slate-200 bg-white px-3 py-3"
+              >
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">{item.patientName}</p>
+                    <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+                      {item.specialtyKind} · Control {new Date(item.dueDate).toLocaleDateString("es-EC")}
+                    </p>
+                    <p className="mt-1 text-sm text-slate-700">{item.diagnosis}</p>
+                  </div>
+                  <Link
+                    href={`/consultas?mode=seguimiento&patientId=${item.patientId}&recordId=${item.recordId}`}
+                    className="hce-chip border-teal-300 bg-teal-50 text-teal-900 hover:bg-teal-100"
+                  >
+                    Abrir seguimiento
+                  </Link>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </article>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Link href="/pacientes" className="rounded-2xl border border-slate-200 bg-slate-50 p-4 transition hover:bg-slate-100">

@@ -22,4 +22,85 @@ body {
   background: var(--bg);
   color: var(--ink);
   font-family: var(--font-geist-sans), "Segoe UI", sans-serif;
+  line-height: 1.5;
+}
+
+@layer base {
+  a,
+  button,
+  input,
+  select,
+  textarea,
+  [role="button"] {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2 focus-visible:ring-offset-white;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  .hce-card {
+    @apply rounded-2xl border border-slate-200 bg-white p-4 shadow-sm;
+  }
+
+  .hce-card-soft {
+    @apply rounded-2xl border border-slate-200 bg-slate-50 p-4;
+  }
+
+  .hce-empty {
+    @apply rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-600;
+  }
+
+  .hce-input {
+    @apply w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-[16px] text-slate-900 outline-none ring-teal-600 transition placeholder:text-slate-400 focus:ring-2 sm:text-sm;
+  }
+
+  .hce-btn {
+    @apply inline-flex min-h-11 items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .hce-btn-primary {
+    @apply hce-btn bg-teal-700 text-white hover:bg-teal-800;
+  }
+
+  .hce-btn-secondary {
+    @apply hce-btn border border-slate-300 bg-white text-slate-800 hover:bg-slate-50;
+  }
+
+  .hce-btn-danger {
+    @apply hce-btn bg-red-600 text-white hover:bg-red-700;
+  }
+
+  .hce-chip {
+    @apply rounded-full border px-3 py-1.5 text-xs font-semibold transition;
+  }
+
+  .hce-alert {
+    @apply rounded-2xl border p-4 text-sm;
+  }
+
+  .hce-alert-success {
+    @apply hce-alert border-emerald-200 bg-emerald-50 text-emerald-800;
+  }
+
+  .hce-alert-error {
+    @apply hce-alert border-red-200 bg-red-50 text-red-700;
+  }
+
+  .hce-alert-warning {
+    @apply hce-alert border-amber-200 bg-amber-50 text-amber-900;
+  }
+
+  .hce-alert-info {
+    @apply hce-alert border-cyan-200 bg-cyan-50 text-cyan-900;
+  }
 }

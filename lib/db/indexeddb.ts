@@ -1,6 +1,6 @@
 import { openDB, type DBSchema, type IDBPDatabase } from "idb";
 import type { SyncQueueItem, SyncStatus } from "@/types/sync";
-import type { PatientRecord } from "@/types/patient";
+import type { PatientRecord, PatientStatus } from "@/types/patient";
 import type {
   ClinicalRecordRecord,
   SpecialtyDataRow,
@@ -203,13 +203,14 @@ export async function listPatientsByTenant(doctorId: string, clinicId: string) {
   const hydratedPatients = await Promise.all(
     matchingPatients.map(async (patient) => {
       const payload = isEncryptedEnvelope(patient.payload)
-        ? await decryptJson<Pick<PatientRecord, "document_number" | "full_name" | "birth_date">>(
+        ? await decryptJson<Pick<PatientRecord, "document_number" | "full_name" | "birth_date" | "status">>(
             patient.payload,
           )
         : {
             document_number: patient.document_number,
             full_name: patient.full_name,
             birth_date: patient.birth_date,
+            status: patient.status,
           };
 
       return {
@@ -219,6 +220,7 @@ export async function listPatientsByTenant(doctorId: string, clinicId: string) {
         document_number: payload.document_number,
         full_name: payload.full_name,
         birth_date: payload.birth_date ?? null,
+        status: (payload.status as PatientStatus) ?? "activo",
         created_at: patient.created_at,
         updated_at: patient.updated_at,
       } as PatientRecord;
@@ -240,6 +242,7 @@ export async function savePatientLocal(patient: PatientRecord) {
       document_number: patient.document_number,
       full_name: patient.full_name,
       birth_date: patient.birth_date,
+      status: patient.status ?? "activo",
     }),
   });
 }
@@ -247,6 +250,36 @@ export async function savePatientLocal(patient: PatientRecord) {
 export async function deletePatientLocal(id: string) {
   const db = await getOfflineDb();
   await db.delete("patients", id);
+}
+
+export async function updatePatientStatusLocal(
+  id: string,
+  status: PatientStatus,
+) {
+  const db = await getOfflineDb();
+  const existing = await db.get("patients", id);
+
+  if (!existing) {
+    return;
+  }
+
+  const decrypted = isEncryptedEnvelope(existing.payload)
+    ? await decryptJson<Record<string, unknown>>(existing.payload)
+    : {
+        document_number: existing.document_number,
+        full_name: existing.full_name,
+        birth_date: existing.birth_date,
+        status: existing.status,
+      };
+
+  await db.put("patients", {
+    ...existing,
+    updated_at: new Date().toISOString(),
+    payload: await encryptJson({
+      ...decrypted,
+      status,
+    }),
+  });
 }
 
 export async function listClinicalRecordsByTenant(

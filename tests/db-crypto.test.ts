@@ -42,6 +42,7 @@ describe("offline patient storage", () => {
       document_number: "0102030405",
       full_name: "Paciente Prueba",
       birth_date: "1990-01-01",
+      status: "activo",
       created_at: "2026-04-16T00:00:00.000Z",
       updated_at: "2026-04-16T00:00:00.000Z",
     };

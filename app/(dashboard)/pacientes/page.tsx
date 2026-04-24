@@ -2,12 +2,34 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
-import { getSupabaseClient } from "@/lib/supabase/client";
-import { loadTenantProfile } from "@/lib/supabase/profile";
-import { listClinicalRecordsByTenant, listPatientsByTenant } from "@/lib/db/indexeddb";
+import { useTenant } from "@/lib/supabase/tenant-context";
+import { useClinicalContext } from "@/lib/context/clinical-context";
+import { PacientesSkeleton } from "@/components/ui/skeletons";
+import { ConfirmModal } from "@/components/ui/confirm-modal";
+import {
+  deletePatientLocal,
+  deleteClinicalRecordLocal,
+  enqueueSyncItem,
+  listClinicalRecordsByTenant,
+  listPatientsByTenant,
+  updatePatientStatusLocal,
+} from "@/lib/db/indexeddb";
 import type { ClinicalRecordRecord } from "@/types/consultation";
-import type { PatientRecord } from "@/types/patient";
+import { PATIENT_STATUS_OPTIONS, type PatientRecord, type PatientStatus } from "@/types/patient";
+import { generateConsultationPdf } from "@/lib/consultations/pdf";
+import { loadLetterheadSettings } from "@/lib/local-data/letterhead";
+
+function StatusBadge({ status }: { status: PatientStatus }) {
+  const opt = PATIENT_STATUS_OPTIONS[status] ?? PATIENT_STATUS_OPTIONS.activo;
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${opt.bg} ${opt.text} ${opt.border}`}
+    >
+      <span className={`inline-block h-1.5 w-1.5 rounded-full ${opt.dot}`} />
+      {opt.label}
+    </span>
+  );
+}
 
 function formatDate(value: string) {
   return new Date(value).toLocaleString("es-EC");
@@ -33,6 +55,8 @@ type PatientHistoryDetails = {
   cieCodes: string[];
 };
 
+type FollowUpTimelineFilter = "completados" | "pendientes" | "vencidos";
+
 function getHistoryDetails(record: ClinicalRecordRecord): PatientHistoryDetails {
   const specialtyData = record.specialty_data as Record<string, unknown>;
   const nextFollowUpDate = getNullableDate(specialtyData.next_follow_up_date);
@@ -50,44 +74,112 @@ function getHistoryDetails(record: ClinicalRecordRecord): PatientHistoryDetails 
   };
 }
 
+function getFollowUpTimelineState(
+  record: ClinicalRecordRecord,
+  details: PatientHistoryDetails,
+): FollowUpTimelineFilter | null {
+  const specialtyData = record.specialty_data as Record<string, unknown>;
+  const followUpMode = specialtyData.follow_up_mode === "seguimiento";
+
+  if (details.nextFollowUpDate) {
+    return details.isFollowUpOverdue ? "vencidos" : "pendientes";
+  }
+
+  if (followUpMode) {
+    return "completados";
+  }
+
+  return null;
+}
+
 export default function PacientesPage() {
-  const router = useRouter();
+  const { tenant, loading: tenantLoading } = useTenant();
+  const clinical = useClinicalContext();
   const [patients, setPatients] = useState<PatientRecord[]>([]);
   const [records, setRecords] = useState<ClinicalRecordRecord[]>([]);
-  const [selectedPatientId, setSelectedPatientId] = useState<string>("");
+  const [selectedPatientId, setSelectedPatientIdLocal] = useState<string>(clinical.selectedPatientId || "");
   const [selectedRecordId, setSelectedRecordId] = useState<string>("");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [statusSaving, setStatusSaving] = useState(false);
+  const [followUpFilter, setFollowUpFilter] = useState<FollowUpTimelineFilter>("pendientes");
+  const [deletePatientTarget, setDeletePatientTarget] = useState<PatientRecord | null>(null);
+  const [deleteRecordTarget, setDeleteRecordTarget] = useState<ClinicalRecordRecord | null>(null);
+
+  // Sync selected patient to clinical context
+  function setSelectedPatientId(id: string) {
+    setSelectedPatientIdLocal(id);
+    clinical.setSelectedPatientId(id);
+    setStatusMessage(null);
+  }
+
+  async function handlePatientStatusChange(nextStatus: PatientStatus) {
+    if (!tenant || !selectedPatient || nextStatus === selectedPatient.status) {
+      return;
+    }
+
+    setStatusSaving(true);
+    setStatusMessage(null);
+
+    const updatedAt = new Date().toISOString();
+    const updatedPatient: PatientRecord = {
+      ...selectedPatient,
+      status: nextStatus,
+      updated_at: updatedAt,
+    };
+
+    try {
+      await updatePatientStatusLocal(selectedPatient.id, nextStatus);
+      await enqueueSyncItem({
+        id: crypto.randomUUID(),
+        table_name: "patients",
+        record_id: selectedPatient.id,
+        action: "update",
+        payload: updatedPatient,
+        doctor_id: tenant.doctor_id,
+        clinic_id: tenant.clinic_id,
+        client_timestamp: Date.now(),
+        status: "pending",
+        retry_count: 0,
+      });
+
+      setPatients((current) =>
+        current.map((patient) =>
+          patient.id === selectedPatient.id ? updatedPatient : patient,
+        ),
+      );
+      setStatusMessage(
+        `Estado actualizado a ${PATIENT_STATUS_OPTIONS[nextStatus].label}.`,
+      );
+    } catch (statusError) {
+      setStatusMessage(
+        statusError instanceof Error
+          ? statusError.message
+          : "No se pudo actualizar el estado del paciente.",
+      );
+    } finally {
+      setStatusSaving(false);
+    }
+  }
 
   useEffect(() => {
+    if (tenantLoading || !tenant) {
+      return;
+    }
+
     let active = true;
 
     const bootstrap = async () => {
       try {
-        const supabase = getSupabaseClient();
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-
-        if (!session) {
-          router.replace("/login");
-          return;
-        }
-
-        const tenantProfile = await loadTenantProfile(session.user.id);
-
-        if (!tenantProfile) {
-          throw new Error("No se encontro perfil de tenant para este usuario.");
-        }
-
         const localPatients = await listPatientsByTenant(
-          tenantProfile.doctor_id,
-          tenantProfile.clinic_id,
+          tenant.doctor_id,
+          tenant.clinic_id,
         );
         const localRecords = await listClinicalRecordsByTenant(
-          tenantProfile.doctor_id,
-          tenantProfile.clinic_id,
+          tenant.doctor_id,
+          tenant.clinic_id,
         );
 
         if (!active) {
@@ -96,7 +188,9 @@ export default function PacientesPage() {
 
         setPatients(localPatients);
         setRecords(localRecords);
-        setSelectedPatientId(localPatients[0]?.id ?? "");
+        // Use clinical context patient if available, otherwise first patient
+        const initialPatientId = clinical.selectedPatientId || localPatients[0]?.id || "";
+        setSelectedPatientIdLocal(initialPatientId);
       } catch (bootstrapError) {
         if (active) {
           setError(
@@ -117,7 +211,8 @@ export default function PacientesPage() {
     return () => {
       active = false;
     };
-  }, [router]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tenant, tenantLoading]);
 
   const filteredPatients = useMemo(() => {
     const normalized = search.trim().toLowerCase();
@@ -138,6 +233,7 @@ export default function PacientesPage() {
     if (!filteredPatients.some((patient) => patient.id === selectedPatientId)) {
       setSelectedPatientId(filteredPatients[0]?.id ?? "");
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filteredPatients, selectedPatientId]);
 
   const selectedPatient = useMemo(
@@ -155,23 +251,61 @@ export default function PacientesPage() {
       .sort((first, second) => second.updated_at.localeCompare(first.updated_at));
   }, [records, selectedPatient]);
 
-  useEffect(() => {
-    if (!patientHistory.some((record) => record.id === selectedRecordId)) {
-      setSelectedRecordId(patientHistory[0]?.id ?? "");
-    }
-  }, [patientHistory, selectedRecordId]);
+  const followUpTimelineRecords = useMemo(() => {
+    return patientHistory
+      .map((record) => {
+        const details = getHistoryDetails(record);
+        const timelineState = getFollowUpTimelineState(record, details);
+        return { record, details, timelineState };
+      })
+      .filter((item) => item.timelineState !== null);
+  }, [patientHistory]);
 
-  const selectedRecord = useMemo(
-    () => patientHistory.find((record) => record.id === selectedRecordId) ?? patientHistory[0] ?? null,
-    [patientHistory, selectedRecordId],
+  const filteredFollowUpTimelineRecords = useMemo(() => {
+    return followUpTimelineRecords.filter(
+      (item) => item.timelineState === followUpFilter,
+    );
+  }, [followUpFilter, followUpTimelineRecords]);
+
+  const followUpCounts = useMemo(() => {
+    return followUpTimelineRecords.reduce(
+      (acc, item) => {
+        if (item.timelineState) {
+          acc[item.timelineState] += 1;
+        }
+        return acc;
+      },
+      {
+        completados: 0,
+        pendientes: 0,
+        vencidos: 0,
+      } as Record<FollowUpTimelineFilter, number>,
+    );
+  }, [followUpTimelineRecords]);
+
+  useEffect(() => {
+    if (!filteredFollowUpTimelineRecords.some((item) => item.record.id === selectedRecordId)) {
+      setSelectedRecordId(filteredFollowUpTimelineRecords[0]?.record.id ?? "");
+    }
+  }, [filteredFollowUpTimelineRecords, selectedRecordId]);
+
+  const selectedFollowUp = useMemo(
+    () =>
+      followUpTimelineRecords.find((item) => item.record.id === selectedRecordId) ??
+      filteredFollowUpTimelineRecords[0] ??
+      followUpTimelineRecords[0] ??
+      null,
+    [filteredFollowUpTimelineRecords, followUpTimelineRecords, selectedRecordId],
   );
 
-  const selectedDetails = selectedRecord ? getHistoryDetails(selectedRecord) : null;
-  const followUpRecords = patientHistory.filter((record) => getHistoryDetails(record).nextFollowUpDate);
-  const overdueFollowUps = followUpRecords.filter((record) => getHistoryDetails(record).isFollowUpOverdue);
+  const selectedRecord = selectedFollowUp?.record ?? null;
+  const selectedDetails = selectedFollowUp?.details ?? null;
+  const overdueFollowUps = followUpTimelineRecords.filter(
+    (item) => item.timelineState === "vencidos",
+  );
 
-  if (loading) {
-    return <p className="text-sm text-slate-600">Cargando pacientes...</p>;
+  if (tenantLoading || loading) {
+    return <PacientesSkeleton />;
   }
 
   return (
@@ -192,13 +326,13 @@ export default function PacientesPage() {
           <div className="flex flex-wrap gap-2">
             <Link
               href="/consultas"
-              className="rounded-xl bg-teal-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-800"
+              className="hce-btn-primary"
             >
               Crear consulta / paciente
             </Link>
             <Link
               href="/dashboard"
-              className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
+              className="hce-btn-secondary"
             >
               Volver al panel
             </Link>
@@ -207,7 +341,7 @@ export default function PacientesPage() {
       </header>
 
       {error ? (
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        <div className="hce-alert-error">
           {error}
         </div>
       ) : null}
@@ -243,7 +377,7 @@ export default function PacientesPage() {
             <label className="block space-y-2 text-sm font-medium text-slate-700">
               <span>Buscar</span>
               <input
-                className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none ring-teal-600 focus:ring-2"
+                className="hce-input"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Nombre o documento"
@@ -253,7 +387,7 @@ export default function PacientesPage() {
 
           <div className="mt-4 space-y-2">
             {filteredPatients.length === 0 ? (
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+              <div className="hce-empty">
                 No hay pacientes que coincidan con tu busqueda.
               </div>
             ) : (
@@ -268,7 +402,10 @@ export default function PacientesPage() {
                       : "border-slate-200 bg-white"
                   }`}
                 >
-                  <p className="font-semibold text-slate-900">{patient.full_name}</p>
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="font-semibold text-slate-900">{patient.full_name}</p>
+                    <StatusBadge status={patient.status ?? "activo"} />
+                  </div>
                   <p className="text-sm text-slate-600">{patient.document_number}</p>
                   <p className="mt-1 text-xs text-slate-500">
                     {patient.birth_date ? `Nacimiento: ${patient.birth_date}` : "Sin fecha de nacimiento"}
@@ -286,9 +423,12 @@ export default function PacientesPage() {
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
                   Perfil del paciente
                 </p>
-                <h2 className="text-2xl font-semibold text-slate-900">
-                  {selectedPatient ? selectedPatient.full_name : "Selecciona un paciente"}
-                </h2>
+                <div className="flex items-center gap-3">
+                  <h2 className="text-2xl font-semibold text-slate-900">
+                    {selectedPatient ? selectedPatient.full_name : "Selecciona un paciente"}
+                  </h2>
+                  {selectedPatient ? <StatusBadge status={selectedPatient.status ?? "activo"} /> : null}
+                </div>
                 <p className="text-sm text-slate-700">
                   {selectedPatient
                     ? `${selectedPatient.document_number}${selectedPatient.birth_date ? ` · ${selectedPatient.birth_date}` : ""}`
@@ -304,37 +444,96 @@ export default function PacientesPage() {
                   </div>
                   <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
                     <p className="text-xs uppercase tracking-[0.15em] text-slate-500">Seguimientos</p>
-                    <p className="mt-1 text-lg font-semibold text-slate-900">{followUpRecords.length}</p>
+                    <p className="mt-1 text-lg font-semibold text-slate-900">{followUpTimelineRecords.length}</p>
                   </div>
                 </div>
               ) : null}
+
+              {selectedPatient ? (
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <label className="block space-y-2 text-sm font-medium text-slate-700">
+                    <span>Estado del paciente</span>
+                    <select
+                      className="hce-input disabled:cursor-not-allowed disabled:opacity-70"
+                      value={selectedPatient.status ?? "activo"}
+                      disabled={statusSaving}
+                      onChange={(event) => {
+                        void handlePatientStatusChange(event.target.value as PatientStatus);
+                      }}
+                    >
+                      {(Object.keys(PATIENT_STATUS_OPTIONS) as PatientStatus[]).map((status) => (
+                        <option key={status} value={status}>
+                          {PATIENT_STATUS_OPTIONS[status].label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  {statusMessage ? (
+                    <p className="mt-2 text-xs text-slate-600">{statusMessage}</p>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
+
+            {selectedPatient ? (
+              <button
+                type="button"
+                onClick={() => setDeletePatientTarget(selectedPatient)}
+                className="hce-chip mt-3 inline-flex items-center gap-1.5 border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                </svg>
+                Eliminar paciente
+              </button>
+            ) : null}
           </article>
 
           <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <h2 className="text-lg font-semibold text-slate-900">Historial de consultas</h2>
+                <h2 className="text-lg font-semibold text-slate-900">Timeline de seguimientos</h2>
                 <p className="text-sm text-slate-600">
-                  Cada tarjeta es clicable para revisar el detalle de anamnesis, tratamiento y seguimiento.
+                  Filtro por estado para revisar seguimientos completados, pendientes y vencidos.
                 </p>
               </div>
               <Link
                 href="/consultas"
-                className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
+                className="hce-btn-secondary"
               >
                 Nueva consulta
               </Link>
             </div>
 
+            <div className="mt-4 flex flex-wrap gap-2">
+              {([
+                ["pendientes", "Pendientes"],
+                ["vencidos", "Vencidos"],
+                ["completados", "Completados"],
+              ] as Array<[FollowUpTimelineFilter, string]>).map(([filter, label]) => (
+                <button
+                  key={filter}
+                  type="button"
+                  onClick={() => setFollowUpFilter(filter)}
+                  className={`hce-chip ${
+                    followUpFilter === filter
+                      ? "border-teal-300 bg-teal-50 text-teal-900"
+                      : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                  }`}
+                >
+                  {label} ({followUpCounts[filter]})
+                </button>
+              ))}
+            </div>
+
             <div className="mt-4 space-y-3">
-              {patientHistory.length === 0 ? (
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-600">
-                  Aun no hay consultas para este paciente.
+              {filteredFollowUpTimelineRecords.length === 0 ? (
+                <div className="hce-empty p-5">
+                  No hay seguimientos en el estado seleccionado.
                 </div>
               ) : (
-                patientHistory.map((record) => {
-                  const details = getHistoryDetails(record);
+                filteredFollowUpTimelineRecords.map((item) => {
+                  const { record, details, timelineState } = item;
                   const isSelected = selectedRecord?.id === record.id;
 
                   return (
@@ -357,7 +556,11 @@ export default function PacientesPage() {
                           <p className="mt-1 text-sm text-slate-700">{details.diagnosis}</p>
                         </div>
                         <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.15em] text-slate-600">
-                          {details.nextFollowUpDate ? (details.isFollowUpOverdue ? "Seguimiento vencido" : "Con seguimiento") : "Sin seguimiento"}
+                          {timelineState === "vencidos"
+                            ? "Seguimiento vencido"
+                            : timelineState === "pendientes"
+                              ? "Seguimiento pendiente"
+                              : "Seguimiento completado"}
                         </span>
                       </div>
 
@@ -381,13 +584,49 @@ export default function PacientesPage() {
                       </div>
 
                       </button>
-                      <div className="mt-3">
+                      <div className="mt-3 flex flex-wrap gap-2">
                         <Link
                           href={`/consultas?mode=seguimiento&patientId=${record.patient_id}&recordId=${record.id}`}
                           className="inline-flex rounded-xl border border-teal-300 bg-teal-50 px-3 py-2 text-xs font-semibold text-teal-900 transition hover:bg-teal-100"
                         >
-                          Crear seguimiento desde esta consulta
+                          Crear seguimiento
                         </Link>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!tenant || !selectedPatient) return;
+                            const letterhead = loadLetterheadSettings(tenant.doctor_id, tenant.clinic_id);
+                            generateConsultationPdf(letterhead, {
+                              patientName: selectedPatient.full_name,
+                              patientDocument: selectedPatient.document_number,
+                              consultationDate: formatDate(details.consultationDate),
+                              anamnesis: details.anamnesis,
+                              symptoms: details.symptoms,
+                              diagnosis: details.diagnosis,
+                              cieCodes: details.cieCodes,
+                              treatmentPlan: details.treatmentPlan,
+                              specialtyKind: record.specialty_kind,
+                              evolutionStatus: details.evolutionStatus,
+                              followUpDate: details.nextFollowUpDate ?? undefined,
+                            });
+                          }}
+                          className="inline-flex items-center gap-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                            <polyline points="14 2 14 8 20 8" />
+                            <line x1="16" y1="13" x2="8" y2="13" />
+                            <line x1="16" y1="17" x2="8" y2="17" />
+                          </svg>
+                          Generar PDF
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDeleteRecordTarget(record)}
+                          className="inline-flex items-center gap-1 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 transition hover:bg-red-100"
+                        >
+                          Eliminar
+                        </button>
                       </div>
                     </article>
                   );
@@ -428,6 +667,81 @@ export default function PacientesPage() {
           </article>
         </section>
       </div>
+
+      {/* Delete patient modal */}
+      <ConfirmModal
+        open={deletePatientTarget !== null}
+        title="Eliminar paciente"
+        description={`Se eliminara a ${deletePatientTarget?.full_name ?? ""} y todas sus consultas. Esta accion no se puede deshacer.`}
+        confirmLabel="Eliminar"
+        variant="danger"
+        onCancel={() => setDeletePatientTarget(null)}
+        onConfirm={async () => {
+          if (!deletePatientTarget || !tenant) return;
+          // Delete all records for this patient
+          const patientRecords = records.filter(r => r.patient_id === deletePatientTarget.id);
+          for (const rec of patientRecords) {
+            await deleteClinicalRecordLocal(rec.id);
+            await enqueueSyncItem({
+              id: crypto.randomUUID(),
+              table_name: "clinical_records",
+              record_id: rec.id,
+              action: "delete",
+              payload: { id: rec.id },
+              doctor_id: tenant.doctor_id,
+              clinic_id: tenant.clinic_id,
+              client_timestamp: Date.now(),
+              status: "pending",
+              retry_count: 0,
+            });
+          }
+          await deletePatientLocal(deletePatientTarget.id);
+          await enqueueSyncItem({
+            id: crypto.randomUUID(),
+            table_name: "patients",
+            record_id: deletePatientTarget.id,
+            action: "delete",
+            payload: { id: deletePatientTarget.id },
+            doctor_id: tenant.doctor_id,
+            clinic_id: tenant.clinic_id,
+            client_timestamp: Date.now(),
+            status: "pending",
+            retry_count: 0,
+          });
+          setPatients(prev => prev.filter(p => p.id !== deletePatientTarget.id));
+          setRecords(prev => prev.filter(r => r.patient_id !== deletePatientTarget.id));
+          setSelectedPatientId("");
+          setDeletePatientTarget(null);
+        }}
+      />
+
+      {/* Delete consultation modal */}
+      <ConfirmModal
+        open={deleteRecordTarget !== null}
+        title="Eliminar consulta"
+        description="Se eliminara esta consulta del historial. Esta accion no se puede deshacer."
+        confirmLabel="Eliminar"
+        variant="danger"
+        onCancel={() => setDeleteRecordTarget(null)}
+        onConfirm={async () => {
+          if (!deleteRecordTarget || !tenant) return;
+          await deleteClinicalRecordLocal(deleteRecordTarget.id);
+          await enqueueSyncItem({
+            id: crypto.randomUUID(),
+            table_name: "clinical_records",
+            record_id: deleteRecordTarget.id,
+            action: "delete",
+            payload: { id: deleteRecordTarget.id },
+            doctor_id: tenant.doctor_id,
+            clinic_id: tenant.clinic_id,
+            client_timestamp: Date.now(),
+            status: "pending",
+            retry_count: 0,
+          });
+          setRecords(prev => prev.filter(r => r.id !== deleteRecordTarget.id));
+          setDeleteRecordTarget(null);
+        }}
+      />
     </section>
   );
 }

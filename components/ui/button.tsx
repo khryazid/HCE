@@ -11,14 +11,14 @@ export function Button({
 }: ButtonProps) {
   const variantClass =
     variant === "primary"
-      ? "bg-teal-700 text-white hover:bg-teal-800"
+      ? "hce-btn-primary"
       : variant === "secondary"
-        ? "bg-slate-100 text-slate-900 hover:bg-slate-200"
-        : "bg-transparent text-slate-700 hover:bg-slate-100";
+        ? "hce-btn-secondary border-0 bg-slate-100 text-slate-900 hover:bg-slate-200"
+        : "hce-btn border-0 bg-transparent text-slate-700 hover:bg-slate-100";
 
   return (
     <button
-      className={`inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold transition ${variantClass} ${className}`}
+      className={`${variantClass} ${className}`}
       {...props}
     />
   );
