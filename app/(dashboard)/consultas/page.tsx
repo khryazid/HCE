@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import { useTenant } from "@/lib/supabase/tenant-context";
 import { ConsultasSkeleton } from "@/components/ui/skeletons";
 import { useConsultationWizard } from "@/lib/consultations/use-consultation-wizard";
@@ -9,23 +10,34 @@ import { WizardStepTreatment } from "@/components/clinical/wizard-step-treatment
 import { WizardStepConfirm } from "@/components/clinical/wizard-step-confirm";
 import { WizardNavigation } from "@/components/clinical/wizard-navigation";
 import { PatientTimeline } from "@/components/clinical/patient-timeline";
+import { WizardPdfPreviewModal } from "@/components/clinical/wizard-pdf-preview-modal";
+import { loadLetterheadSettings } from "@/lib/local-data/letterhead";
 
 export default function ConsultasPage() {
   const { tenant, loading: tenantLoading } = useTenant();
   const wizard = useConsultationWizard(tenant);
+  const [previewOpen, setPreviewOpen] = useState(false);
+
+  const letterhead = useMemo(() => {
+    if (!tenant) {
+      return null;
+    }
+
+    return loadLetterheadSettings(tenant.doctor_id, tenant.clinic_id);
+  }, [tenant]);
 
   if (tenantLoading || wizard.dataLoading) {
     return <ConsultasSkeleton />;
   }
 
   return (
-    <section className="space-y-6">
+    <section className="hce-page">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-slate-900">
+        <div className="hce-page-header">
+          <h1 className="hce-page-title">
             Flujo de consulta
           </h1>
-          <p className="text-sm text-slate-700">
+          <p className="hce-page-lead">
             Registro guiado por pasos: paciente, anamnesis y diagnostico,
             tratamiento, confirmacion y PDF.
           </p>
@@ -120,10 +132,34 @@ export default function ConsultasPage() {
             saving={wizard.saving}
             onPrev={wizard.prevStep}
             onNext={wizard.nextStep}
-            onComplete={() => void wizard.handleComplete()}
+            onSaveWithoutPdf={() => void wizard.handleSaveWithoutPdf()}
+            onOpenPreview={() => setPreviewOpen(true)}
           />
         </article>
       ) : null}
+
+      <WizardPdfPreviewModal
+        open={previewOpen}
+        data={wizard.getCurrentPdfPreviewData()}
+        letterhead={
+          letterhead ?? {
+            doctor_name: "Profesional de salud",
+            professional_title: "Especialista",
+            specialties: "",
+            address: "",
+            phone_primary: "",
+            phone_secondary: "",
+            contact_email: "",
+            logo_data_url: "",
+          }
+        }
+        saving={wizard.saving}
+        onClose={() => setPreviewOpen(false)}
+        onConfirmGenerate={() => {
+          setPreviewOpen(false);
+          void wizard.handleSaveWithPdf();
+        }}
+      />
 
       <PatientTimeline
         patients={wizard.patients}

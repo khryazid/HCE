@@ -87,6 +87,20 @@ export type PendingFollowUp = {
   treatmentPlan: string;
 };
 
+export type ConsultationPdfPreviewData = {
+  patientName: string;
+  patientDocument: string;
+  consultationDate: string;
+  anamnesis: string;
+  symptoms: string;
+  diagnosis: string;
+  cieCodes: string[];
+  treatmentPlan: string;
+  specialtyKind: string;
+  evolutionStatus?: string;
+  followUpDate?: string;
+};
+
 export function useConsultationWizard(tenant: TenantProfile | null) {
   const router = useRouter();
   const deepLinkHandled = useRef(false);
@@ -644,7 +658,35 @@ export function useConsultationWizard(tenant: TenantProfile | null) {
     setStep((current) => ensureWizardStep(current - 1));
   }
 
-  async function saveConsultation() {
+  function buildPdfPreviewData(timestamp: string): ConsultationPdfPreviewData {
+    const fallbackTreatment = pendingFollowUp?.treatmentPlan || "";
+    const finalTreatment = form.treatmentPlan.trim() || fallbackTreatment;
+    const patient = patients.find((item) => item.id === form.patientId);
+
+    return {
+      patientName: patient?.full_name ?? "Paciente",
+      patientDocument: patient?.document_number ?? "sin-documento",
+      consultationDate: new Date(timestamp).toLocaleString("es-EC"),
+      anamnesis: form.anamnesis,
+      symptoms: form.symptoms,
+      diagnosis: form.diagnosis,
+      cieCodes: normalizeCommaValues(form.cieCodes),
+      treatmentPlan: finalTreatment,
+      specialtyKind: form.specialtyKind,
+      evolutionStatus: form.evolutionStatus || undefined,
+      followUpDate: form.nextFollowUpDate || undefined,
+    };
+  }
+
+  function getCurrentPdfPreviewData(): ConsultationPdfPreviewData | null {
+    if (!form.patientId) {
+      return null;
+    }
+
+    return buildPdfPreviewData(nowIso());
+  }
+
+  async function saveConsultation(options?: { generatePdf?: boolean }) {
     if (!tenant) {
       return;
     }
@@ -747,25 +789,14 @@ export function useConsultationWizard(tenant: TenantProfile | null) {
       retry_count: 0,
     });
 
-    const patient = patients.find((item) => item.id === form.patientId);
-    const letterhead = loadLetterheadSettings(
-      tenant.doctor_id,
-      tenant.clinic_id,
-    );
-
-    generateConsultationPdf(letterhead, {
-      patientName: patient?.full_name ?? "Paciente",
-      patientDocument: patient?.document_number ?? "sin-documento",
-      consultationDate: new Date(timestamp).toLocaleString("es-EC"),
-      anamnesis: form.anamnesis,
-      symptoms: form.symptoms,
-      diagnosis: form.diagnosis,
-      cieCodes: normalizeCommaValues(form.cieCodes),
-      treatmentPlan: form.treatmentPlan,
-      specialtyKind: form.specialtyKind,
-      evolutionStatus: form.evolutionStatus,
-      followUpDate: form.nextFollowUpDate,
-    });
+    const shouldGeneratePdf = options?.generatePdf ?? false;
+    if (shouldGeneratePdf) {
+      const letterhead = loadLetterheadSettings(
+        tenant.doctor_id,
+        tenant.clinic_id,
+      );
+      generateConsultationPdf(letterhead, buildPdfPreviewData(timestamp));
+    }
 
     const nextRecords = await listClinicalRecordsByTenant(
       tenant.doctor_id,
@@ -774,18 +805,39 @@ export function useConsultationWizard(tenant: TenantProfile | null) {
     setRecords(nextRecords);
     resetWizard();
     setMessage(
-      form.entryMode === "seguimiento"
-        ? "Seguimiento guardado y evolucion actualizada con PDF generado."
-        : "Consulta guardada con flujo guiado y PDF generado.",
+      shouldGeneratePdf
+        ? form.entryMode === "seguimiento"
+          ? "Seguimiento guardado y evolucion actualizada con PDF generado."
+          : "Consulta guardada con flujo guiado y PDF generado."
+        : form.entryMode === "seguimiento"
+          ? "Seguimiento guardado sin generar PDF."
+          : "Consulta guardada sin generar PDF.",
     );
   }
 
-  async function handleComplete() {
+  async function handleSaveWithoutPdf() {
     setSaving(true);
     setError(null);
 
     try {
-      await saveConsultation();
+      await saveConsultation({ generatePdf: false });
+    } catch (submitError) {
+      setError(
+        submitError instanceof Error
+          ? submitError.message
+          : "No se pudo completar la consulta.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleSaveWithPdf() {
+    setSaving(true);
+    setError(null);
+
+    try {
+      await saveConsultation({ generatePdf: true });
     } catch (submitError) {
       setError(
         submitError instanceof Error
@@ -841,6 +893,8 @@ export function useConsultationWizard(tenant: TenantProfile | null) {
     applyFollowUpMode,
     applyConsultaMode,
     applyCieSuggestion,
-    handleComplete,
+    handleSaveWithoutPdf,
+    handleSaveWithPdf,
+    getCurrentPdfPreviewData,
   };
 }

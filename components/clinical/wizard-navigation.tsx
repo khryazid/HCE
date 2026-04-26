@@ -5,7 +5,8 @@ type Props = {
   saving: boolean;
   onPrev: () => void;
   onNext: () => void;
-  onComplete: () => void;
+  onSaveWithoutPdf: () => void;
+  onOpenPreview: () => void;
 };
 
 export function WizardNavigation({
@@ -13,7 +14,8 @@ export function WizardNavigation({
   saving,
   onPrev,
   onNext,
-  onComplete,
+  onSaveWithoutPdf,
+  onOpenPreview,
 }: Props) {
   return (
     <div className="flex gap-2">
@@ -35,14 +37,24 @@ export function WizardNavigation({
           Siguiente
         </button>
       ) : (
-        <button
-          type="button"
-          onClick={onComplete}
-          disabled={saving}
-          className="rounded-xl bg-teal-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
-        >
-          {saving ? "Guardando..." : "Confirmar, guardar y generar PDF"}
-        </button>
+        <>
+          <button
+            type="button"
+            onClick={onSaveWithoutPdf}
+            disabled={saving}
+            className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 disabled:opacity-60"
+          >
+            {saving ? "Guardando..." : "Guardar sin PDF"}
+          </button>
+          <button
+            type="button"
+            onClick={onOpenPreview}
+            disabled={saving}
+            className="rounded-xl bg-teal-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+          >
+            Previsualizar PDF
+          </button>
+        </>
       )}
     </div>
   );

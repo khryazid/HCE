@@ -1,5 +1,7 @@
 import { DashboardOnboardingGuard } from "@/components/ui/dashboard-onboarding-guard";
 import { Sidebar, BottomNav } from "@/components/ui/sidebar";
+import { SyncStatusBanner } from "@/components/ui/sync-status-banner";
+import { GlobalSearch } from "@/components/ui/global-search";
 import { TenantProvider } from "@/lib/supabase/tenant-context";
 import { ClinicalProvider } from "@/lib/context/clinical-context";
 
@@ -19,6 +21,10 @@ export default function DashboardLayout({
 
             <main className="flex-1 p-4 pb-24 sm:p-6 lg:p-8 lg:pb-8">
               <div className="mx-auto w-full max-w-6xl">
+                <div className="mb-4 space-y-3">
+                  <GlobalSearch />
+                  <SyncStatusBanner />
+                </div>
                 {children}
               </div>
             </main>

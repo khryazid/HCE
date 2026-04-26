@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { AuthForm } from "@/components/ui/auth-form";
 
@@ -7,13 +8,13 @@ export default function RegisterPage() {
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_10%_10%,rgba(16,185,129,.14),transparent_40%),radial-gradient(circle_at_90%_15%,rgba(234,88,12,.16),transparent_35%),linear-gradient(130deg,#f8fbf6,#f6f7f3)]" />
       <section className="mx-auto grid w-full max-w-6xl gap-6 lg:grid-cols-[1.15fr_1fr]">
         <article className="rounded-3xl border border-white/80 bg-white/75 p-6 shadow-2xl shadow-emerald-900/10 backdrop-blur sm:p-8">
-          <p className="inline-flex rounded-full border border-emerald-900/20 bg-emerald-50 px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-900">
+          <p className="hce-kicker inline-flex rounded-full border border-emerald-900/20 bg-emerald-50 px-4 py-1 text-emerald-900">
             Glyph · Registro
           </p>
-          <h1 className="mt-4 text-3xl font-bold leading-tight text-slate-900 sm:text-5xl">
+          <h1 className="mt-4 text-3xl font-semibold leading-tight text-slate-900 sm:text-5xl">
             Crea tu cuenta y activa tu entorno clinico multi-especialidad.
           </h1>
-          <p className="mt-4 max-w-xl text-base leading-7 text-slate-700">
+          <p className="mt-4 max-w-xl hce-page-lead sm:text-base">
             Registra tus especialidades, define tu tenant y deja listo el flujo para onboarding
             profesional, consultas y documentacion posterior.
           </p>
@@ -35,8 +36,11 @@ export default function RegisterPage() {
           </Link>
         </article>
 
-        <AuthForm mode="register" />
+        <Suspense fallback={<div className="flex items-center justify-center p-8 text-sm text-slate-500">Cargando formulario...</div>}>
+          <AuthForm mode="register" />
+        </Suspense>
       </section>
     </main>
   );
 }
+

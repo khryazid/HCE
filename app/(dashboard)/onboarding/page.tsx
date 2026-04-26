@@ -15,6 +15,10 @@ import {
   saveLetterheadSettings,
   type LetterheadSettings,
 } from "@/lib/local-data/letterhead";
+import {
+  exportEncryptionKeyBackup,
+  importEncryptionKeyBackup,
+} from "@/lib/db/crypto";
 
 type OnboardingFormState = {
   professionalTitle: string;
@@ -76,6 +80,7 @@ export default function OnboardingPage() {
   const [letterhead, setLetterhead] = useState(EMPTY_LETTERHEAD_STATE);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [restoringKey, setRestoringKey] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -189,20 +194,72 @@ export default function OnboardingPage() {
     }
   }
 
+  async function handleExportKeyBackup() {
+    try {
+      setError(null);
+      const backup = await exportEncryptionKeyBackup();
+      const blob = new Blob([JSON.stringify(backup, null, 2)], {
+        type: "application/json",
+      });
+
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      const dateTag = new Date().toISOString().slice(0, 10);
+      anchor.href = url;
+      anchor.download = `hce-key-backup-${dateTag}.json`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      URL.revokeObjectURL(url);
+
+      setSuccessMessage("Backup de clave descargado. Guardalo en un lugar seguro.");
+    } catch (backupError) {
+      setError(
+        backupError instanceof Error
+          ? backupError.message
+          : "No se pudo exportar la clave de cifrado.",
+      );
+    }
+  }
+
+  async function handleImportKeyBackup(file: File | null) {
+    if (!file) {
+      return;
+    }
+
+    setRestoringKey(true);
+    setError(null);
+
+    try {
+      const content = await file.text();
+      const parsed = JSON.parse(content) as unknown;
+      await importEncryptionKeyBackup(parsed);
+      setSuccessMessage("Clave restaurada correctamente. Ya puedes leer datos cifrados de este backup.");
+    } catch (importError) {
+      setError(
+        importError instanceof Error
+          ? importError.message
+          : "No se pudo importar el backup de clave.",
+      );
+    } finally {
+      setRestoringKey(false);
+    }
+  }
+
   if (loading) {
     return <p className="text-sm text-slate-600">Cargando onboarding...</p>;
   }
 
   return (
-    <section className="mx-auto w-full max-w-3xl space-y-6">
+    <section className="mx-auto w-full max-w-3xl hce-page">
       <header className="rounded-3xl border border-cyan-100 bg-cyan-50/70 p-6">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-800">
+        <p className="hce-kicker text-cyan-800">
           Perfil Profesional
         </p>
-        <h1 className="mt-2 text-2xl font-semibold text-slate-900">
+        <h1 className="mt-2 hce-page-title">
           Edita tus datos profesionales
         </h1>
-        <p className="mt-2 text-sm text-slate-700">
+        <p className="mt-2 hce-page-lead">
           Esta pagina centraliza perfil profesional y datos de membrete para PDF.
         </p>
       </header>
@@ -342,6 +399,40 @@ export default function OnboardingPage() {
               </button>
             </div>
           ) : null}
+        </div>
+
+        <div className="space-y-3 rounded-2xl border border-amber-200 bg-amber-50/60 p-4 sm:col-span-2">
+          <div>
+            <p className="text-sm font-semibold text-amber-900">Backup de clave de cifrado</p>
+            <p className="text-xs text-amber-800">
+              Exporta esta clave antes de limpiar navegador o cambiar de dispositivo. Sin ella, los datos PHI cifrados no se podran descifrar.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => void handleExportKeyBackup()}
+              className="rounded-xl border border-amber-300 bg-white px-4 py-2 text-sm font-semibold text-amber-900 transition hover:bg-amber-100"
+            >
+              Descargar backup de clave
+            </button>
+
+            <label className="inline-flex cursor-pointer items-center rounded-xl border border-amber-300 bg-white px-4 py-2 text-sm font-semibold text-amber-900 transition hover:bg-amber-100">
+              {restoringKey ? "Restaurando..." : "Importar backup de clave"}
+              <input
+                type="file"
+                accept="application/json"
+                className="hidden"
+                disabled={restoringKey}
+                onChange={(event) => {
+                  const file = event.target.files?.[0] ?? null;
+                  void handleImportKeyBackup(file);
+                  event.currentTarget.value = "";
+                }}
+              />
+            </label>
+          </div>
         </div>
 
         <label className="space-y-2 text-sm font-medium text-slate-700 sm:col-span-2">

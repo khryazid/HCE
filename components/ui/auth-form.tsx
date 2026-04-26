@@ -203,13 +203,13 @@ export function AuthForm({ mode }: AuthFormProps) {
   return (
     <section className="mx-auto w-full max-w-xl rounded-3xl border border-cyan-100/90 bg-white/90 p-6 shadow-2xl shadow-cyan-900/10 backdrop-blur sm:p-8">
       <div className="space-y-3">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-700">
+        <p className="hce-kicker text-cyan-700">
           Glyph
         </p>
-        <h1 className="text-2xl font-semibold leading-tight text-slate-900">
+        <h1 className="hce-page-title text-2xl sm:text-2xl">
           {isSignUp ? "Crear cuenta" : "Iniciar sesion"}
         </h1>
-        <p className="text-sm leading-6 text-slate-600">
+        <p className="hce-page-lead text-slate-600">
           {isSignUp
             ? "Registra tu cuenta y define tu perfil de especialidades para comenzar."
             : "Ingresa con tu cuenta para continuar con tu flujo clinico."}

@@ -17,6 +17,13 @@ type SecurityKeyRecord = {
   created_at: string;
 };
 
+export type EncryptionKeyBackup = {
+  version: 1;
+  key_material: string;
+  created_at: string;
+  exported_at: string;
+};
+
 function toBase64(bytes: Uint8Array) {
   if (typeof Buffer !== "undefined") {
     return Buffer.from(bytes).toString("base64");
@@ -89,6 +96,67 @@ async function loadOrCreateAesKey() {
 
   await db.put(SECURITY_STORE, record);
   return generated;
+}
+
+export async function exportEncryptionKeyBackup(): Promise<EncryptionKeyBackup> {
+  const db = await getSecurityDb();
+
+  let stored = (await db.get(SECURITY_STORE, SECURITY_KEY_ID)) as SecurityKeyRecord | undefined;
+
+  if (!stored) {
+    await loadOrCreateAesKey();
+    stored = (await db.get(SECURITY_STORE, SECURITY_KEY_ID)) as SecurityKeyRecord | undefined;
+  }
+
+  if (!stored) {
+    throw new Error("No se pudo preparar la clave de cifrado para exportar.");
+  }
+
+  return {
+    version: 1,
+    key_material: stored.key_material,
+    created_at: stored.created_at,
+    exported_at: new Date().toISOString(),
+  };
+}
+
+export async function importEncryptionKeyBackup(backup: unknown) {
+  if (!backup || typeof backup !== "object") {
+    throw new Error("Formato de backup invalido.");
+  }
+
+  const payload = backup as Partial<EncryptionKeyBackup>;
+
+  if (
+    payload.version !== 1 ||
+    typeof payload.key_material !== "string" ||
+    !payload.key_material.trim()
+  ) {
+    throw new Error("El backup no contiene una clave valida.");
+  }
+
+  let rawKey: Uint8Array;
+  try {
+    rawKey = fromBase64(payload.key_material.trim());
+  } catch {
+    throw new Error("No se pudo decodificar la clave del backup.");
+  }
+
+  try {
+    await crypto.subtle.importKey("raw", rawKey, "AES-GCM", false, ["encrypt", "decrypt"]);
+  } catch {
+    throw new Error("La clave del backup no es compatible con AES-GCM.");
+  }
+
+  const db = await getSecurityDb();
+  await db.put(SECURITY_STORE, {
+    id: SECURITY_KEY_ID,
+    key_material: payload.key_material.trim(),
+    created_at:
+      typeof payload.created_at === "string" && payload.created_at.trim()
+        ? payload.created_at.trim()
+        : new Date().toISOString(),
+  } satisfies SecurityKeyRecord);
 }
 
 export async function encryptJson<T>(value: T): Promise<EncryptedEnvelope> {

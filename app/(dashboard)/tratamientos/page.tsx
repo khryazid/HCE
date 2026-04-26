@@ -146,10 +146,10 @@ export default function TratamientosPage() {
   }
 
   return (
-    <section className="space-y-6">
-      <header className="space-y-2">
-        <h1 className="text-2xl font-semibold text-slate-900">Tratamientos predeterminados</h1>
-        <p className="text-sm text-slate-700">
+    <section className="hce-page">
+      <header className="hce-page-header">
+        <h1 className="hce-page-title">Tratamientos predeterminados</h1>
+        <p className="hce-page-lead">
           Plantillas por medico con versionado automatico para reutilizar en consultas.
         </p>
       </header>
@@ -160,7 +160,7 @@ export default function TratamientosPage() {
 
       <div className="grid gap-6 lg:grid-cols-[400px_minmax(0,1fr)]">
         <form onSubmit={handleSave} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
-          <h2 className="text-lg font-semibold text-slate-900">{editing ? "Editar plantilla" : "Nueva plantilla"}</h2>
+          <h2 className="hce-section-title">{editing ? "Editar plantilla" : "Nueva plantilla"}</h2>
           <label className="block space-y-2 text-sm font-medium text-slate-700">
             <span>Enfermedad / sintoma trigger</span>
             <input
@@ -199,7 +199,7 @@ export default function TratamientosPage() {
         </form>
 
         <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-900">Listado de plantillas</h2>
+          <h2 className="hce-section-title">Listado de plantillas</h2>
           <div className="mt-4 space-y-3">
             {templates.length === 0 ? (
               <p className="text-sm text-slate-600">Aun no hay plantillas creadas.</p>

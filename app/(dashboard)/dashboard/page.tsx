@@ -65,10 +65,77 @@ type FollowUpPanelItem = {
   isUrgent: boolean;
 };
 
+type WeeklyConsultationPoint = {
+  dayLabel: string;
+  total: number;
+};
+
+type SpecialtyBreakdown = {
+  specialty: string;
+  total: number;
+  percentage: number;
+};
+
 function getStartOfToday() {
   const date = new Date();
   date.setHours(0, 0, 0, 0);
   return date;
+}
+
+function getTodayLabel() {
+  return new Date().toLocaleDateString("es-EC", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+  });
+}
+
+function getLast7DaysConsultations(records: ClinicalRecordRecord[]): WeeklyConsultationPoint[] {
+  const startOfToday = getStartOfToday();
+  const slots = Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(startOfToday);
+    date.setDate(startOfToday.getDate() - (6 - index));
+    return {
+      key: date.toISOString().slice(0, 10),
+      dayLabel: date.toLocaleDateString("es-EC", { weekday: "short" }),
+      total: 0,
+    };
+  });
+
+  const byDay = new Map(slots.map((slot) => [slot.key, slot]));
+
+  for (const record of records) {
+    const dayKey = record.created_at.slice(0, 10);
+    const slot = byDay.get(dayKey);
+    if (slot) {
+      slot.total += 1;
+    }
+  }
+
+  return slots.map((slot) => ({
+    dayLabel: slot.dayLabel,
+    total: slot.total,
+  }));
+}
+
+function getSpecialtyBreakdown(records: ClinicalRecordRecord[]): SpecialtyBreakdown[] {
+  if (records.length === 0) {
+    return [];
+  }
+
+  const counter = new Map<string, number>();
+
+  for (const record of records) {
+    counter.set(record.specialty_kind, (counter.get(record.specialty_kind) ?? 0) + 1);
+  }
+
+  return Array.from(counter.entries())
+    .map(([specialty, total]) => ({
+      specialty,
+      total,
+      percentage: Math.round((total / records.length) * 100),
+    }))
+    .sort((a, b) => b.total - a.total);
 }
 
 function calculateMetrics(
@@ -294,22 +361,40 @@ export default function DashboardPage() {
     );
   }, [followUpItems]);
 
+  const weeklyConsultations = useMemo(
+    () => getLast7DaysConsultations(recordsData),
+    [recordsData],
+  );
+
+  const weeklyMax = useMemo(
+    () => Math.max(1, ...weeklyConsultations.map((point) => point.total)),
+    [weeklyConsultations],
+  );
+
+  const specialtyBreakdown = useMemo(
+    () => getSpecialtyBreakdown(recordsData),
+    [recordsData],
+  );
+
+  const urgentFollowUps = followUpCounts.urgentes + followUpCounts.vencidos;
+  const todayLabel = useMemo(() => getTodayLabel(), []);
+
   if (tenantLoading || loading) {
     return <DashboardSkeleton />;
   }
 
   return (
-    <section className="space-y-6">
+    <section className="hce-page">
       <header className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+          <div className="hce-page-header">
+            <p className="hce-kicker">
               Sesion activa
             </p>
-            <h1 className="text-3xl font-semibold text-slate-900">
+            <h1 className="hce-page-title">
               Hola{displayName ? `, ${displayName}` : ""}
             </h1>
-            <p className="max-w-2xl text-sm leading-7 text-slate-700">
+            <p className="hce-page-lead max-w-2xl">
               {tenant
                 ? `${tenant.full_name} trabaja con ${tenant.specialties.join(", ")} dentro de un entorno privado y sin exponer datos internos.`
                 : "Cargando perfil profesional..."}
@@ -338,6 +423,47 @@ export default function DashboardPage() {
           {tenantError}
         </div>
       ) : null}
+
+      <article className="rounded-3xl border border-teal-200 bg-gradient-to-r from-teal-50 via-cyan-50 to-sky-50 p-5 shadow-sm">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">Resumen del dia</p>
+            <h2 className="text-2xl font-semibold capitalize text-slate-900">{todayLabel}</h2>
+            <p className="text-sm text-slate-700">
+              {metrics.consultationsToday > 0
+                ? `Hoy registraste ${metrics.consultationsToday} consulta${metrics.consultationsToday === 1 ? "" : "s"}.`
+                : "Aun no registras consultas hoy. Puedes iniciar con una accion rapida."}
+            </p>
+          </div>
+
+          <div className="grid w-full gap-2 sm:grid-cols-3 lg:w-auto">
+            <Link href="/consultas" className="rounded-2xl bg-teal-700 px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-teal-800">
+              Nueva consulta
+            </Link>
+            <Link href="/pacientes" className="rounded-2xl border border-teal-300 bg-white px-4 py-3 text-center text-sm font-semibold text-teal-900 transition hover:bg-teal-50">
+              Buscar paciente
+            </Link>
+            <Link href="/consultas?mode=seguimiento" className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-center text-sm font-semibold text-amber-900 transition hover:bg-amber-100">
+              Abrir seguimientos
+            </Link>
+          </div>
+        </div>
+
+        <div className="mt-4 grid gap-2 sm:grid-cols-3">
+          <div className="rounded-xl border border-white/80 bg-white/80 px-3 py-2">
+            <p className="text-[11px] uppercase tracking-[0.15em] text-slate-500">Consultas hoy</p>
+            <p className="mt-1 text-lg font-semibold text-slate-900">{metrics.consultationsToday}</p>
+          </div>
+          <div className="rounded-xl border border-white/80 bg-white/80 px-3 py-2">
+            <p className="text-[11px] uppercase tracking-[0.15em] text-slate-500">Seguimientos urgentes</p>
+            <p className="mt-1 text-lg font-semibold text-slate-900">{urgentFollowUps}</p>
+          </div>
+          <div className="rounded-xl border border-white/80 bg-white/80 px-3 py-2">
+            <p className="text-[11px] uppercase tracking-[0.15em] text-slate-500">Registros incompletos</p>
+            <p className="mt-1 text-lg font-semibold text-slate-900">{metrics.incompleteRecords}</p>
+          </div>
+        </div>
+      </article>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <article className="rounded-2xl border border-cyan-100 bg-cyan-50 p-4">
@@ -369,6 +495,67 @@ export default function DashboardPage() {
                   .join(" · ")
               : "Sin consultas registradas"}
           </p>
+        </article>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-sm font-semibold text-slate-900">Consultas por semana</h2>
+            <span className="text-xs text-slate-500">Ultimos 7 dias</span>
+          </div>
+
+          <div className="mt-4 grid grid-cols-7 gap-2">
+            {weeklyConsultations.map((point) => {
+              const barHeight = Math.max(8, Math.round((point.total / weeklyMax) * 120));
+              return (
+                <div key={point.dayLabel} className="flex flex-col items-center gap-2">
+                  <span className="text-[11px] font-semibold text-slate-700">{point.total}</span>
+                  <div className="flex h-32 w-full items-end rounded-lg bg-slate-100 px-1">
+                    <div
+                      className="w-full rounded-md bg-gradient-to-t from-teal-600 to-cyan-400"
+                      style={{ height: `${barHeight}px` }}
+                    />
+                  </div>
+                  <span className="text-[10px] uppercase tracking-[0.1em] text-slate-500">
+                    {point.dayLabel.replace(".", "")}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </article>
+
+        <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-sm font-semibold text-slate-900">Desglose por especialidad</h2>
+            <span className="text-xs text-slate-500">Distribucion actual</span>
+          </div>
+
+          {specialtyBreakdown.length === 0 ? (
+            <div className="hce-empty mt-4">Sin consultas registradas para graficar.</div>
+          ) : (
+            <div className="mt-4 space-y-3">
+              {specialtyBreakdown.map((entry) => (
+                <div key={entry.specialty}>
+                  <div className="mb-1 flex items-center justify-between text-xs">
+                    <span className="font-semibold uppercase tracking-[0.1em] text-slate-700">
+                      {entry.specialty}
+                    </span>
+                    <span className="text-slate-500">
+                      {entry.total} ({entry.percentage}%)
+                    </span>
+                  </div>
+                  <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-500"
+                      style={{ width: `${entry.percentage}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </article>
       </div>
 

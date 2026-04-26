@@ -22,7 +22,7 @@ body {
   background: var(--bg);
   color: var(--ink);
   font-family: var(--font-geist-sans), "Segoe UI", sans-serif;
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
 @layer base {
@@ -47,60 +47,82 @@ body {
   }
 }
 
-@layer components {
-  .hce-card {
-    @apply rounded-2xl border border-slate-200 bg-white p-4 shadow-sm;
-  }
+@utility hce-card {
+  @apply rounded-2xl border border-slate-200 bg-white p-4 shadow-sm;
+}
 
-  .hce-card-soft {
-    @apply rounded-2xl border border-slate-200 bg-slate-50 p-4;
-  }
+@utility hce-page {
+  @apply space-y-6;
+}
 
-  .hce-empty {
-    @apply rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-600;
-  }
+@utility hce-page-header {
+  @apply space-y-2;
+}
 
-  .hce-input {
-    @apply w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-[16px] text-slate-900 outline-none ring-teal-600 transition placeholder:text-slate-400 focus:ring-2 sm:text-sm;
-  }
+@utility hce-kicker {
+  @apply text-xs font-semibold uppercase tracking-[0.18em] text-slate-500;
+}
 
-  .hce-btn {
-    @apply inline-flex min-h-11 items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60;
-  }
+@utility hce-page-title {
+  @apply text-2xl font-semibold leading-tight text-slate-900 sm:text-3xl;
+}
 
-  .hce-btn-primary {
-    @apply hce-btn bg-teal-700 text-white hover:bg-teal-800;
-  }
+@utility hce-page-lead {
+  @apply text-sm leading-7 text-slate-700;
+}
 
-  .hce-btn-secondary {
-    @apply hce-btn border border-slate-300 bg-white text-slate-800 hover:bg-slate-50;
-  }
+@utility hce-section-title {
+  @apply text-lg font-semibold text-slate-900;
+}
 
-  .hce-btn-danger {
-    @apply hce-btn bg-red-600 text-white hover:bg-red-700;
-  }
+@utility hce-card-soft {
+  @apply rounded-2xl border border-slate-200 bg-slate-50 p-4;
+}
 
-  .hce-chip {
-    @apply rounded-full border px-3 py-1.5 text-xs font-semibold transition;
-  }
+@utility hce-empty {
+  @apply rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-600;
+}
 
-  .hce-alert {
-    @apply rounded-2xl border p-4 text-sm;
-  }
+@utility hce-input {
+  @apply w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-[16px] text-slate-900 outline-none ring-teal-600 transition placeholder:text-slate-400 focus:ring-2 sm:text-sm;
+}
 
-  .hce-alert-success {
-    @apply hce-alert border-emerald-200 bg-emerald-50 text-emerald-800;
-  }
+@utility hce-btn {
+  @apply inline-flex min-h-11 items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60;
+}
 
-  .hce-alert-error {
-    @apply hce-alert border-red-200 bg-red-50 text-red-700;
-  }
+@utility hce-btn-primary {
+  @apply hce-btn bg-teal-700 text-white hover:bg-teal-800;
+}
 
-  .hce-alert-warning {
-    @apply hce-alert border-amber-200 bg-amber-50 text-amber-900;
-  }
+@utility hce-btn-secondary {
+  @apply hce-btn border border-slate-300 bg-white text-slate-800 hover:bg-slate-50;
+}
 
-  .hce-alert-info {
-    @apply hce-alert border-cyan-200 bg-cyan-50 text-cyan-900;
-  }
+@utility hce-btn-danger {
+  @apply hce-btn bg-red-600 text-white hover:bg-red-700;
+}
+
+@utility hce-chip {
+  @apply rounded-full border px-3 py-1.5 text-xs font-semibold transition;
+}
+
+@utility hce-alert {
+  @apply rounded-2xl border p-4 text-sm;
+}
+
+@utility hce-alert-success {
+  @apply hce-alert border-emerald-200 bg-emerald-50 text-emerald-800;
+}
+
+@utility hce-alert-error {
+  @apply hce-alert border-red-200 bg-red-50 text-red-700;
+}
+
+@utility hce-alert-warning {
+  @apply hce-alert border-amber-200 bg-amber-50 text-amber-900;
+}
+
+@utility hce-alert-info {
+  @apply hce-alert border-cyan-200 bg-cyan-50 text-cyan-900;
 }

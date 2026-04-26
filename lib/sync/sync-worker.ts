@@ -8,6 +8,17 @@ import type { SyncQueueItem } from "@/types/sync";
 
 const MAX_RETRIES = 3;
 
+export const SYNC_FINISHED_EVENT = "hce:sync-finished";
+
+export type SyncFlushSummary = {
+  startedAt: number;
+  finishedAt: number;
+  processed: number;
+  succeeded: number;
+  failed: number;
+  conflicted: number;
+};
+
 type TableName = "profiles" | "patients" | "clinical_records" | "specialty_data";
 
 type SyncErrorLike = {
@@ -39,7 +50,22 @@ type TableSyncClient = {
   }>;
 };
 
-function buildLatestFirstQueue(items: SyncQueueItem[]) {
+function getTablePriority(tableName: TableName) {
+  switch (tableName) {
+    case "profiles":
+      return 0;
+    case "patients":
+      return 1;
+    case "clinical_records":
+      return 2;
+    case "specialty_data":
+      return 3;
+    default:
+      return 4;
+  }
+}
+
+function buildSyncQueue(items: SyncQueueItem[]) {
   const latestByRecord = new Map<string, SyncQueueItem>();
 
   for (const item of items) {
@@ -50,12 +76,69 @@ function buildLatestFirstQueue(items: SyncQueueItem[]) {
     }
   }
 
-  return Array.from(latestByRecord.values()).sort(
-    (a, b) => b.client_timestamp - a.client_timestamp,
-  );
+  return Array.from(latestByRecord.values()).sort((a, b) => {
+    const priorityDiff = getTablePriority(a.table_name as TableName) - getTablePriority(b.table_name as TableName);
+    if (priorityDiff !== 0) {
+      return priorityDiff;
+    }
+
+    return a.client_timestamp - b.client_timestamp;
+  });
 }
 
-async function syncItem(item: SyncQueueItem) {
+function mapPayloadByTable(tableName: TableName, payload: Record<string, unknown>) {
+  switch (tableName) {
+    case "profiles":
+      return {
+        id: payload.id,
+        clinic_id: payload.clinic_id,
+        doctor_id: payload.doctor_id,
+        full_name: payload.full_name,
+        specialty: payload.specialty,
+        created_at: payload.created_at,
+        updated_at: payload.updated_at,
+      };
+    case "patients":
+      return {
+        id: payload.id,
+        clinic_id: payload.clinic_id,
+        doctor_id: payload.doctor_id,
+        document_number: payload.document_number,
+        full_name: payload.full_name,
+        birth_date: payload.birth_date,
+        created_at: payload.created_at,
+        updated_at: payload.updated_at,
+      };
+    case "clinical_records":
+      return {
+        id: payload.id,
+        clinic_id: payload.clinic_id,
+        doctor_id: payload.doctor_id,
+        patient_id: payload.patient_id,
+        chief_complaint: payload.chief_complaint,
+        cie_codes: payload.cie_codes,
+        specialty_kind: payload.specialty_kind,
+        specialty_data: payload.specialty_data,
+        created_at: payload.created_at,
+        updated_at: payload.updated_at,
+      };
+    case "specialty_data":
+      return {
+        id: payload.id,
+        clinic_id: payload.clinic_id,
+        doctor_id: payload.doctor_id,
+        clinical_record_id: payload.clinical_record_id,
+        specialty_kind: payload.specialty_kind,
+        data: payload.data,
+        created_at: payload.created_at,
+        updated_at: payload.updated_at,
+      };
+    default:
+      return payload;
+  }
+}
+
+async function syncItem(item: SyncQueueItem): Promise<"synced" | "conflicted"> {
   const supabase = getSupabaseClient();
   const tableName = item.table_name as TableName;
   const tableClient = supabase.from(tableName as never) as unknown as TableSyncClient;
@@ -81,7 +164,7 @@ async function syncItem(item: SyncQueueItem) {
       "conflicted",
       "Remote record is newer than local payload.",
     );
-    return;
+    return "conflicted";
   }
 
   if (item.action === "delete") {
@@ -90,15 +173,14 @@ async function syncItem(item: SyncQueueItem) {
       throw error;
     }
   } else {
-    const { error } = await tableClient.upsert(
-      {
-        ...item.payload,
-        id: item.record_id,
-        doctor_id: item.doctor_id,
-        clinic_id: item.clinic_id,
-      },
-      { onConflict: "id" },
-    );
+    const payload = mapPayloadByTable(tableName, {
+      ...item.payload,
+      id: item.record_id,
+      doctor_id: item.doctor_id,
+      clinic_id: item.clinic_id,
+    });
+
+    const { error } = await tableClient.upsert(payload, { onConflict: "id" });
 
     if (error) {
       throw error;
@@ -106,19 +188,73 @@ async function syncItem(item: SyncQueueItem) {
   }
 
   await deleteSyncQueueItem(item.id);
+  return "synced";
 }
 
 export async function flushSyncQueue() {
+  const startedAt = Date.now();
+  const supabase = getSupabaseClient();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  const currentDoctorId = session?.user?.id ?? null;
+
   const pending = await getSyncQueueItemsByStatus(["pending", "failed"]);
   if (pending.length === 0) {
-    return;
+    const summary: SyncFlushSummary = {
+      startedAt,
+      finishedAt: Date.now(),
+      processed: 0,
+      succeeded: 0,
+      failed: 0,
+      conflicted: 0,
+    };
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent<SyncFlushSummary>(SYNC_FINISHED_EVENT, {
+          detail: summary,
+        }),
+      );
+    }
+    return summary;
   }
 
-  const queue = buildLatestFirstQueue(pending);
+  const queue = buildSyncQueue(pending);
+  let succeeded = 0;
+  let failed = 0;
+  let conflicted = 0;
 
   for (const item of queue) {
+    if (!currentDoctorId) {
+      await updateSyncItemStatus(
+        item.id,
+        "failed",
+        "No hay sesion activa para sincronizar.",
+        item.retry_count + 1,
+      );
+      failed += 1;
+      continue;
+    }
+
+    if (item.doctor_id !== currentDoctorId) {
+      await updateSyncItemStatus(
+        item.id,
+        "conflicted",
+        "El item pertenece a otro doctor/tenant. Descarta este item o inicia sesion con el usuario correcto.",
+        item.retry_count,
+      );
+      conflicted += 1;
+      continue;
+    }
+
     try {
-      await syncItem(item);
+      const result = await syncItem(item);
+      if (result === "conflicted") {
+        conflicted += 1;
+      } else {
+        succeeded += 1;
+      }
     } catch (error) {
       const message =
         error instanceof Error
@@ -133,11 +269,32 @@ export async function flushSyncQueue() {
 
       if (retryCount >= MAX_RETRIES) {
         await updateSyncItemStatus(item.id, "failed", message, retryCount);
+        failed += 1;
       } else {
         await updateSyncItemStatus(item.id, "pending", message, retryCount);
+        failed += 1;
       }
     }
   }
+
+  const summary: SyncFlushSummary = {
+    startedAt,
+    finishedAt: Date.now(),
+    processed: queue.length,
+    succeeded,
+    failed,
+    conflicted,
+  };
+
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent<SyncFlushSummary>(SYNC_FINISHED_EVENT, {
+        detail: summary,
+      }),
+    );
+  }
+
+  return summary;
 }
 
 export function startSyncWorker() {

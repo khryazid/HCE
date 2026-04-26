@@ -56,7 +56,7 @@ create table if not exists public.specialty_data (
 create table if not exists public.audit_logs (
   id bigint generated always as identity primary key,
   clinic_id uuid not null,
-  doctor_id uuid not null references auth.users (id) on delete set null,
+  doctor_id uuid references auth.users (id) on delete set null,
   event_type text not null,
   resource_type text not null,
   resource_id uuid not null,
@@ -86,6 +86,18 @@ create index if not exists idx_records_tenant on public.clinical_records (clinic
 create index if not exists idx_specialty_tenant on public.specialty_data (clinic_id, doctor_id);
 create index if not exists idx_audit_tenant_time on public.audit_logs (clinic_id, doctor_id, created_at desc);
 create index if not exists idx_follow_up_tasks_tenant on public.follow_up_tasks (clinic_id, doctor_id, due_date);
+
+-- Compatibilidad de re-ejecucion sobre entornos ya creados:
+-- ON DELETE SET NULL requiere que doctor_id permita null.
+alter table if exists public.audit_logs
+  alter column doctor_id drop not null;
+
+alter table if exists public.audit_logs
+  drop constraint if exists audit_logs_doctor_id_fkey;
+
+alter table if exists public.audit_logs
+  add constraint audit_logs_doctor_id_fkey
+  foreign key (doctor_id) references auth.users (id) on delete set null;
 
 alter table public.profiles enable row level security;
 alter table public.patients enable row level security;

@@ -136,11 +136,11 @@
 
 ### Prioridad Media — UX Mejoras
 
-- [ ] Mejorar historial de pacientes: vista mas clara y visual (cards expandibles, filtros por fecha, estado, especialidad).
-- [ ] Busqueda global accesible desde cualquier pantalla (pacientes, consultas, tratamientos).
-- [ ] Visualizacion de datos en dashboard: mini-graficos de consultas por semana y desglose por especialidad.
-- [ ] Preview de PDF antes de generar: opcion de guardar borrador sin generar PDF automaticamente.
-- [ ] Dashboard mas amigable: accesos directos claros, resumen visual del dia, acciones rapidas prominentes.
+- [x] Mejorar historial de pacientes: vista mas clara y visual (cards expandibles, filtros por fecha, estado, especialidad).
+- [x] Busqueda global accesible desde cualquier pantalla (pacientes, consultas, tratamientos).
+- [x] Visualizacion de datos en dashboard: mini-graficos de consultas por semana y desglose por especialidad.
+- [x] Preview de PDF antes de generar: opcion de guardar borrador sin generar PDF automaticamente.
+- [x] Dashboard mas amigable: accesos directos claros, resumen visual del dia, acciones rapidas prominentes.
 
 ### Prioridad Media — Paginas Rotas o Incompletas
 
@@ -152,7 +152,7 @@
 
 - [ ] Multi-usuario por clinica: compartir listado de pacientes entre medicos manteniendo aislamiento de historias.
 - [ ] Implementar componentes clinicos reales: odontograma interactivo y curvas de crecimiento pediatrico.
-- [ ] Mecanismo de backup de clave de cifrado: exportar/importar clave antes de limpiar el navegador.
+- [x] Mecanismo de backup de clave de cifrado: exportar/importar clave antes de limpiar el navegador.
 - [ ] Tests E2E con Playwright: flujo completo login -> consulta -> PDF.
 - [ ] Soporte dark mode usando los tokens CSS existentes.
 
@@ -160,7 +160,7 @@
 
 - [x] Revisar consistencia visual de toda la app: botones, inputs, estados vacios, alerts, modales.
 - [x] Responsive y accesibilidad: contraste, foco visible, legibilidad en mobile.
-- [ ] Tipografia y espaciado uniforme en todas las pantallas.
+- [x] Tipografia y espaciado uniforme en todas las pantallas.
 
 ## Tus Sugerencias
 
@@ -178,5 +178,5 @@
 - [x] Unificar "Perfil" y "Ajustes" o dejar una sola fuente de verdad por campo.
 - [x] Revisar consistencia visual de toda la app: botones, inputs, estados vacios, alerts y modales.
 - [x] Responsive y accesibilidad visual: contraste, foco visible y legibilidad en mobile.
-- [ ] Visualizacion de datos en dashboard con mini-graficos (consultas por semana y por especialidad).
+- [x] Visualizacion de datos en dashboard con mini-graficos (consultas por semana y por especialidad).
 

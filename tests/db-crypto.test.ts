@@ -7,7 +7,12 @@ import {
   listPatientsByTenant,
   savePatientLocal,
 } from "../lib/db/indexeddb";
-import { decryptJson, encryptJson } from "../lib/db/crypto";
+import {
+  decryptJson,
+  encryptJson,
+  exportEncryptionKeyBackup,
+  importEncryptionKeyBackup,
+} from "../lib/db/crypto";
 import type { PatientRecord } from "../types/patient";
 
 const tenant = {
@@ -30,6 +35,26 @@ describe("crypto envelope", () => {
     const decrypted = await decryptJson<typeof source>(encrypted);
 
     expect(decrypted).toEqual(source);
+  });
+
+  it("exports and imports encryption key backup", async () => {
+    const backup = await exportEncryptionKeyBackup();
+
+    expect(backup.version).toBe(1);
+    expect(typeof backup.key_material).toBe("string");
+    expect(backup.key_material.length).toBeGreaterThan(10);
+
+    await importEncryptionKeyBackup(backup);
+
+    const source = { sample: "ok" };
+    const encrypted = await encryptJson(source);
+    const decrypted = await decryptJson<typeof source>(encrypted);
+
+    expect(decrypted).toEqual(source);
+  });
+
+  it("rejects invalid key backups", async () => {
+    await expect(importEncryptionKeyBackup({ version: 1, key_material: "invalid" })).rejects.toThrow();
   });
 });
 

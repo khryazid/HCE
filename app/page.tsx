@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { AuthForm } from "@/components/ui/auth-form";
 
@@ -7,13 +8,13 @@ export default function Home() {
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_12%_18%,rgba(0,147,147,.16),transparent_40%),radial-gradient(circle_at_88%_14%,rgba(6,182,212,.16),transparent_36%),linear-gradient(120deg,#f5faf9,#edf3f9)]" />
       <section className="mx-auto grid w-full max-w-6xl gap-6 lg:grid-cols-[1.1fr_1fr]">
         <article className="order-2 rounded-3xl border border-white/80 bg-white/75 p-6 shadow-2xl shadow-cyan-900/10 backdrop-blur sm:p-8 lg:order-1">
-          <p className="inline-flex rounded-full border border-cyan-900/20 bg-cyan-50 px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-900">
+          <p className="hce-kicker inline-flex rounded-full border border-cyan-900/20 bg-cyan-50 px-4 py-1 text-cyan-900">
             Glyph · Portal de Acceso
           </p>
-          <h1 className="mt-4 text-3xl font-bold leading-tight text-slate-900 sm:text-5xl">
+          <h1 className="mt-4 text-3xl font-semibold leading-tight text-slate-900 sm:text-5xl">
             Bienvenido a Glyph: acceso seguro para tu operacion clinica diaria.
           </h1>
-          <p className="mt-4 max-w-xl text-base leading-7 text-slate-700">
+          <p className="mt-4 max-w-xl hce-page-lead sm:text-base">
             Entra con tu cuenta para continuar con consultas, pacientes y seguimiento.
             Todo en un entorno offline-first con sincronizacion y aislamiento por tenant.
           </p>
@@ -40,9 +41,12 @@ export default function Home() {
         </article>
 
         <div className="order-1 lg:order-2">
-          <AuthForm mode="login" />
+          <Suspense fallback={<div className="flex items-center justify-center p-8 text-sm text-slate-500">Cargando formulario...</div>}>
+            <AuthForm mode="login" />
+          </Suspense>
         </div>
       </section>
     </main>
   );
 }
+

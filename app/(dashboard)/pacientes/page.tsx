@@ -56,6 +56,7 @@ type PatientHistoryDetails = {
 };
 
 type FollowUpTimelineFilter = "completados" | "pendientes" | "vencidos";
+type DateRangeFilter = "all" | "7" | "30" | "90";
 
 function getHistoryDetails(record: ClinicalRecordRecord): PatientHistoryDetails {
   const specialtyData = record.specialty_data as Record<string, unknown>;
@@ -105,6 +106,9 @@ export default function PacientesPage() {
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [statusSaving, setStatusSaving] = useState(false);
   const [followUpFilter, setFollowUpFilter] = useState<FollowUpTimelineFilter>("pendientes");
+  const [dateRangeFilter, setDateRangeFilter] = useState<DateRangeFilter>("all");
+  const [specialtyFilter, setSpecialtyFilter] = useState("all");
+  const [expandedRecordIds, setExpandedRecordIds] = useState<string[]>([]);
   const [deletePatientTarget, setDeletePatientTarget] = useState<PatientRecord | null>(null);
   const [deleteRecordTarget, setDeleteRecordTarget] = useState<ClinicalRecordRecord | null>(null);
 
@@ -267,6 +271,37 @@ export default function PacientesPage() {
     );
   }, [followUpFilter, followUpTimelineRecords]);
 
+  const specialtyOptions = useMemo(() => {
+    const specialties = new Set<string>();
+    for (const item of followUpTimelineRecords) {
+      specialties.add(item.record.specialty_kind);
+    }
+    return Array.from(specialties).sort((a, b) => a.localeCompare(b));
+  }, [followUpTimelineRecords]);
+
+  const timelineRecordsWithFilters = useMemo(() => {
+    const now = Date.now();
+    const maxAgeMs =
+      dateRangeFilter === "all" ? null : Number(dateRangeFilter) * 24 * 60 * 60 * 1000;
+
+    return filteredFollowUpTimelineRecords.filter((item) => {
+      if (specialtyFilter !== "all" && item.record.specialty_kind !== specialtyFilter) {
+        return false;
+      }
+
+      if (maxAgeMs === null) {
+        return true;
+      }
+
+      const consultationTime = new Date(item.details.consultationDate).getTime();
+      if (Number.isNaN(consultationTime)) {
+        return false;
+      }
+
+      return now - consultationTime <= maxAgeMs;
+    });
+  }, [dateRangeFilter, filteredFollowUpTimelineRecords, specialtyFilter]);
+
   const followUpCounts = useMemo(() => {
     return followUpTimelineRecords.reduce(
       (acc, item) => {
@@ -284,18 +319,18 @@ export default function PacientesPage() {
   }, [followUpTimelineRecords]);
 
   useEffect(() => {
-    if (!filteredFollowUpTimelineRecords.some((item) => item.record.id === selectedRecordId)) {
-      setSelectedRecordId(filteredFollowUpTimelineRecords[0]?.record.id ?? "");
+    if (!timelineRecordsWithFilters.some((item) => item.record.id === selectedRecordId)) {
+      setSelectedRecordId(timelineRecordsWithFilters[0]?.record.id ?? "");
     }
-  }, [filteredFollowUpTimelineRecords, selectedRecordId]);
+  }, [timelineRecordsWithFilters, selectedRecordId]);
 
   const selectedFollowUp = useMemo(
     () =>
       followUpTimelineRecords.find((item) => item.record.id === selectedRecordId) ??
-      filteredFollowUpTimelineRecords[0] ??
+      timelineRecordsWithFilters[0] ??
       followUpTimelineRecords[0] ??
       null,
-    [filteredFollowUpTimelineRecords, followUpTimelineRecords, selectedRecordId],
+    [followUpTimelineRecords, selectedRecordId, timelineRecordsWithFilters],
   );
 
   const selectedRecord = selectedFollowUp?.record ?? null;
@@ -304,20 +339,28 @@ export default function PacientesPage() {
     (item) => item.timelineState === "vencidos",
   );
 
+  function toggleRecordExpand(recordId: string) {
+    setExpandedRecordIds((current) =>
+      current.includes(recordId)
+        ? current.filter((id) => id !== recordId)
+        : [...current, recordId],
+    );
+  }
+
   if (tenantLoading || loading) {
     return <PacientesSkeleton />;
   }
 
   return (
-    <section className="space-y-6">
+    <section className="hce-page">
       <header className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+          <div className="hce-page-header">
+            <p className="hce-kicker">
               Historial de pacientes
             </p>
-            <h1 className="text-3xl font-semibold text-slate-900">Pacientes</h1>
-            <p className="max-w-3xl text-sm leading-7 text-slate-700">
+            <h1 className="hce-page-title">Pacientes</h1>
+            <p className="hce-page-lead max-w-3xl">
               Aqui ves el historial de consultas y seguimientos por paciente. El alta de pacientes
               se hace desde Consultas para mantener un solo flujo de ingreso.
             </p>
@@ -526,15 +569,48 @@ export default function PacientesPage() {
               ))}
             </div>
 
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <label className="block space-y-2 text-sm font-medium text-slate-700">
+                <span>Rango de fecha</span>
+                <select
+                  className="hce-input"
+                  value={dateRangeFilter}
+                  onChange={(event) => setDateRangeFilter(event.target.value as DateRangeFilter)}
+                >
+                  <option value="all">Todo el historial</option>
+                  <option value="7">Ultimos 7 dias</option>
+                  <option value="30">Ultimos 30 dias</option>
+                  <option value="90">Ultimos 90 dias</option>
+                </select>
+              </label>
+
+              <label className="block space-y-2 text-sm font-medium text-slate-700">
+                <span>Especialidad</span>
+                <select
+                  className="hce-input"
+                  value={specialtyFilter}
+                  onChange={(event) => setSpecialtyFilter(event.target.value)}
+                >
+                  <option value="all">Todas</option>
+                  {specialtyOptions.map((specialty) => (
+                    <option key={specialty} value={specialty}>
+                      {specialty}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
             <div className="mt-4 space-y-3">
-              {filteredFollowUpTimelineRecords.length === 0 ? (
+              {timelineRecordsWithFilters.length === 0 ? (
                 <div className="hce-empty p-5">
-                  No hay seguimientos en el estado seleccionado.
+                  No hay seguimientos con los filtros seleccionados.
                 </div>
               ) : (
-                filteredFollowUpTimelineRecords.map((item) => {
+                timelineRecordsWithFilters.map((item) => {
                   const { record, details, timelineState } = item;
                   const isSelected = selectedRecord?.id === record.id;
+                  const isExpanded = expandedRecordIds.includes(record.id) || isSelected;
 
                   return (
                     <article
@@ -545,7 +621,10 @@ export default function PacientesPage() {
                     >
                       <button
                         type="button"
-                        onClick={() => setSelectedRecordId(record.id)}
+                        onClick={() => {
+                          setSelectedRecordId(record.id);
+                          toggleRecordExpand(record.id);
+                        }}
                         className="w-full text-left transition hover:bg-slate-50"
                       >
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -564,26 +643,34 @@ export default function PacientesPage() {
                         </span>
                       </div>
 
-                      <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                        <div>
-                          <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">Anamnesis</p>
-                          <p className="mt-1 text-sm text-slate-700">{details.anamnesis}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">Tratamiento</p>
-                          <p className="mt-1 text-sm text-slate-700">{details.treatmentPlan}</p>
-                        </div>
-                      </div>
-
-                      <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-600">
-                        {details.cieCodes.map((code) => (
-                          <span key={code} className="rounded-full bg-slate-100 px-2.5 py-1">
-                            {code}
-                          </span>
-                        ))}
-                      </div>
+                      <p className="mt-2 text-xs font-semibold uppercase tracking-[0.12em] text-teal-700">
+                        {isExpanded ? "Ocultar detalle" : "Ver detalle"}
+                      </p>
 
                       </button>
+                      {isExpanded ? (
+                        <>
+                          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                            <div>
+                              <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">Anamnesis</p>
+                              <p className="mt-1 text-sm text-slate-700">{details.anamnesis}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">Tratamiento</p>
+                              <p className="mt-1 text-sm text-slate-700">{details.treatmentPlan}</p>
+                            </div>
+                          </div>
+
+                          <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-600">
+                            {details.cieCodes.map((code) => (
+                              <span key={code} className="rounded-full bg-slate-100 px-2.5 py-1">
+                                {code}
+                              </span>
+                            ))}
+                          </div>
+                        </>
+                      ) : null}
+
                       <div className="mt-3 flex flex-wrap gap-2">
                         <Link
                           href={`/consultas?mode=seguimiento&patientId=${record.patient_id}&recordId=${record.id}`}

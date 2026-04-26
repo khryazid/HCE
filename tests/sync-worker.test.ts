@@ -8,6 +8,7 @@ const {
   mockMaybeSingle,
   mockDeleteEq,
   mockUpsert,
+  mockGetSession,
 } = vi.hoisted(() => ({
   mockGetSyncQueueItemsByStatus: vi.fn(),
   mockUpdateSyncItemStatus: vi.fn(),
@@ -15,6 +16,7 @@ const {
   mockMaybeSingle: vi.fn(),
   mockDeleteEq: vi.fn(),
   mockUpsert: vi.fn(),
+  mockGetSession: vi.fn(),
 }));
 
 vi.mock("@/lib/db/indexeddb", () => ({
@@ -25,6 +27,9 @@ vi.mock("@/lib/db/indexeddb", () => ({
 
 vi.mock("@/lib/supabase/client", () => ({
   getSupabaseClient: () => ({
+    auth: {
+      getSession: mockGetSession,
+    },
     from: () => ({
       select: () => ({
         eq: () => ({
@@ -61,6 +66,16 @@ function buildSyncItem(retryCount: number): SyncQueueItem {
 describe("sync worker retries", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+
+    mockGetSession.mockResolvedValue({
+      data: {
+        session: {
+          user: {
+            id: "doctor-1",
+          },
+        },
+      },
+    });
 
     mockMaybeSingle.mockResolvedValue({
       data: null,
@@ -108,5 +123,25 @@ describe("sync worker retries", () => {
       3,
     );
     expect(mockDeleteSyncQueueItem).not.toHaveBeenCalled();
+  });
+
+  it("marks conflicted when queue item belongs to another doctor", async () => {
+    const foreignItem = {
+      ...buildSyncItem(0),
+      id: "sync-foreign",
+      doctor_id: "doctor-otro",
+    };
+
+    mockGetSyncQueueItemsByStatus.mockResolvedValue([foreignItem]);
+
+    await flushSyncQueue();
+
+    expect(mockUpdateSyncItemStatus).toHaveBeenCalledWith(
+      "sync-foreign",
+      "conflicted",
+      "El item pertenece a otro doctor/tenant. Descarta este item o inicia sesion con el usuario correcto.",
+      0,
+    );
+    expect(mockUpsert).not.toHaveBeenCalled();
   });
 });

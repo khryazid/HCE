@@ -6,7 +6,11 @@ import {
   getSyncQueueStats,
   listSyncQueueItems,
 } from "@/lib/db/indexeddb";
-import { flushSyncQueue } from "@/lib/sync/sync-worker";
+import {
+  flushSyncQueue,
+  SYNC_FINISHED_EVENT,
+  type SyncFlushSummary,
+} from "@/lib/sync/sync-worker";
 import type { SyncQueueItem } from "@/types/sync";
 
 type QueueStats = {
@@ -14,6 +18,13 @@ type QueueStats = {
   failed: number;
   conflicted: number;
 };
+
+type LastSyncState = {
+  at: number;
+  summary: SyncFlushSummary;
+};
+
+const LAST_SYNC_KEY = "hce:last-sync";
 
 function formatTimestamp(value: number) {
   return new Date(value).toLocaleString();
@@ -29,11 +40,10 @@ export function SyncQueuePanel() {
   const [expanded, setExpanded] = useState(false);
   const [working, setWorking] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isOnline, setIsOnline] = useState(true);
+  const [lastSync, setLastSync] = useState<LastSyncState | null>(null);
 
-  const hasItems = useMemo(
-    () => stats.pending > 0 || stats.failed > 0 || stats.conflicted > 0,
-    [stats],
-  );
+  const hasItems = useMemo(() => stats.pending + stats.failed + stats.conflicted > 0, [stats]);
 
   useEffect(() => {
     let active = true;
@@ -64,6 +74,54 @@ export function SyncQueuePanel() {
 
     void load();
     const timer = setInterval(() => void load(), 4000);
+
+    if (typeof window !== "undefined") {
+      setIsOnline(window.navigator.onLine);
+
+      const saved = window.localStorage.getItem(LAST_SYNC_KEY);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved) as LastSyncState;
+          if (
+            typeof parsed?.at === "number" &&
+            typeof parsed?.summary?.processed === "number"
+          ) {
+            setLastSync(parsed);
+          }
+        } catch {
+          // Ignore parse errors and continue with empty last sync state.
+        }
+      }
+
+      const handleOnline = () => setIsOnline(true);
+      const handleOffline = () => setIsOnline(false);
+      const handleSyncFinished = (event: Event) => {
+        const customEvent = event as CustomEvent<SyncFlushSummary>;
+        if (!customEvent.detail) {
+          return;
+        }
+
+        const nextState: LastSyncState = {
+          at: Date.now(),
+          summary: customEvent.detail,
+        };
+
+        setLastSync(nextState);
+        window.localStorage.setItem(LAST_SYNC_KEY, JSON.stringify(nextState));
+      };
+
+      window.addEventListener("online", handleOnline);
+      window.addEventListener("offline", handleOffline);
+      window.addEventListener(SYNC_FINISHED_EVENT, handleSyncFinished as EventListener);
+
+      return () => {
+        active = false;
+        clearInterval(timer);
+        window.removeEventListener("online", handleOnline);
+        window.removeEventListener("offline", handleOffline);
+        window.removeEventListener(SYNC_FINISHED_EVENT, handleSyncFinished as EventListener);
+      };
+    }
 
     return () => {
       active = false;
@@ -117,10 +175,6 @@ export function SyncQueuePanel() {
     }
   }
 
-  if (!hasItems) {
-    return null;
-  }
-
   const hasErrors = stats.failed > 0 || stats.conflicted > 0;
 
   return (
@@ -137,6 +191,15 @@ export function SyncQueuePanel() {
           <p className="mt-1">
             Pendientes: {stats.pending} · Fallidos: {stats.failed} · Conflictos: {stats.conflicted}
           </p>
+          <p className="mt-1 text-xs">
+            Conexion: {isOnline ? "En linea" : "Sin conexion"}
+            {lastSync ? ` · Ultima sincronizacion: ${formatTimestamp(lastSync.at)}` : " · Sin sincronizacion registrada"}
+          </p>
+          {lastSync ? (
+            <p className="mt-1 text-xs">
+              Resultado ultimo intento: procesados {lastSync.summary.processed}, exitosos {lastSync.summary.succeeded}, fallidos {lastSync.summary.failed}, conflictos {lastSync.summary.conflicted}
+            </p>
+          ) : null}
         </div>
 
         <div className="flex gap-2">
@@ -150,10 +213,10 @@ export function SyncQueuePanel() {
           <button
             type="button"
             onClick={() => void handleRetryNow()}
-            disabled={working}
+            disabled={working || !isOnline}
             className="rounded-xl bg-teal-700 px-3 py-2 text-xs font-semibold uppercase tracking-[0.15em] text-white disabled:opacity-60"
           >
-            Reintentar ahora
+            Sincronizar ahora
           </button>
         </div>
       </div>
@@ -164,7 +227,7 @@ export function SyncQueuePanel() {
         </p>
       ) : null}
 
-      {expanded ? (
+      {expanded && hasItems ? (
         <div className="mt-4 overflow-hidden rounded-2xl border border-current/20 bg-white/70">
           {items.length === 0 ? (
             <p className="p-4 text-sm">No hay elementos en cola.</p>
@@ -198,6 +261,12 @@ export function SyncQueuePanel() {
               ))}
             </div>
           )}
+        </div>
+      ) : null}
+
+      {expanded && !hasItems ? (
+        <div className="mt-4 rounded-xl border border-current/20 bg-white/70 p-4 text-sm">
+          No hay elementos pendientes en la cola. Puedes usar "Sincronizar ahora" para forzar un intento de verificacion.
         </div>
       ) : null}
     </section>
