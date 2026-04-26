@@ -266,7 +266,7 @@ export function SyncQueuePanel() {
 
       {expanded && !hasItems ? (
         <div className="mt-4 rounded-xl border border-current/20 bg-white/70 p-4 text-sm">
-          No hay elementos pendientes en la cola. Puedes usar "Sincronizar ahora" para forzar un intento de verificacion.
+          No hay elementos pendientes en la cola. Puedes usar &quot;Sincronizar ahora&quot; para forzar un intento de verificacion.
         </div>
       ) : null}
     </section>

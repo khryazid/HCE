@@ -19,11 +19,11 @@ export function WizardStepTreatment({
   onApplyTemplate,
 }: Props) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {form.entryMode === "consulta" ? (
         <>
           <select
-            className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
+            className="hce-input"
             value={form.treatmentTemplateId}
             onChange={(event) => onApplyTemplate(event.target.value)}
           >
@@ -35,7 +35,7 @@ export function WizardStepTreatment({
             ))}
           </select>
           <textarea
-            className="min-h-32 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
+            className="hce-input min-h-32"
             placeholder="Tratamiento final (editable)"
             value={form.treatmentPlan}
             onChange={(event) =>
@@ -50,13 +50,13 @@ export function WizardStepTreatment({
           ) : null}
         </>
       ) : (
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+        <div className="hce-alert-info">
           En seguimiento el tratamiento previo se conserva y solo se registra
           evolucion/control.
         </div>
       )}
       <input
-        className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
+        className="hce-input"
         placeholder="Estado de evolucion (opcional)"
         value={form.evolutionStatus}
         onChange={(event) =>
@@ -70,7 +70,7 @@ export function WizardStepTreatment({
         <p className="-mt-2 text-sm font-medium text-red-600">{validationErrors.evolutionStatus}</p>
       ) : null}
       <input
-        className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
+        className="hce-input"
         type="date"
         value={form.nextFollowUpDate}
         onChange={(event) =>

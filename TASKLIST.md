@@ -150,11 +150,30 @@
 
 ### Prioridad Baja
 
-- [ ] Multi-usuario por clinica: compartir listado de pacientes entre medicos manteniendo aislamiento de historias.
-- [ ] Implementar componentes clinicos reales: odontograma interactivo y curvas de crecimiento pediatrico.
+- [x] Multi-usuario por clinica: compartir listado de pacientes entre medicos manteniendo aislamiento de historias.
+- [x] Implementar componentes clinicos reales: odontograma interactivo y curvas de crecimiento pediatrico.
 - [x] Mecanismo de backup de clave de cifrado: exportar/importar clave antes de limpiar el navegador.
-- [ ] Tests E2E con Playwright: flujo completo login -> consulta -> PDF.
-- [ ] Soporte dark mode usando los tokens CSS existentes.
+- [x] Tests E2E con Playwright: flujo completo login -> consulta -> PDF.
+- [x] Soporte dark mode usando los tokens CSS existentes.
+
+## Arranque Tecnico (2026-04-26)
+
+### Prioridad Alta
+
+- [x] Corregir typecheck de WebCrypto en `lib/db/crypto.ts` (uso de `ArrayBuffer` estricto para `crypto.subtle.importKey`).
+- [x] Alinear modelo de estado de paciente entre UI, sync worker y Supabase.
+- [x] Agregar columna `status` en `patients` dentro de `lib/supabase/000_production_full_schema.sql` y mantener compatibilidad con entornos existentes.
+- [x] Incluir `status` en payload de sincronizacion de `patients` en `lib/sync/sync-worker.ts`.
+
+### Prioridad Media
+
+- [x] Corregir error de lint `react/no-unescaped-entities` en `components/ui/sync-queue-panel.tsx`.
+- [x] Dejar en verde pipeline local: `npm run lint` + `npm run typecheck` + `npm run test`.
+
+### Prioridad Baja
+
+- [x] Evaluar y configurar `allowedDevOrigins` en `next.config.ts` para desarrollo en LAN con Next.js 16.
+- [x] Agregar test de sync que verifique persistencia de `patient.status` tras sincronizacion.
 
 ### UX/UI General (aplicar FRONTEND_SKILL.md)
 

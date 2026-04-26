@@ -54,6 +54,7 @@ function buildSyncItem(retryCount: number): SyncQueueItem {
     action: "insert",
     payload: {
       full_name: "Paciente Prueba",
+      status: "activo",
     },
     doctor_id: "doctor-1",
     clinic_id: "clinic-1",
@@ -143,5 +144,32 @@ describe("sync worker retries", () => {
       0,
     );
     expect(mockUpsert).not.toHaveBeenCalled();
+  });
+
+  it("includes patient status when syncing patient payload", async () => {
+    const item = buildSyncItem(0);
+    item.payload = {
+      ...item.payload,
+      document_number: "1717171717",
+      birth_date: "1990-01-01",
+      status: "alta",
+      created_at: "2026-04-26T10:00:00.000Z",
+      updated_at: "2026-04-26T10:05:00.000Z",
+    };
+
+    mockGetSyncQueueItemsByStatus.mockResolvedValue([item]);
+    mockUpsert.mockResolvedValue({
+      error: null,
+    });
+
+    await flushSyncQueue();
+
+    expect(mockUpsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: "alta",
+      }),
+      { onConflict: "id" },
+    );
+    expect(mockDeleteSyncQueueItem).toHaveBeenCalledWith("sync-1");
   });
 });

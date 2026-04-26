@@ -177,10 +177,7 @@ export default function PacientesPage() {
 
     const bootstrap = async () => {
       try {
-        const localPatients = await listPatientsByTenant(
-          tenant.doctor_id,
-          tenant.clinic_id,
-        );
+        const localPatients = await listPatientsByTenant(tenant.clinic_id);
         const localRecords = await listClinicalRecordsByTenant(
           tenant.doctor_id,
           tenant.clinic_id,
@@ -353,7 +350,7 @@ export default function PacientesPage() {
 
   return (
     <section className="hce-page">
-      <header className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+      <header className="hce-surface">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="hce-page-header">
             <p className="hce-kicker">
@@ -383,26 +380,22 @@ export default function PacientesPage() {
         </div>
       </header>
 
-      {error ? (
-        <div className="hce-alert-error">
-          {error}
-        </div>
-      ) : null}
+      {error ? <div className="hce-alert-error">{error}</div> : null}
 
       <div className="grid gap-4 md:grid-cols-3">
-        <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <article className="hce-surface-soft">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
             Pacientes registrados
           </p>
           <p className="mt-2 text-2xl font-semibold text-slate-900">{patients.length}</p>
         </article>
-        <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <article className="hce-surface-soft">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
             Consultas del paciente
           </p>
           <p className="mt-2 text-2xl font-semibold text-slate-900">{patientHistory.length}</p>
         </article>
-        <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <article className="hce-surface-soft">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
             Seguimientos pendientes
           </p>
@@ -411,7 +404,7 @@ export default function PacientesPage() {
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[340px_minmax(0,1fr)]">
-        <aside className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+        <aside className="hce-surface">
           <div className="space-y-3">
             <div>
               <h2 className="text-lg font-semibold text-slate-900">Pacientes</h2>
@@ -419,12 +412,7 @@ export default function PacientesPage() {
             </div>
             <label className="block space-y-2 text-sm font-medium text-slate-700">
               <span>Buscar</span>
-              <input
-                className="hce-input"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Nombre o documento"
-              />
+              <input className="hce-input" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Nombre o documento" />
             </label>
           </div>
 
@@ -439,7 +427,7 @@ export default function PacientesPage() {
                   key={patient.id}
                   type="button"
                   onClick={() => setSelectedPatientId(patient.id)}
-                  className={`w-full rounded-2xl border px-4 py-3 text-left transition hover:bg-slate-50 ${
+                    className={`w-full rounded-2xl border px-4 py-3 text-left transition hover:bg-slate-50 ${
                     selectedPatientId === patient.id
                       ? "border-teal-300 bg-teal-50"
                       : "border-slate-200 bg-white"
@@ -460,7 +448,7 @@ export default function PacientesPage() {
         </aside>
 
         <section className="space-y-6">
-          <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <article className="hce-surface">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div className="space-y-2">
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
@@ -481,11 +469,11 @@ export default function PacientesPage() {
 
               {selectedPatient ? (
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                  <div className="hce-surface-soft">
                     <p className="text-xs uppercase tracking-[0.15em] text-slate-500">Consultas</p>
                     <p className="mt-1 text-lg font-semibold text-slate-900">{patientHistory.length}</p>
                   </div>
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                  <div className="hce-surface-soft">
                     <p className="text-xs uppercase tracking-[0.15em] text-slate-500">Seguimientos</p>
                     <p className="mt-1 text-lg font-semibold text-slate-900">{followUpTimelineRecords.length}</p>
                   </div>
@@ -493,7 +481,7 @@ export default function PacientesPage() {
               ) : null}
 
               {selectedPatient ? (
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <div className="hce-surface-soft">
                   <label className="block space-y-2 text-sm font-medium text-slate-700">
                     <span>Estado del paciente</span>
                     <select
@@ -519,11 +507,7 @@ export default function PacientesPage() {
             </div>
 
             {selectedPatient ? (
-              <button
-                type="button"
-                onClick={() => setDeletePatientTarget(selectedPatient)}
-                className="hce-chip mt-3 inline-flex items-center gap-1.5 border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
-              >
+              <button type="button" onClick={() => setDeletePatientTarget(selectedPatient)} className="hce-chip mt-3 inline-flex items-center gap-1.5 border-red-200 bg-red-50 text-red-700 hover:bg-red-100">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
                 </svg>
@@ -532,7 +516,7 @@ export default function PacientesPage() {
             ) : null}
           </article>
 
-          <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <article className="hce-surface">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <h2 className="text-lg font-semibold text-slate-900">Timeline de seguimientos</h2>
@@ -554,11 +538,7 @@ export default function PacientesPage() {
                 ["vencidos", "Vencidos"],
                 ["completados", "Completados"],
               ] as Array<[FollowUpTimelineFilter, string]>).map(([filter, label]) => (
-                <button
-                  key={filter}
-                  type="button"
-                  onClick={() => setFollowUpFilter(filter)}
-                  className={`hce-chip ${
+                <button key={filter} type="button" onClick={() => setFollowUpFilter(filter)} className={`hce-chip ${
                     followUpFilter === filter
                       ? "border-teal-300 bg-teal-50 text-teal-900"
                       : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
@@ -572,11 +552,7 @@ export default function PacientesPage() {
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <label className="block space-y-2 text-sm font-medium text-slate-700">
                 <span>Rango de fecha</span>
-                <select
-                  className="hce-input"
-                  value={dateRangeFilter}
-                  onChange={(event) => setDateRangeFilter(event.target.value as DateRangeFilter)}
-                >
+                <select className="hce-input" value={dateRangeFilter} onChange={(event) => setDateRangeFilter(event.target.value as DateRangeFilter)}>
                   <option value="all">Todo el historial</option>
                   <option value="7">Ultimos 7 dias</option>
                   <option value="30">Ultimos 30 dias</option>
@@ -586,11 +562,7 @@ export default function PacientesPage() {
 
               <label className="block space-y-2 text-sm font-medium text-slate-700">
                 <span>Especialidad</span>
-                <select
-                  className="hce-input"
-                  value={specialtyFilter}
-                  onChange={(event) => setSpecialtyFilter(event.target.value)}
-                >
+                <select className="hce-input" value={specialtyFilter} onChange={(event) => setSpecialtyFilter(event.target.value)}>
                   <option value="all">Todas</option>
                   {specialtyOptions.map((specialty) => (
                     <option key={specialty} value={specialty}>
@@ -722,22 +694,22 @@ export default function PacientesPage() {
             </div>
           </article>
 
-          <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <article className="hce-surface">
             <h2 className="text-lg font-semibold text-slate-900">Detalle del seguimiento</h2>
             {selectedDetails ? (
               <div className="mt-4 grid gap-4 lg:grid-cols-2">
-                <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+                <div className="space-y-3 hce-surface-soft text-sm text-slate-700">
                   <p><span className="font-semibold text-slate-900">Fecha:</span> {formatDate(selectedDetails.consultationDate)}</p>
                   <p><span className="font-semibold text-slate-900">Sintomas:</span> {selectedDetails.symptoms}</p>
                   <p><span className="font-semibold text-slate-900">Diagnostico:</span> {selectedDetails.diagnosis}</p>
                   <p><span className="font-semibold text-slate-900">Evolucion:</span> {selectedDetails.evolutionStatus}</p>
                   <p><span className="font-semibold text-slate-900">Proximo control:</span> {selectedDetails.nextFollowUpDate ?? "No programado"}</p>
                 </div>
-                <div className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4">
+                <div className="space-y-3 hce-surface-soft bg-[color:var(--card)]">
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Acciones</p>
                   <Link
                     href="/consultas"
-                    className="inline-flex rounded-xl bg-teal-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-800"
+                    className="hce-btn-primary"
                   >
                     Registrar nueva consulta o seguimiento
                   </Link>

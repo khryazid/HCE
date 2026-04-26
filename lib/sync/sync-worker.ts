@@ -106,6 +106,10 @@ function mapPayloadByTable(tableName: TableName, payload: Record<string, unknown
         document_number: payload.document_number,
         full_name: payload.full_name,
         birth_date: payload.birth_date,
+        status:
+          typeof payload.status === "string" && payload.status.length > 0
+            ? payload.status
+            : "activo",
         created_at: payload.created_at,
         updated_at: payload.updated_at,
       };

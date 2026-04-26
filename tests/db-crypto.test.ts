@@ -74,7 +74,7 @@ describe("offline patient storage", () => {
 
     await savePatientLocal(patient);
 
-    const restored = await listPatientsByTenant(tenant.doctorId, tenant.clinicId);
+    const restored = await listPatientsByTenant(tenant.clinicId);
 
     expect(restored).toHaveLength(1);
     expect(restored[0]).toEqual(patient);

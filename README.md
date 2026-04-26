@@ -65,9 +65,16 @@ NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 GEMINI_API_KEY=
 GEMINI_MODEL=gemini-2.0-flash
+NEXT_ALLOWED_DEV_ORIGINS=
+E2E_EMAIL=
+E2E_PASSWORD=
 ```
 
 `GEMINI_API_KEY` es opcional. Si no esta presente, la pantalla de consultas usa solo el catalogo local de CIE.
+
+`NEXT_ALLOWED_DEV_ORIGINS` es opcional y solo aplica para `npm run dev`. Usa una lista separada por comas de hosts/origenes permitidos para recursos `/_next` en red local (por ejemplo: `192.168.0.149,mi-host.local`).
+
+`E2E_EMAIL` y `E2E_PASSWORD` se usan para pruebas Playwright reales. Si no estan definidos, los tests E2E autenticados se marcan como omitidos.
 
 
 ## Comandos
@@ -78,6 +85,7 @@ npm run dev
 npm run lint
 npm run typecheck
 npm run test
+npm run test:e2e
 npm run build
 ```
 

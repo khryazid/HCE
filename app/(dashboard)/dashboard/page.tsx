@@ -258,7 +258,7 @@ export default function DashboardPage() {
     const loadData = async () => {
       try {
         const [patients, records, queue] = await Promise.all([
-          listPatientsByTenant(tenant.doctor_id, tenant.clinic_id),
+          listPatientsByTenant(tenant.clinic_id),
           listClinicalRecordsByTenant(tenant.doctor_id, tenant.clinic_id),
           listSyncQueueItems(),
         ]);
@@ -385,7 +385,7 @@ export default function DashboardPage() {
 
   return (
     <section className="hce-page">
-      <header className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+      <header className="hce-surface p-5 sm:p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="hce-page-header">
             <p className="hce-kicker">
@@ -424,12 +424,13 @@ export default function DashboardPage() {
         </div>
       ) : null}
 
-      <article className="rounded-3xl border border-teal-200 bg-gradient-to-r from-teal-50 via-cyan-50 to-sky-50 p-5 shadow-sm">
+      <article className="hce-surface relative overflow-hidden">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(14,118,110,.12),transparent_42%),radial-gradient(circle_at_bottom_left,rgba(6,182,212,.12),transparent_45%)]" />
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">Resumen del dia</p>
-            <h2 className="text-2xl font-semibold capitalize text-slate-900">{todayLabel}</h2>
-            <p className="text-sm text-slate-700">
+            <h2 className="text-2xl font-semibold capitalize text-[color:var(--ink)]">{todayLabel}</h2>
+            <p className="text-sm text-[color:var(--ink-soft)]">
               {metrics.consultationsToday > 0
                 ? `Hoy registraste ${metrics.consultationsToday} consulta${metrics.consultationsToday === 1 ? "" : "s"}.`
                 : "Aun no registras consultas hoy. Puedes iniciar con una accion rapida."}
@@ -450,45 +451,45 @@ export default function DashboardPage() {
         </div>
 
         <div className="mt-4 grid gap-2 sm:grid-cols-3">
-          <div className="rounded-xl border border-white/80 bg-white/80 px-3 py-2">
-            <p className="text-[11px] uppercase tracking-[0.15em] text-slate-500">Consultas hoy</p>
-            <p className="mt-1 text-lg font-semibold text-slate-900">{metrics.consultationsToday}</p>
+          <div className="hce-surface-soft px-3 py-2">
+            <p className="text-[11px] uppercase tracking-[0.15em] text-[color:var(--ink-soft)]">Consultas hoy</p>
+            <p className="mt-1 text-lg font-semibold text-[color:var(--ink)]">{metrics.consultationsToday}</p>
           </div>
-          <div className="rounded-xl border border-white/80 bg-white/80 px-3 py-2">
-            <p className="text-[11px] uppercase tracking-[0.15em] text-slate-500">Seguimientos urgentes</p>
-            <p className="mt-1 text-lg font-semibold text-slate-900">{urgentFollowUps}</p>
+          <div className="hce-surface-soft px-3 py-2">
+            <p className="text-[11px] uppercase tracking-[0.15em] text-[color:var(--ink-soft)]">Seguimientos urgentes</p>
+            <p className="mt-1 text-lg font-semibold text-[color:var(--ink)]">{urgentFollowUps}</p>
           </div>
-          <div className="rounded-xl border border-white/80 bg-white/80 px-3 py-2">
-            <p className="text-[11px] uppercase tracking-[0.15em] text-slate-500">Registros incompletos</p>
-            <p className="mt-1 text-lg font-semibold text-slate-900">{metrics.incompleteRecords}</p>
+          <div className="hce-surface-soft px-3 py-2">
+            <p className="text-[11px] uppercase tracking-[0.15em] text-[color:var(--ink-soft)]">Registros incompletos</p>
+            <p className="mt-1 text-lg font-semibold text-[color:var(--ink)]">{metrics.incompleteRecords}</p>
           </div>
         </div>
       </article>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <article className="rounded-2xl border border-cyan-100 bg-cyan-50 p-4">
-          <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-800">
+        <article className="hce-surface-soft p-4">
+          <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-700">
             Pacientes activos
           </h2>
-          <p className="mt-2 text-2xl font-semibold text-cyan-950">{metrics.activePatients}</p>
+          <p className="mt-2 text-2xl font-semibold text-[color:var(--ink)]">{metrics.activePatients}</p>
         </article>
-        <article className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
-          <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-800">
+        <article className="hce-surface-soft p-4">
+          <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
             Consultas del dia
           </h2>
-          <p className="mt-2 text-2xl font-semibold text-emerald-950">{metrics.consultationsToday}</p>
+          <p className="mt-2 text-2xl font-semibold text-[color:var(--ink)]">{metrics.consultationsToday}</p>
         </article>
-        <article className="rounded-2xl border border-amber-100 bg-amber-50 p-4">
-          <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-800">
+        <article className="hce-surface-soft p-4">
+          <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-700">
             Seguimiento pendiente
           </h2>
-          <p className="mt-2 text-2xl font-semibold text-amber-950">{metrics.followUpPending}</p>
+          <p className="mt-2 text-2xl font-semibold text-[color:var(--ink)]">{metrics.followUpPending}</p>
         </article>
-        <article className="rounded-2xl border border-violet-100 bg-violet-50 p-4">
-          <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-violet-800">
+        <article className="hce-surface-soft p-4">
+          <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-violet-700">
             Top especialidades
           </h2>
-          <p className="mt-2 text-sm font-semibold text-violet-950">
+          <p className="mt-2 text-sm font-semibold text-[color:var(--ink)]">
             {metrics.consultationsBySpecialty.length > 0
               ? metrics.consultationsBySpecialty
                   .map((entry) => `${entry.specialty} (${entry.total})`)
@@ -499,10 +500,10 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <article className="hce-surface p-4">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="text-sm font-semibold text-slate-900">Consultas por semana</h2>
-            <span className="text-xs text-slate-500">Ultimos 7 dias</span>
+            <h2 className="text-sm font-semibold text-[color:var(--ink)]">Consultas por semana</h2>
+            <span className="text-xs text-[color:var(--ink-soft)]">Ultimos 7 dias</span>
           </div>
 
           <div className="mt-4 grid grid-cols-7 gap-2">
@@ -510,14 +511,14 @@ export default function DashboardPage() {
               const barHeight = Math.max(8, Math.round((point.total / weeklyMax) * 120));
               return (
                 <div key={point.dayLabel} className="flex flex-col items-center gap-2">
-                  <span className="text-[11px] font-semibold text-slate-700">{point.total}</span>
-                  <div className="flex h-32 w-full items-end rounded-lg bg-slate-100 px-1">
+                  <span className="text-[11px] font-semibold text-[color:var(--ink)]">{point.total}</span>
+                  <div className="flex h-32 w-full items-end rounded-lg bg-[color:var(--bg-soft)] px-1">
                     <div
                       className="w-full rounded-md bg-gradient-to-t from-teal-600 to-cyan-400"
                       style={{ height: `${barHeight}px` }}
                     />
                   </div>
-                  <span className="text-[10px] uppercase tracking-[0.1em] text-slate-500">
+                  <span className="text-[10px] uppercase tracking-[0.1em] text-[color:var(--ink-soft)]">
                     {point.dayLabel.replace(".", "")}
                   </span>
                 </div>
@@ -526,10 +527,10 @@ export default function DashboardPage() {
           </div>
         </article>
 
-        <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <article className="hce-surface p-4">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="text-sm font-semibold text-slate-900">Desglose por especialidad</h2>
-            <span className="text-xs text-slate-500">Distribucion actual</span>
+            <h2 className="text-sm font-semibold text-[color:var(--ink)]">Desglose por especialidad</h2>
+            <span className="text-xs text-[color:var(--ink-soft)]">Distribucion actual</span>
           </div>
 
           {specialtyBreakdown.length === 0 ? (
@@ -539,14 +540,14 @@ export default function DashboardPage() {
               {specialtyBreakdown.map((entry) => (
                 <div key={entry.specialty}>
                   <div className="mb-1 flex items-center justify-between text-xs">
-                    <span className="font-semibold uppercase tracking-[0.1em] text-slate-700">
+                    <span className="font-semibold uppercase tracking-[0.1em] text-[color:var(--ink)]">
                       {entry.specialty}
                     </span>
-                    <span className="text-slate-500">
+                    <span className="text-[color:var(--ink-soft)]">
                       {entry.total} ({entry.percentage}%)
                     </span>
                   </div>
-                  <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
+                  <div className="h-2.5 overflow-hidden rounded-full bg-[color:var(--bg-soft)]">
                     <div
                       className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-500"
                       style={{ width: `${entry.percentage}%` }}
@@ -560,10 +561,10 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-        <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <article className="hce-surface p-4">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="text-sm font-semibold text-slate-900">Actividad reciente</h2>
-            <p className="text-xs text-slate-500">Toca un item para verlo en detalle</p>
+            <h2 className="text-sm font-semibold text-[color:var(--ink)]">Actividad reciente</h2>
+            <p className="text-xs text-[color:var(--ink-soft)]">Toca un item para verlo en detalle</p>
           </div>
           <div className="mt-3 space-y-2">
             {activity.length === 0 ? (
@@ -576,39 +577,39 @@ export default function DashboardPage() {
                   key={`${item.type}-${item.id}`}
                   type="button"
                   onClick={() => setSelectedActivity(item)}
-                  className={`w-full rounded-xl border px-3 py-3 text-left transition hover:bg-slate-50 ${
+                  className={`w-full rounded-xl border px-3 py-3 text-left transition hover:bg-[color:var(--bg-soft)] ${
                     selectedActivity?.type === item.type && selectedActivity?.id === item.id
-                      ? "border-teal-300 bg-teal-50"
-                      : "border-slate-200 bg-white"
+                      ? "border-teal-300 bg-teal-50/70"
+                      : "border-[color:var(--border)] bg-[color:var(--card)]"
                   }`}
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <p className="text-sm font-semibold text-slate-900">{item.title}</p>
-                      <p className="text-xs uppercase tracking-[0.15em] text-slate-500">
+                      <p className="text-sm font-semibold text-[color:var(--ink)]">{item.title}</p>
+                      <p className="text-xs uppercase tracking-[0.15em] text-[color:var(--ink-soft)]">
                         {item.type === "consultation" ? "Consulta" : "Paciente"} · {item.subtitle}
                       </p>
                     </div>
-                    <span className="text-xs text-slate-500">{new Date(item.date).toLocaleString("es-EC")}</span>
+                    <span className="text-xs text-[color:var(--ink-soft)]">{new Date(item.date).toLocaleString("es-EC")}</span>
                   </div>
-                  <p className="mt-2 text-sm text-slate-700">{item.detail}</p>
+                  <p className="mt-2 text-sm text-[color:var(--ink-soft)]">{item.detail}</p>
                 </button>
               ))
             )}
           </div>
         </article>
 
-        <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <h2 className="text-sm font-semibold text-slate-900">Detalle</h2>
+        <article className="hce-surface p-4">
+          <h2 className="text-sm font-semibold text-[color:var(--ink)]">Detalle</h2>
           {selectedActivity ? (
             <div className="mt-3 space-y-3">
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                <p className="text-xs uppercase tracking-[0.15em] text-slate-500">
+              <div className="hce-surface-soft">
+                <p className="text-xs uppercase tracking-[0.15em] text-[color:var(--ink-soft)]">
                   {selectedActivity.type === "consultation" ? "Consulta" : "Paciente"}
                 </p>
-                <h3 className="mt-1 text-lg font-semibold text-slate-900">{selectedActivity.title}</h3>
-                <p className="mt-1 text-sm text-slate-700">{selectedActivity.detail}</p>
-                <p className="mt-2 text-xs text-slate-500">
+                <h3 className="mt-1 text-lg font-semibold text-[color:var(--ink)]">{selectedActivity.title}</h3>
+                <p className="mt-1 text-sm text-[color:var(--ink-soft)]">{selectedActivity.detail}</p>
+                <p className="mt-2 text-xs text-[color:var(--ink-soft)]">
                   {new Date(selectedActivity.date).toLocaleString("es-EC")}
                 </p>
               </div>
@@ -620,18 +621,18 @@ export default function DashboardPage() {
               </Link>
             </div>
           ) : (
-            <p className="mt-3 text-sm text-slate-600">
+            <p className="mt-3 text-sm text-[color:var(--ink-soft)]">
               Selecciona una actividad para ver detalles accionables.
             </p>
           )}
         </article>
       </div>
 
-      <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <article className="hce-surface p-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-sm font-semibold text-slate-900">Panel de seguimientos pendientes</h2>
-            <p className="text-xs text-slate-500">Filtra por urgentes, vencidos o proximos para priorizar controles.</p>
+            <h2 className="text-sm font-semibold text-[color:var(--ink)]">Panel de seguimientos pendientes</h2>
+            <p className="text-xs text-[color:var(--ink-soft)]">Filtra por urgentes, vencidos o proximos para priorizar controles.</p>
           </div>
           <div className="flex flex-wrap gap-2">
             {([
@@ -646,7 +647,7 @@ export default function DashboardPage() {
                 className={`hce-chip ${
                   followUpFilter === filter
                     ? "border-teal-300 bg-teal-50 text-teal-900"
-                    : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                      : "border-[color:var(--border)] bg-[color:var(--card)] text-[color:var(--ink)] hover:bg-[color:var(--bg-soft)]"
                 }`}
               >
                 {label} ({followUpCounts[filter]})
@@ -657,22 +658,22 @@ export default function DashboardPage() {
 
         <div className="mt-4 space-y-2">
           {filteredFollowUpItems.length === 0 ? (
-            <div className="hce-empty">
+              <div className="hce-empty">
               No hay seguimientos en este filtro.
             </div>
           ) : (
             filteredFollowUpItems.map((item) => (
               <div
                 key={item.recordId}
-                className="rounded-xl border border-slate-200 bg-white px-3 py-3"
+                  className="rounded-xl border border-[color:var(--border)] bg-[color:var(--card)] px-3 py-3"
               >
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                   <div>
-                    <p className="text-sm font-semibold text-slate-900">{item.patientName}</p>
-                    <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+                    <p className="text-sm font-semibold text-[color:var(--ink)]">{item.patientName}</p>
+                    <p className="text-xs uppercase tracking-[0.12em] text-[color:var(--ink-soft)]">
                       {item.specialtyKind} · Control {new Date(item.dueDate).toLocaleDateString("es-EC")}
                     </p>
-                    <p className="mt-1 text-sm text-slate-700">{item.diagnosis}</p>
+                    <p className="mt-1 text-sm text-[color:var(--ink-soft)]">{item.diagnosis}</p>
                   </div>
                   <Link
                     href={`/consultas?mode=seguimiento&patientId=${item.patientId}&recordId=${item.recordId}`}
@@ -688,21 +689,21 @@ export default function DashboardPage() {
       </article>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Link href="/pacientes" className="rounded-2xl border border-slate-200 bg-slate-50 p-4 transition hover:bg-slate-100">
-          <p className="text-sm font-semibold text-slate-900">Pacientes</p>
-          <p className="mt-2 text-sm text-slate-700">Abrir y gestionar pacientes.</p>
+        <Link href="/pacientes" className="hce-surface-soft transition hover:-translate-y-0.5 hover:shadow-md">
+          <p className="text-sm font-semibold text-[color:var(--ink)]">Pacientes</p>
+          <p className="mt-2 text-sm text-[color:var(--ink-soft)]">Abrir y gestionar pacientes.</p>
         </Link>
-        <Link href="/consultas" className="rounded-2xl border border-slate-200 bg-slate-50 p-4 transition hover:bg-slate-100">
-          <p className="text-sm font-semibold text-slate-900">Consultas</p>
-          <p className="mt-2 text-sm text-slate-700">Registrar una nueva consulta guiada.</p>
+        <Link href="/consultas" className="hce-surface-soft transition hover:-translate-y-0.5 hover:shadow-md">
+          <p className="text-sm font-semibold text-[color:var(--ink)]">Consultas</p>
+          <p className="mt-2 text-sm text-[color:var(--ink-soft)]">Registrar una nueva consulta guiada.</p>
         </Link>
-        <Link href="/tratamientos" className="rounded-2xl border border-slate-200 bg-slate-50 p-4 transition hover:bg-slate-100">
-          <p className="text-sm font-semibold text-slate-900">Tratamientos</p>
-          <p className="mt-2 text-sm text-slate-700">Revisar plantillas predeterminadas.</p>
+        <Link href="/tratamientos" className="hce-surface-soft transition hover:-translate-y-0.5 hover:shadow-md">
+          <p className="text-sm font-semibold text-[color:var(--ink)]">Tratamientos</p>
+          <p className="mt-2 text-sm text-[color:var(--ink-soft)]">Revisar plantillas predeterminadas.</p>
         </Link>
-        <Link href="/ajustes" className="rounded-2xl border border-slate-200 bg-slate-50 p-4 transition hover:bg-slate-100">
-          <p className="text-sm font-semibold text-slate-900">Ajustes</p>
-          <p className="mt-2 text-sm text-slate-700">Editar membrete profesional y contacto.</p>
+        <Link href="/ajustes" className="hce-surface-soft transition hover:-translate-y-0.5 hover:shadow-md">
+          <p className="text-sm font-semibold text-[color:var(--ink)]">Ajustes</p>
+          <p className="mt-2 text-sm text-[color:var(--ink-soft)]">Editar membrete profesional y contacto.</p>
         </Link>
       </div>
     </section>

@@ -13,8 +13,8 @@ export function Button({
     variant === "primary"
       ? "hce-btn-primary"
       : variant === "secondary"
-        ? "hce-btn-secondary border-0 bg-slate-100 text-slate-900 hover:bg-slate-200"
-        : "hce-btn border-0 bg-transparent text-slate-700 hover:bg-slate-100";
+        ? "hce-btn-secondary"
+        : "hce-btn border-0 bg-transparent text-[color:var(--ink)] hover:bg-[color:var(--bg-soft)]";
 
   return (
     <button

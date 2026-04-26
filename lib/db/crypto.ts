@@ -49,6 +49,10 @@ function fromBase64(value: string) {
   return bytes;
 }
 
+function toStrictArrayBuffer(bytes: Uint8Array) {
+  return Uint8Array.from(bytes).buffer;
+}
+
 function isEncryptedEnvelope(value: unknown): value is EncryptedEnvelope {
   return Boolean(
     value &&
@@ -75,7 +79,13 @@ async function loadOrCreateAesKey() {
 
   if (stored) {
     const rawKey = fromBase64(stored.key_material);
-    return crypto.subtle.importKey("raw", rawKey, "AES-GCM", false, ["encrypt", "decrypt"]);
+    return crypto.subtle.importKey(
+      "raw",
+      toStrictArrayBuffer(rawKey),
+      "AES-GCM",
+      false,
+      ["encrypt", "decrypt"],
+    );
   }
 
   const generated = await crypto.subtle.generateKey(
@@ -143,7 +153,13 @@ export async function importEncryptionKeyBackup(backup: unknown) {
   }
 
   try {
-    await crypto.subtle.importKey("raw", rawKey, "AES-GCM", false, ["encrypt", "decrypt"]);
+    await crypto.subtle.importKey(
+      "raw",
+      toStrictArrayBuffer(rawKey),
+      "AES-GCM",
+      false,
+      ["encrypt", "decrypt"],
+    );
   } catch {
     throw new Error("La clave del backup no es compatible con AES-GCM.");
   }

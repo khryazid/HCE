@@ -65,16 +65,26 @@ export function WizardStepPatient({
 
   const selectedPatientLabel = patients.find((p) => p.id === form.patientId);
 
+  function baseInputClass() {
+    return "hce-input";
+  }
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* Search / autocomplete existing patient */}
-      <div className="space-y-2">
-        <label className="block text-sm font-medium text-slate-700">
+      <div className="space-y-3">
+        <div className="space-y-1">
+          <p className="hce-section-title">Paciente</p>
+          <p className="hce-page-lead">
+            Selecciona un paciente existente o crea uno nuevo sin salir del flujo.
+          </p>
+        </div>
+        <label className="block text-sm font-medium text-[color:var(--ink)]">
           Buscar paciente existente
         </label>
         <div className="relative">
           <input
-            className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none ring-teal-600 focus:ring-2"
+            className={baseInputClass()}
             placeholder="Escribe nombre, apellido o documento..."
             value={searchQuery}
             onChange={(e) => {
@@ -85,20 +95,20 @@ export function WizardStepPatient({
           />
 
           {showSuggestions && suggestions.length > 0 ? (
-            <div className="absolute inset-x-0 top-full z-20 mt-1 max-h-60 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg">
+            <div className="absolute inset-x-0 top-full z-20 mt-1 max-h-60 overflow-y-auto rounded-xl border border-[color:var(--border)] bg-[color:var(--card)] shadow-lg">
               {suggestions.map((patient) => (
                 <button
                   key={patient.id}
                   type="button"
                   onClick={() => selectPatient(patient.id)}
-                  className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm transition hover:bg-teal-50"
+                  className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm transition hover:bg-[color:var(--bg-soft)]"
                 >
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-xs font-bold text-slate-600">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[color:var(--bg-soft)] text-xs font-bold text-[color:var(--ink)]">
                     {patient.full_name.charAt(0).toUpperCase()}
                   </div>
                   <div>
-                    <p className="font-medium text-slate-900">{patient.full_name}</p>
-                    <p className="text-xs text-slate-500">{patient.document_number}</p>
+                    <p className="font-medium text-[color:var(--ink)]">{patient.full_name}</p>
+                    <p className="text-xs text-[color:var(--ink-soft)]">{patient.document_number}</p>
                   </div>
                 </button>
               ))}
@@ -106,7 +116,7 @@ export function WizardStepPatient({
           ) : null}
 
           {showSuggestions && searchQuery.length >= 2 && suggestions.length === 0 ? (
-            <div className="absolute inset-x-0 top-full z-20 mt-1 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500 shadow-lg">
+            <div className="absolute inset-x-0 top-full z-20 mt-1 rounded-xl border border-[color:var(--border)] bg-[color:var(--card)] px-4 py-3 text-sm text-[color:var(--ink-soft)] shadow-lg">
               No se encontro ningun paciente. Crea uno nuevo abajo.
             </div>
           ) : null}
@@ -143,10 +153,10 @@ export function WizardStepPatient({
         </div>
       ) : (
         /* Also keep the select for backward compat / quick access */
-        <label className="block space-y-2 text-sm font-medium text-slate-700">
+        <label className="block space-y-2 text-sm font-medium text-[color:var(--ink)]">
           <span>O selecciona de la lista</span>
           <select
-            className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
+            className={baseInputClass()}
             value={form.patientId}
             onChange={(event) => selectPatient(event.target.value)}
           >
@@ -161,9 +171,9 @@ export function WizardStepPatient({
       )}
 
       {form.patientId ? (
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-3">
+        <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--card)] p-4 space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-sm font-semibold text-slate-900">
+            <p className="text-sm font-semibold text-[color:var(--ink)]">
               Tipo de registro
             </p>
             {pendingFollowUp ? (
@@ -189,10 +199,10 @@ export function WizardStepPatient({
             <button
               type="button"
               onClick={onApplyConsultaMode}
-              className={`rounded-xl border px-3 py-2 text-sm font-semibold transition ${
+              className={`hce-chip ${
                 form.entryMode === "consulta"
                   ? "border-teal-300 bg-teal-50 text-teal-900"
-                  : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                  : "border-[color:var(--border)] bg-[color:var(--card)] text-[color:var(--ink)] hover:bg-[color:var(--bg-soft)]"
               }`}
             >
               Consulta completa
@@ -200,10 +210,10 @@ export function WizardStepPatient({
             <button
               type="button"
               onClick={() => onApplyFollowUpMode(latestPatientRecord)}
-              className={`rounded-xl border px-3 py-2 text-sm font-semibold transition ${
+              className={`hce-chip ${
                 form.entryMode === "seguimiento"
                   ? "border-teal-300 bg-teal-50 text-teal-900"
-                  : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                  : "border-[color:var(--border)] bg-[color:var(--card)] text-[color:var(--ink)] hover:bg-[color:var(--bg-soft)]"
               }`}
             >
               Registrar seguimiento
@@ -211,14 +221,14 @@ export function WizardStepPatient({
           </div>
 
           {pendingFollowUp ? (
-            <p className="text-sm text-slate-700">
+            <p className="text-sm text-[color:var(--ink-soft)]">
               Control{" "}
               {pendingFollowUp.isOverdue ? "vencido" : "programado"} para
               el {pendingFollowUp.dueDateLabel}. Base diagnostica:{" "}
               {pendingFollowUp.diagnosis}.
             </p>
           ) : (
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-[color:var(--ink-soft)]">
               Puedes usar modo seguimiento aunque no exista control
               pendiente.
             </p>
@@ -227,13 +237,13 @@ export function WizardStepPatient({
       ) : null}
 
       {/* Quick patient creation with separate name/surname */}
-      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-3">
-        <p className="text-sm font-semibold text-slate-900">
+      <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--bg-soft)] p-4 space-y-3">
+        <p className="text-sm font-semibold text-[color:var(--ink)]">
           Crear paciente nuevo
         </p>
         <div className="grid gap-3 sm:grid-cols-2">
           <input
-            className="rounded-xl border border-slate-300 px-3 py-2 text-sm"
+            className="hce-input"
             placeholder="Nombre"
             value={quickPatient.firstName}
             onChange={(event) =>
@@ -244,7 +254,7 @@ export function WizardStepPatient({
             }
           />
           <input
-            className="rounded-xl border border-slate-300 px-3 py-2 text-sm"
+            className="hce-input"
             placeholder="Apellido"
             value={quickPatient.lastName}
             onChange={(event) =>
@@ -257,7 +267,7 @@ export function WizardStepPatient({
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
           <input
-            className="rounded-xl border border-slate-300 px-3 py-2 text-sm"
+            className="hce-input"
             placeholder="Documento de identidad"
             value={quickPatient.documentNumber}
             onChange={(event) =>
@@ -268,7 +278,7 @@ export function WizardStepPatient({
             }
           />
           <input
-            className="rounded-xl border border-slate-300 px-3 py-2 text-sm"
+            className="hce-input"
             type="date"
             value={quickPatient.birthDate}
             onChange={(event) =>
@@ -281,7 +291,7 @@ export function WizardStepPatient({
         </div>
         <button
           type="button"
-          className="rounded-xl bg-teal-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-800"
+          className="hce-btn-primary"
           onClick={onCreateQuickPatient}
         >
           Crear paciente

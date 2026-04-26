@@ -1,5 +1,20 @@
 export type SpecialtyKind = "odontologia" | "pediatria" | "medicina-general";
 
+export type OdontogramToothState = "sano" | "caries" | "ausente" | "tratado";
+
+export type OdontogramTooth = {
+  numero: string;
+  estado: OdontogramToothState;
+  notas?: string;
+};
+
+export type GrowthPoint = {
+  edad_meses: number;
+  peso_kg: number;
+  talla_cm: number;
+  percentil: number;
+};
+
 export type SpecialtyCore = {
   specialty_kind: SpecialtyKind;
   schema_version: number;
@@ -9,19 +24,12 @@ export type SpecialtyCore = {
 
 export type OdontologiaData = SpecialtyCore & {
   specialty_kind: "odontologia";
-  piezas: Array<{
-    numero: string;
-    estado: "sano" | "caries" | "ausente" | "tratado";
-    notas?: string;
-  }>;
+  piezas: OdontogramTooth[];
 };
 
 export type PediatriaData = SpecialtyCore & {
   specialty_kind: "pediatria";
-  edad_meses: number;
-  peso_kg: number;
-  talla_cm: number;
-  percentil: number;
+  growth: GrowthPoint[];
 };
 
 export type MedicinaGeneralData = SpecialtyCore & {

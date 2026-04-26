@@ -44,6 +44,7 @@ export type Database = {
           document_number: string;
           full_name: string;
           birth_date: string | null;
+          status: string;
           created_at: string;
           updated_at: string;
         };
@@ -54,6 +55,7 @@ export type Database = {
           document_number: string;
           full_name: string;
           birth_date?: string | null;
+          status?: string;
           created_at?: string;
           updated_at?: string;
         };
@@ -63,6 +65,7 @@ export type Database = {
           document_number: string;
           full_name: string;
           birth_date: string | null;
+          status: string;
           updated_at: string;
         }>;
       };

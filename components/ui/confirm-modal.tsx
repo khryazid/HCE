@@ -45,7 +45,7 @@ export function ConfirmModal({
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="mx-4 w-full max-w-sm rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl space-y-5">
+      <div className="mx-4 w-full max-w-sm rounded-3xl border border-[color:var(--border)] bg-[color:var(--card)] p-6 shadow-2xl space-y-5">
         {/* Icon */}
         <div className="flex justify-center">
           <div
@@ -64,8 +64,8 @@ export function ConfirmModal({
         </div>
 
         <div className="text-center">
-          <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
-          <p className="mt-1 text-sm text-slate-600">{description}</p>
+          <h3 className="text-lg font-semibold text-[color:var(--ink)]">{title}</h3>
+          <p className="mt-1 text-sm text-[color:var(--ink-soft)]">{description}</p>
         </div>
 
         <div className="flex gap-3">

@@ -30,9 +30,16 @@ export default function ConsultasPage() {
     return <ConsultasSkeleton />;
   }
 
+  const stepLabels = [
+    "Paciente",
+    "Diagnóstico",
+    "Tratamiento",
+    "Confirmación",
+  ];
+
   return (
     <section className="hce-page">
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <header className="hce-surface flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="hce-page-header">
           <h1 className="hce-page-title">
             Flujo de consulta
@@ -45,7 +52,7 @@ export default function ConsultasPage() {
         <button
           type="button"
           onClick={wizard.openWizard}
-          className="rounded-xl bg-teal-700 px-4 py-2.5 text-sm font-semibold text-white"
+          className="hce-btn-primary"
         >
           Nueva consulta
         </button>
@@ -64,14 +71,39 @@ export default function ConsultasPage() {
       ) : null}
 
       {wizard.wizardOpen ? (
-        <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm space-y-5">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-slate-900">
-              Paso {wizard.step} de 4
-            </h2>
+        <article className="hce-surface space-y-5">
+          <div className="flex flex-col gap-4 border-b border-[color:var(--border)] pb-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-2">
+              <p className="hce-kicker">Registro guiado</p>
+              <h2 className="hce-section-title">
+                Paso {wizard.step} de 4 · {stepLabels[wizard.step - 1]}
+              </h2>
+              <div className="flex flex-wrap gap-2">
+                {stepLabels.map((label, index) => {
+                  const stepNumber = index + 1;
+                  const isCurrent = wizard.step === stepNumber;
+                  const isDone = wizard.step > stepNumber;
+
+                  return (
+                    <span
+                      key={label}
+                      className={`hce-chip ${
+                        isCurrent
+                          ? "border-teal-300 bg-teal-50 text-teal-900"
+                          : isDone
+                            ? "border-emerald-300 bg-emerald-50 text-emerald-900"
+                            : "border-[color:var(--border)] bg-[color:var(--bg-soft)] text-[color:var(--ink-soft)]"
+                      }`}
+                    >
+                      {stepNumber}. {label}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
             <button
               type="button"
-              className="text-sm font-semibold text-slate-600"
+              className="hce-btn-secondary"
               onClick={wizard.resetWizard}
             >
               Cerrar
@@ -127,14 +159,16 @@ export default function ConsultasPage() {
             />
           ) : null}
 
-          <WizardNavigation
-            step={wizard.step}
-            saving={wizard.saving}
-            onPrev={wizard.prevStep}
-            onNext={wizard.nextStep}
-            onSaveWithoutPdf={() => void wizard.handleSaveWithoutPdf()}
-            onOpenPreview={() => setPreviewOpen(true)}
-          />
+          <div className="border-t border-[color:var(--border)] pt-4">
+            <WizardNavigation
+              step={wizard.step}
+              saving={wizard.saving}
+              onPrev={wizard.prevStep}
+              onNext={wizard.nextStep}
+              onSaveWithoutPdf={() => void wizard.handleSaveWithoutPdf()}
+              onOpenPreview={() => setPreviewOpen(true)}
+            />
+          </div>
         </article>
       ) : null}
 

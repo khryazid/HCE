@@ -249,7 +249,7 @@ export function useConsultationWizard(tenant: TenantProfile | null) {
     const load = async () => {
       try {
         const [patientRows, consultationRows] = await Promise.all([
-          listPatientsByTenant(tenant.doctor_id, tenant.clinic_id),
+          listPatientsByTenant(tenant.clinic_id),
           listClinicalRecordsByTenant(tenant.doctor_id, tenant.clinic_id),
         ]);
 

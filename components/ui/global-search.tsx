@@ -104,7 +104,7 @@ export function GlobalSearch() {
 
       try {
         const [patients, records] = await Promise.all([
-          listPatientsByTenant(tenant.doctor_id, tenant.clinic_id),
+          listPatientsByTenant(tenant.clinic_id),
           listClinicalRecordsByTenant(tenant.doctor_id, tenant.clinic_id),
         ]);
         const templates = listTreatmentTemplates(tenant.doctor_id, tenant.clinic_id);
@@ -254,10 +254,10 @@ export function GlobalSearch() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-left shadow-sm transition hover:border-teal-300 hover:bg-teal-50"
+         className="flex w-full items-center justify-between rounded-2xl border border-[color:var(--border)] bg-[color:var(--card)] px-4 py-2.5 text-left shadow-sm transition hover:border-teal-300 hover:bg-[color:var(--bg-soft)]"
       >
-        <span className="text-sm text-slate-700">Buscar pacientes, consultas o tratamientos...</span>
-        <span className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-semibold text-slate-500">
+         <span className="text-sm text-[color:var(--ink-soft)]">Buscar pacientes, consultas o tratamientos...</span>
+         <span className="rounded-lg border border-[color:var(--border)] bg-[color:var(--bg-soft)] px-2 py-1 text-[11px] font-semibold text-[color:var(--ink-soft)]">
           Ctrl/Cmd + K
         </span>
       </button>

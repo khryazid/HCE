@@ -10,6 +10,7 @@ import {
   encryptJson,
   isEncryptedEnvelope,
 } from "@/lib/db/crypto";
+import { getSupabaseClient } from "@/lib/supabase/client";
 
 const DB_NAME = "hce-offline-db";
 const DB_VERSION = 1;
@@ -192,13 +193,65 @@ export async function listSyncQueueItems() {
   return hydrated.sort((first, second) => second.client_timestamp - first.client_timestamp);
 }
 
-export async function listPatientsByTenant(doctorId: string, clinicId: string) {
+export async function listPatientsByTenant(clinicId: string) {
   const db = await getOfflineDb();
+
+  try {
+    const supabase = getSupabaseClient();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    if (session) {
+      const { data: remotePatients, error } = await supabase
+        .from("patients")
+        .select(
+          "id, clinic_id, doctor_id, document_number, full_name, birth_date, status, created_at, updated_at",
+        )
+        .eq("clinic_id", clinicId);
+
+      type RemotePatientRow = Pick<
+        PatientRecord,
+        | "id"
+        | "clinic_id"
+        | "doctor_id"
+        | "document_number"
+        | "full_name"
+        | "birth_date"
+        | "status"
+        | "created_at"
+        | "updated_at"
+      >;
+
+      const safeRemotePatients = (remotePatients ?? []) as RemotePatientRow[];
+
+      if (!error && safeRemotePatients.length > 0) {
+        await Promise.all(
+          safeRemotePatients.map(async (patient) => {
+            await db.put("patients", {
+              id: patient.id,
+              clinic_id: patient.clinic_id,
+              doctor_id: patient.doctor_id,
+              created_at: patient.created_at,
+              updated_at: patient.updated_at,
+              payload: await encryptJson({
+                document_number: patient.document_number,
+                full_name: patient.full_name,
+                birth_date: patient.birth_date,
+                status: patient.status ?? "activo",
+              }),
+            });
+          }),
+        );
+      }
+    }
+  } catch {
+    // Offline-first: si el refresco remoto falla, usamos solo la cache local.
+  }
+
   const allPatients = await db.getAll("patients");
 
-  const matchingPatients = allPatients.filter(
-    (patient) => patient.doctor_id === doctorId && patient.clinic_id === clinicId,
-  );
+  const matchingPatients = allPatients.filter((patient) => patient.clinic_id === clinicId);
 
   const hydratedPatients = await Promise.all(
     matchingPatients.map(async (patient) => {

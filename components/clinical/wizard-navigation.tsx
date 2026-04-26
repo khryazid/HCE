@@ -18,12 +18,12 @@ export function WizardNavigation({
   onOpenPreview,
 }: Props) {
   return (
-    <div className="flex gap-2">
+    <div className="flex flex-col gap-2 sm:flex-row">
       <button
         type="button"
         onClick={onPrev}
         disabled={step === 1 || saving}
-        className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold disabled:opacity-60"
+        className="hce-btn-secondary"
       >
         Anterior
       </button>
@@ -32,7 +32,7 @@ export function WizardNavigation({
           type="button"
           onClick={onNext}
           disabled={saving}
-          className="rounded-xl bg-teal-700 px-4 py-2 text-sm font-semibold text-white"
+          className="hce-btn-primary"
         >
           Siguiente
         </button>
@@ -42,7 +42,7 @@ export function WizardNavigation({
             type="button"
             onClick={onSaveWithoutPdf}
             disabled={saving}
-            className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 disabled:opacity-60"
+            className="hce-btn-secondary"
           >
             {saving ? "Guardando..." : "Guardar sin PDF"}
           </button>
@@ -50,7 +50,7 @@ export function WizardNavigation({
             type="button"
             onClick={onOpenPreview}
             disabled={saving}
-            className="rounded-xl bg-teal-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+            className="hce-btn-primary"
           >
             Previsualizar PDF
           </button>

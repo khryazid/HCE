@@ -24,6 +24,7 @@ create table if not exists public.patients (
   document_number text not null,
   full_name text not null,
   birth_date date,
+  status text not null default 'activo' check (status in ('activo', 'inactivo', 'en-seguimiento', 'alta')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique (clinic_id, document_number)
@@ -99,6 +100,16 @@ alter table if exists public.audit_logs
   add constraint audit_logs_doctor_id_fkey
   foreign key (doctor_id) references auth.users (id) on delete set null;
 
+alter table if exists public.patients
+  add column if not exists status text not null default 'activo';
+
+alter table if exists public.patients
+  drop constraint if exists patients_status_check;
+
+alter table if exists public.patients
+  add constraint patients_status_check
+  check (status in ('activo', 'inactivo', 'en-seguimiento', 'alta'));
+
 alter table public.profiles enable row level security;
 alter table public.patients enable row level security;
 alter table public.clinical_records enable row level security;
@@ -126,15 +137,36 @@ create policy "patients_tenant_select"
   on public.patients
   for select
   to authenticated
-  using (doctor_id = auth.uid());
+  using (
+    exists (
+      select 1
+      from public.profiles p
+      where p.doctor_id = auth.uid()
+        and p.clinic_id = public.patients.clinic_id
+    )
+  );
 
 drop policy if exists "patients_tenant_write" on public.patients;
 create policy "patients_tenant_write"
   on public.patients
   for all
   to authenticated
-  using (doctor_id = auth.uid())
-  with check (doctor_id = auth.uid());
+  using (
+    exists (
+      select 1
+      from public.profiles p
+      where p.doctor_id = auth.uid()
+        and p.clinic_id = public.patients.clinic_id
+    )
+  )
+  with check (
+    exists (
+      select 1
+      from public.profiles p
+      where p.doctor_id = auth.uid()
+        and p.clinic_id = public.patients.clinic_id
+    )
+  );
 
 drop policy if exists "records_tenant_select" on public.clinical_records;
 create policy "records_tenant_select"

@@ -2,10 +2,38 @@
 
 :root {
   --bg: #f6f8f6;
+  --bg-elevated: #ffffff;
+  --bg-soft: #eef2f0;
   --ink: #15212b;
+  --ink-soft: #51606d;
   --card: #ffffff;
+  --card-contrast: #ffffff;
+  --border: #d8e0dd;
+  --field: #ffffff;
+  --field-border: #c5d1cb;
+  --shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+  --surface-glow: rgba(14, 118, 110, 0.08);
   --accent: #0e766e;
   --warning: #c05621;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #071217;
+    --bg-elevated: #0f1b22;
+    --bg-soft: #13232c;
+    --ink: #e6eef2;
+    --ink-soft: #9eb0bb;
+    --card: #0f1b22;
+    --card-contrast: #13232c;
+    --border: #22323c;
+    --field: #13232c;
+    --field-border: #2d404b;
+    --shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+    --surface-glow: rgba(45, 212, 191, 0.08);
+    color-scheme: dark;
+  }
 }
 
 @theme inline {
@@ -25,6 +53,10 @@ body {
   line-height: 1.6;
 }
 
+html {
+  color-scheme: light dark;
+}
+
 @layer base {
   a,
   button,
@@ -32,7 +64,8 @@ body {
   select,
   textarea,
   [role="button"] {
-    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2 focus-visible:ring-offset-white;
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2;
+    --tw-ring-offset-color: var(--bg);
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -48,7 +81,31 @@ body {
 }
 
 @utility hce-card {
-  @apply rounded-2xl border border-slate-200 bg-white p-4 shadow-sm;
+  @apply rounded-2xl border p-4;
+  background: var(--card);
+  border-color: var(--border);
+  box-shadow: var(--shadow);
+}
+
+@utility hce-surface {
+  @apply rounded-3xl border p-5;
+  background: var(--card);
+  border-color: var(--border);
+  box-shadow: var(--shadow);
+}
+
+@utility hce-surface-soft {
+  @apply rounded-2xl border p-4;
+  background: var(--bg-soft);
+  border-color: var(--border);
+}
+
+@utility hce-text {
+  color: var(--ink);
+}
+
+@utility hce-text-muted {
+  color: var(--ink-soft);
 }
 
 @utility hce-page {
@@ -60,31 +117,43 @@ body {
 }
 
 @utility hce-kicker {
-  @apply text-xs font-semibold uppercase tracking-[0.18em] text-slate-500;
+  @apply text-xs font-semibold uppercase tracking-[0.18em];
+  color: var(--ink-soft);
 }
 
 @utility hce-page-title {
-  @apply text-2xl font-semibold leading-tight text-slate-900 sm:text-3xl;
+  @apply text-2xl font-semibold leading-tight sm:text-3xl;
+  color: var(--ink);
 }
 
 @utility hce-page-lead {
-  @apply text-sm leading-7 text-slate-700;
+  @apply text-sm leading-7;
+  color: var(--ink-soft);
 }
 
 @utility hce-section-title {
-  @apply text-lg font-semibold text-slate-900;
+  @apply text-lg font-semibold;
+  color: var(--ink);
 }
 
 @utility hce-card-soft {
-  @apply rounded-2xl border border-slate-200 bg-slate-50 p-4;
+  @apply rounded-2xl border p-4;
+  background: var(--bg-soft);
+  border-color: var(--border);
 }
 
 @utility hce-empty {
-  @apply rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-600;
+  @apply rounded-xl border px-3 py-3 text-sm;
+  background: var(--bg-soft);
+  border-color: var(--border);
+  color: var(--ink-soft);
 }
 
 @utility hce-input {
-  @apply w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-[16px] text-slate-900 outline-none ring-teal-600 transition placeholder:text-slate-400 focus:ring-2 sm:text-sm;
+  @apply w-full rounded-xl border px-3 py-2 text-[16px] outline-none ring-teal-600 transition placeholder:text-slate-400 focus:ring-2 sm:text-sm;
+  background: var(--field);
+  border-color: var(--field-border);
+  color: var(--ink);
 }
 
 @utility hce-btn {
@@ -92,11 +161,15 @@ body {
 }
 
 @utility hce-btn-primary {
-  @apply hce-btn bg-teal-700 text-white hover:bg-teal-800;
+  @apply hce-btn text-white hover:opacity-95;
+  background: var(--accent);
 }
 
 @utility hce-btn-secondary {
-  @apply hce-btn border border-slate-300 bg-white text-slate-800 hover:bg-slate-50;
+  @apply hce-btn border text-slate-800 hover:bg-slate-50;
+  background: var(--card);
+  border-color: var(--border);
+  color: var(--ink);
 }
 
 @utility hce-btn-danger {
@@ -112,17 +185,21 @@ body {
 }
 
 @utility hce-alert-success {
-  @apply hce-alert border-emerald-200 bg-emerald-50 text-emerald-800;
+  @apply hce-alert border-emerald-200 text-emerald-800;
+  background: color-mix(in srgb, #10b981 10%, var(--card));
 }
 
 @utility hce-alert-error {
-  @apply hce-alert border-red-200 bg-red-50 text-red-700;
+  @apply hce-alert border-red-200 text-red-700;
+  background: color-mix(in srgb, #ef4444 10%, var(--card));
 }
 
 @utility hce-alert-warning {
-  @apply hce-alert border-amber-200 bg-amber-50 text-amber-900;
+  @apply hce-alert border-amber-200 text-amber-900;
+  background: color-mix(in srgb, #f59e0b 10%, var(--card));
 }
 
 @utility hce-alert-info {
-  @apply hce-alert border-cyan-200 bg-cyan-50 text-cyan-900;
+  @apply hce-alert border-cyan-200 text-cyan-900;
+  background: color-mix(in srgb, #06b6d4 10%, var(--card));
 }

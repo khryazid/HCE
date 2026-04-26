@@ -30,15 +30,15 @@ export function WizardStepDiagnosis({
   onApplyCieSuggestion,
 }: Props) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {form.entryMode === "seguimiento" ? (
-        <div className="rounded-2xl border border-cyan-200 bg-cyan-50 p-3 text-sm text-cyan-900">
+        <div className="hce-alert-info">
           Modo seguimiento activo. Se prioriza registrar evolucion y proximo
           control.
         </div>
       ) : null}
       <textarea
-        className="min-h-24 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
+        className="hce-input min-h-24"
         placeholder="Anamnesis"
         value={form.anamnesis}
         onChange={(event) =>
@@ -52,7 +52,7 @@ export function WizardStepDiagnosis({
         <p className="-mt-2 text-sm font-medium text-red-600">{validationErrors.anamnesis}</p>
       ) : null}
       <textarea
-        className="min-h-20 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
+        className="hce-input min-h-20"
         placeholder="Sintomas"
         value={form.symptoms}
         onChange={(event) =>
@@ -64,7 +64,7 @@ export function WizardStepDiagnosis({
         disabled={form.entryMode === "seguimiento"}
       />
       <textarea
-        className="min-h-20 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
+        className="hce-input min-h-20"
         placeholder="Diagnostico"
         value={form.diagnosis}
         onChange={(event) =>
@@ -79,7 +79,7 @@ export function WizardStepDiagnosis({
         <p className="-mt-2 text-sm font-medium text-red-600">{validationErrors.diagnosis}</p>
       ) : null}
       <input
-        className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
+        className="hce-input"
         placeholder="Codigos CIE separados por coma"
         value={form.cieCodes}
         onChange={(event) =>
@@ -92,13 +92,13 @@ export function WizardStepDiagnosis({
       />
 
       {/* CIE Suggestions panel */}
-      <div className="rounded-2xl border border-teal-100 bg-teal-50/70 p-4 space-y-3">
+      <div className="hce-surface-soft space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.15em] text-teal-700">
               Sugerencias CIE
             </p>
-            <p className="text-sm text-slate-700">
+            <p className="text-sm text-[color:var(--ink-soft)]">
               Se actualizan mientras escribes diagnostico, sintomas y
               anamnesis.
             </p>
@@ -126,18 +126,18 @@ export function WizardStepDiagnosis({
                   type="button"
                   onClick={() => onApplyCieSuggestion(entry.code)}
                   disabled={alreadyAdded}
-                  className="rounded-full border border-teal-200 bg-white px-3 py-2 text-left text-xs text-slate-700 transition hover:border-teal-300 hover:bg-teal-50 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="hce-chip rounded-2xl border-teal-200 bg-[color:var(--card)] px-3 py-2 text-left text-xs text-[color:var(--ink)] transition hover:border-teal-300 hover:bg-[color:var(--bg-soft)] disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  <span className="block font-semibold text-slate-900">
+                  <span className="block font-semibold text-[color:var(--ink)]">
                     {entry.code} · {entry.description}
                   </span>
-                  <span className="block text-[11px] text-slate-500">
+                  <span className="block text-[11px] text-[color:var(--ink-soft)]">
                     {entry.source === "gemini"
                       ? "IA validada"
                       : "Catalogo local"}{" "}
                     · {Math.round(entry.confidence * 100)}%
                   </span>
-                  <span className="block text-[11px] text-slate-500">
+                  <span className="block text-[11px] text-[color:var(--ink-soft)]">
                     {alreadyAdded ? "Ya agregado" : entry.rationale}
                   </span>
                 </button>
@@ -145,7 +145,7 @@ export function WizardStepDiagnosis({
             })}
           </div>
         ) : (
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-[color:var(--ink-soft)]">
             Escribe al menos un diagnostico o sintoma para recibir
             sugerencias.
           </p>
@@ -154,7 +154,7 @@ export function WizardStepDiagnosis({
           <button
             type="button"
             onClick={() => onApplyCieSuggestion(cieSuggestions[0].code)}
-            className="rounded-xl bg-teal-700 px-3 py-2 text-sm font-semibold text-white"
+            className="hce-btn-primary"
           >
             Aplicar primera sugerencia
           </button>
@@ -162,7 +162,7 @@ export function WizardStepDiagnosis({
       </div>
 
       <select
-        className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
+        className="hce-input"
         value={form.specialtyKind}
         onChange={(event) =>
           setForm((current) => ({
@@ -177,11 +177,11 @@ export function WizardStepDiagnosis({
         <option value="odontologia">Odontologia</option>
       </select>
 
-      <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-        <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
+      <div className="hce-surface-soft p-3">
+        <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[color:var(--ink-soft)]">
           Catalogo CIE sugerido
         </p>
-        <div className="mt-2 space-y-1 text-sm text-slate-700">
+        <div className="mt-2 space-y-1 text-sm text-[color:var(--ink)]">
           {cieMatches.slice(0, 6).map((entry) => (
             <p key={entry.code}>
               {entry.code} · {entry.description}
