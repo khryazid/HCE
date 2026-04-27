@@ -660,7 +660,8 @@ export function useConsultationWizard(tenant: TenantProfile | null) {
     }
 
     if (!quickPatient.documentNumber.trim() || !quickPatient.firstName.trim() || !quickPatient.lastName.trim()) {
-      throw new Error("Completa documento, nombre y apellido del paciente.");
+      setError("Completa documento, nombre y apellido del paciente.");
+      return;
     }
 
     const fullName = `${quickPatient.firstName.trim()} ${quickPatient.lastName.trim()}`;

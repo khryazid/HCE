@@ -15,6 +15,27 @@ export function WizardStepDiagnosis({
   validationErrors,
   triggerMagicCieFill,
 }: Props) {
+  const updateBackground = (field: keyof WizardForm["backgrounds"], value: string) => {
+    setForm(c => {
+      const currentBg = c.backgrounds || {
+        pathological: "",
+        surgical: "",
+        allergic: "",
+        pharmacological: "",
+        family: "",
+        toxic: "",
+        gynecoObstetric: "",
+      };
+      return {
+        ...c,
+        backgrounds: {
+          ...currentBg,
+          [field]: value,
+        }
+      };
+    });
+  };
+
   return (
     <div className="space-y-8">
       {form.entryMode === "seguimiento" ? (
@@ -60,7 +81,7 @@ export function WizardStepDiagnosis({
                 className="hce-input min-h-16 border-red-200 bg-red-50/30 focus:border-red-400 focus:ring-red-400"
                 placeholder="Alergias a medicamentos, alimentos, ambientales..."
                 value={form.backgrounds?.allergic ?? ""}
-                onChange={(e) => setForm(c => ({ ...c, backgrounds: { ...(c.backgrounds || { pathological:"", surgical:"", allergic:"", pharmacological:"", family:"", toxic:"", gynecoObstetric:"" }), allergic: e.target.value } }))}
+                onChange={(e) => updateBackground("allergic", e.target.value)}
               />
             </div>
 
@@ -70,7 +91,7 @@ export function WizardStepDiagnosis({
                 className="hce-input min-h-16"
                 placeholder="HTA, Diabetes, Asma..."
                 value={form.backgrounds?.pathological ?? ""}
-                onChange={(e) => setForm(c => ({ ...c, backgrounds: { ...(c.backgrounds || { pathological:"", surgical:"", allergic:"", pharmacological:"", family:"", toxic:"", gynecoObstetric:"" }), pathological: e.target.value } }))}
+                onChange={(e) => updateBackground("pathological", e.target.value)}
               />
             </div>
 
@@ -80,7 +101,7 @@ export function WizardStepDiagnosis({
                 className="hce-input min-h-16"
                 placeholder="Cirugías previas..."
                 value={form.backgrounds?.surgical ?? ""}
-                onChange={(e) => setForm(c => ({ ...c, backgrounds: { ...(c.backgrounds || { pathological:"", surgical:"", allergic:"", pharmacological:"", family:"", toxic:"", gynecoObstetric:"" }), surgical: e.target.value } }))}
+                onChange={(e) => updateBackground("surgical", e.target.value)}
               />
             </div>
 
@@ -90,7 +111,7 @@ export function WizardStepDiagnosis({
                 className="hce-input min-h-16"
                 placeholder="Medicamentos actuales..."
                 value={form.backgrounds?.pharmacological ?? ""}
-                onChange={(e) => setForm(c => ({ ...c, backgrounds: { ...(c.backgrounds || { pathological:"", surgical:"", allergic:"", pharmacological:"", family:"", toxic:"", gynecoObstetric:"" }), pharmacological: e.target.value } }))}
+                onChange={(e) => updateBackground("pharmacological", e.target.value)}
               />
             </div>
 
@@ -100,7 +121,7 @@ export function WizardStepDiagnosis({
                 className="hce-input min-h-16"
                 placeholder="Padres, abuelos..."
                 value={form.backgrounds?.family ?? ""}
-                onChange={(e) => setForm(c => ({ ...c, backgrounds: { ...(c.backgrounds || { pathological:"", surgical:"", allergic:"", pharmacological:"", family:"", toxic:"", gynecoObstetric:"" }), family: e.target.value } }))}
+                onChange={(e) => updateBackground("family", e.target.value)}
               />
             </div>
 
@@ -110,7 +131,7 @@ export function WizardStepDiagnosis({
                 className="hce-input min-h-16"
                 placeholder="Tabaco, alcohol, drogas, sedentarismo..."
                 value={form.backgrounds?.toxic ?? ""}
-                onChange={(e) => setForm(c => ({ ...c, backgrounds: { ...(c.backgrounds || { pathological:"", surgical:"", allergic:"", pharmacological:"", family:"", toxic:"", gynecoObstetric:"" }), toxic: e.target.value } }))}
+                onChange={(e) => updateBackground("toxic", e.target.value)}
               />
             </div>
             
@@ -121,7 +142,7 @@ export function WizardStepDiagnosis({
                   className="hce-input min-h-16"
                   placeholder="FUR, Gestas, Partos, Cesáreas, Abortos..."
                   value={form.backgrounds?.gynecoObstetric ?? ""}
-                  onChange={(e) => setForm(c => ({ ...c, backgrounds: { ...(c.backgrounds || { pathological:"", surgical:"", allergic:"", pharmacological:"", family:"", toxic:"", gynecoObstetric:"" }), gynecoObstetric: e.target.value } }))}
+                  onChange={(e) => updateBackground("gynecoObstetric", e.target.value)}
                 />
               </div>
             )}
