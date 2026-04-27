@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   deleteSyncQueueItem,
   getSyncQueueStats,
@@ -45,95 +45,118 @@ export function SyncQueuePanel() {
   const [error, setError] = useState<string | null>(null);
   const [isOnline, setIsOnline] = useState(true);
   const [lastSync, setLastSync] = useState<LastSyncState | null>(null);
+  const [lastRefreshAt, setLastRefreshAt] = useState<number>(0);
 
   const hasItems = useMemo(
     () => stats.pending + stats.failed + stats.abandoned + stats.conflicted > 0,
     [stats],
   );
 
+  const refreshQueue = useCallback(async () => {
+    try {
+      const [nextStats, nextItems] = await Promise.all([
+        getSyncQueueStats(),
+        listSyncQueueItems(),
+      ]);
+
+      setStats(nextStats);
+      setItems(nextItems);
+      setLastRefreshAt(Date.now());
+    } catch (syncError) {
+      setError(
+        syncError instanceof Error
+          ? syncError.message
+          : buildRetryableErrorMessage("cargar la cola de sincronizacion"),
+      );
+    }
+  }, []);
+
   useEffect(() => {
-    let active = true;
+    if (typeof window === "undefined") {
+      return;
+    }
 
-    const load = async () => {
+    setIsOnline(window.navigator.onLine);
+
+    const saved = window.localStorage.getItem(LAST_SYNC_KEY);
+    if (saved) {
       try {
-        const [nextStats, nextItems] = await Promise.all([
-          getSyncQueueStats(),
-          listSyncQueueItems(),
-        ]);
-
-        if (!active) {
-          return;
+        const parsed = JSON.parse(saved) as LastSyncState;
+        if (
+          typeof parsed?.at === "number" &&
+          typeof parsed?.summary?.processed === "number"
+        ) {
+          setLastSync(parsed);
         }
+      } catch {
+        // Ignore parse errors and continue with empty last sync state.
+      }
+    }
 
-        setStats(nextStats);
-        setItems(nextItems);
-      } catch (syncError) {
-        if (active) {
-          setError(
-            syncError instanceof Error
-              ? syncError.message
-              : buildRetryableErrorMessage("cargar la cola de sincronizacion"),
-          );
-        }
+    void refreshQueue();
+  }, [refreshQueue]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    let active = true;
+    let timerId: number | undefined;
+
+    const scheduleFallbackRefresh = () => {
+      if (!active) {
+        return;
+      }
+
+      const delay = expanded ? 60_000 : 180_000;
+      timerId = window.setTimeout(() => {
+        void refreshQueue();
+        scheduleFallbackRefresh();
+      }, delay);
+    };
+
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        void refreshQueue();
       }
     };
 
-    void load();
-    const timer = setInterval(() => void load(), 4000);
-
-    if (typeof window !== "undefined") {
-      setIsOnline(window.navigator.onLine);
-
-      const saved = window.localStorage.getItem(LAST_SYNC_KEY);
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved) as LastSyncState;
-          if (
-            typeof parsed?.at === "number" &&
-            typeof parsed?.summary?.processed === "number"
-          ) {
-            setLastSync(parsed);
-          }
-        } catch {
-          // Ignore parse errors and continue with empty last sync state.
-        }
+    const handleSyncFinished = (event: Event) => {
+      const customEvent = event as CustomEvent<SyncFlushSummary>;
+      if (!customEvent.detail) {
+        return;
       }
 
-      const handleOnline = () => setIsOnline(true);
-      const handleOffline = () => setIsOnline(false);
-      const handleSyncFinished = (event: Event) => {
-        const customEvent = event as CustomEvent<SyncFlushSummary>;
-        if (!customEvent.detail) {
-          return;
-        }
-
-        const nextState: LastSyncState = {
-          at: Date.now(),
-          summary: customEvent.detail,
-        };
-
-        setLastSync(nextState);
-        window.localStorage.setItem(LAST_SYNC_KEY, JSON.stringify(nextState));
+      const nextState: LastSyncState = {
+        at: Date.now(),
+        summary: customEvent.detail,
       };
 
-      window.addEventListener("online", handleOnline);
-      window.addEventListener("offline", handleOffline);
-      window.addEventListener(SYNC_FINISHED_EVENT, handleSyncFinished as EventListener);
+      setLastSync(nextState);
+      window.localStorage.setItem(LAST_SYNC_KEY, JSON.stringify(nextState));
+      void refreshQueue();
+    };
 
-      return () => {
-        active = false;
-        clearInterval(timer);
-        window.removeEventListener("online", handleOnline);
-        window.removeEventListener("offline", handleOffline);
-        window.removeEventListener(SYNC_FINISHED_EVENT, handleSyncFinished as EventListener);
-      };
-    }
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    document.addEventListener("visibilitychange", handleVisibility);
+    window.addEventListener(SYNC_FINISHED_EVENT, handleSyncFinished as EventListener);
+    scheduleFallbackRefresh();
 
     return () => {
       active = false;
-      clearInterval(timer);
+      if (timerId) {
+        window.clearTimeout(timerId);
+      }
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener(SYNC_FINISHED_EVENT, handleSyncFinished as EventListener);
     };
-  }, []);
+  }, [expanded, refreshQueue]);
 
   async function handleRetryNow() {
     setWorking(true);
@@ -141,12 +164,7 @@ export function SyncQueuePanel() {
 
     try {
       await flushSyncQueue({ forceRetry: true });
-      const [nextStats, nextItems] = await Promise.all([
-        getSyncQueueStats(),
-        listSyncQueueItems(),
-      ]);
-      setStats(nextStats);
-      setItems(nextItems);
+      await refreshQueue();
     } catch (syncError) {
       setError(
         syncError instanceof Error
@@ -164,12 +182,7 @@ export function SyncQueuePanel() {
 
     try {
       await deleteSyncQueueItem(itemId);
-      const [nextStats, nextItems] = await Promise.all([
-        getSyncQueueStats(),
-        listSyncQueueItems(),
-      ]);
-      setStats(nextStats);
-      setItems(nextItems);
+      await refreshQueue();
     } catch (discardError) {
       setError(
         discardError instanceof Error
@@ -202,6 +215,11 @@ export function SyncQueuePanel() {
           {lastSync ? (
             <p className="mt-1 text-xs">
               Resultado ultimo intento: procesados {lastSync.summary.processed}, exitosos {lastSync.summary.succeeded}, fallidos {lastSync.summary.failed}, conflictos {lastSync.summary.conflicted}
+            </p>
+          ) : null}
+          {lastRefreshAt > 0 ? (
+            <p className="mt-1 text-[11px] text-ink-soft/80">
+              Actualizado {formatTimestamp(lastRefreshAt)}
             </p>
           ) : null}
         </div>

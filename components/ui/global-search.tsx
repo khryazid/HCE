@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import SearchInput from "@/components/ui/search-input";
 import { useRouter } from "next/navigation";
 import { useTenant } from "@/lib/supabase/tenant-context";
 import { useClinicalContext } from "@/lib/context/clinical-context";
@@ -272,12 +273,11 @@ export function GlobalSearch() {
             onClick={(event) => event.stopPropagation()}
           >
             <div className="border-b border-border p-3">
-              <input
-                autoFocus
+              <SearchInput
                 value={query}
-                onChange={(event) => setQuery(event.target.value)}
+                onChange={(value) => setQuery(value)}
                 placeholder="Escribe nombre, documento, diagnostico o tratamiento"
-                className="hce-input"
+                open={open}
               />
               <p className="mt-2 text-xs text-ink-soft">
                 Usa flechas para navegar y Enter para abrir.

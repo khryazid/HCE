@@ -38,13 +38,13 @@ export default function ConsultasPage() {
       </header>
 
       {wizard.message ? (
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700" role="status" aria-live="polite">
           {wizard.message}
         </div>
       ) : null}
 
       {wizard.error ? (
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700" role="alert" aria-live="assertive">
           {wizard.error}
         </div>
       ) : null}
@@ -104,7 +104,7 @@ export default function ConsultasPage() {
                 />
               </section>
 
-              <div className="sticky bottom-4 z-10 rounded-2xl border border-border bg-card/95 backdrop-blur-sm p-4 shadow-xl flex flex-col sm:flex-row gap-4 items-center justify-between">
+              <div className="sticky bottom-4 z-10 rounded-2xl border border-border bg-card/95 backdrop-blur-sm p-4 shadow-xl flex flex-col sm:flex-row gap-4 items-center justify-between pb-[calc(env(safe-area-inset-bottom)+1rem)] sm:pb-4">
                 <div>
                   <p className="font-semibold text-ink">Consulta lista para guardar</p>
                   <p className="text-xs text-ink-soft">Revisa los datos antes de continuar.</p>

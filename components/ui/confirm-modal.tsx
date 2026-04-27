@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type Props = {
   open: boolean;
@@ -24,6 +24,28 @@ export function ConfirmModal({
   onCancel,
 }: Props) {
   const [loading, setLoading] = useState(false);
+  const cancelButtonRef = useRef<HTMLButtonElement | null>(null);
+
+  useEffect(() => {
+    if (open) {
+      cancelButtonRef.current?.focus();
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onCancel();
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open, onCancel]);
 
   if (!open) {
     return null;
@@ -44,8 +66,19 @@ export function ConfirmModal({
       : "hce-btn bg-amber-600 text-white hover:bg-amber-700";
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="mx-4 w-full max-w-sm rounded-3xl border border-[color:var(--border)] bg-[color:var(--card)] p-6 shadow-2xl space-y-5">
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm"
+      onClick={onCancel}
+      role="presentation"
+    >
+      <div
+        className="mx-4 w-full max-w-sm rounded-3xl border border-[color:var(--border)] bg-[color:var(--card)] p-6 shadow-2xl space-y-5"
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        aria-describedby="confirm-modal-description"
+        onClick={(event) => event.stopPropagation()}
+      >
         {/* Icon */}
         <div className="flex justify-center">
           <div
@@ -65,12 +98,13 @@ export function ConfirmModal({
 
         <div className="text-center">
           <h3 className="text-lg font-semibold text-[color:var(--ink)]">{title}</h3>
-          <p className="mt-1 text-sm text-[color:var(--ink-soft)]">{description}</p>
+          <p id="confirm-modal-description" className="mt-1 text-sm text-[color:var(--ink-soft)]">{description}</p>
         </div>
 
         <div className="flex gap-3">
           <button
             type="button"
+            ref={cancelButtonRef}
             onClick={onCancel}
             disabled={loading}
             className="hce-btn-secondary flex-1"

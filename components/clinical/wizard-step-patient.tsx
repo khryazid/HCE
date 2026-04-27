@@ -160,9 +160,9 @@ export function WizardStepPatient({
                       : "bg-cyan-100 text-cyan-800"
                   }`}
                 >
-                  {pendingFollowUp.isOverdue
-                    ? "Seguimiento pendiente"
-                    : "Seguimiento programado"}
+                  Seguimiento: {pendingFollowUp.isOverdue
+                    ? "pendiente"
+                    : "programado"}
                 </span>
               ) : (
                 <span className="rounded-full bg-bg-soft px-3 py-1 text-xs font-semibold text-ink-soft">
@@ -211,10 +211,15 @@ export function WizardStepPatient({
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="flex items-center gap-1 border-b border-border pb-px">
+          <div className="flex items-center gap-1 border-b border-border pb-px" role="tablist" aria-label="Seleccion de paciente">
             <button
               type="button"
               onClick={() => setActiveTab("search")}
+              role="tab"
+              aria-selected={activeTab === "search"}
+              aria-controls="patient-search-panel"
+              id="patient-search-tab"
+              tabIndex={activeTab === "search" ? 0 : -1}
               className={`px-4 py-2 text-sm font-semibold border-b-2 transition-colors ${
                 activeTab === "search"
                   ? "border-teal-500 text-teal-700"
@@ -226,6 +231,11 @@ export function WizardStepPatient({
             <button
               type="button"
               onClick={() => setActiveTab("create")}
+              role="tab"
+              aria-selected={activeTab === "create"}
+              aria-controls="patient-create-panel"
+              id="patient-create-tab"
+              tabIndex={activeTab === "create" ? 0 : -1}
               className={`px-4 py-2 text-sm font-semibold border-b-2 transition-colors ${
                 activeTab === "create"
                   ? "border-teal-500 text-teal-700"
@@ -237,7 +247,7 @@ export function WizardStepPatient({
           </div>
 
           {activeTab === "search" && (
-            <div className="space-y-4 pt-2">
+            <div className="space-y-4 pt-2" role="tabpanel" id="patient-search-panel" aria-labelledby="patient-search-tab">
               <label className="block text-sm font-medium text-ink">
                 Busca por nombre, apellido o documento
               </label>
@@ -276,7 +286,7 @@ export function WizardStepPatient({
 
                 {showSuggestions && searchQuery.length >= 2 && suggestions.length === 0 ? (
                   <div className="absolute inset-x-0 top-full z-20 mt-1 rounded-xl border border-border bg-card px-4 py-4 text-sm text-center text-ink-soft shadow-lg flex flex-col items-center gap-2">
-                    <p>No encontramos a "{searchQuery}" en tus registros.</p>
+                    <p>No encontramos a &quot;{searchQuery}&quot; en tus registros.</p>
                     <button 
                       type="button" 
                       onClick={() => {
@@ -299,7 +309,7 @@ export function WizardStepPatient({
           )}
 
           {activeTab === "create" && (
-            <div className="space-y-4 pt-2">
+            <div className="space-y-4 pt-2" role="tabpanel" id="patient-create-panel" aria-labelledby="patient-create-tab">
               <p className="text-sm text-ink-soft">
                 Ingresa los datos básicos para registrar y continuar con la consulta.
               </p>

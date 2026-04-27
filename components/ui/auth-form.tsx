@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { getSupabaseClient } from "@/lib/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   bootstrapTenantProfileFromMetadata,
   createClinicId,
@@ -219,8 +221,7 @@ export function AuthForm({ mode }: AuthFormProps) {
       <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
         <label className="block space-y-2 text-sm font-medium text-ink-soft">
           <span>Correo</span>
-          <input
-            className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm text-ink outline-none ring-cyan-500 transition placeholder:text-ink-soft/80 focus:border-cyan-400 focus:ring-2"
+          <Input
             type="email"
             autoComplete="email"
             value={email}
@@ -240,8 +241,7 @@ export function AuthForm({ mode }: AuthFormProps) {
           <>
             <label className="block space-y-2 text-sm font-medium text-ink-soft">
               <span>Nombre completo</span>
-              <input
-                className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm text-ink outline-none ring-cyan-500 transition placeholder:text-ink-soft/80 focus:border-cyan-400 focus:ring-2"
+              <Input
                 type="text"
                 autoComplete="name"
                 value={fullName}
@@ -259,8 +259,7 @@ export function AuthForm({ mode }: AuthFormProps) {
 
             <label className="block space-y-2 text-sm font-medium text-ink-soft">
               <span>Especialidades</span>
-              <input
-                className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm text-ink outline-none ring-cyan-500 transition placeholder:text-ink-soft/80 focus:border-cyan-400 focus:ring-2"
+              <Input
                 type="text"
                 value={specialtySearch}
                 onChange={(event) => setSpecialtySearch(event.target.value)}
@@ -298,6 +297,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                         <button
                           key={entry}
                           type="button"
+                          aria-pressed={checked}
                           onClick={() => toggleSpecialty(entry)}
                           className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${
                             checked
@@ -330,8 +330,7 @@ export function AuthForm({ mode }: AuthFormProps) {
         <label className="block space-y-2 text-sm font-medium text-ink-soft">
           <span>Contraseña</span>
           <div className="flex gap-2">
-            <input
-              className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm text-ink outline-none ring-cyan-500 transition placeholder:text-ink-soft/80 focus:border-cyan-400 focus:ring-2"
+            <Input
               type={showPassword ? "text" : "password"}
               autoComplete={isSignUp ? "new-password" : "current-password"}
               value={password}
@@ -343,13 +342,14 @@ export function AuthForm({ mode }: AuthFormProps) {
               required
               minLength={6}
             />
-            <button
+            <Button
               type="button"
-              className="rounded-xl border border-border bg-card px-3 py-2 text-xs font-semibold text-ink-soft transition hover:bg-bg-soft"
+              variant="secondary"
+              className="px-3 py-2 text-xs font-semibold text-ink-soft"
               onClick={() => setShowPassword((current) => !current)}
             >
               {showPassword ? "Ocultar" : "Mostrar"}
-            </button>
+            </Button>
           </div>
           {fieldErrors.password ? (
             <p className="text-xs text-red-700">{fieldErrors.password}</p>
@@ -368,17 +368,17 @@ export function AuthForm({ mode }: AuthFormProps) {
           </p>
         ) : null}
 
-        <button
+        <Button
           type="submit"
           disabled={loading}
-          className="inline-flex w-full items-center justify-center rounded-xl bg-cyan-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-cyan-800 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+          className="w-full justify-center px-4 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
         >
           {loading
             ? "Procesando..."
             : isSignUp
               ? "Crear cuenta"
               : "Entrar"}
-        </button>
+        </Button>
       </form>
 
       <p className="mt-4 text-center text-sm text-ink-soft">

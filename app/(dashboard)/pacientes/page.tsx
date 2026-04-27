@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTenant } from "@/lib/supabase/tenant-context";
 import { useClinicalContext } from "@/lib/context/clinical-context";
 import { PacientesSkeleton } from "@/components/ui/skeletons";
@@ -31,7 +31,7 @@ function StatusBadge({ status }: { status: PatientStatus }) {
       className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${opt.bg} ${opt.text} ${opt.border}`}
     >
       <span className={`inline-block h-1.5 w-1.5 rounded-full ${opt.dot}`} />
-      {opt.label}
+      Estado: {opt.label}
     </span>
   );
 }
@@ -42,10 +42,6 @@ function formatDate(value: string) {
 
 function getTextField(value: unknown, fallback = "") {
   return typeof value === "string" && value.trim() ? value.trim() : fallback;
-}
-
-function getNullableDate(value: unknown) {
-  return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
 type PatientHistoryDetails = {
@@ -85,8 +81,6 @@ type PatientHistoryDetails = {
   isFollowUpOverdue: boolean;
   cieCodes: string[];
 };
-
-type DateRangeFilter = "all" | "7" | "30" | "90";
 
 function getHistoryDetails(record: ClinicalRecordRecord): PatientHistoryDetails {
   const specialtyData = record.specialty_data as Record<string, unknown>;
@@ -132,7 +126,6 @@ export default function PacientesPage() {
   const [patients, setPatients] = useState<PatientRecord[]>([]);
   const [records, setRecords] = useState<ClinicalRecordRecord[]>([]);
   const [selectedPatientId, setSelectedPatientIdLocal] = useState<string>(clinical.selectedPatientId || "");
-  const [selectedRecordId, setSelectedRecordId] = useState<string>("");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -143,11 +136,11 @@ export default function PacientesPage() {
   const [deleteRecordTarget, setDeleteRecordTarget] = useState<ClinicalRecordRecord | null>(null);
 
   // Sync selected patient to clinical context
-  function setSelectedPatientId(id: string) {
+  const setSelectedPatientId = useCallback((id: string) => {
     setSelectedPatientIdLocal(id);
     clinical.setSelectedPatientId(id);
     setStatusMessage(null);
-  }
+  }, [clinical, setStatusMessage]);
 
   async function handlePatientStatusChange(nextStatus: PatientStatus) {
     if (!tenant || !selectedPatient || nextStatus === selectedPatient.status) {
@@ -242,8 +235,7 @@ export default function PacientesPage() {
     return () => {
       active = false;
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tenant, tenantLoading]);
+  }, [tenant, tenantLoading, clinical.selectedPatientId]);
 
   const filteredPatients = useMemo(() => {
     const normalized = search.trim().toLowerCase();
@@ -264,8 +256,7 @@ export default function PacientesPage() {
     if (!filteredPatients.some((patient) => patient.id === selectedPatientId)) {
       setSelectedPatientId(filteredPatients[0]?.id ?? "");
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredPatients, selectedPatientId]);
+  }, [filteredPatients, selectedPatientId, setSelectedPatientId]);
 
   const selectedPatient = useMemo(
     () => patients.find((patient) => patient.id === selectedPatientId) ?? null,
@@ -342,7 +333,7 @@ export default function PacientesPage() {
         </div>
       </header>
 
-      {error ? <div className="hce-alert-error">{error}</div> : null}
+      {error ? <div className="hce-alert-error" role="alert" aria-live="assertive">{error}</div> : null}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <article className="hce-surface-soft flex flex-col justify-center">
@@ -519,7 +510,10 @@ export default function PacientesPage() {
                     >
                       {/* Cabecera Clickable */}
                       <button
+                        id={`record-toggle-${record.id}`}
                         type="button"
+                        aria-expanded={isExpanded}
+                        aria-controls={`record-panel-${record.id}`}
                         onClick={() => toggleRecordExpand(record.id)}
                         className="flex w-full flex-col items-start justify-between gap-4 bg-bg-soft px-5 py-4 text-left transition hover:bg-teal-50/50 sm:flex-row sm:items-center"
                       >
@@ -550,7 +544,7 @@ export default function PacientesPage() {
 
                       {/* Contenido Expandido */}
                       {isExpanded && (
-                        <div className="border-t border-border bg-card px-5 py-6">
+                        <div id={`record-panel-${record.id}`} role="region" aria-labelledby={`record-toggle-${record.id}`} className="border-t border-border bg-card px-5 py-6">
                           <div className="grid gap-6 md:grid-cols-2">
                             {/* Columna Izquierda */}
                             <div className="space-y-6">

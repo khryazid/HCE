@@ -15,6 +15,15 @@ const eslintConfig = defineConfig([
     "public/sw.js",
     "public/workbox-*.js",
   ]),
+  // Accessibility rules (jsx-a11y)
+  {
+    rules: {
+      "jsx-a11y/interactive-supports-focus": "error",
+      "jsx-a11y/no-autofocus": "warn",
+      "jsx-a11y/anchor-is-valid": "warn",
+      "jsx-a11y/alt-text": "warn"
+    }
+  }
 ]);
 
 export default eslintConfig;

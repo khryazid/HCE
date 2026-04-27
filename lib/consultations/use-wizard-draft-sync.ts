@@ -64,9 +64,11 @@ export function useWizardDraftSync<TForm>({
   const stepRef = useRef(step);
   const wizardOpenRef = useRef(wizardOpen);
 
-  formRef.current = form;
-  stepRef.current = step;
-  wizardOpenRef.current = wizardOpen;
+  useEffect(() => {
+    formRef.current = form;
+    stepRef.current = step;
+    wizardOpenRef.current = wizardOpen;
+  }, [form, step, wizardOpen]);
 
   useEffect(() => {
     if (!wizardOpenRef.current || !draftRestoredRef.current) {

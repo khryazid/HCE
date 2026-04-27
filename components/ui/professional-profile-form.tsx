@@ -4,6 +4,8 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getSupabaseClient } from "@/lib/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useTenant } from "@/lib/supabase/tenant-context";
 import {
   readOnboardingProfile,
@@ -308,8 +310,7 @@ export function ProfessionalProfileForm({
       <form onSubmit={handleSubmit} className="grid gap-4 rounded-3xl border border-border bg-card p-6 shadow-sm sm:grid-cols-2">
         <label className="space-y-2 text-sm font-medium text-ink-soft">
           <span>Titulo profesional</span>
-          <input
-            className="hce-input"
+          <Input
             value={form.professionalTitle}
             onChange={(event) =>
               setForm((current) => ({ ...current, professionalTitle: event.target.value }))
@@ -321,8 +322,7 @@ export function ProfessionalProfileForm({
 
         <label className="space-y-2 text-sm font-medium text-ink-soft">
           <span>Numero de licencia profesional</span>
-          <input
-            className="hce-input"
+          <Input
             value={form.licenseNumber}
             onChange={(event) =>
               setForm((current) => ({ ...current, licenseNumber: event.target.value }))
@@ -333,8 +333,7 @@ export function ProfessionalProfileForm({
 
         <label className="space-y-2 text-sm font-medium text-ink-soft">
           <span>Anos de experiencia</span>
-          <input
-            className="hce-input"
+          <Input
             value={form.yearsExperience}
             onChange={(event) =>
               setForm((current) => ({ ...current, yearsExperience: event.target.value }))
@@ -348,8 +347,7 @@ export function ProfessionalProfileForm({
 
         <label className="space-y-2 text-sm font-medium text-ink-soft">
           <span>Telefono principal</span>
-          <input
-            className="hce-input"
+          <Input
             value={form.primaryPhone}
             onChange={(event) =>
               setForm((current) => ({ ...current, primaryPhone: event.target.value }))
@@ -360,8 +358,7 @@ export function ProfessionalProfileForm({
 
         <label className="space-y-2 text-sm font-medium text-ink-soft">
           <span>Telefono secundario (opcional)</span>
-          <input
-            className="hce-input"
+          <Input
             value={form.secondaryPhone}
             onChange={(event) =>
               setForm((current) => ({ ...current, secondaryPhone: event.target.value }))
@@ -371,8 +368,7 @@ export function ProfessionalProfileForm({
 
         <label className="space-y-2 text-sm font-medium text-ink-soft">
           <span>Correo publico de contacto (opcional)</span>
-          <input
-            className="hce-input"
+          <Input
             value={form.publicContactEmail}
             onChange={(event) =>
               setForm((current) => ({ ...current, publicContactEmail: event.target.value }))
@@ -383,8 +379,7 @@ export function ProfessionalProfileForm({
 
         <label className="space-y-2 text-sm font-medium text-ink-soft sm:col-span-2">
           <span>Direccion profesional</span>
-          <input
-            className="hce-input"
+          <Input
             value={form.professionalAddress}
             onChange={(event) =>
               setForm((current) => ({ ...current, professionalAddress: event.target.value }))
@@ -395,8 +390,7 @@ export function ProfessionalProfileForm({
 
         <label className="space-y-2 text-sm font-medium text-ink-soft sm:col-span-2">
           <span>Nombre para firma y membrete</span>
-          <input
-            className="hce-input"
+          <Input
             value={form.signatureName}
             onChange={(event) =>
               setForm((current) => ({ ...current, signatureName: event.target.value }))
@@ -411,8 +405,8 @@ export function ProfessionalProfileForm({
             <p className="text-xs text-ink-soft">Se guarda en este navegador (localStorage), sin enviarse a Supabase.</p>
           </div>
 
-          <input
-            className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm"
+          <Input
+            aria-label="Subir logo profesional"
             type="file"
             accept="image/png,image/jpeg,image/webp"
             onChange={(event) => {
@@ -431,13 +425,15 @@ export function ProfessionalProfileForm({
                 unoptimized
                 className="h-16 w-16 rounded-xl border border-border bg-card object-contain p-1"
               />
-              <button
+              <Button
                 type="button"
+                aria-label="Quitar logo profesional"
                 onClick={() => setLetterhead((current) => ({ ...current, logo_data_url: "" }))}
-                className="rounded-lg border border-border bg-card px-3 py-2 text-xs font-semibold text-ink-soft"
+                variant="secondary"
+                className="px-3 py-2 text-xs font-semibold text-ink-soft"
               >
                 Quitar logo
-              </button>
+              </Button>
             </div>
           ) : null}
         </div>
@@ -448,8 +444,8 @@ export function ProfessionalProfileForm({
             <p className="text-xs text-ink-soft">Dibuja tu firma en papel blanco, tómale una foto y súbela aquí. Se imprimirá al final de la receta.</p>
           </div>
 
-          <input
-            className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm"
+          <Input
+            aria-label="Subir firma profesional"
             type="file"
             accept="image/png,image/jpeg,image/webp"
             onChange={(event) => {
@@ -468,13 +464,15 @@ export function ProfessionalProfileForm({
                 unoptimized
                 className="h-[45px] w-[120px] rounded-xl border border-border bg-card object-contain p-1"
               />
-              <button
+              <Button
                 type="button"
+                aria-label="Quitar firma profesional"
                 onClick={() => setLetterhead((current) => ({ ...current, signature_data_url: "" }))}
-                className="rounded-lg border border-border bg-card px-3 py-2 text-xs font-semibold text-ink-soft"
+                variant="secondary"
+                className="px-3 py-2 text-xs font-semibold text-ink-soft"
               >
                 Quitar firma
-              </button>
+              </Button>
             </div>
           ) : null}
         </div>
@@ -486,13 +484,14 @@ export function ProfessionalProfileForm({
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <button
+            <Button
               type="button"
               onClick={() => void handleExportKeyBackup()}
-              className="rounded-xl border border-amber-300 bg-card px-4 py-2 text-sm font-semibold text-amber-900 transition hover:bg-amber-100"
+              variant="secondary"
+              className="px-4 py-2 text-sm font-semibold text-amber-900"
             >
               Descargar backup de clave
-            </button>
+            </Button>
 
             <label className="inline-flex cursor-pointer items-center rounded-xl border border-amber-300 bg-card px-4 py-2 text-sm font-semibold text-amber-900 transition hover:bg-amber-100">
               {restoringKey ? "Restaurando..." : "Importar backup de clave"}
@@ -513,8 +512,7 @@ export function ProfessionalProfileForm({
 
         <label className="space-y-2 text-sm font-medium text-ink-soft sm:col-span-2">
           <span>Especialidades para membrete PDF</span>
-          <input
-            className="hce-input"
+          <Input
             value={letterhead.specialties}
             onChange={(event) =>
               setLetterhead((current) => ({ ...current, specialties: event.target.value }))
@@ -532,9 +530,9 @@ export function ProfessionalProfileForm({
           <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 sm:col-span-2">{successMessage}</p>
         ) : null}
 
-        <button type="submit" disabled={saving} className="sm:col-span-2 hce-btn-primary min-h-12">
+        <Button type="submit" disabled={saving} className="sm:col-span-2 min-h-12 justify-center">
           {saving ? "Guardando..." : submitLabel}
-        </button>
+        </Button>
       </form>
     </section>
   );

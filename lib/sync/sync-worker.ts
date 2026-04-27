@@ -195,15 +195,18 @@ async function syncItem(item: SyncQueueItem): Promise<"synced" | "conflicted"> {
     const { error } = await tableClient.upsert(payload, { onConflict: "id" });
 
     if (error) {
-      if ((error as any).code === "23505" && tableName === "patients") {
-        const { data: existingPatient } = await (supabase as any)
-          .from("patients")
+      const isPgError = (e: unknown): e is { code?: string } =>
+        typeof e === "object" && e !== null && "code" in e;
+
+      if (isPgError(error) && error.code === "23505" && tableName === "patients") {
+        const { data: existingPatient } = await supabase
+          .from<{ id: string }>("patients")
           .select("id")
           .eq("clinic_id", item.clinic_id)
           .eq("document_number", payload.document_number as string)
-          .single();
+          .maybeSingle();
 
-        if (existingPatient) {
+        if (existingPatient && typeof existingPatient.id === "string") {
           throw new Error(`PATIENT_MERGE_REQUIRED:${existingPatient.id}`);
         }
       }

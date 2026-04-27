@@ -397,7 +397,7 @@ export default function DashboardPage() {
       </header>
 
       {tenantError ? (
-        <div className="hce-alert-warning">
+        <div className="hce-alert-warning" role="alert" aria-live="polite">
           {tenantError}
         </div>
       ) : null}
@@ -531,7 +531,7 @@ export default function DashboardPage() {
                         ${item.status === 'en-seguimiento' ? 'bg-sky-100 text-sky-700' : ''}
                         ${item.status === 'alta' ? 'bg-amber-100 text-amber-700' : ''}
                       `}>
-                        {item.status.replace('-', ' ')}
+                        Estado: {item.status.replace('-', ' ')}
                       </span>
                       <span className="text-[10px] text-[color:var(--ink-soft)]">{new Date(item.date).toLocaleDateString("es-EC")}</span>
                     </div>
@@ -556,14 +556,14 @@ export default function DashboardPage() {
               </div>
             ) : (
               filteredFollowUpItems.slice(0, 5).map((item) => (
-                <div
-                  key={item.recordId}
-                  className="rounded-xl border border-[color:var(--border)] bg-[color:var(--card)] px-4 py-3 flex items-center justify-between transition hover:bg-[color:var(--bg-soft)]"
-                >
+                  <div
+                    key={item.recordId}
+                    className="rounded-xl border border-[color:var(--border)] bg-[color:var(--card)] px-4 py-3 flex items-center justify-between transition hover:bg-[color:var(--bg-soft)]"
+                  >
                   <div>
                     <p className="text-sm font-semibold text-[color:var(--ink)]">{item.patientName}</p>
                     <p className="text-xs text-[color:var(--ink-soft)] mt-0.5">
-                      Control: {new Date(item.dueDate).toLocaleDateString("es-EC")}
+                        Control pendiente: {new Date(item.dueDate).toLocaleDateString("es-EC")}
                     </p>
                   </div>
                   <Link

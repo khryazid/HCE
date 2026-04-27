@@ -1,113 +1,123 @@
 # HCE Multiespecialidad
 
-Guia operativa para llevar control del proyecto en Notion.
+Plataforma SaaS de historias clinicas multiespecialidad con enfoque offline-first, sincronizacion por cola y aislamiento multi-tenant.
 
-## Resumen General
+## Tabla de contenido
+
+- Descripcion
+- Estado actual
+- Caracteristicas
+- Stack tecnologico
+- Arquitectura
+- Instalacion y arranque
+- Variables de entorno
+- Scripts disponibles
+- Base de datos y SQL
+- Testing y calidad
+- Estructura del proyecto
+- Roadmap
+- Control operativo en Notion
+- Changelog
+
+## Descripcion
+
+HCE Multiespecialidad permite gestionar pacientes, consultas y seguimientos clinicos con soporte para trabajo offline, sincronizacion posterior, sugerencias CIE asistidas y generacion de PDF clinico.
+
+## Estado actual
 
 | Campo | Valor |
 | --- | --- |
-| Nombre | HCE Multiespecialidad |
 | Version | 0.1.0 |
 | Estado | Activo en refactor y endurecimiento operativo |
-| Repo | Pendiente de registrar URL publica |
+| Repo | Pendiente de URL publica |
 | URL de produccion | Pendiente |
 
-### Verificacion rapida del estado actual
+Verificacion tecnica reciente:
 
 - Typecheck global en verde.
-- Tests del bloque critico (wizard + sync) en verde.
-- SQL consolidado actualizado con rate limiting compartido para API CIE.
+- Suite de tests en verde.
+- Dev server iniciando correctamente en entorno local.
+- SQL consolidado actualizado con rate limiting CIE en RPC compartido.
 
-## Stack Tecnologico
+## Caracteristicas
+
+- Autenticacion y registro con Supabase.
+- Flujo de acceso separado en login y registro.
+- Onboarding y perfil profesional centralizados en ajustes.
+- Dashboard con KPIs clinicos, actividad y alertas.
+- Wizard de consulta por pasos con modo consulta y seguimiento.
+- Sugerencias CIE asistidas con fallback al catalogo local.
+- Pacientes como historial clinico navegable con timeline.
+- Modulo de tratamientos con CRUD por medico.
+- Generacion y previsualizacion de PDF clinico con membrete.
+- Persistencia local en IndexedDB con cifrado PHI.
+- Cola de sincronizacion con backoff por item y estado terminal abandoned.
+- Soporte PWA y pantalla offline.
+
+## Stack tecnologico
 
 ### Frontend
 
-- [x] Next.js App Router
-- [x] TypeScript
-- [x] Tailwind CSS
-- [x] PWA (next-pwa)
-- [x] Vitest
-- [x] Playwright
+- Next.js 16 (App Router)
+- React 19
+- TypeScript
+- Tailwind CSS
 
-### Backend y Dominio
+### Backend y dominio
 
-- [x] API routes en Next.js
-- [x] Supabase Auth
-- [x] Multi-tenant por doctor y clinica
-- [x] Workflow clinico consulta/seguimiento
+- API routes en Next.js
+- Supabase Auth
+- Multi-tenant por doctor y clinica
 
-### Base de Datos
+### Base de datos
 
-- [x] PostgreSQL en Supabase
-- [x] RLS por tenant
-- [x] audit_logs append-only
-- [x] follow_up_tasks
-- [x] api_rate_limits + RPC claim_api_rate_limit
+- PostgreSQL en Supabase
+- RLS
+- RPC para rate limit de CIE
 
-### Infraestructura
+### Calidad
 
-- [x] Offline-first con IndexedDB
-- [x] Cola de sync con reintentos y estado terminal abandoned
-- [ ] Deploy productivo documentado
-- [ ] Observabilidad formal (APM/logs centralizados)
+- Vitest para unit e integration tests
+- Playwright para E2E
+- ESLint + TypeScript strict checks
 
-## Servicios de Terceros
+## Arquitectura
 
-### Plataformas principales
+- Offline-first: la app guarda localmente y sincroniza por cola cuando hay conectividad.
+- Sync robusto: diferencia entre fallo temporal y registro abandonado.
+- Dominio desacoplado: el wizard de consultas fue dividido en hooks y helpers testeables.
+- Fallback controlado: si Gemini no responde, se usa catalogo local de CIE.
 
-| Servicio | Uso | Plan | Estado | Limites relevantes | Dashboard |
-| --- | --- | --- | --- | --- | --- |
-| Vercel | Hosting frontend y API routes | Pendiente confirmar | Pendiente | Build minutes, bandwidth | Pendiente |
-| Supabase | Auth, Postgres, RLS, RPC | Pendiente confirmar | Activo | Conexiones, almacenamiento, rate limits plan | Pendiente |
+## Instalacion y arranque
 
-### APIs y proveedores externos
+### Requisitos
 
-| Servicio | Uso | Estado | Limite funcional | Fallback | Dashboard |
-| --- | --- | --- | --- | --- | --- |
-| Gemini API | Sugerencias CIE asistidas | Activo opcional | Rate limit por usuario via RPC | Catalogo CIE local | Pendiente |
+- Node.js 20+
+- npm 10+
 
-## Task List
+### Pasos
 
-### Prioridad Alta 🔥
+1. Instalar dependencias.
 
-- [ ] Revisar estructura de components/ui para consolidar patrones y evitar estilos aislados.
-- [ ] Revision formal de teclado, foco visible, contraste y jerarquia visual en auth, dashboard, consultas, pacientes y ajustes.
-- [ ] Validar experiencia movil en listas largas, wizard clinico y panel de sincronizacion.
-- [ ] Probar estados vacios, carga y error en cada flujo principal.
+```bash
+npm install
+```
 
-### Prioridad Media 🟡
+2. Configurar entorno local.
 
-- [ ] Revisar controles que dependen demasiado del color para comunicar estado.
-- [ ] Formalizar observabilidad basica para errores de sync y API.
+```bash
+cp .env.example .env.local
+```
 
-### Backlog 🟢
+3. Iniciar en desarrollo.
 
-- [ ] Limpieza de rutas/paginas de soporte sin valor operativo claro.
-- [ ] Segunda pasada UX enfocada en claridad clinica y velocidad.
+```bash
+npm run dev
+```
 
-### Completadas (ultimos hitos)
+## Variables de entorno
 
-- [x] Separacion de useConsultationWizard en hooks y helpers menores.
-- [x] Endurecimiento de sync con estado terminal abandoned.
-- [x] Rate limiting CIE compartido en SQL via RPC.
-- [x] Estandarizacion de copy de errores accionables.
-
-## Ideas y Features
-
-- [ ] Panel de observabilidad clinica con metricas de sync y API.
-- [ ] Analitica de uso por modulo (dashboard, consultas, pacientes, ajustes).
-- [ ] Exportacion de reportes operativos por periodo.
-- [ ] Automatizacion de alertas de follow-up vencido.
-
-## Bugs e Issues
-
-| Fecha | Modulo | Severidad | Estado | Descripcion | Owner |
-| --- | --- | --- | --- | --- | --- |
-| 2026-04-27 | Dev server | Media | Abierto | npm run dev fallo en entorno local (revisar salida exacta y env) | Pendiente |
-
-## Variables de Entorno
-
-Solo nombres de keys, sin valores. Referenciar la base Secrets and Config en Notion.
+Solo nombres de keys. No guardar valores en este archivo.
 
 - NEXT_PUBLIC_SUPABASE_URL
 - NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -117,31 +127,111 @@ Solo nombres de keys, sin valores. Referenciar la base Secrets and Config en Not
 - E2E_EMAIL
 - E2E_PASSWORD
 
-## Notas y Decisiones Tecnicas
+Notas:
 
-- Se adopto arquitectura offline-first con IndexedDB como fuente operativa local.
-- La cola de sync usa backoff por item y separa fallo temporal de registro abandonado.
-- El wizard clinico se descompuso en hooks/helpers para facilitar pruebas y mantenimiento.
-- Se prioriza fallback local en CIE cuando Gemini no esta disponible.
+- GEMINI_API_KEY es opcional; sin esta key se usa solo catalogo local CIE.
+- NEXT_ALLOWED_DEV_ORIGINS aplica en desarrollo para accesos de red local.
 
-## Metricas y Objetivos
+## Scripts disponibles
 
-| Metrica | Estado actual | Objetivo |
-| --- | --- | --- |
-| Usuarios activos | Pendiente instrumentacion | Definir baseline + crecimiento mensual |
-| Uptime | Pendiente instrumentacion | >= 99.5% |
-| LCP | Pendiente medicion en produccion | <= 2.5s |
-| Conversion (registro a primera consulta) | Pendiente instrumentacion | Definir y mejorar trimestre a trimestre |
+```bash
+npm run dev
+npm run build
+npm run start
+npm run lint
+npm run typecheck
+npm run test
+npm run test:e2e
+npm run test:e2e:headed
+```
+
+## Base de datos y SQL
+
+Script consolidado para despliegue completo:
+
+- lib/supabase/000_production_full_schema.sql
+
+Incluye:
+
+- tablas de dominio clinico,
+- RLS por tenant,
+- audit_logs append-only,
+- follow_up_tasks,
+- api_rate_limits,
+- RPC public.claim_api_rate_limit(...).
+
+Scripts historicos de referencia:
+
+- lib/supabase/001_init_schema.sql
+- lib/supabase/002_iteration2_followups.sql
+- lib/supabase/003_iteration3_patients.sql
+- lib/supabase/004_cie_rate_limits.sql
+
+## Testing y calidad
+
+Checklist recomendada antes de merge:
+
+```bash
+npm run lint
+npm run typecheck
+npm run test
+```
+
+## Estructura del proyecto
+
+```text
+/
+├── app/
+├── components/
+│   ├── clinical/
+│   └── ui/
+├── lib/
+│   ├── consultations/
+│   ├── db/
+│   ├── supabase/
+│   └── sync/
+├── tests/
+├── types/
+└── public/
+```
+
+## Roadmap
+
+Pendientes principales:
+
+- Consolidacion de patrones en components/ui.
+- Revision formal de accesibilidad (teclado, foco, contraste, jerarquia).
+- Validacion UX mobile en flujos largos.
+- Cobertura explicita de estados vacio/carga/error en flujos core.
+
+Backlog detallado:
+
+- TASKLIST_PRIORIZADO.md
+
+## Control operativo en Notion
+
+Este README esta alineado con tu estructura operativa de Notion:
+
+- Resumen general
+- Stack tecnologico
+- Servicios de terceros
+- Task list por prioridad
+- Ideas y features
+- Bugs e issues
+- Variables de entorno
+- Notas y decisiones tecnicas
+- Metricas y objetivos
+- Changelog
 
 ## Changelog
 
 ### 2026-04-27
 
-- Refactor continuo del wizard: extracciones de dominio y custom hooks.
-- Endurecimiento de sync con estado abandoned y mejoras de panel/metricas.
-- SQL consolidado actualizado para incluir api_rate_limits y claim_api_rate_limit.
+- Refactor continuo del wizard con extraccion a hooks/helpers.
+- Endurecimiento de sync con estado abandoned y mejoras en UI/metricas.
+- SQL consolidado actualizado con api_rate_limits y claim_api_rate_limit.
 
 ### 2026-04-26
 
-- Ajustes como pagina canonica de perfil profesional.
+- Ajustes como ruta canonica de perfil profesional.
 - Mejoras de consistencia visual y copy accionable.
