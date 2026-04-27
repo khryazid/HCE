@@ -7,6 +7,7 @@ import { DashboardSkeleton } from "@/components/ui/skeletons";
 import { listClinicalRecordsByTenant, listPatientsByTenant, listSyncQueueItems } from "@/lib/db/indexeddb";
 import type { ClinicalRecordRecord } from "@/types/consultation";
 import type { PatientRecord } from "@/types/patient";
+import { countRecordsWithFollowUpDate } from "@/lib/clinical/follow-up";
 
 type DashboardMetrics = {
   activePatients: number;
@@ -151,26 +152,16 @@ function calculateMetrics(
     .sort((first, second) => second.total - first.total)
     .slice(0, 4);
 
-  const followUpPending = records.filter((record) => {
-    const specialtyData = record.specialty_data as Record<string, unknown>;
-    const nextFollowUpDate =
-      typeof specialtyData.next_follow_up_date === "string"
-        ? specialtyData.next_follow_up_date.trim()
-        : "";
-
-    if (!nextFollowUpDate) {
-      return false;
-    }
-
-    return !Number.isNaN(Date.parse(nextFollowUpDate));
-  }).length;
+  const followUpPending = countRecordsWithFollowUpDate(records);
 
   const incompleteRecords = records.filter(
     (record) => record.cie_codes.length === 0 || record.chief_complaint.trim().length === 0,
   ).length;
 
   const conflictedSyncItems = queue.filter((item) => item.status === "conflicted").length;
-  const failedSyncItems = queue.filter((item) => item.status === "failed").length;
+  const failedSyncItems = queue.filter(
+    (item) => item.status === "failed" || item.status === "abandoned",
+  ).length;
 
   return {
     activePatients: patients.length,

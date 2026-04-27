@@ -1,46 +1,30 @@
 import { Suspense } from "react";
-import Link from "next/link";
 import { AuthForm } from "@/components/ui/auth-form";
+import { AuthRouteShell } from "@/components/ui/auth-route-shell";
 
 export default function RegisterPage() {
   return (
-    <main className="relative flex flex-1 items-center overflow-hidden px-4 py-10 sm:px-8">
-      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_10%_10%,rgba(16,185,129,.14),transparent_40%),radial-gradient(circle_at_90%_15%,rgba(234,88,12,.16),transparent_35%),linear-gradient(130deg,#f8fbf6,#f6f7f3)]" />
-      <section className="mx-auto grid w-full max-w-6xl gap-6 lg:grid-cols-[1.15fr_1fr]">
-        <article className="rounded-3xl border border-white/80 bg-card/75 p-6 shadow-2xl shadow-emerald-900/10 backdrop-blur sm:p-8">
-          <p className="hce-kicker inline-flex rounded-full border border-emerald-900/20 bg-emerald-50 px-4 py-1 text-emerald-900">
-            Glyph · Registro
-          </p>
-          <h1 className="mt-4 text-3xl font-semibold leading-tight text-ink sm:text-5xl">
-            Crea tu cuenta y activa tu entorno clinico multi-especialidad.
-          </h1>
-          <p className="mt-4 max-w-xl hce-page-lead sm:text-base">
-            Registra tus especialidades, define tu tenant y deja listo el flujo para onboarding
-            profesional, consultas y documentacion posterior.
-          </p>
-          <div className="mt-6 grid gap-3 sm:grid-cols-2">
-            <div className="rounded-2xl border border-border bg-card px-4 py-3">
-              <p className="text-sm font-semibold text-ink">Perfil por medico</p>
-              <p className="mt-1 text-sm text-ink-soft">Especialidades multiples desde el alta.</p>
-            </div>
-            <div className="rounded-2xl border border-border bg-card px-4 py-3">
-              <p className="text-sm font-semibold text-ink">Escalable a PDF</p>
-              <p className="mt-1 text-sm text-ink-soft">Datos listos para membrete y reportes clinicos.</p>
-            </div>
-          </div>
-          <Link
-            href="/"
-            className="mt-6 inline-flex rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-100"
-          >
-            Ya tienes cuenta? Iniciar sesion
-          </Link>
-        </article>
-
-        <Suspense fallback={<div className="flex items-center justify-center p-8 text-sm text-ink-soft">Cargando formulario...</div>}>
-          <AuthForm mode="register" />
-        </Suspense>
-      </section>
-    </main>
+    <AuthRouteShell
+      variant="register"
+      kicker="Glyph · Registro"
+      title="Crea tu cuenta y deja listo tu entorno clinico desde el inicio."
+      lead="Registra tus especialidades, define tu tenant y prepara el flujo para onboarding profesional, consultas y documentacion posterior."
+      highlights={[
+        {
+          title: "Perfil por medico",
+          description: "Las especialidades se definen desde el alta de cuenta.",
+        },
+        {
+          title: "Base para PDF",
+          description: "Los datos quedan listos para membrete y reportes clinicos.",
+        },
+      ]}
+      secondaryAction={{ href: "/login", label: "Ya tengo cuenta" }}
+    >
+      <Suspense fallback={<div className="flex items-center justify-center p-8 text-sm text-ink-soft">Cargando formulario...</div>}>
+        <AuthForm mode="register" />
+      </Suspense>
+    </AuthRouteShell>
   );
 }
 

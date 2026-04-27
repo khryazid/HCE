@@ -11,11 +11,13 @@ import {
   SYNC_FINISHED_EVENT,
   type SyncFlushSummary,
 } from "@/lib/sync/sync-worker";
+import { buildRetryableErrorMessage } from "@/lib/ui/feedback-copy";
 import type { SyncQueueItem } from "@/types/sync";
 
 type QueueStats = {
   pending: number;
   failed: number;
+  abandoned: number;
   conflicted: number;
 };
 
@@ -34,6 +36,7 @@ export function SyncQueuePanel() {
   const [stats, setStats] = useState<QueueStats>({
     pending: 0,
     failed: 0,
+    abandoned: 0,
     conflicted: 0,
   });
   const [items, setItems] = useState<SyncQueueItem[]>([]);
@@ -43,7 +46,10 @@ export function SyncQueuePanel() {
   const [isOnline, setIsOnline] = useState(true);
   const [lastSync, setLastSync] = useState<LastSyncState | null>(null);
 
-  const hasItems = useMemo(() => stats.pending + stats.failed + stats.conflicted > 0, [stats]);
+  const hasItems = useMemo(
+    () => stats.pending + stats.failed + stats.abandoned + stats.conflicted > 0,
+    [stats],
+  );
 
   useEffect(() => {
     let active = true;
@@ -66,7 +72,7 @@ export function SyncQueuePanel() {
           setError(
             syncError instanceof Error
               ? syncError.message
-              : "No se pudo cargar la cola de sincronizacion.",
+              : buildRetryableErrorMessage("cargar la cola de sincronizacion"),
           );
         }
       }
@@ -134,7 +140,7 @@ export function SyncQueuePanel() {
     setError(null);
 
     try {
-      await flushSyncQueue();
+      await flushSyncQueue({ forceRetry: true });
       const [nextStats, nextItems] = await Promise.all([
         getSyncQueueStats(),
         listSyncQueueItems(),
@@ -145,7 +151,7 @@ export function SyncQueuePanel() {
       setError(
         syncError instanceof Error
           ? syncError.message
-          : "No se pudo reintentar la sincronizacion.",
+          : buildRetryableErrorMessage("reintentar la sincronizacion"),
       );
     } finally {
       setWorking(false);
@@ -168,14 +174,14 @@ export function SyncQueuePanel() {
       setError(
         discardError instanceof Error
           ? discardError.message
-          : "No se pudo descartar el item de la cola.",
+          : buildRetryableErrorMessage("descartar el item de la cola"),
       );
     } finally {
       setWorking(false);
     }
   }
 
-  const hasErrors = stats.failed > 0 || stats.conflicted > 0;
+  const hasErrors = stats.failed > 0 || stats.abandoned > 0 || stats.conflicted > 0;
 
   return (
     <section
@@ -187,7 +193,7 @@ export function SyncQueuePanel() {
         <div>
           <p className="font-semibold">Estado de sincronizacion</p>
           <p className="mt-1">
-            Pendientes: {stats.pending} · Fallidos: {stats.failed} · Conflictos: {stats.conflicted}
+            Pendientes: {stats.pending} · Fallidos: {stats.failed} · Abandonados: {stats.abandoned} · Conflictos: {stats.conflicted}
           </p>
           <p className="mt-1 text-xs">
             Conexion: {isOnline ? "En linea" : "Sin conexion"}

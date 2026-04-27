@@ -1,8 +1,8 @@
 "use client";
 
 import { buildPdfLines } from "@/lib/consultations/pdf";
+import type { ConsultationPdfPreviewData } from "@/lib/consultations/pdf-preview";
 import type { LetterheadSettings } from "@/lib/local-data/letterhead";
-import type { ConsultationPdfPreviewData } from "@/lib/consultations/use-consultation-wizard";
 
 type Props = {
   open: boolean;

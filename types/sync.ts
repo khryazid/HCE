@@ -1,5 +1,11 @@
 export type SyncAction = "insert" | "update" | "delete";
-export type SyncStatus = "pending" | "syncing" | "failed" | "conflicted" | "done";
+export type SyncStatus =
+  | "pending"
+  | "syncing"
+  | "failed"
+  | "abandoned"
+  | "conflicted"
+  | "done";
 
 export type SyncQueueItem = {
   id: string;
@@ -14,4 +20,5 @@ export type SyncQueueItem = {
   status: SyncStatus;
   retry_count: number;
   last_error?: string;
+  next_retry_at?: number;
 };

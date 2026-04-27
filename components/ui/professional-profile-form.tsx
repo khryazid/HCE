@@ -19,6 +19,10 @@ import {
   exportEncryptionKeyBackup,
   importEncryptionKeyBackup,
 } from "@/lib/db/crypto";
+import {
+  buildFileReadErrorMessage,
+  buildRetryableErrorMessage,
+} from "@/lib/ui/feedback-copy";
 
 type ProfessionalProfileFormState = {
   professionalTitle: string;
@@ -164,7 +168,7 @@ export function ProfessionalProfileForm({
     const dataUrl = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve(String(reader.result || ""));
-      reader.onerror = () => reject(new Error("No se pudo leer el archivo."));
+      reader.onerror = () => reject(new Error(buildFileReadErrorMessage("el archivo seleccionado")));
       reader.readAsDataURL(file);
     });
 
@@ -190,7 +194,7 @@ export function ProfessionalProfileForm({
     const dataUrl = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve(String(reader.result || ""));
-      reader.onerror = () => reject(new Error("No se pudo leer el archivo."));
+      reader.onerror = () => reject(new Error(buildFileReadErrorMessage("el archivo seleccionado")));
       reader.readAsDataURL(file);
     });
 
@@ -228,7 +232,7 @@ export function ProfessionalProfileForm({
       setError(
         submitError instanceof Error
           ? submitError.message
-          : "No se pudo guardar el perfil profesional.",
+          : buildRetryableErrorMessage("guardar el perfil profesional"),
       );
     } finally {
       setSaving(false);
@@ -258,7 +262,7 @@ export function ProfessionalProfileForm({
       setError(
         backupError instanceof Error
           ? backupError.message
-          : "No se pudo exportar la clave de cifrado.",
+          : buildRetryableErrorMessage("exportar la clave de cifrado"),
       );
     }
   }
@@ -282,7 +286,7 @@ export function ProfessionalProfileForm({
       setError(
         importError instanceof Error
           ? importError.message
-          : "No se pudo importar el backup de clave.",
+          : buildRetryableErrorMessage("importar el backup de clave"),
       );
     } finally {
       setRestoringKey(false);

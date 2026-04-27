@@ -13,9 +13,9 @@ test.describe("Flujo E2E: login -> consulta -> PDF", () => {
     await page.getByLabel("Contraseña").fill(E2E_PASSWORD ?? "");
     await page.getByRole("button", { name: "Entrar" }).click();
 
-    await expect(page).toHaveURL(/\/(dashboard|consultas|onboarding)$/);
+    await expect(page).toHaveURL(/\/(dashboard|consultas|ajustes)$/);
 
-    if (page.url().includes("/onboarding")) {
+    if (page.url().includes("/ajustes")) {
       await page.getByLabel("Titulo profesional").fill("Dr. E2E");
       await page.getByLabel("Numero de licencia profesional").fill(`E2E-${Date.now()}`);
       await page.getByLabel("Anos de experiencia").fill("5");

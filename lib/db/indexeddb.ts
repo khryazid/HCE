@@ -14,6 +14,8 @@ import { getSupabaseClient } from "@/lib/supabase/client";
 
 const DB_NAME = "hce-offline-db";
 const DB_VERSION = 1;
+const DEFAULT_RETRY_DELAY_MS = 30_000;
+const MAX_RETRY_DELAY_MS = 60 * 60 * 1000;
 
 interface HceOfflineSchema extends DBSchema {
   profiles: {
@@ -120,14 +122,33 @@ export async function enqueueSyncItem(item: SyncQueueItem) {
       doctor_id: item.doctor_id,
       clinic_id: item.clinic_id,
     }),
+    next_retry_at: item.next_retry_at ?? Date.now(),
   });
 }
 
-export async function getSyncQueueItemsByStatus(statuses: SyncStatus[]) {
+function isRetryDue(item: SyncQueueItem, now: number) {
+  return typeof item.next_retry_at !== "number" || item.next_retry_at <= now;
+}
+
+export async function getSyncQueueItemsByStatus(
+  statuses: SyncStatus[],
+  options?: { includeDelayed?: boolean },
+) {
   const db = await getOfflineDb();
   const allItems = await db.getAll("sync_queue");
+  const now = Date.now();
 
-  const matchingItems = allItems.filter((item) => statuses.includes(item.status));
+  const matchingItems = allItems.filter((item) => {
+    if (!statuses.includes(item.status)) {
+      return false;
+    }
+
+    if (options?.includeDelayed) {
+      return true;
+    }
+
+    return isRetryDue(item, now);
+  });
 
   return Promise.all(
     matchingItems.map(async (item) => ({
@@ -142,6 +163,7 @@ export async function updateSyncItemStatus(
   status: SyncStatus,
   lastError?: string,
   retryCountOverride?: number,
+  nextRetryAtOverride?: number,
 ) {
   const db = await getOfflineDb();
   const current = await db.get("sync_queue", id);
@@ -150,16 +172,26 @@ export async function updateSyncItemStatus(
     return;
   }
 
+  const retryCount =
+    typeof retryCountOverride === "number"
+      ? retryCountOverride
+      : status === "failed"
+        ? current.retry_count + 1
+        : current.retry_count;
+
+  const nextRetryAt =
+    typeof nextRetryAtOverride === "number"
+      ? nextRetryAtOverride
+      : status === "done" || status === "conflicted" || status === "abandoned"
+        ? undefined
+        : Date.now() + Math.min(DEFAULT_RETRY_DELAY_MS * 2 ** Math.max(retryCount - 1, 0), MAX_RETRY_DELAY_MS);
+
   await db.put("sync_queue", {
     ...current,
     status,
-    retry_count:
-      typeof retryCountOverride === "number"
-        ? retryCountOverride
-        : status === "failed"
-          ? current.retry_count + 1
-          : current.retry_count,
+    retry_count: retryCount,
     last_error: lastError,
+    next_retry_at: nextRetryAt,
   });
 }
 
@@ -175,6 +207,7 @@ export async function getSyncQueueStats() {
   return {
     pending: allItems.filter((item) => item.status === "pending").length,
     failed: allItems.filter((item) => item.status === "failed").length,
+    abandoned: allItems.filter((item) => item.status === "abandoned").length,
     conflicted: allItems.filter((item) => item.status === "conflicted").length,
   };
 }

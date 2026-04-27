@@ -9,6 +9,7 @@ import { decryptJson, encryptJson } from "@/lib/db/crypto";
 import type { SyncQueueItem } from "@/types/sync";
 
 const MAX_RETRIES = 3;
+const MAX_RETRY_DELAY_MS = 60 * 60 * 1000;
 
 export const SYNC_FINISHED_EVENT = "hce:sync-finished";
 
@@ -86,6 +87,11 @@ function buildSyncQueue(items: SyncQueueItem[]) {
 
     return a.client_timestamp - b.client_timestamp;
   });
+}
+
+function getRetryDelayMs(retryCount: number) {
+  const baseDelayMs = 30_000 * 2 ** Math.max(retryCount - 1, 0);
+  return Math.min(baseDelayMs, MAX_RETRY_DELAY_MS);
 }
 
 function mapPayloadByTable(tableName: TableName, payload: Record<string, unknown>) {
@@ -209,7 +215,7 @@ async function syncItem(item: SyncQueueItem): Promise<"synced" | "conflicted"> {
   return "synced";
 }
 
-export async function flushSyncQueue() {
+export async function flushSyncQueue(options?: { forceRetry?: boolean }) {
   const startedAt = Date.now();
   const supabase = getSupabaseClient();
   const {
@@ -218,7 +224,9 @@ export async function flushSyncQueue() {
 
   const currentDoctorId = session?.user?.id ?? null;
 
-  const pending = await getSyncQueueItemsByStatus(["pending", "failed"]);
+  const pending = await getSyncQueueItemsByStatus(["pending", "failed"], {
+    includeDelayed: options?.forceRetry ?? false,
+  });
   if (pending.length === 0) {
     const summary: SyncFlushSummary = {
       startedAt,
@@ -245,11 +253,15 @@ export async function flushSyncQueue() {
 
   for (const item of queue) {
     if (!currentDoctorId) {
+      const retryCount = item.retry_count + 1;
+      const nextRetryAt = Date.now() + getRetryDelayMs(retryCount);
+
       await updateSyncItemStatus(
         item.id,
-        "failed",
+        "pending",
         "No hay sesion activa para sincronizar.",
-        item.retry_count + 1,
+        retryCount,
+        nextRetryAt,
       );
       failed += 1;
       continue;
@@ -325,12 +337,13 @@ export async function flushSyncQueue() {
       console.error("Sync failed for item", item.table_name, item.record_id, "Error:", error, "Message:", message);
       
       const retryCount = item.retry_count + 1;
+      const nextRetryAt = Date.now() + getRetryDelayMs(retryCount);
 
       if (retryCount >= MAX_RETRIES) {
-        await updateSyncItemStatus(item.id, "failed", message, retryCount);
+        await updateSyncItemStatus(item.id, "abandoned", message, retryCount, nextRetryAt);
         failed += 1;
       } else {
-        await updateSyncItemStatus(item.id, "pending", message, retryCount);
+        await updateSyncItemStatus(item.id, "pending", message, retryCount, nextRetryAt);
         failed += 1;
       }
     }

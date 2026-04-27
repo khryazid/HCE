@@ -12,13 +12,18 @@ export default function EspecialidadesPage() {
   return (
     <section className="space-y-6">
       <header className="space-y-2">
-        <p className="hce-kicker text-ink-soft">Especialidades</p>
-        <h1 className="hce-page-title">Componentes clinicos reales</h1>
+        <p className="hce-kicker text-ink-soft">Sandbox clínico</p>
+        <h1 className="hce-page-title">Componentes clínicos de validación</h1>
         <p className="hce-page-lead">
-          Alterna entre odontograma y curva pediatrica para revisar cada flujo
-          especializado.
+          Esta pantalla existe para probar componentes reales de especialidad y
+          no forma parte del flujo operativo principal.
         </p>
       </header>
+
+      <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+        Úsala como referencia visual y funcional para odontología y pediatría;
+        el acceso principal del producto vive en consultas, pacientes y ajustes.
+      </div>
 
       <div className="flex flex-wrap gap-2">
         <button
@@ -43,6 +48,12 @@ export default function EspecialidadesPage() {
         >
           Pediatria
         </button>
+      </div>
+
+      <div className="rounded-2xl border border-border bg-card p-4 text-sm text-ink-soft">
+        {view === "odontologia"
+          ? "Odontograma interactivo para validar piezas dentales, estados y selección clínica."
+          : "Curva pediátrica para validar seguimiento, mediciones y ajuste de datos por edad."}
       </div>
 
       {view === "odontologia" ? <Odontogram /> : <GrowthCurve />}

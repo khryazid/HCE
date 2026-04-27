@@ -18,6 +18,11 @@ import type { ClinicalRecordRecord } from "@/types/consultation";
 import { PATIENT_STATUS_OPTIONS, type PatientRecord, type PatientStatus } from "@/types/patient";
 import { generateConsultationPdf } from "@/lib/consultations/pdf";
 import { loadLetterheadSettings } from "@/lib/local-data/letterhead";
+import {
+  getNextFollowUpDate,
+  isFollowUpOverdue,
+} from "@/lib/clinical/follow-up";
+import { buildRetryableErrorMessage } from "@/lib/ui/feedback-copy";
 
 function StatusBadge({ status }: { status: PatientStatus }) {
   const opt = PATIENT_STATUS_OPTIONS[status] ?? PATIENT_STATUS_OPTIONS.activo;
@@ -81,12 +86,11 @@ type PatientHistoryDetails = {
   cieCodes: string[];
 };
 
-type FollowUpTimelineFilter = "completados" | "pendientes" | "vencidos";
 type DateRangeFilter = "all" | "7" | "30" | "90";
 
 function getHistoryDetails(record: ClinicalRecordRecord): PatientHistoryDetails {
   const specialtyData = record.specialty_data as Record<string, unknown>;
-  const nextFollowUpDate = getNullableDate(specialtyData.next_follow_up_date);
+  const nextFollowUpDate = getNextFollowUpDate(specialtyData);
 
   const patientSnapshot = (specialtyData.patient_snapshot || {}) as Record<string, string>;
   const vitalSigns = (specialtyData.vital_signs || {
@@ -117,27 +121,9 @@ function getHistoryDetails(record: ClinicalRecordRecord): PatientHistoryDetails 
     warningSigns: getTextField(specialtyData.warning_signs),
     evolutionStatus: getTextField(specialtyData.evolution_status, "Sin evolucion registrada"),
     nextFollowUpDate,
-    isFollowUpOverdue: nextFollowUpDate ? new Date(nextFollowUpDate).getTime() < Date.now() : false,
+    isFollowUpOverdue: isFollowUpOverdue(nextFollowUpDate),
     cieCodes: record.cie_codes,
   };
-}
-
-function getFollowUpTimelineState(
-  record: ClinicalRecordRecord,
-  details: PatientHistoryDetails,
-): FollowUpTimelineFilter | null {
-  const specialtyData = record.specialty_data as Record<string, unknown>;
-  const followUpMode = specialtyData.follow_up_mode === "seguimiento";
-
-  if (details.nextFollowUpDate) {
-    return details.isFollowUpOverdue ? "vencidos" : "pendientes";
-  }
-
-  if (followUpMode) {
-    return "completados";
-  }
-
-  return null;
 }
 
 export default function PacientesPage() {
@@ -205,7 +191,7 @@ export default function PacientesPage() {
       setStatusMessage(
         statusError instanceof Error
           ? statusError.message
-          : "No se pudo actualizar el estado del paciente.",
+          : buildRetryableErrorMessage("actualizar el estado del paciente"),
       );
     } finally {
       setStatusSaving(false);
@@ -241,7 +227,7 @@ export default function PacientesPage() {
           setError(
             bootstrapError instanceof Error
               ? bootstrapError.message
-              : "No se pudo cargar pacientes.",
+              : buildRetryableErrorMessage("cargar pacientes"),
           );
         }
       } finally {

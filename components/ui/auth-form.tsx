@@ -193,7 +193,7 @@ export function AuthForm({ mode }: AuthFormProps) {
       setError(
         authError instanceof Error
           ? authError.message
-          : "No se pudo completar la autenticacion.",
+          : "No se pudo completar la autenticacion. Verifica tus credenciales e intenta de nuevo.",
       );
     } finally {
       setLoading(false);

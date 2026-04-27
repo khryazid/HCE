@@ -7,6 +7,7 @@ import {
   extractGeminiSuggestions,
   type CieSuggestionInput,
 } from "@/lib/ai/cie-suggestions";
+import { isCieSuggestionRateLimited } from "@/lib/ai/cie-rate-limit";
 import type { Database } from "@/types/supabase.types";
 
 export const runtime = "nodejs";
@@ -14,66 +15,9 @@ export const dynamic = "force-dynamic";
 
 type RequestBody = CieSuggestionInput;
 const MAX_INPUT_LENGTH = 1200;
-const RATE_LIMIT_WINDOW_MS = 60_000;
-const RATE_LIMIT_MAX_REQUESTS = 30;
-
-type RateLimitEntry = {
-  count: number;
-  windowStart: number;
-};
-
-const rateLimitStore = new Map<string, RateLimitEntry>();
 
 function readRequestText(value: unknown) {
   return typeof value === "string" ? value.trim().slice(0, MAX_INPUT_LENGTH) : "";
-}
-
-function resolveClientIdentifier(request: Request) {
-  const forwardedFor = request.headers.get("x-forwarded-for");
-  const realIp = request.headers.get("x-real-ip");
-
-  if (forwardedFor) {
-    return forwardedFor.split(",")[0]?.trim() || "unknown";
-  }
-
-  if (realIp) {
-    return realIp.trim();
-  }
-
-  return "unknown";
-}
-
-function cleanupRateLimitStore(now: number) {
-  if (rateLimitStore.size < 1500) {
-    return;
-  }
-
-  for (const [key, entry] of rateLimitStore.entries()) {
-    if (now - entry.windowStart > RATE_LIMIT_WINDOW_MS * 2) {
-      rateLimitStore.delete(key);
-    }
-  }
-}
-
-function isRateLimited(request: Request) {
-  const tokenKey = readBearerToken(request)?.slice(0, 24) || "no-token";
-  const clientKey = `${resolveClientIdentifier(request)}:${tokenKey}`;
-  const now = Date.now();
-
-  cleanupRateLimitStore(now);
-
-  const current = rateLimitStore.get(clientKey);
-  if (!current || now - current.windowStart > RATE_LIMIT_WINDOW_MS) {
-    rateLimitStore.set(clientKey, {
-      count: 1,
-      windowStart: now,
-    });
-    return false;
-  }
-
-  current.count += 1;
-  rateLimitStore.set(clientKey, current);
-  return current.count > RATE_LIMIT_MAX_REQUESTS;
 }
 
 function readBearerToken(request: Request) {
@@ -92,16 +36,16 @@ function readBearerToken(request: Request) {
   return token.trim();
 }
 
-async function isAuthorizedRequest(request: Request) {
+async function getAuthorizedUserId(request: Request) {
   const token = readBearerToken(request);
   if (!token) {
-    return false;
+    return null;
   }
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !anonKey) {
-    return false;
+    return null;
   }
 
   const supabase = createClient<Database>(url, anonKey, {
@@ -114,10 +58,13 @@ async function isAuthorizedRequest(request: Request) {
   const { data, error } = await supabase.auth.getUser(token);
 
   if (error) {
-    return false;
+    return null;
   }
 
-  return Boolean(data.user);
+  return {
+    userId: data.user?.id ?? null,
+    token,
+  };
 }
 
 async function requestGeminiSuggestions(input: RequestBody) {
@@ -179,20 +126,9 @@ async function requestGeminiSuggestions(input: RequestBody) {
 
 export async function POST(request: Request) {
   try {
-    if (isRateLimited(request)) {
-      return NextResponse.json(
-        {
-          source: "catalog",
-          suggestions: [],
-          error: "Rate limit exceeded",
-        },
-        { status: 429 },
-      );
-    }
+    const authorizedUser = await getAuthorizedUserId(request);
 
-    const authorized = await isAuthorizedRequest(request);
-
-    if (!authorized) {
+    if (!authorizedUser?.userId) {
       return NextResponse.json(
         {
           source: "catalog",
@@ -200,6 +136,17 @@ export async function POST(request: Request) {
           error: "Unauthorized",
         },
         { status: 401 },
+      );
+    }
+
+    if (await isCieSuggestionRateLimited({ userId: authorizedUser.userId, token: authorizedUser.token })) {
+      return NextResponse.json(
+        {
+          source: "catalog",
+          suggestions: [],
+          error: "Rate limit exceeded",
+        },
+        { status: 429 },
       );
     }
 
@@ -233,6 +180,17 @@ export async function POST(request: Request) {
       });
     }
 
+    if (process.env.GEMINI_API_KEY) {
+      return NextResponse.json(
+        {
+          source: "catalog",
+          suggestions: buildCatalogSuggestions(localCandidates, "Gemini no respondio; se usan sugerencias locales."),
+          error: "Gemini unavailable",
+        },
+        { status: 503 },
+      );
+    }
+
     return NextResponse.json({
       source: "catalog",
       suggestions: buildCatalogSuggestions(localCandidates, "Sugerencias basadas en el catalogo local."),
@@ -242,8 +200,9 @@ export async function POST(request: Request) {
       {
         source: "catalog",
         suggestions: buildCatalogSuggestions(CIE_CATALOG.slice(0, 5), "No se pudo consultar Gemini; se usan sugerencias locales."),
+        error: "Internal error",
       },
-      { status: 200 },
+      { status: 503 },
     );
   }
 }

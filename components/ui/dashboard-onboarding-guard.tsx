@@ -32,11 +32,11 @@ export function DashboardOnboardingGuard() {
 
         const onboardingProfile = readOnboardingProfile(session.user.user_metadata);
         const isReady = isOnboardingProfileComplete(onboardingProfile);
-        const isOnboardingPage = pathname === "/onboarding";
+        const isProfileSetupPage = pathname === "/ajustes" || pathname === "/onboarding";
 
-        if (!isReady && !isOnboardingPage) {
+        if (!isReady && !isProfileSetupPage) {
           if (active) {
-            router.replace("/onboarding");
+            router.replace("/ajustes");
           }
           return;
         }

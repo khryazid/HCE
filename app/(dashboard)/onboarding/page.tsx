@@ -1,11 +1,5 @@
-import { ProfessionalProfileForm } from "@/components/ui/professional-profile-form";
+import { redirect } from "next/navigation";
 
 export default function OnboardingPage() {
-  return (
-    <ProfessionalProfileForm
-      kicker="Perfil Profesional"
-      title="Edita tus datos profesionales"
-      lead="Esta pagina centraliza perfil profesional y datos de membrete para PDF."
-    />
-  );
+  redirect("/ajustes");
 }

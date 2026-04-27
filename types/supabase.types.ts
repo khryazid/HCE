@@ -135,6 +135,40 @@ export type Database = {
           updated_at: string;
         }>;
       };
+      api_rate_limits: {
+        Row: {
+          scope: string;
+          identifier: string;
+          window_started_at: string;
+          request_count: number;
+          updated_at: string;
+        };
+        Insert: {
+          scope: string;
+          identifier: string;
+          window_started_at?: string;
+          request_count?: number;
+          updated_at?: string;
+        };
+        Update: Partial<{
+          scope: string;
+          identifier: string;
+          window_started_at: string;
+          request_count: number;
+          updated_at: string;
+        }>;
+      };
+    };
+    Functions: {
+      claim_api_rate_limit: {
+        Args: {
+          p_scope: string;
+          p_identifier: string;
+          p_window_seconds: number;
+          p_max_requests: number;
+        };
+        Returns: boolean;
+      };
     };
   };
 };

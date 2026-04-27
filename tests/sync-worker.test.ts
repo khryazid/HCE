@@ -5,24 +5,38 @@ const {
   mockGetSyncQueueItemsByStatus,
   mockUpdateSyncItemStatus,
   mockDeleteSyncQueueItem,
+  mockGetOfflineDb,
   mockMaybeSingle,
+  mockSingle,
   mockDeleteEq,
   mockUpsert,
   mockGetSession,
+  mockEncryptJson,
+  mockDecryptJson,
 } = vi.hoisted(() => ({
   mockGetSyncQueueItemsByStatus: vi.fn(),
   mockUpdateSyncItemStatus: vi.fn(),
   mockDeleteSyncQueueItem: vi.fn(),
+  mockGetOfflineDb: vi.fn(),
   mockMaybeSingle: vi.fn(),
+  mockSingle: vi.fn(),
   mockDeleteEq: vi.fn(),
   mockUpsert: vi.fn(),
   mockGetSession: vi.fn(),
+  mockEncryptJson: vi.fn(),
+  mockDecryptJson: vi.fn(),
 }));
 
 vi.mock("@/lib/db/indexeddb", () => ({
   getSyncQueueItemsByStatus: mockGetSyncQueueItemsByStatus,
   updateSyncItemStatus: mockUpdateSyncItemStatus,
   deleteSyncQueueItem: mockDeleteSyncQueueItem,
+  getOfflineDb: mockGetOfflineDb,
+}));
+
+vi.mock("@/lib/db/crypto", () => ({
+  encryptJson: mockEncryptJson,
+  decryptJson: mockDecryptJson,
 }));
 
 vi.mock("@/lib/supabase/client", () => ({
@@ -34,6 +48,9 @@ vi.mock("@/lib/supabase/client", () => ({
       select: () => ({
         eq: () => ({
           maybeSingle: mockMaybeSingle,
+          eq: () => ({
+            single: mockSingle,
+          }),
         }),
       }),
       delete: () => ({
@@ -64,6 +81,21 @@ function buildSyncItem(retryCount: number): SyncQueueItem {
   };
 }
 
+function buildMergeSyncItem() {
+  return {
+    ...buildSyncItem(0),
+    id: "sync-merge",
+    payload: {
+      full_name: "Paciente Duplicado",
+      document_number: "1717171717",
+      birth_date: "1990-01-01",
+      status: "activo",
+      created_at: "2026-04-26T10:00:00.000Z",
+      updated_at: "2026-04-26T10:05:00.000Z",
+    },
+  } satisfies SyncQueueItem;
+}
+
 describe("sync worker retries", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -92,6 +124,56 @@ describe("sync worker retries", () => {
         message: "network timeout",
       },
     });
+
+    mockSingle.mockResolvedValue({
+      data: null,
+      error: null,
+    });
+
+    mockEncryptJson.mockImplementation(async (value) => ({
+      __encrypted: true,
+      iv: "iv",
+      ciphertext: JSON.stringify(value),
+    }));
+
+    mockDecryptJson.mockImplementation(async (value) => value as unknown);
+
+    mockGetOfflineDb.mockResolvedValue({
+      getAll: vi.fn(async (store: string) => {
+        if (store === "sync_queue") {
+          return [
+            {
+              id: "sync-clinical",
+              table_name: "clinical_records",
+              record_id: "record-1",
+              action: "insert",
+              payload: {
+                patient_id: "patient-1",
+                chief_complaint: "Dolor",
+              },
+              doctor_id: "doctor-1",
+              clinic_id: "clinic-1",
+              client_timestamp: Date.now(),
+              status: "pending",
+              retry_count: 0,
+            },
+          ];
+        }
+
+        if (store === "clinical_records") {
+          return [
+            {
+              id: "record-1",
+              patient_id: "patient-1",
+            },
+          ];
+        }
+
+        return [];
+      }),
+      put: vi.fn(async () => undefined),
+      delete: vi.fn(async () => undefined),
+    });
   });
 
   it("increments retry_count when rescheduling pending sync", async () => {
@@ -106,11 +188,12 @@ describe("sync worker retries", () => {
       "pending",
       "network timeout",
       1,
+      expect.any(Number),
     );
     expect(mockDeleteSyncQueueItem).not.toHaveBeenCalled();
   });
 
-  it("marks failed when retry_count reaches max", async () => {
+  it("marks abandoned when retry_count reaches max", async () => {
     mockGetSyncQueueItemsByStatus.mockResolvedValue([buildSyncItem(2)]);
 
     await flushSyncQueue();
@@ -119,9 +202,10 @@ describe("sync worker retries", () => {
     expect(mockUpdateSyncItemStatus).toHaveBeenNthCalledWith(
       2,
       "sync-1",
-      "failed",
+      "abandoned",
       "network timeout",
       3,
+      expect.any(Number),
     );
     expect(mockDeleteSyncQueueItem).not.toHaveBeenCalled();
   });
@@ -171,5 +255,38 @@ describe("sync worker retries", () => {
       { onConflict: "id" },
     );
     expect(mockDeleteSyncQueueItem).toHaveBeenCalledWith("sync-1");
+  });
+
+  it("merges duplicate patients and rewrites dependent records", async () => {
+    const mergeItem = buildMergeSyncItem();
+
+    mockGetSyncQueueItemsByStatus.mockResolvedValue([mergeItem]);
+    mockUpsert.mockResolvedValue({
+      error: {
+        code: "23505",
+        message: "duplicate key value violates unique constraint",
+      },
+    });
+    mockSingle.mockResolvedValue({
+      data: { id: "patient-merged" },
+      error: null,
+    });
+
+    await flushSyncQueue();
+
+    expect(mockDeleteSyncQueueItem).toHaveBeenCalledWith("sync-merge");
+    expect(mockEncryptJson).toHaveBeenCalledWith(
+      expect.objectContaining({
+        patient_id: "patient-merged",
+      }),
+    );
+    expect(mockUpdateSyncItemStatus).not.toHaveBeenCalledWith(
+      "sync-merge",
+      "failed",
+      expect.any(String),
+      expect.any(Number),
+      expect.any(Number),
+    );
+    expect(mockDeleteEq).not.toHaveBeenCalled();
   });
 });

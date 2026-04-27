@@ -93,12 +93,11 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/consultas", label: "Consultas", icon: <IconClipboard /> },
   { href: "/pacientes", label: "Pacientes", icon: <IconUsers /> },
   { href: "/tratamientos", label: "Tratamientos", icon: <IconPill /> },
-  { href: "/onboarding", label: "Perfil", icon: <IconUser /> },
   { href: "/ajustes", label: "Ajustes", icon: <IconSettings /> },
 ];
 
 // Bottom nav shows the 5 most important items
-const BOTTOM_NAV_ITEMS = NAV_ITEMS.filter((item) => item.href !== "/onboarding");
+const BOTTOM_NAV_ITEMS = NAV_ITEMS;
 
 /* ── Sidebar (desktop, lg+) ─────────────────────────────── */
 

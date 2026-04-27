@@ -1,120 +1,147 @@
-# HCE Multiespecialidad (SaaS Nivel 2)
+# HCE Multiespecialidad
 
-Plataforma de gestion de historias clinicas multiespecialidad construida con:
+Guia operativa para llevar control del proyecto en Notion.
 
-- Next.js (App Router) + Tailwind CSS
-- Supabase (PostgreSQL + Auth)
-- IndexedDB (`idb`) para persistencia local
-- `next-pwa` para arquitectura offline-first
+## Resumen General
 
-## Estado de la Implementacion
+| Campo | Valor |
+| --- | --- |
+| Nombre | HCE Multiespecialidad |
+| Version | 0.1.0 |
+| Estado | Activo en refactor y endurecimiento operativo |
+| Repo | Pendiente de registrar URL publica |
+| URL de produccion | Pendiente |
 
-Esta iteracion deja operativa una version funcional offline-first:
+### Verificacion rapida del estado actual
 
-- Autenticacion real con Supabase (registro e inicio de sesion).
-- Registro de medico con soporte de multiples especialidades.
-- Flujos de acceso separados: `/login` y `/registro`.
-- Onboarding inicial obligatorio de perfil profesional del medico.
-- Dashboard con carga de perfil tenant y especialidades del medico.
-- Dashboard con KPIs clinicos, actividad reciente y alertas operativas.
-- Flujo de consulta guiado en 4 pasos con paciente rapido, diagnostico CIE y confirmacion.
-- Sugerencias CIE asistidas por Gemini con fallback al catalogo local.
-- Selector de tipo de registro en Consultas: consulta completa o seguimiento con foco en evolucion.
-- Indicador de seguimiento pendiente al seleccionar paciente y alta rapida de control.
-- Acceso directo desde historial de pacientes para abrir seguimiento precargado sin pasar por el paso 1.
-- Modulo de tratamientos predeterminados con CRUD y versionado por medico.
-- Timeline de evolucion/seguimiento por paciente.
-- Pacientes como historial clinico navegable; el alta se hace desde Consultas.
-- Ajustes de membrete profesional y generacion PDF de consulta.
-- Logo profesional local por medico (guardado en navegador, sin Supabase) para incluir en el PDF.
-- CRUD local-first de pacientes y consultas.
-- Cifrado local de PHI con WebCrypto (AES-GCM).
-- Cola de sincronizacion con panel visual para reintento y descarte.
-- PWA con fallback a `/offline`.
-- SQL inicial de Supabase con RLS por `doctor_id` y auditoria append-only.
+- Typecheck global en verde.
+- Tests del bloque critico (wizard + sync) en verde.
+- SQL consolidado actualizado con rate limiting compartido para API CIE.
 
-## Estructura Principal
+## Stack Tecnologico
 
-```text
-/
-├── app/
-│   ├── (auth)/
-│   ├── (dashboard)/
-│   │   ├── pacientes/
-│   │   ├── consultas/
-│   │   └── especialidades/
-│   ├── layout.tsx
-│   └── page.tsx
-├── components/
-│   ├── ui/
-│   └── clinical/
-├── lib/
-│   ├── supabase/
-│   ├── db/
-│   └── sync/
-├── types/
-└── public/
-```
+### Frontend
+
+- [x] Next.js App Router
+- [x] TypeScript
+- [x] Tailwind CSS
+- [x] PWA (next-pwa)
+- [x] Vitest
+- [x] Playwright
+
+### Backend y Dominio
+
+- [x] API routes en Next.js
+- [x] Supabase Auth
+- [x] Multi-tenant por doctor y clinica
+- [x] Workflow clinico consulta/seguimiento
+
+### Base de Datos
+
+- [x] PostgreSQL en Supabase
+- [x] RLS por tenant
+- [x] audit_logs append-only
+- [x] follow_up_tasks
+- [x] api_rate_limits + RPC claim_api_rate_limit
+
+### Infraestructura
+
+- [x] Offline-first con IndexedDB
+- [x] Cola de sync con reintentos y estado terminal abandoned
+- [ ] Deploy productivo documentado
+- [ ] Observabilidad formal (APM/logs centralizados)
+
+## Servicios de Terceros
+
+### Plataformas principales
+
+| Servicio | Uso | Plan | Estado | Limites relevantes | Dashboard |
+| --- | --- | --- | --- | --- | --- |
+| Vercel | Hosting frontend y API routes | Pendiente confirmar | Pendiente | Build minutes, bandwidth | Pendiente |
+| Supabase | Auth, Postgres, RLS, RPC | Pendiente confirmar | Activo | Conexiones, almacenamiento, rate limits plan | Pendiente |
+
+### APIs y proveedores externos
+
+| Servicio | Uso | Estado | Limite funcional | Fallback | Dashboard |
+| --- | --- | --- | --- | --- | --- |
+| Gemini API | Sugerencias CIE asistidas | Activo opcional | Rate limit por usuario via RPC | Catalogo CIE local | Pendiente |
+
+## Task List
+
+### Prioridad Alta 🔥
+
+- [ ] Revisar estructura de components/ui para consolidar patrones y evitar estilos aislados.
+- [ ] Revision formal de teclado, foco visible, contraste y jerarquia visual en auth, dashboard, consultas, pacientes y ajustes.
+- [ ] Validar experiencia movil en listas largas, wizard clinico y panel de sincronizacion.
+- [ ] Probar estados vacios, carga y error en cada flujo principal.
+
+### Prioridad Media 🟡
+
+- [ ] Revisar controles que dependen demasiado del color para comunicar estado.
+- [ ] Formalizar observabilidad basica para errores de sync y API.
+
+### Backlog 🟢
+
+- [ ] Limpieza de rutas/paginas de soporte sin valor operativo claro.
+- [ ] Segunda pasada UX enfocada en claridad clinica y velocidad.
+
+### Completadas (ultimos hitos)
+
+- [x] Separacion de useConsultationWizard en hooks y helpers menores.
+- [x] Endurecimiento de sync con estado terminal abandoned.
+- [x] Rate limiting CIE compartido en SQL via RPC.
+- [x] Estandarizacion de copy de errores accionables.
+
+## Ideas y Features
+
+- [ ] Panel de observabilidad clinica con metricas de sync y API.
+- [ ] Analitica de uso por modulo (dashboard, consultas, pacientes, ajustes).
+- [ ] Exportacion de reportes operativos por periodo.
+- [ ] Automatizacion de alertas de follow-up vencido.
+
+## Bugs e Issues
+
+| Fecha | Modulo | Severidad | Estado | Descripcion | Owner |
+| --- | --- | --- | --- | --- | --- |
+| 2026-04-27 | Dev server | Media | Abierto | npm run dev fallo en entorno local (revisar salida exacta y env) | Pendiente |
 
 ## Variables de Entorno
 
-Copiar `.env.example` a `.env.local` y completar:
+Solo nombres de keys, sin valores. Referenciar la base Secrets and Config en Notion.
 
-```bash
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-GEMINI_API_KEY=
-GEMINI_MODEL=gemini-2.0-flash
-NEXT_ALLOWED_DEV_ORIGINS=
-E2E_EMAIL=
-E2E_PASSWORD=
-```
+- NEXT_PUBLIC_SUPABASE_URL
+- NEXT_PUBLIC_SUPABASE_ANON_KEY
+- GEMINI_API_KEY
+- GEMINI_MODEL
+- NEXT_ALLOWED_DEV_ORIGINS
+- E2E_EMAIL
+- E2E_PASSWORD
 
-`GEMINI_API_KEY` es opcional. Si no esta presente, la pantalla de consultas usa solo el catalogo local de CIE.
+## Notas y Decisiones Tecnicas
 
-`NEXT_ALLOWED_DEV_ORIGINS` es opcional y solo aplica para `npm run dev`. Usa una lista separada por comas de hosts/origenes permitidos para recursos `/_next` en red local (por ejemplo: `192.168.0.149,mi-host.local`).
+- Se adopto arquitectura offline-first con IndexedDB como fuente operativa local.
+- La cola de sync usa backoff por item y separa fallo temporal de registro abandonado.
+- El wizard clinico se descompuso en hooks/helpers para facilitar pruebas y mantenimiento.
+- Se prioriza fallback local en CIE cuando Gemini no esta disponible.
 
-`E2E_EMAIL` y `E2E_PASSWORD` se usan para pruebas Playwright reales. Si no estan definidos, los tests E2E autenticados se marcan como omitidos.
+## Metricas y Objetivos
 
+| Metrica | Estado actual | Objetivo |
+| --- | --- | --- |
+| Usuarios activos | Pendiente instrumentacion | Definir baseline + crecimiento mensual |
+| Uptime | Pendiente instrumentacion | >= 99.5% |
+| LCP | Pendiente medicion en produccion | <= 2.5s |
+| Conversion (registro a primera consulta) | Pendiente instrumentacion | Definir y mejorar trimestre a trimestre |
 
-## Comandos
+## Changelog
 
-```bash
-npm install
-npm run dev
-npm run lint
-npm run typecheck
-npm run test
-npm run test:e2e
-npm run build
-```
+### 2026-04-27
 
-## Skill Frontend del Proyecto
+- Refactor continuo del wizard: extracciones de dominio y custom hooks.
+- Endurecimiento de sync con estado abandoned y mejoras de panel/metricas.
+- SQL consolidado actualizado para incluir api_rate_limits y claim_api_rate_limit.
 
-Para mantener consistencia de UI/UX en nuevas pantallas y ajustes visuales, usar esta guia:
+### 2026-04-26
 
-- `FRONTEND_SKILL.md`
-
-## SQL Supabase (Produccion)
-
-El script consolidado para montar todo en una sola ejecucion esta en:
-
-- `lib/supabase/000_production_full_schema.sql`
-
-Scripts historicos (opcional, referencia):
-
-- `lib/supabase/001_init_schema.sql`
-- `lib/supabase/002_iteration2_followups.sql`
-
-Incluye:
-
-- tablas de dominio clinico,
-- politicas RLS para aislamiento por tenant,
-- `audit_logs` inmutable,
-- funcion `log_audit_event(...)` con hash encadenado.
-
-## Siguientes pasos recomendados
-
-1. Implementar ajustes de membrete profesional por medico para salida PDF.
-2. Construir flujo guiado de nueva consulta por pasos.
-3. Añadir timeline de evolucion y seguimiento por paciente.
+- Ajustes como pagina canonica de perfil profesional.
+- Mejoras de consistencia visual y copy accionable.

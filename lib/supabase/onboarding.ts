@@ -1,4 +1,5 @@
 import { getSupabaseClient } from "@/lib/supabase/client";
+import { APP_EVENT_ONBOARDING_SAVED, emitAppEvent } from "@/lib/observability/app-events";
 
 export type DoctorOnboardingProfile = {
   professional_title: string;
@@ -107,11 +108,11 @@ export async function saveOnboardingProfile(profile: DoctorOnboardingProfile) {
     throw error;
   }
 
-  try {
-    const clinicId = typeof data.user?.user_metadata?.clinic_id === "string"
-      ? data.user.user_metadata.clinic_id
-      : null;
+  const clinicId = typeof data.user?.user_metadata?.clinic_id === "string"
+    ? data.user.user_metadata.clinic_id
+    : null;
 
+  try {
     if (clinicId && data.user) {
       await supabase.rpc("log_audit_event", {
         p_clinic_id: clinicId,
@@ -130,6 +131,11 @@ export async function saveOnboardingProfile(profile: DoctorOnboardingProfile) {
   } catch {
     // No bloquear onboarding si auditoria RPC no esta disponible en entorno local.
   }
+
+  emitAppEvent(APP_EVENT_ONBOARDING_SAVED, {
+    doctorId: data.user.id,
+    clinicId,
+  });
 
   return data.user;
 }
