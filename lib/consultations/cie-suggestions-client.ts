@@ -20,10 +20,19 @@ export type CieSuggestionRequestResult = {
 export async function fetchCieSuggestionsFromApi(
   input: CieSuggestionInput,
   signal?: AbortSignal,
-) {
+): Promise<CieSuggestionRequestResult> {
   emitAppEvent(APP_EVENT_CIE_SUGGESTIONS_REQUESTED, {
     specialtyKind: input.specialtyKind,
   });
+
+  // NF-01: Guardia offline — evita TypeError: Failed to fetch en modo sin conexión.
+  if (typeof navigator !== "undefined" && !navigator.onLine) {
+    emitAppEvent(APP_EVENT_CIE_SUGGESTIONS_COMPLETED, {
+      source: "catalog",
+      offline: true,
+    });
+    return { source: "catalog", suggestions: [] };
+  }
 
   const supabase = getSupabaseClient();
   const {

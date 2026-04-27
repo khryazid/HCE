@@ -199,13 +199,14 @@ async function syncItem(item: SyncQueueItem): Promise<"synced" | "conflicted"> {
         typeof e === "object" && e !== null && "code" in e;
 
       if (isPgError(error) && error.code === "23505" && tableName === "patients") {
-        const { data: existingPatient } = await supabase
-          .from<{ id: string }>("patients")
+        const { data: existingPatientRaw } = await supabase
+          .from("patients")
           .select("id")
           .eq("clinic_id", item.clinic_id)
           .eq("document_number", payload.document_number as string)
           .maybeSingle();
 
+        const existingPatient = existingPatientRaw as { id: string } | null;
         if (existingPatient && typeof existingPatient.id === "string") {
           throw new Error(`PATIENT_MERGE_REQUIRED:${existingPatient.id}`);
         }

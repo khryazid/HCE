@@ -152,8 +152,35 @@ Este es el único tasklist activo del proyecto. Resume lo ya completado y lo que
 
 ## Pendiente priorizado
 
+> **Última revisión:** 27 de abril de 2026 — Diagnóstico completo post-auditoría incorporado.
+
 ### Alta
 
+#### Seguridad y riesgo operativo
+
+- [x] **[NF-01]** Agregar guardia `navigator.onLine` en `fetchCieSuggestionsFromApi` antes del fetch a la API CIE — evita `TypeError: Failed to fetch` en modo offline. ([lib/consultations/cie-suggestions-client.ts](lib/consultations/cie-suggestions-client.ts))
+- [x] **[NF-02]** Reemplazar el `catch (e) {}` vacío en `triggerMagicCieFill` con log estructurado — errores de auth, red y rate-limit son actualmente invisibles. ([lib/consultations/use-consultation-wizard.ts](lib/consultations/use-consultation-wizard.ts))
+- [x] **[NF-03]** Mover archivos SQL de migración legacy (`001`–`004`) a `lib/supabase/archive/` con header de obsolescencia para evitar ejecución accidental en producción sobre políticas RLS inseguras.
+- [ ] Confirmar qué archivo SQL fue efectivamente ejecutado en el Supabase de producción (`001` vs `000`) — las políticas RLS de `patients` difieren y `001` no incluye `clinic_id`.
+- [ ] Cerrar la brecha RLS por tenant en [lib/supabase/000_production_full_schema.sql](lib/supabase/000_production_full_schema.sql) para `clinical_records` y `specialty_data` (actualmente solo validan `doctor_id`).
+- [ ] Reforzar la custodia de la clave PHI en [lib/db/crypto.ts](lib/db/crypto.ts) para que el backup y el almacenamiento local sean consistentes con el modelo de amenaza.
+- [ ] Investigar y corregir el `TypeError: Failed to fetch` al actualizar datos de usuario sin conexión.
+
+#### Limpieza de código y archivos
+
+- [x] **[NF-06]** Eliminar `refactor.js` de la raíz — script de migración de tokens CSS ya ejecutado y sin uso futuro.
+- [x] **[NF-10/NF-12]** Eliminar `TASKLIST.md`, `TASKLIST_UI.md` y `CLAUDE.md` (punteros vacíos/archivos mínimos sin valor).
+- [x] **[NF-11]** Agregar `playwright-report/` al `.gitignore` — artefactos de CI no deben ir en el repositorio.
+- [x] **[NF-09]** Eliminar variable `contextEntries` no utilizada en `app/api/cie-suggestions/route.ts` y comentario de código muerto en el wizard.
+- [ ] **[NF-09]** Documentar o mover a `archive/` los archivos SQL `001`–`004` con advertencia explícita de no ejecución.
+
+#### Refactoring y robustez
+
+- [ ] Extraer `saveConsultation` del wizard a un hook dedicado `useConsultationSave` — es la función más larga (80+ líneas) que aún orquesta PDF, persistencia, re-fetch y evento. ([lib/consultations/use-consultation-wizard.ts](lib/consultations/use-consultation-wizard.ts))
+- [ ] Agregar acción de reintento manual para ítems `abandoned` en el panel de sync — mostrar motivo y permitir re-clasificar a `pending`. ([components/ui/sync-queue-panel.tsx](components/ui/sync-queue-panel.tsx))
+- [ ] **[NF-05]** Corregir `toLocaleString()` sin locale en [components/ui/sync-queue-panel.tsx](components/ui/sync-queue-panel.tsx) — usar `"es-EC"` consistente con el resto de la app.
+- [ ] Crear utilidad centralizada `lib/ui/format-date.ts` con `formatDateEs()` para unificar el formato `dd/mm/aaaa` en toda la app y eliminar `toLocaleString` dispersos.
+- [ ] Cambiar el formato de fecha de `mm/dd/aaaa` a `dd/mm/aaaa` en toda la app (depende de la utilidad anterior).
 - [ ] Revisar la estructura de [components/ui](components/ui) para consolidar patrones reutilizables y evitar estilos aislados por pantalla.
 - [ ] Hacer revisión formal de teclado, foco visible, contraste y jerarquía visual en auth, dashboard, consultas, pacientes y ajustes.
 - [ ] Validar la experiencia móvil en listas largas, wizard clínico y panel de sincronización.
@@ -162,18 +189,13 @@ Este es el único tasklist activo del proyecto. Resume lo ya completado y lo que
 - [ ] Endurecer el borrado de paciente/consultas en [app/(dashboard)/pacientes/page.tsx](app/(dashboard)/pacientes/page.tsx) para evitar operaciones secuenciales largas sin feedback por item.
 - [ ] Descomponer [app/(dashboard)/dashboard/page.tsx](app/(dashboard)/dashboard/page.tsx) separando métricas, seguimientos, actividad y gráficos en módulos reutilizables.
 - [ ] Seguir descomponiendo [lib/consultations/use-consultation-wizard.ts](lib/consultations/use-consultation-wizard.ts) extrayendo acciones de guardado y transiciones de modo a hooks dedicados.
-- [ ] Tipar mejor [lib/sync/sync-worker.ts](lib/sync/sync-worker.ts) eliminando casts `as any` en errores y cliente Supabase, con type guards para errores Postgres/RPC.
-- [ ] Optimizar el merge de pacientes duplicados en [lib/sync/sync-worker.ts](lib/sync/sync-worker.ts) para evitar recorridos completos de `sync_queue` y `clinical_records` en cada conflicto.
+- [ ] Optimizar el merge de pacientes duplicados en [lib/sync/sync-worker.ts](lib/sync/sync-worker.ts) para evitar recorridos completos de `sync_queue` y `clinical_records` en cada conflicto. **[NF-04]**
 - [ ] Descomponer [components/ui/professional-profile-form.tsx](components/ui/professional-profile-form.tsx) en secciones claras para perfil, logo/firma y backup de clave.
 - [ ] Unificar patrones visuales entre [components/ui/auth-form.tsx](components/ui/auth-form.tsx) y el resto de la UI usando tokens y variantes comunes.
 - [ ] Mejorar la semántica y accesibilidad de la selección de especialidades en [components/ui/auth-form.tsx](components/ui/auth-form.tsx).
 - [ ] Corregir el mapeo de especialidad canónica del registro de médicos para que no se pierda información al persistir `specialties`.
 - [ ] Corregir el espaciado en los PDFs generados para asegurar espacio después de `:` en todas las secciones.
 - [ ] Corregir la superposición de Exámenes Físicos y Signos Vitales en PDF separando y organizando visualmente el contenido, con signos de alarma en rojo.
-- [ ] Cambiar el formato de fecha de `mm/dd/aaaa` a `dd/mm/aaaa` en toda la app.
-- [ ] Investigar y corregir el `TypeError: Failed to fetch` al actualizar datos de usuario sin conexión.
-- [ ] Cerrar la brecha RLS por tenant en [lib/supabase/000_production_full_schema.sql](lib/supabase/000_production_full_schema.sql).
-- [ ] Reforzar la custodia de la clave PHI en [lib/db/crypto.ts](lib/db/crypto.ts) para que el backup y el almacenamiento local sean consistentes con el modelo de amenaza.
 
 ### Media
 
@@ -197,7 +219,9 @@ Este es el único tasklist activo del proyecto. Resume lo ya completado y lo que
 
 ## Siguientes pasos recomendados
 
-1. Convertir el wizard de consultas en un conjunto de hooks pequeños y componentes presentacionales.
-2. Formalizar observabilidad básica para errores de sync y de API.
-3. Hacer una limpieza de rutas y páginas de soporte que no aporten valor operativo.
-4. Preparar una segunda pasada de UX centrada solo en claridad clínica y velocidad de uso.
+1. **[HECHO - Paso 1]** Contención de riesgo: guardia offline CIE, log de errores en triggerMagicCieFill, archivos SQL archivados, limpieza de basura.
+2. **[Paso 2 - activo]** Extraer `saveConsultation` a `useConsultationSave` + reintento de `abandoned` en sync + corregir locale de fechas.
+3. **[Paso 3]** Descomponer `pacientes/page.tsx` + crear `format-date.ts` centralizado + endurecer borrado con feedback granular.
+4. Formalizar observabilidad básica para errores de sync y de API.
+5. Convertir el wizard de consultas en un conjunto de hooks pequeños y componentes presentacionales.
+6. Preparar una segunda pasada de UX centrada solo en claridad clínica y velocidad de uso.

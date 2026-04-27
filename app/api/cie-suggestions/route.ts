@@ -76,7 +76,7 @@ async function requestGeminiSuggestions(input: RequestBody) {
   const model = process.env.GEMINI_MODEL || "gemini-2.0-flash";
   const combinedQuery = [input.diagnosis, input.symptoms, input.anamnesis].filter(Boolean).join(" ").trim();
   const candidateEntries = searchCieCatalog(combinedQuery).slice(0, 8);
-  const contextEntries = candidateEntries.length > 0 ? candidateEntries : CIE_CATALOG.slice(0, 8);
+  void candidateEntries; // Referenciado por contexto futuro; el prompt usa buildCieSuggestionPrompt
 
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,

@@ -382,6 +382,9 @@ export function useConsultationWizard(tenant: TenantProfile | null) {
   async function triggerMagicCieFill() {
     if (!form.diagnosis.trim()) return;
 
+    // NF-01: No intentar si estamos offline—el hook ya muestra catálogo local.
+    if (typeof navigator !== "undefined" && !navigator.onLine) return;
+
     try {
       setCieSuggestionLoading(true);
       const firstCode = await fetchFirstCieSuggestionCode({
@@ -398,7 +401,17 @@ export function useConsultationWizard(tenant: TenantProfile | null) {
         }));
       }
     } catch (e) {
-      // Falla en silencio (mágico)
+      // NF-02: Log estructurado — no silenciar errores de CIE
+      const msg = e instanceof Error ? e.message : "Error desconocido en sugerencia CIE";
+      if (msg !== "CIE_UNAUTHORIZED") {
+        // Los errores de sesión expirada son esperados; el resto se loguean.
+        console.warn("[CIE] triggerMagicCieFill falló:", msg);
+      }
+      setError(
+        msg === "CIE_UNAUTHORIZED"
+          ? "Tu sesión expiró para sugerencias asistidas. Vuelve a iniciar sesión."
+          : null,
+      );
     } finally {
       setCieSuggestionLoading(false);
     }
@@ -414,10 +427,6 @@ export function useConsultationWizard(tenant: TenantProfile | null) {
       evolutionStatus: form.evolutionStatus,
     });
   }
-
-  // No longer needed:
-  // function nextStep() ...
-  // function prevStep() ...
 
   function buildPdfPreviewData(timestamp: string): ConsultationPdfPreviewData {
     const fallbackTreatment = pendingFollowUp?.treatmentPlan || "";
