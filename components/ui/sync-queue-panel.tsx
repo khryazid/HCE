@@ -179,10 +179,8 @@ export function SyncQueuePanel() {
 
   return (
     <section
-      className={`rounded-2xl border px-4 py-3 text-sm ${
-        hasErrors
-          ? "border-amber-300 bg-amber-50 text-amber-900"
-          : "border-teal-300 bg-teal-50 text-teal-900"
+      className={`px-4 py-3 ${
+        hasErrors ? "hce-alert-warning" : "hce-alert-success"
       }`}
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -206,7 +204,7 @@ export function SyncQueuePanel() {
           <button
             type="button"
             onClick={() => setExpanded((current) => !current)}
-            className="rounded-xl border border-current/30 bg-white/60 px-3 py-2 text-xs font-semibold uppercase tracking-[0.15em]"
+            className="rounded-xl border border-border bg-card/60 px-3 py-2 text-xs font-semibold uppercase tracking-[0.15em] text-ink hover:bg-card/80 transition"
           >
             {expanded ? "Ocultar cola" : "Ver cola"}
           </button>
@@ -214,7 +212,7 @@ export function SyncQueuePanel() {
             type="button"
             onClick={() => void handleRetryNow()}
             disabled={working || !isOnline}
-            className="rounded-xl bg-teal-700 px-3 py-2 text-xs font-semibold uppercase tracking-[0.15em] text-white disabled:opacity-60"
+            className="rounded-xl bg-accent px-3 py-2 text-xs font-semibold uppercase tracking-[0.15em] text-white disabled:opacity-60 hover:opacity-90 transition"
           >
             Sincronizar ahora
           </button>
@@ -222,29 +220,29 @@ export function SyncQueuePanel() {
       </div>
 
       {error ? (
-        <p className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p className="mt-3 hce-alert-error">
           {error}
         </p>
       ) : null}
 
       {expanded && hasItems ? (
-        <div className="mt-4 overflow-hidden rounded-2xl border border-current/20 bg-white/70">
+        <div className="mt-4 overflow-hidden rounded-2xl border border-border bg-card/70 backdrop-blur-md">
           {items.length === 0 ? (
-            <p className="p-4 text-sm">No hay elementos en cola.</p>
+            <p className="p-4 text-sm text-ink-soft">No hay elementos en cola.</p>
           ) : (
-            <div className="divide-y divide-slate-200">
+            <div className="divide-y divide-border">
               {items.map((item) => (
                 <article key={item.id} className="flex flex-col gap-3 p-4 lg:flex-row lg:items-center lg:justify-between">
                   <div className="space-y-1">
-                    <p className="text-sm font-semibold text-slate-900">
+                    <p className="text-sm font-semibold text-ink">
                       {item.action.toUpperCase()} · {item.table_name} · {item.status}
                     </p>
-                    <p className="text-xs text-slate-600">{item.record_id}</p>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-ink-soft">{item.record_id}</p>
+                    <p className="text-xs text-ink-soft/80">
                       {formatTimestamp(item.client_timestamp)} · intentos {item.retry_count}
                     </p>
                     {item.last_error ? (
-                      <p className="text-xs text-red-700">{item.last_error}</p>
+                      <p className="text-xs text-red-500">{item.last_error}</p>
                     ) : null}
                   </div>
                   <div className="flex gap-2">
@@ -252,7 +250,7 @@ export function SyncQueuePanel() {
                       type="button"
                       onClick={() => void handleDiscard(item.id)}
                       disabled={working}
-                      className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold uppercase tracking-[0.15em] text-red-700 disabled:opacity-60"
+                      className="rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs font-semibold uppercase tracking-[0.15em] text-red-600 disabled:opacity-60 hover:bg-red-500/20 transition"
                     >
                       Descartar
                     </button>
@@ -265,7 +263,7 @@ export function SyncQueuePanel() {
       ) : null}
 
       {expanded && !hasItems ? (
-        <div className="mt-4 rounded-xl border border-current/20 bg-white/70 p-4 text-sm">
+        <div className="mt-4 rounded-xl border border-border bg-card/70 p-4 text-sm text-ink-soft backdrop-blur-md">
           No hay elementos pendientes en la cola. Puedes usar &quot;Sincronizar ahora&quot; para forzar un intento de verificacion.
         </div>
       ) : null}

@@ -12,7 +12,7 @@ export default function EspecialidadesPage() {
   return (
     <section className="space-y-6">
       <header className="space-y-2">
-        <p className="hce-kicker text-slate-500">Especialidades</p>
+        <p className="hce-kicker text-ink-soft">Especialidades</p>
         <h1 className="hce-page-title">Componentes clinicos reales</h1>
         <p className="hce-page-lead">
           Alterna entre odontograma y curva pediatrica para revisar cada flujo

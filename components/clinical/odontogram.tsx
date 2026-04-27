@@ -19,7 +19,7 @@ const TOOTH_STATE_OPTIONS: Array<{
   { value: "sano", label: "Sano", ring: "ring-emerald-400", fill: "bg-emerald-50 text-emerald-700" },
   { value: "caries", label: "Caries", ring: "ring-amber-400", fill: "bg-amber-50 text-amber-700" },
   { value: "tratado", label: "Tratado", ring: "ring-cyan-400", fill: "bg-cyan-50 text-cyan-700" },
-  { value: "ausente", label: "Ausente", ring: "ring-slate-400", fill: "bg-slate-100 text-slate-500" },
+  { value: "ausente", label: "Ausente", ring: "ring-slate-400", fill: "bg-bg-soft text-ink-soft" },
 ];
 
 const INITIAL_TOOTH_STATE: Record<string, OdontogramTooth> = Object.fromEntries(

@@ -142,7 +142,7 @@ export default function TratamientosPage() {
   }
 
   if (loading) {
-    return <p className="text-sm text-slate-600">Cargando tratamientos...</p>;
+    return <p className="text-sm text-ink-soft">Cargando tratamientos...</p>;
   }
 
   return (
@@ -159,30 +159,30 @@ export default function TratamientosPage() {
       ) : null}
 
       <div className="grid gap-6 lg:grid-cols-[400px_minmax(0,1fr)]">
-        <form onSubmit={handleSave} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
+        <form onSubmit={handleSave} className="rounded-3xl border border-border bg-card p-5 shadow-sm space-y-4">
           <h2 className="hce-section-title">{editing ? "Editar plantilla" : "Nueva plantilla"}</h2>
-          <label className="block space-y-2 text-sm font-medium text-slate-700">
+          <label className="block space-y-2 text-sm font-medium text-ink-soft">
             <span>Enfermedad / sintoma trigger</span>
             <input
-              className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
+              className="w-full rounded-xl border border-border px-3 py-2 text-sm"
               value={form.trigger}
               onChange={(event) => setForm((current) => ({ ...current, trigger: event.target.value }))}
               required
             />
           </label>
-          <label className="block space-y-2 text-sm font-medium text-slate-700">
+          <label className="block space-y-2 text-sm font-medium text-ink-soft">
             <span>Titulo plantilla</span>
             <input
-              className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
+              className="w-full rounded-xl border border-border px-3 py-2 text-sm"
               value={form.title}
               onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
               required
             />
           </label>
-          <label className="block space-y-2 text-sm font-medium text-slate-700">
+          <label className="block space-y-2 text-sm font-medium text-ink-soft">
             <span>Tratamiento recomendado</span>
             <textarea
-              className="min-h-32 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
+              className="min-h-32 w-full rounded-xl border border-border px-3 py-2 text-sm"
               value={form.treatment}
               onChange={(event) => setForm((current) => ({ ...current, treatment: event.target.value }))}
               required
@@ -192,32 +192,32 @@ export default function TratamientosPage() {
             <button className="rounded-xl bg-teal-700 px-4 py-2 text-sm font-semibold text-white" type="submit">
               {editing ? "Actualizar" : "Guardar"}
             </button>
-            <button className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold" type="button" onClick={reset}>
+            <button className="rounded-xl border border-border px-4 py-2 text-sm font-semibold" type="button" onClick={reset}>
               Limpiar
             </button>
           </div>
         </form>
 
-        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="rounded-3xl border border-border bg-card p-5 shadow-sm">
           <h2 className="hce-section-title">Listado de plantillas</h2>
           <div className="mt-4 space-y-3">
             {templates.length === 0 ? (
-              <p className="text-sm text-slate-600">Aun no hay plantillas creadas.</p>
+              <p className="text-sm text-ink-soft">Aun no hay plantillas creadas.</p>
             ) : (
               templates.map((template) => (
-                <article key={template.id} className="rounded-2xl border border-slate-200 p-4 space-y-2">
+                <article key={template.id} className="rounded-2xl border border-border p-4 space-y-2">
                   <div className="flex items-center justify-between gap-2">
-                    <h3 className="font-semibold text-slate-900">{template.title}</h3>
-                    <span className="text-xs font-semibold text-slate-500">v{template.current_version}</span>
+                    <h3 className="font-semibold text-ink">{template.title}</h3>
+                    <span className="text-xs font-semibold text-ink-soft">v{template.current_version}</span>
                   </div>
-                  <p className="text-xs uppercase tracking-[0.15em] text-slate-500">{template.trigger}</p>
-                  <p className="text-sm text-slate-700 whitespace-pre-wrap">{template.treatment}</p>
-                  <p className="text-xs text-slate-500">Historial: {template.versions.length} versiones</p>
+                  <p className="text-xs uppercase tracking-[0.15em] text-ink-soft">{template.trigger}</p>
+                  <p className="text-sm text-ink-soft whitespace-pre-wrap">{template.treatment}</p>
+                  <p className="text-xs text-ink-soft">Historial: {template.versions.length} versiones</p>
                   <div className="flex gap-2">
                     <button
                       type="button"
                       onClick={() => startEdit(template)}
-                      className="rounded-xl border border-slate-300 px-3 py-1.5 text-xs font-semibold"
+                      className="rounded-xl border border-border px-3 py-1.5 text-xs font-semibold"
                     >
                       Editar
                     </button>

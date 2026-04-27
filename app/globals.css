@@ -13,7 +13,7 @@
   --field-border: #c5d1cb;
   --shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
   --surface-glow: rgba(14, 118, 110, 0.08);
-  --accent: #0e766e;
+  --accent: #0f766e;
   --warning: #c05621;
   color-scheme: light;
 }
@@ -38,11 +38,19 @@
 
 @theme inline {
   --color-bg: var(--bg);
+  --color-bg-elevated: var(--bg-elevated);
+  --color-bg-soft: var(--bg-soft);
   --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
   --color-card: var(--card);
+  --color-card-contrast: var(--card-contrast);
+  --color-border: var(--border);
+  --color-field: var(--field);
+  --color-field-border: var(--field-border);
   --color-accent: var(--accent);
   --color-warning: var(--warning);
-  --font-sans: var(--font-geist-sans);
+  --color-surface-glow: var(--surface-glow);
+  --font-sans: var(--font-inter);
   --font-mono: var(--font-geist-mono);
 }
 
@@ -64,7 +72,8 @@ html {
   select,
   textarea,
   [role="button"] {
-    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2;
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2;
+    --tw-ring-color: var(--accent);
     --tw-ring-offset-color: var(--bg);
   }
 
@@ -150,10 +159,20 @@ html {
 }
 
 @utility hce-input {
-  @apply w-full rounded-xl border px-3 py-2 text-[16px] outline-none ring-teal-600 transition placeholder:text-slate-400 focus:ring-2 sm:text-sm;
+  @apply w-full rounded-xl border px-3 py-2 text-[16px] outline-none transition focus:ring-2 focus:ring-accent focus:border-accent sm:text-sm;
   background: var(--field);
   border-color: var(--field-border);
   color: var(--ink);
+}
+/* Focus styles using variables */
+.hce-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--surface-glow);
+}
+/* Placeholder using pseudo-element */
+.hce-input::placeholder {
+  color: var(--ink-soft);
+  opacity: 0.7;
 }
 
 @utility hce-btn {
@@ -166,10 +185,13 @@ html {
 }
 
 @utility hce-btn-secondary {
-  @apply hce-btn border text-slate-800 hover:bg-slate-50;
+  @apply hce-btn border transition-colors;
   background: var(--card);
   border-color: var(--border);
   color: var(--ink);
+}
+.hce-btn-secondary:hover {
+  background: var(--bg-soft);
 }
 
 @utility hce-btn-danger {
@@ -185,21 +207,29 @@ html {
 }
 
 @utility hce-alert-success {
-  @apply hce-alert border-emerald-200 text-emerald-800;
+  @apply hce-alert;
+  border-color: color-mix(in srgb, #10b981 30%, var(--border));
+  color: color-mix(in srgb, #10b981 90%, var(--ink));
   background: color-mix(in srgb, #10b981 10%, var(--card));
 }
 
 @utility hce-alert-error {
-  @apply hce-alert border-red-200 text-red-700;
+  @apply hce-alert;
+  border-color: color-mix(in srgb, #ef4444 30%, var(--border));
+  color: color-mix(in srgb, #ef4444 90%, var(--ink));
   background: color-mix(in srgb, #ef4444 10%, var(--card));
 }
 
 @utility hce-alert-warning {
-  @apply hce-alert border-amber-200 text-amber-900;
+  @apply hce-alert;
+  border-color: color-mix(in srgb, #f59e0b 30%, var(--border));
+  color: color-mix(in srgb, #f59e0b 90%, var(--ink));
   background: color-mix(in srgb, #f59e0b 10%, var(--card));
 }
 
 @utility hce-alert-info {
-  @apply hce-alert border-cyan-200 text-cyan-900;
+  @apply hce-alert;
+  border-color: color-mix(in srgb, #06b6d4 30%, var(--border));
+  color: color-mix(in srgb, #06b6d4 90%, var(--ink));
   background: color-mix(in srgb, #06b6d4 10%, var(--card));
 }

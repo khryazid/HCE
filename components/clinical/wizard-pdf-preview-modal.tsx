@@ -29,23 +29,23 @@ export function WizardPdfPreviewModal({
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm">
-      <section className="w-full max-w-2xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
-        <header className="border-b border-slate-100 px-5 py-4">
-          <h3 className="text-lg font-semibold text-slate-900">Previsualizacion del PDF</h3>
-          <p className="mt-1 text-sm text-slate-600">
+      <section className="w-full max-w-2xl overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
+        <header className="border-b border-border px-5 py-4">
+          <h3 className="text-lg font-semibold text-ink">Previsualizacion del PDF</h3>
+          <p className="mt-1 text-sm text-ink-soft">
             Revisa los datos antes de generar el archivo.
           </p>
         </header>
 
-        <div className="max-h-[60vh] overflow-auto bg-slate-50 px-5 py-4">
+        <div className="max-h-[60vh] overflow-auto bg-bg-soft px-5 py-4">
           {lines.length === 0 ? (
-            <p className="rounded-xl bg-white p-3 text-sm text-slate-600">
+            <p className="rounded-xl bg-card p-3 text-sm text-ink-soft">
               No hay datos suficientes para previsualizar.
             </p>
           ) : (
-            <div className="space-y-2 rounded-xl border border-slate-200 bg-white p-4">
+            <div className="space-y-2 rounded-xl border border-border bg-card p-4">
               {lines.map((line) => (
-                <p key={line} className="text-sm text-slate-700">
+                <p key={line} className="text-sm text-ink-soft">
                   {line}
                 </p>
               ))}
@@ -53,12 +53,12 @@ export function WizardPdfPreviewModal({
           )}
         </div>
 
-        <footer className="flex flex-wrap justify-end gap-2 border-t border-slate-100 px-5 py-4">
+        <footer className="flex flex-wrap justify-end gap-2 border-t border-border px-5 py-4">
           <button
             type="button"
             onClick={onClose}
             disabled={saving}
-            className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 disabled:opacity-60"
+            className="rounded-xl border border-border bg-card px-4 py-2 text-sm font-semibold text-ink-soft disabled:opacity-60"
           >
             Cerrar
           </button>

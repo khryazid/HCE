@@ -261,7 +261,7 @@ export function ProfessionalProfileForm({
   }
 
   if (loading) {
-    return <p className="text-sm text-slate-600">Cargando perfil profesional...</p>;
+    return <p className="text-sm text-ink-soft">Cargando perfil profesional...</p>;
   }
 
   return (
@@ -272,8 +272,8 @@ export function ProfessionalProfileForm({
         <p className="mt-2 hce-page-lead">{lead}</p>
       </header>
 
-      <form onSubmit={handleSubmit} className="grid gap-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:grid-cols-2">
-        <label className="space-y-2 text-sm font-medium text-slate-700">
+      <form onSubmit={handleSubmit} className="grid gap-4 rounded-3xl border border-border bg-card p-6 shadow-sm sm:grid-cols-2">
+        <label className="space-y-2 text-sm font-medium text-ink-soft">
           <span>Titulo profesional</span>
           <input
             className="hce-input"
@@ -286,7 +286,7 @@ export function ProfessionalProfileForm({
           />
         </label>
 
-        <label className="space-y-2 text-sm font-medium text-slate-700">
+        <label className="space-y-2 text-sm font-medium text-ink-soft">
           <span>Numero de licencia profesional</span>
           <input
             className="hce-input"
@@ -298,7 +298,7 @@ export function ProfessionalProfileForm({
           />
         </label>
 
-        <label className="space-y-2 text-sm font-medium text-slate-700">
+        <label className="space-y-2 text-sm font-medium text-ink-soft">
           <span>Anos de experiencia</span>
           <input
             className="hce-input"
@@ -313,7 +313,7 @@ export function ProfessionalProfileForm({
           />
         </label>
 
-        <label className="space-y-2 text-sm font-medium text-slate-700">
+        <label className="space-y-2 text-sm font-medium text-ink-soft">
           <span>Telefono principal</span>
           <input
             className="hce-input"
@@ -325,7 +325,7 @@ export function ProfessionalProfileForm({
           />
         </label>
 
-        <label className="space-y-2 text-sm font-medium text-slate-700">
+        <label className="space-y-2 text-sm font-medium text-ink-soft">
           <span>Telefono secundario (opcional)</span>
           <input
             className="hce-input"
@@ -336,7 +336,7 @@ export function ProfessionalProfileForm({
           />
         </label>
 
-        <label className="space-y-2 text-sm font-medium text-slate-700">
+        <label className="space-y-2 text-sm font-medium text-ink-soft">
           <span>Correo publico de contacto (opcional)</span>
           <input
             className="hce-input"
@@ -348,7 +348,7 @@ export function ProfessionalProfileForm({
           />
         </label>
 
-        <label className="space-y-2 text-sm font-medium text-slate-700 sm:col-span-2">
+        <label className="space-y-2 text-sm font-medium text-ink-soft sm:col-span-2">
           <span>Direccion profesional</span>
           <input
             className="hce-input"
@@ -360,7 +360,7 @@ export function ProfessionalProfileForm({
           />
         </label>
 
-        <label className="space-y-2 text-sm font-medium text-slate-700 sm:col-span-2">
+        <label className="space-y-2 text-sm font-medium text-ink-soft sm:col-span-2">
           <span>Nombre para firma y membrete</span>
           <input
             className="hce-input"
@@ -372,14 +372,14 @@ export function ProfessionalProfileForm({
           />
         </label>
 
-        <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:col-span-2">
+        <div className="space-y-3 rounded-2xl border border-border bg-bg-soft p-4 sm:col-span-2">
           <div>
-            <p className="text-sm font-semibold text-slate-900">Logo profesional para PDF</p>
-            <p className="text-xs text-slate-600">Se guarda en este navegador (localStorage), sin enviarse a Supabase.</p>
+            <p className="text-sm font-semibold text-ink">Logo profesional para PDF</p>
+            <p className="text-xs text-ink-soft">Se guarda en este navegador (localStorage), sin enviarse a Supabase.</p>
           </div>
 
           <input
-            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"
+            className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm"
             type="file"
             accept="image/png,image/jpeg,image/webp"
             onChange={(event) => {
@@ -396,12 +396,12 @@ export function ProfessionalProfileForm({
                 width={64}
                 height={64}
                 unoptimized
-                className="h-16 w-16 rounded-xl border border-slate-200 bg-white object-contain p-1"
+                className="h-16 w-16 rounded-xl border border-border bg-card object-contain p-1"
               />
               <button
                 type="button"
                 onClick={() => setLetterhead((current) => ({ ...current, logo_data_url: "" }))}
-                className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700"
+                className="rounded-lg border border-border bg-card px-3 py-2 text-xs font-semibold text-ink-soft"
               >
                 Quitar logo
               </button>
@@ -419,12 +419,12 @@ export function ProfessionalProfileForm({
             <button
               type="button"
               onClick={() => void handleExportKeyBackup()}
-              className="rounded-xl border border-amber-300 bg-white px-4 py-2 text-sm font-semibold text-amber-900 transition hover:bg-amber-100"
+              className="rounded-xl border border-amber-300 bg-card px-4 py-2 text-sm font-semibold text-amber-900 transition hover:bg-amber-100"
             >
               Descargar backup de clave
             </button>
 
-            <label className="inline-flex cursor-pointer items-center rounded-xl border border-amber-300 bg-white px-4 py-2 text-sm font-semibold text-amber-900 transition hover:bg-amber-100">
+            <label className="inline-flex cursor-pointer items-center rounded-xl border border-amber-300 bg-card px-4 py-2 text-sm font-semibold text-amber-900 transition hover:bg-amber-100">
               {restoringKey ? "Restaurando..." : "Importar backup de clave"}
               <input
                 type="file"
@@ -441,7 +441,7 @@ export function ProfessionalProfileForm({
           </div>
         </div>
 
-        <label className="space-y-2 text-sm font-medium text-slate-700 sm:col-span-2">
+        <label className="space-y-2 text-sm font-medium text-ink-soft sm:col-span-2">
           <span>Especialidades para membrete PDF</span>
           <input
             className="hce-input"

@@ -34,10 +34,10 @@ export function LogoutButton({ mode = "full" }: LogoutButtonProps) {
         title="Cerrar sesion"
         className={
           mode === "icon"
-            ? "inline-flex h-10 w-full items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-700 transition hover:bg-slate-50"
+            ? "inline-flex h-10 w-full items-center justify-center rounded-xl border border-border bg-card text-ink-soft transition hover:bg-bg-soft"
             : mode === "nav"
-              ? "flex min-h-11 flex-col items-center justify-center gap-0.5 rounded-xl px-3 py-1.5 text-[11px] font-medium text-slate-500 transition hover:text-slate-700"
-              : "inline-flex w-full min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
+              ? "flex min-h-11 flex-col items-center justify-center gap-0.5 rounded-xl px-3 py-1.5 text-[11px] font-medium text-ink-soft transition hover:text-ink-soft"
+              : "inline-flex w-full min-h-11 items-center justify-center gap-2 rounded-xl border border-border bg-card px-4 py-2 text-sm font-semibold text-ink transition hover:bg-bg-soft"
         }
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -55,7 +55,7 @@ export function LogoutButton({ mode = "full" }: LogoutButtonProps) {
           className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm transition-opacity duration-300"
         >
           <div
-            className="mx-4 w-full max-w-sm rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl"
+            className="mx-4 w-full max-w-sm rounded-3xl border border-border bg-card p-6 shadow-2xl"
           >
             {phase === "confirm" ? (
               <div className="space-y-5">
@@ -71,10 +71,10 @@ export function LogoutButton({ mode = "full" }: LogoutButtonProps) {
                 </div>
 
                 <div className="text-center">
-                  <h3 className="text-lg font-semibold text-slate-900">
+                  <h3 className="text-lg font-semibold text-ink">
                     Cerrar sesion
                   </h3>
-                  <p className="mt-1 text-sm text-slate-600">
+                  <p className="mt-1 text-sm text-ink-soft">
                     Tus datos clinicos locales se mantienen seguros. Podras acceder de nuevo con tu cuenta.
                   </p>
                 </div>
@@ -83,7 +83,7 @@ export function LogoutButton({ mode = "full" }: LogoutButtonProps) {
                   <button
                     type="button"
                     onClick={() => setPhase("closed")}
-                    className="flex-1 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                    className="flex-1 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-semibold text-ink-soft transition hover:bg-bg-soft"
                   >
                     Cancelar
                   </button>
@@ -107,14 +107,14 @@ export function LogoutButton({ mode = "full" }: LogoutButtonProps) {
                   </div>
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-slate-900">
+                  <h3 className="text-lg font-semibold text-ink">
                     Hasta pronto
                   </h3>
-                  <p className="mt-1 text-sm text-slate-500">
+                  <p className="mt-1 text-sm text-ink-soft">
                     Cerrando sesion de forma segura...
                   </p>
                 </div>
-                <div className="mx-auto h-1 w-32 overflow-hidden rounded-full bg-slate-100">
+                <div className="mx-auto h-1 w-32 overflow-hidden rounded-full bg-bg-soft">
                   <div
                     className="h-full rounded-full bg-teal-500 transition-all duration-1000 ease-out"
                     style={{ width: "100%" }}

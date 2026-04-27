@@ -441,7 +441,7 @@ export default function DashboardPage() {
             <Link href="/consultas" className="rounded-2xl bg-teal-700 px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-teal-800">
               Nueva consulta
             </Link>
-            <Link href="/pacientes" className="rounded-2xl border border-teal-300 bg-white px-4 py-3 text-center text-sm font-semibold text-teal-900 transition hover:bg-teal-50">
+            <Link href="/pacientes" className="rounded-2xl border border-teal-300 bg-card px-4 py-3 text-center text-sm font-semibold text-teal-900 transition hover:bg-teal-50">
               Buscar paciente
             </Link>
             <Link href="/consultas?mode=seguimiento" className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-center text-sm font-semibold text-amber-900 transition hover:bg-amber-100">

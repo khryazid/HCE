@@ -201,7 +201,7 @@ export function AuthForm({ mode }: AuthFormProps) {
   }
 
   return (
-    <section className="mx-auto w-full max-w-xl rounded-3xl border border-cyan-100/90 bg-white/90 p-6 shadow-2xl shadow-cyan-900/10 backdrop-blur sm:p-8">
+    <section className="mx-auto w-full max-w-xl rounded-3xl border border-cyan-100/90 bg-card/90 p-6 shadow-2xl shadow-cyan-900/10 backdrop-blur sm:p-8">
       <div className="space-y-3">
         <p className="hce-kicker text-cyan-700">
           Glyph
@@ -209,7 +209,7 @@ export function AuthForm({ mode }: AuthFormProps) {
         <h1 className="hce-page-title text-2xl sm:text-2xl">
           {isSignUp ? "Crear cuenta" : "Iniciar sesion"}
         </h1>
-        <p className="hce-page-lead text-slate-600">
+        <p className="hce-page-lead text-ink-soft">
           {isSignUp
             ? "Registra tu cuenta y define tu perfil de especialidades para comenzar."
             : "Ingresa con tu cuenta para continuar con tu flujo clinico."}
@@ -217,10 +217,10 @@ export function AuthForm({ mode }: AuthFormProps) {
       </div>
 
       <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
-        <label className="block space-y-2 text-sm font-medium text-slate-700">
+        <label className="block space-y-2 text-sm font-medium text-ink-soft">
           <span>Correo</span>
           <input
-            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none ring-cyan-500 transition placeholder:text-slate-400 focus:border-cyan-400 focus:ring-2"
+            className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm text-ink outline-none ring-cyan-500 transition placeholder:text-ink-soft/80 focus:border-cyan-400 focus:ring-2"
             type="email"
             autoComplete="email"
             value={email}
@@ -238,10 +238,10 @@ export function AuthForm({ mode }: AuthFormProps) {
 
         {isSignUp ? (
           <>
-            <label className="block space-y-2 text-sm font-medium text-slate-700">
+            <label className="block space-y-2 text-sm font-medium text-ink-soft">
               <span>Nombre completo</span>
               <input
-                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none ring-cyan-500 transition placeholder:text-slate-400 focus:border-cyan-400 focus:ring-2"
+                className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm text-ink outline-none ring-cyan-500 transition placeholder:text-ink-soft/80 focus:border-cyan-400 focus:ring-2"
                 type="text"
                 autoComplete="name"
                 value={fullName}
@@ -257,10 +257,10 @@ export function AuthForm({ mode }: AuthFormProps) {
               ) : null}
             </label>
 
-            <label className="block space-y-2 text-sm font-medium text-slate-700">
+            <label className="block space-y-2 text-sm font-medium text-ink-soft">
               <span>Especialidades</span>
               <input
-                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none ring-cyan-500 transition placeholder:text-slate-400 focus:border-cyan-400 focus:ring-2"
+                className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm text-ink outline-none ring-cyan-500 transition placeholder:text-ink-soft/80 focus:border-cyan-400 focus:ring-2"
                 type="text"
                 value={specialtySearch}
                 onChange={(event) => setSpecialtySearch(event.target.value)}
@@ -277,7 +277,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                         key={`selected-${entry}`}
                         type="button"
                         onClick={() => toggleSpecialty(entry)}
-                        className="rounded-full border border-cyan-300 bg-white px-3 py-1 text-xs font-semibold text-cyan-900 transition hover:bg-cyan-100"
+                        className="rounded-full border border-cyan-300 bg-card px-3 py-1 text-xs font-semibold text-cyan-900 transition hover:bg-cyan-100"
                       >
                         {entry} ×
                       </button>
@@ -285,10 +285,10 @@ export function AuthForm({ mode }: AuthFormProps) {
                   </div>
                 </div>
               ) : (
-                <p className="text-xs text-slate-500">Selecciona una o varias especialidades.</p>
+                <p className="text-xs text-ink-soft">Selecciona una o varias especialidades.</p>
               )}
 
-              <div className="max-h-44 overflow-auto rounded-xl border border-slate-200 bg-slate-50 p-2">
+              <div className="max-h-44 overflow-auto rounded-xl border border-border bg-bg-soft p-2">
                 {filteredSpecialties.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
                     {filteredSpecialties.map((entry) => {
@@ -302,7 +302,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                           className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${
                             checked
                               ? "border-cyan-400 bg-cyan-600 text-white"
-                              : "border-slate-300 bg-white text-slate-700 hover:bg-slate-100"
+                              : "border-border bg-card text-ink-soft hover:bg-bg-soft"
                           }`}
                         >
                           {entry}
@@ -311,7 +311,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                     })}
                   </div>
                 ) : (
-                  <p className="px-2 py-3 text-xs text-slate-500">
+                  <p className="px-2 py-3 text-xs text-ink-soft">
                     No hay coincidencias para tu busqueda.
                   </p>
                 )}
@@ -321,17 +321,17 @@ export function AuthForm({ mode }: AuthFormProps) {
               ) : null}
             </label>
 
-            <p className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+            <p className="rounded-xl border border-border bg-bg-soft px-3 py-2 text-xs text-ink-soft">
               El espacio de clinica se crea automaticamente para ti durante el registro.
             </p>
           </>
         ) : null}
 
-        <label className="block space-y-2 text-sm font-medium text-slate-700">
+        <label className="block space-y-2 text-sm font-medium text-ink-soft">
           <span>Contraseña</span>
           <div className="flex gap-2">
             <input
-              className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none ring-cyan-500 transition placeholder:text-slate-400 focus:border-cyan-400 focus:ring-2"
+              className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm text-ink outline-none ring-cyan-500 transition placeholder:text-ink-soft/80 focus:border-cyan-400 focus:ring-2"
               type={showPassword ? "text" : "password"}
               autoComplete={isSignUp ? "new-password" : "current-password"}
               value={password}
@@ -345,7 +345,7 @@ export function AuthForm({ mode }: AuthFormProps) {
             />
             <button
               type="button"
-              className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+              className="rounded-xl border border-border bg-card px-3 py-2 text-xs font-semibold text-ink-soft transition hover:bg-bg-soft"
               onClick={() => setShowPassword((current) => !current)}
             >
               {showPassword ? "Ocultar" : "Mostrar"}
@@ -381,7 +381,7 @@ export function AuthForm({ mode }: AuthFormProps) {
         </button>
       </form>
 
-      <p className="mt-4 text-center text-sm text-slate-600">
+      <p className="mt-4 text-center text-sm text-ink-soft">
         {isSignUp ? "Ya tienes cuenta?" : "Aun no tienes cuenta?"}{" "}
         <Link
           href={isSignUp ? "/" : "/registro"}

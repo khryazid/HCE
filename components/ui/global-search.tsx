@@ -268,10 +268,10 @@ export function GlobalSearch() {
           onClick={() => setOpen(false)}
         >
           <section
-            className="w-full max-w-2xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
+            className="w-full max-w-2xl overflow-hidden rounded-2xl border border-border bg-card shadow-2xl"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="border-b border-slate-100 p-3">
+            <div className="border-b border-border p-3">
               <input
                 autoFocus
                 value={query}
@@ -279,18 +279,18 @@ export function GlobalSearch() {
                 placeholder="Escribe nombre, documento, diagnostico o tratamiento"
                 className="hce-input"
               />
-              <p className="mt-2 text-xs text-slate-500">
+              <p className="mt-2 text-xs text-ink-soft">
                 Usa flechas para navegar y Enter para abrir.
               </p>
             </div>
 
             <div className="max-h-[60vh] overflow-auto p-2">
               {loading ? (
-                <p className="rounded-xl bg-slate-50 p-3 text-sm text-slate-600">Cargando resultados...</p>
+                <p className="rounded-xl bg-bg-soft p-3 text-sm text-ink-soft">Cargando resultados...</p>
               ) : error ? (
                 <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p>
               ) : filteredItems.length === 0 ? (
-                <p className="rounded-xl bg-slate-50 p-3 text-sm text-slate-600">No hay resultados para tu busqueda.</p>
+                <p className="rounded-xl bg-bg-soft p-3 text-sm text-ink-soft">No hay resultados para tu busqueda.</p>
               ) : (
                 filteredItems.map((item, index) => (
                   <button
@@ -301,12 +301,12 @@ export function GlobalSearch() {
                     className={`mb-1 w-full rounded-xl border px-3 py-2 text-left transition ${
                       index === activeIndex
                         ? "border-teal-300 bg-teal-50"
-                        : "border-transparent bg-white hover:border-slate-200 hover:bg-slate-50"
+                        : "border-transparent bg-card hover:border-border hover:bg-bg-soft"
                     }`}
                   >
-                    <p className="text-sm font-semibold text-slate-900">{item.title}</p>
-                    <p className="mt-0.5 text-xs text-slate-600">{item.subtitle}</p>
-                    <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                    <p className="text-sm font-semibold text-ink">{item.title}</p>
+                    <p className="mt-0.5 text-xs text-ink-soft">{item.subtitle}</p>
+                    <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-soft">
                       {itemKindLabel(item.kind)}
                     </p>
                   </button>

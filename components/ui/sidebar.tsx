@@ -108,19 +108,19 @@ export function Sidebar() {
 
   return (
     <aside
-      className={`hidden lg:flex sticky top-0 h-screen flex-col border-r border-slate-200 bg-white transition-all duration-300 ${
+      className={`hidden lg:flex sticky top-0 h-screen flex-col border-r border-border bg-card transition-all duration-300 ${
         collapsed ? "w-[72px]" : "w-[240px]"
       }`}
     >
       {/* Brand */}
-      <div className="flex h-16 items-center gap-3 border-b border-slate-100 px-4">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-teal-500 to-cyan-600 text-sm font-bold text-white shadow-sm">
+      <div className="flex h-16 items-center gap-3 border-b border-border px-4">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent text-sm font-bold text-white shadow-sm">
           G
         </div>
         {!collapsed && (
           <div className="overflow-hidden">
-            <p className="text-sm font-bold text-slate-900 leading-tight">Glyph</p>
-            <p className="text-[11px] text-slate-500 leading-tight">Clinica digital</p>
+            <p className="text-[15px] font-bold text-ink tracking-tight leading-tight">Glyph</p>
+            <p className="text-[12px] text-ink-soft leading-tight">Clinica digital</p>
           </div>
         )}
       </div>
@@ -135,15 +135,15 @@ export function Sidebar() {
               key={item.href}
               href={item.href}
               title={collapsed ? item.label : undefined}
-              className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
+              className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] font-medium transition-all duration-200 ${
                 isActive
-                  ? "bg-teal-50 text-teal-800 shadow-sm shadow-teal-100"
-                  : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  ? "bg-surface-glow text-accent shadow-sm"
+                  : "text-ink-soft hover:bg-bg-soft hover:text-ink"
               }`}
             >
               <span
                 className={`shrink-0 transition-colors ${
-                  isActive ? "text-teal-600" : "text-slate-400 group-hover:text-slate-600"
+                  isActive ? "text-accent" : "text-ink-soft group-hover:text-ink"
                 }`}
               >
                 {item.icon}
@@ -155,12 +155,12 @@ export function Sidebar() {
       </nav>
 
       {/* Bottom area: logout + collapse toggle */}
-      <div className="border-t border-slate-100 px-3 py-3 space-y-2">
+      <div className="border-t border-border px-3 py-3 space-y-2">
         <LogoutButton mode={collapsed ? "icon" : "full"} />
         <button
           type="button"
           onClick={() => setCollapsed((c) => !c)}
-          className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-bg-soft px-3 py-2 text-xs font-medium text-ink-soft transition hover:bg-bg hover:text-ink"
           title={collapsed ? "Expandir menu" : "Contraer menu"}
         >
           {collapsed ? <IconChevronRight /> : <><IconChevronLeft /> <span>Contraer</span></>}
@@ -176,7 +176,7 @@ export function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-50 flex items-center justify-around border-t border-slate-200 bg-white/95 px-2 py-1.5 backdrop-blur-sm lg:hidden" aria-label="Navegacion principal movil">
+    <nav className="fixed inset-x-0 bottom-0 z-50 flex items-center justify-around border-t border-border bg-card/95 px-2 py-1.5 backdrop-blur-sm lg:hidden" aria-label="Navegacion principal movil">
       {BOTTOM_NAV_ITEMS.map((item) => {
         const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
 
@@ -186,20 +186,20 @@ export function BottomNav() {
             href={item.href}
             className={`flex min-h-11 flex-col items-center justify-center gap-0.5 rounded-xl px-3 py-1.5 text-[11px] font-medium transition-all ${
               isActive
-                ? "text-teal-700"
-                : "text-slate-400 hover:text-slate-600"
+                ? "text-accent"
+                : "text-ink-soft hover:text-ink"
             }`}
           >
             <span
               className={`transition-transform ${
-                isActive ? "scale-110 text-teal-600" : ""
+                isActive ? "scale-110 text-accent" : ""
               }`}
             >
               {item.icon}
             </span>
             <span>{item.label}</span>
             {isActive && (
-              <span className="mt-0.5 h-1 w-4 rounded-full bg-teal-500" />
+              <span className="mt-0.5 h-1 w-4 rounded-full bg-accent" />
             )}
           </Link>
         );

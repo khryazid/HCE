@@ -20,12 +20,12 @@ export function PatientTimeline({
 }: Props) {
   return (
     <>
-      <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
-        <h2 className="text-lg font-semibold text-slate-900">
+      <article className="hce-surface space-y-4">
+        <h2 className="text-lg font-semibold text-ink">
           Timeline clinico por paciente
         </h2>
         <select
-          className="w-full max-w-md rounded-xl border border-slate-300 px-3 py-2 text-sm"
+          className="hce-input max-w-md"
           value={selectedPatientTimelineId}
           onChange={(event) => onSelectPatient(event.target.value)}
         >
@@ -37,7 +37,7 @@ export function PatientTimeline({
         </select>
 
         {timelineRows.length === 0 ? (
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-ink-soft">
             Aun no hay controles para este paciente.
           </p>
         ) : (
@@ -48,20 +48,20 @@ export function PatientTimeline({
               return (
                 <article
                   key={row.id}
-                  className="rounded-2xl border border-slate-200 p-4 text-sm space-y-1"
+                  className="hce-card space-y-1"
                 >
-                  <p className="font-semibold text-slate-900">
+                  <p className="font-semibold text-ink">
                     {formatTimelineDate(row.updated_at)} ·{" "}
                     {row.specialty_kind}
                   </p>
-                  <p className="text-slate-700">
+                  <p className="text-ink">
                     {String(data.diagnosis ?? row.chief_complaint)}
                   </p>
-                  <p className="text-slate-600">
+                  <p className="text-ink-soft">
                     Evolucion:{" "}
                     {String(data.evolution_status ?? "no registrada")}
                   </p>
-                  <p className="text-slate-600">
+                  <p className="text-ink-soft">
                     Proximo control:{" "}
                     {String(data.next_follow_up_date ?? "sin fecha")}
                   </p>
@@ -72,11 +72,11 @@ export function PatientTimeline({
         )}
       </article>
 
-      <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm space-y-3">
-        <h2 className="text-lg font-semibold text-slate-900">
+      <article className="hce-surface space-y-3 mt-6">
+        <h2 className="text-lg font-semibold text-ink">
           Catalogo CIE local (version {CIE_CATALOG[0]?.version})
         </h2>
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-ink-soft">
           El catalogo local permite sugerencias rapidas en entorno
           offline-first.
         </p>

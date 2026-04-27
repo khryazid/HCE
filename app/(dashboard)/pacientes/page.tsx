@@ -384,22 +384,22 @@ export default function PacientesPage() {
 
       <div className="grid gap-4 md:grid-cols-3">
         <article className="hce-surface-soft">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-ink-soft">
             Pacientes registrados
           </p>
-          <p className="mt-2 text-2xl font-semibold text-slate-900">{patients.length}</p>
+          <p className="mt-2 text-2xl font-semibold text-ink">{patients.length}</p>
         </article>
         <article className="hce-surface-soft">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-ink-soft">
             Consultas del paciente
           </p>
-          <p className="mt-2 text-2xl font-semibold text-slate-900">{patientHistory.length}</p>
+          <p className="mt-2 text-2xl font-semibold text-ink">{patientHistory.length}</p>
         </article>
         <article className="hce-surface-soft">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-ink-soft">
             Seguimientos pendientes
           </p>
-          <p className="mt-2 text-2xl font-semibold text-slate-900">{overdueFollowUps.length}</p>
+          <p className="mt-2 text-2xl font-semibold text-ink">{overdueFollowUps.length}</p>
         </article>
       </div>
 
@@ -407,10 +407,10 @@ export default function PacientesPage() {
         <aside className="hce-surface">
           <div className="space-y-3">
             <div>
-              <h2 className="text-lg font-semibold text-slate-900">Pacientes</h2>
-              <p className="text-sm text-slate-600">Selecciona un paciente para revisar su historial.</p>
+              <h2 className="text-lg font-semibold text-ink">Pacientes</h2>
+              <p className="text-sm text-ink-soft">Selecciona un paciente para revisar su historial.</p>
             </div>
-            <label className="block space-y-2 text-sm font-medium text-slate-700">
+            <label className="block space-y-2 text-sm font-medium text-ink-soft">
               <span>Buscar</span>
               <input className="hce-input" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Nombre o documento" />
             </label>
@@ -427,18 +427,18 @@ export default function PacientesPage() {
                   key={patient.id}
                   type="button"
                   onClick={() => setSelectedPatientId(patient.id)}
-                    className={`w-full rounded-2xl border px-4 py-3 text-left transition hover:bg-slate-50 ${
+                    className={`w-full rounded-2xl border px-4 py-3 text-left transition hover:bg-bg-soft ${
                     selectedPatientId === patient.id
                       ? "border-teal-300 bg-teal-50"
-                      : "border-slate-200 bg-white"
+                      : "border-border bg-card"
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <p className="font-semibold text-slate-900">{patient.full_name}</p>
+                    <p className="font-semibold text-ink">{patient.full_name}</p>
                     <StatusBadge status={patient.status ?? "activo"} />
                   </div>
-                  <p className="text-sm text-slate-600">{patient.document_number}</p>
-                  <p className="mt-1 text-xs text-slate-500">
+                  <p className="text-sm text-ink-soft">{patient.document_number}</p>
+                  <p className="mt-1 text-xs text-ink-soft">
                     {patient.birth_date ? `Nacimiento: ${patient.birth_date}` : "Sin fecha de nacimiento"}
                   </p>
                 </button>
@@ -451,16 +451,16 @@ export default function PacientesPage() {
           <article className="hce-surface">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div className="space-y-2">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-ink-soft">
                   Perfil del paciente
                 </p>
                 <div className="flex items-center gap-3">
-                  <h2 className="text-2xl font-semibold text-slate-900">
+                  <h2 className="text-2xl font-semibold text-ink">
                     {selectedPatient ? selectedPatient.full_name : "Selecciona un paciente"}
                   </h2>
                   {selectedPatient ? <StatusBadge status={selectedPatient.status ?? "activo"} /> : null}
                 </div>
-                <p className="text-sm text-slate-700">
+                <p className="text-sm text-ink-soft">
                   {selectedPatient
                     ? `${selectedPatient.document_number}${selectedPatient.birth_date ? ` · ${selectedPatient.birth_date}` : ""}`
                     : "Aquí verás los datos generales y su historia clínica."}
@@ -470,19 +470,19 @@ export default function PacientesPage() {
               {selectedPatient ? (
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="hce-surface-soft">
-                    <p className="text-xs uppercase tracking-[0.15em] text-slate-500">Consultas</p>
-                    <p className="mt-1 text-lg font-semibold text-slate-900">{patientHistory.length}</p>
+                    <p className="text-xs uppercase tracking-[0.15em] text-ink-soft">Consultas</p>
+                    <p className="mt-1 text-lg font-semibold text-ink">{patientHistory.length}</p>
                   </div>
                   <div className="hce-surface-soft">
-                    <p className="text-xs uppercase tracking-[0.15em] text-slate-500">Seguimientos</p>
-                    <p className="mt-1 text-lg font-semibold text-slate-900">{followUpTimelineRecords.length}</p>
+                    <p className="text-xs uppercase tracking-[0.15em] text-ink-soft">Seguimientos</p>
+                    <p className="mt-1 text-lg font-semibold text-ink">{followUpTimelineRecords.length}</p>
                   </div>
                 </div>
               ) : null}
 
               {selectedPatient ? (
                 <div className="hce-surface-soft">
-                  <label className="block space-y-2 text-sm font-medium text-slate-700">
+                  <label className="block space-y-2 text-sm font-medium text-ink-soft">
                     <span>Estado del paciente</span>
                     <select
                       className="hce-input disabled:cursor-not-allowed disabled:opacity-70"
@@ -500,7 +500,7 @@ export default function PacientesPage() {
                     </select>
                   </label>
                   {statusMessage ? (
-                    <p className="mt-2 text-xs text-slate-600">{statusMessage}</p>
+                    <p className="mt-2 text-xs text-ink-soft">{statusMessage}</p>
                   ) : null}
                 </div>
               ) : null}
@@ -519,8 +519,8 @@ export default function PacientesPage() {
           <article className="hce-surface">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <h2 className="text-lg font-semibold text-slate-900">Timeline de seguimientos</h2>
-                <p className="text-sm text-slate-600">
+                <h2 className="text-lg font-semibold text-ink">Timeline de seguimientos</h2>
+                <p className="text-sm text-ink-soft">
                   Filtro por estado para revisar seguimientos completados, pendientes y vencidos.
                 </p>
               </div>
@@ -541,7 +541,7 @@ export default function PacientesPage() {
                 <button key={filter} type="button" onClick={() => setFollowUpFilter(filter)} className={`hce-chip ${
                     followUpFilter === filter
                       ? "border-teal-300 bg-teal-50 text-teal-900"
-                      : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                      : "border-border bg-card text-ink-soft hover:bg-bg-soft"
                   }`}
                 >
                   {label} ({followUpCounts[filter]})
@@ -550,7 +550,7 @@ export default function PacientesPage() {
             </div>
 
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <label className="block space-y-2 text-sm font-medium text-slate-700">
+              <label className="block space-y-2 text-sm font-medium text-ink-soft">
                 <span>Rango de fecha</span>
                 <select className="hce-input" value={dateRangeFilter} onChange={(event) => setDateRangeFilter(event.target.value as DateRangeFilter)}>
                   <option value="all">Todo el historial</option>
@@ -560,7 +560,7 @@ export default function PacientesPage() {
                 </select>
               </label>
 
-              <label className="block space-y-2 text-sm font-medium text-slate-700">
+              <label className="block space-y-2 text-sm font-medium text-ink-soft">
                 <span>Especialidad</span>
                 <select className="hce-input" value={specialtyFilter} onChange={(event) => setSpecialtyFilter(event.target.value)}>
                   <option value="all">Todas</option>
@@ -588,7 +588,7 @@ export default function PacientesPage() {
                     <article
                       key={record.id}
                       className={`w-full rounded-2xl border p-4 ${
-                        isSelected ? "border-teal-300 bg-teal-50" : "border-slate-200 bg-white"
+                        isSelected ? "border-teal-300 bg-teal-50" : "border-border bg-card"
                       }`}
                     >
                       <button
@@ -597,16 +597,16 @@ export default function PacientesPage() {
                           setSelectedRecordId(record.id);
                           toggleRecordExpand(record.id);
                         }}
-                        className="w-full text-left transition hover:bg-slate-50"
+                        className="w-full text-left transition hover:bg-bg-soft"
                       >
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div>
-                          <p className="text-sm font-semibold text-slate-900">
+                          <p className="text-sm font-semibold text-ink">
                             {record.specialty_kind} · {formatDate(details.consultationDate)}
                           </p>
-                          <p className="mt-1 text-sm text-slate-700">{details.diagnosis}</p>
+                          <p className="mt-1 text-sm text-ink-soft">{details.diagnosis}</p>
                         </div>
-                        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.15em] text-slate-600">
+                        <span className="rounded-full bg-bg-soft px-3 py-1 text-xs font-semibold uppercase tracking-[0.15em] text-ink-soft">
                           {timelineState === "vencidos"
                             ? "Seguimiento vencido"
                             : timelineState === "pendientes"
@@ -624,18 +624,18 @@ export default function PacientesPage() {
                         <>
                           <div className="mt-3 grid gap-3 sm:grid-cols-2">
                             <div>
-                              <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">Anamnesis</p>
-                              <p className="mt-1 text-sm text-slate-700">{details.anamnesis}</p>
+                              <p className="text-xs font-semibold uppercase tracking-[0.15em] text-ink-soft">Anamnesis</p>
+                              <p className="mt-1 text-sm text-ink-soft">{details.anamnesis}</p>
                             </div>
                             <div>
-                              <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">Tratamiento</p>
-                              <p className="mt-1 text-sm text-slate-700">{details.treatmentPlan}</p>
+                              <p className="text-xs font-semibold uppercase tracking-[0.15em] text-ink-soft">Tratamiento</p>
+                              <p className="mt-1 text-sm text-ink-soft">{details.treatmentPlan}</p>
                             </div>
                           </div>
 
-                          <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-600">
+                          <div className="mt-3 flex flex-wrap gap-2 text-xs text-ink-soft">
                             {details.cieCodes.map((code) => (
-                              <span key={code} className="rounded-full bg-slate-100 px-2.5 py-1">
+                              <span key={code} className="rounded-full bg-bg-soft px-2.5 py-1">
                                 {code}
                               </span>
                             ))}
@@ -669,7 +669,7 @@ export default function PacientesPage() {
                               followUpDate: details.nextFollowUpDate ?? undefined,
                             });
                           }}
-                          className="inline-flex items-center gap-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+                          className="inline-flex items-center gap-1 rounded-xl border border-border bg-card px-3 py-2 text-xs font-semibold text-ink-soft transition hover:bg-bg-soft"
                         >
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -695,31 +695,31 @@ export default function PacientesPage() {
           </article>
 
           <article className="hce-surface">
-            <h2 className="text-lg font-semibold text-slate-900">Detalle del seguimiento</h2>
+            <h2 className="text-lg font-semibold text-ink">Detalle del seguimiento</h2>
             {selectedDetails ? (
               <div className="mt-4 grid gap-4 lg:grid-cols-2">
-                <div className="space-y-3 hce-surface-soft text-sm text-slate-700">
-                  <p><span className="font-semibold text-slate-900">Fecha:</span> {formatDate(selectedDetails.consultationDate)}</p>
-                  <p><span className="font-semibold text-slate-900">Sintomas:</span> {selectedDetails.symptoms}</p>
-                  <p><span className="font-semibold text-slate-900">Diagnostico:</span> {selectedDetails.diagnosis}</p>
-                  <p><span className="font-semibold text-slate-900">Evolucion:</span> {selectedDetails.evolutionStatus}</p>
-                  <p><span className="font-semibold text-slate-900">Proximo control:</span> {selectedDetails.nextFollowUpDate ?? "No programado"}</p>
+                <div className="space-y-3 hce-surface-soft text-sm text-ink-soft">
+                  <p><span className="font-semibold text-ink">Fecha:</span> {formatDate(selectedDetails.consultationDate)}</p>
+                  <p><span className="font-semibold text-ink">Sintomas:</span> {selectedDetails.symptoms}</p>
+                  <p><span className="font-semibold text-ink">Diagnostico:</span> {selectedDetails.diagnosis}</p>
+                  <p><span className="font-semibold text-ink">Evolucion:</span> {selectedDetails.evolutionStatus}</p>
+                  <p><span className="font-semibold text-ink">Proximo control:</span> {selectedDetails.nextFollowUpDate ?? "No programado"}</p>
                 </div>
                 <div className="space-y-3 hce-surface-soft bg-[color:var(--card)]">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Acciones</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-ink-soft">Acciones</p>
                   <Link
                     href="/consultas"
                     className="hce-btn-primary"
                   >
                     Registrar nueva consulta o seguimiento
                   </Link>
-                  <p className="text-sm text-slate-700">
+                  <p className="text-sm text-ink-soft">
                     El paciente se crea y actualiza desde Consultas. En esta vista solo revisas su historia y controlas el seguimiento.
                   </p>
                 </div>
               </div>
             ) : (
-              <p className="mt-4 text-sm text-slate-600">
+              <p className="mt-4 text-sm text-ink-soft">
                 Selecciona una consulta para ver el detalle del seguimiento.
               </p>
             )}

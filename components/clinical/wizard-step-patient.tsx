@@ -146,7 +146,7 @@ export function WizardStepPatient({
             onClick={() =>
               setForm((current) => ({ ...current, patientId: "" }))
             }
-            className="rounded-lg border border-teal-300 bg-white px-2.5 py-1 text-xs font-semibold text-teal-700 transition hover:bg-teal-100"
+            className="rounded-lg border border-teal-300 bg-card px-2.5 py-1 text-xs font-semibold text-teal-700 transition hover:bg-teal-100"
           >
             Cambiar
           </button>
@@ -189,7 +189,7 @@ export function WizardStepPatient({
                   : "Seguimiento programado"}
               </span>
             ) : (
-              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+              <span className="rounded-full bg-bg-soft px-3 py-1 text-xs font-semibold text-ink-soft">
                 Sin seguimiento pendiente
               </span>
             )}
