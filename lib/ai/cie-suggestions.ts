@@ -46,24 +46,17 @@ export function normalizeCode(code: string) {
   return code.trim().toUpperCase();
 }
 
-export function buildCieSuggestionPrompt(input: CieSuggestionInput, candidates: CieCatalogEntry[]) {
-  const candidateList = candidates
-    .map((entry) => `- ${entry.code}: ${entry.description}`)
-    .join("\n");
-
+export function buildCieSuggestionPrompt(input: CieSuggestionInput) {
   return [
-    "Eres un asistente clinico para sugerir codigos CIE/ICD.",
-    "Usa solo los codigos de la lista permitida.",
-    "Devuelve exclusivamente JSON valido con esta forma:",
-    "[{\"code\":\"A09\",\"description\":\"...\",\"rationale\":\"...\",\"confidence\":0.82}]",
-    "No agregues texto adicional, markdown ni explicaciones.",
-    "Prioriza codigos que coincidan con el diagnostico, sintomas y anamnesis.",
+    "Eres un asistente clínico experto encargado de sugerir códigos CIE-10 (ICD-10).",
+    "Devuelve exclusivamente JSON válido con esta forma:",
+    "[{\"code\":\"K35.8\",\"description\":\"Apendicitis aguda\",\"rationale\":\"...\",\"confidence\":0.95}]",
+    "No agregues texto adicional, markdown ni explicaciones fuera del JSON.",
+    "Asegúrate de que los códigos pertenezcan a la nomenclatura CIE-10 real y coincidan con el diagnóstico, síntomas y anamnesis.",
     `Especialidad: ${input.specialtyKind}`,
-    `Diagnostico: ${input.diagnosis || "Sin diagnostico"}`,
-    `Sintomas: ${input.symptoms || "Sin sintomas"}`,
+    `Diagnóstico: ${input.diagnosis || "Sin diagnóstico"}`,
+    `Síntomas: ${input.symptoms || "Sin síntomas"}`,
     `Anamnesis: ${input.anamnesis || "Sin anamnesis"}`,
-    "Codigos permitidos:",
-    candidateList || "- Sin candidatos disponibles",
   ].join("\n");
 }
 
@@ -77,29 +70,20 @@ export function buildCatalogSuggestions(candidates: CieCatalogEntry[], rationale
   }));
 }
 
-export function extractGeminiSuggestions(payload: unknown, candidates: CieCatalogEntry[]) {
+export function extractGeminiSuggestions(payload: unknown) {
   const items = parseGeminiSuggestionPayload(payload);
   if (items.length === 0) {
     return [] as CieSuggestion[];
   }
 
-  const candidateMap = new Map(candidates.map((entry) => [normalizeCode(entry.code), entry]));
-
-  return items.flatMap((item) => {
-    const matched = candidateMap.get(normalizeCode(item.code));
-    if (!matched) {
-      return [];
-    }
-
-    return [
-      {
-        code: matched.code,
-        description: matched.description,
-        rationale: item.rationale || `Coincide con el texto clinico para ${matched.code}.`,
-        confidence: clampConfidence(item.confidence),
-        source: "gemini" as const,
-      } satisfies CieSuggestion,
-    ];
+  return items.map((item) => {
+    return {
+      code: normalizeCode(item.code),
+      description: item.description || "Sin descripción",
+      rationale: item.rationale || `Coincide con el texto clínico para ${item.code}.`,
+      confidence: clampConfidence(item.confidence),
+      source: "gemini" as const,
+    } satisfies CieSuggestion;
   });
 }
 

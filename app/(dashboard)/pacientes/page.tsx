@@ -45,10 +45,36 @@ function getNullableDate(value: unknown) {
 
 type PatientHistoryDetails = {
   consultationDate: string;
+  gender: string;
+  occupation: string;
+  insurance: string;
+  chiefComplaint: string;
   anamnesis: string;
-  symptoms: string;
+  medicalHistory: string;
+  backgrounds?: {
+    pathological: string;
+    surgical: string;
+    allergic: string;
+    pharmacological: string;
+    family: string;
+    toxic: string;
+    gynecoObstetric: string;
+  };
+  vitalSigns: {
+    bloodPressure: string;
+    heartRate: string;
+    respiratoryRate: string;
+    temperature: string;
+    oxygenSaturation: string;
+    weight: string;
+    height: string;
+  };
+  physicalExam: string;
   diagnosis: string;
+  clinicalAnalysis: string;
   treatmentPlan: string;
+  recommendations: string;
+  warningSigns: string;
   evolutionStatus: string;
   nextFollowUpDate: string | null;
   isFollowUpOverdue: boolean;
@@ -62,12 +88,33 @@ function getHistoryDetails(record: ClinicalRecordRecord): PatientHistoryDetails 
   const specialtyData = record.specialty_data as Record<string, unknown>;
   const nextFollowUpDate = getNullableDate(specialtyData.next_follow_up_date);
 
+  const patientSnapshot = (specialtyData.patient_snapshot || {}) as Record<string, string>;
+  const vitalSigns = (specialtyData.vital_signs || {
+    bloodPressure: "",
+    heartRate: "",
+    respiratoryRate: "",
+    temperature: "",
+    oxygenSaturation: "",
+    weight: "",
+    height: "",
+  }) as PatientHistoryDetails["vitalSigns"];
+
   return {
     consultationDate: record.created_at,
-    anamnesis: getTextField(specialtyData.anamnesis, record.chief_complaint),
-    symptoms: getTextField(specialtyData.symptoms, "Sin sintomas registrados"),
+    gender: getTextField(patientSnapshot.gender),
+    occupation: getTextField(patientSnapshot.occupation),
+    insurance: getTextField(patientSnapshot.insurance),
+    chiefComplaint: getTextField(specialtyData.chief_complaint, record.chief_complaint),
+    anamnesis: getTextField(specialtyData.anamnesis, "Sin anamnesis registrada"),
+    medicalHistory: getTextField(specialtyData.medical_history),
+    backgrounds: specialtyData.backgrounds as PatientHistoryDetails["backgrounds"],
+    vitalSigns,
+    physicalExam: getTextField(specialtyData.physical_exam),
     diagnosis: getTextField(specialtyData.diagnosis, "Sin diagnostico registrado"),
+    clinicalAnalysis: getTextField(specialtyData.clinical_analysis),
     treatmentPlan: getTextField(specialtyData.treatment_plan, "Sin tratamiento registrado"),
+    recommendations: getTextField(specialtyData.recommendations),
+    warningSigns: getTextField(specialtyData.warning_signs),
     evolutionStatus: getTextField(specialtyData.evolution_status, "Sin evolucion registrada"),
     nextFollowUpDate,
     isFollowUpOverdue: nextFollowUpDate ? new Date(nextFollowUpDate).getTime() < Date.now() : false,
@@ -105,9 +152,6 @@ export default function PacientesPage() {
   const [error, setError] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [statusSaving, setStatusSaving] = useState(false);
-  const [followUpFilter, setFollowUpFilter] = useState<FollowUpTimelineFilter>("pendientes");
-  const [dateRangeFilter, setDateRangeFilter] = useState<DateRangeFilter>("all");
-  const [specialtyFilter, setSpecialtyFilter] = useState("all");
   const [expandedRecordIds, setExpandedRecordIds] = useState<string[]>([]);
   const [deletePatientTarget, setDeletePatientTarget] = useState<PatientRecord | null>(null);
   const [deleteRecordTarget, setDeleteRecordTarget] = useState<ClinicalRecordRecord | null>(null);
@@ -252,89 +296,21 @@ export default function PacientesPage() {
       .sort((first, second) => second.updated_at.localeCompare(first.updated_at));
   }, [records, selectedPatient]);
 
-  const followUpTimelineRecords = useMemo(() => {
-    return patientHistory
-      .map((record) => {
-        const details = getHistoryDetails(record);
-        const timelineState = getFollowUpTimelineState(record, details);
-        return { record, details, timelineState };
-      })
-      .filter((item) => item.timelineState !== null);
-  }, [patientHistory]);
+  const globalAnalytics = useMemo(() => {
+    let activos = 0;
+    let seguimiento = 0;
+    let alta = 0;
+    let inactivos = 0;
 
-  const filteredFollowUpTimelineRecords = useMemo(() => {
-    return followUpTimelineRecords.filter(
-      (item) => item.timelineState === followUpFilter,
-    );
-  }, [followUpFilter, followUpTimelineRecords]);
-
-  const specialtyOptions = useMemo(() => {
-    const specialties = new Set<string>();
-    for (const item of followUpTimelineRecords) {
-      specialties.add(item.record.specialty_kind);
+    for (const p of patients) {
+      if (p.status === "en-seguimiento") seguimiento++;
+      else if (p.status === "alta") alta++;
+      else if (p.status === "inactivo") inactivos++;
+      else activos++; // default to activo
     }
-    return Array.from(specialties).sort((a, b) => a.localeCompare(b));
-  }, [followUpTimelineRecords]);
 
-  const timelineRecordsWithFilters = useMemo(() => {
-    const now = Date.now();
-    const maxAgeMs =
-      dateRangeFilter === "all" ? null : Number(dateRangeFilter) * 24 * 60 * 60 * 1000;
-
-    return filteredFollowUpTimelineRecords.filter((item) => {
-      if (specialtyFilter !== "all" && item.record.specialty_kind !== specialtyFilter) {
-        return false;
-      }
-
-      if (maxAgeMs === null) {
-        return true;
-      }
-
-      const consultationTime = new Date(item.details.consultationDate).getTime();
-      if (Number.isNaN(consultationTime)) {
-        return false;
-      }
-
-      return now - consultationTime <= maxAgeMs;
-    });
-  }, [dateRangeFilter, filteredFollowUpTimelineRecords, specialtyFilter]);
-
-  const followUpCounts = useMemo(() => {
-    return followUpTimelineRecords.reduce(
-      (acc, item) => {
-        if (item.timelineState) {
-          acc[item.timelineState] += 1;
-        }
-        return acc;
-      },
-      {
-        completados: 0,
-        pendientes: 0,
-        vencidos: 0,
-      } as Record<FollowUpTimelineFilter, number>,
-    );
-  }, [followUpTimelineRecords]);
-
-  useEffect(() => {
-    if (!timelineRecordsWithFilters.some((item) => item.record.id === selectedRecordId)) {
-      setSelectedRecordId(timelineRecordsWithFilters[0]?.record.id ?? "");
-    }
-  }, [timelineRecordsWithFilters, selectedRecordId]);
-
-  const selectedFollowUp = useMemo(
-    () =>
-      followUpTimelineRecords.find((item) => item.record.id === selectedRecordId) ??
-      timelineRecordsWithFilters[0] ??
-      followUpTimelineRecords[0] ??
-      null,
-    [followUpTimelineRecords, selectedRecordId, timelineRecordsWithFilters],
-  );
-
-  const selectedRecord = selectedFollowUp?.record ?? null;
-  const selectedDetails = selectedFollowUp?.details ?? null;
-  const overdueFollowUps = followUpTimelineRecords.filter(
-    (item) => item.timelineState === "vencidos",
-  );
+    return { total: patients.length, activos, seguimiento, alta, inactivos };
+  }, [patients]);
 
   function toggleRecordExpand(recordId: string) {
     setExpandedRecordIds((current) =>
@@ -382,24 +358,30 @@ export default function PacientesPage() {
 
       {error ? <div className="hce-alert-error">{error}</div> : null}
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <article className="hce-surface-soft">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <article className="hce-surface-soft flex flex-col justify-center">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-ink-soft">
-            Pacientes registrados
+            Total Pacientes
           </p>
-          <p className="mt-2 text-2xl font-semibold text-ink">{patients.length}</p>
+          <p className="mt-2 text-3xl font-bold text-ink">{globalAnalytics.total}</p>
         </article>
-        <article className="hce-surface-soft">
+        <article className="hce-surface-soft flex flex-col justify-center border-l-4 border-emerald-400">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-ink-soft">
-            Consultas del paciente
+            Activos
           </p>
-          <p className="mt-2 text-2xl font-semibold text-ink">{patientHistory.length}</p>
+          <p className="mt-2 text-3xl font-bold text-emerald-700">{globalAnalytics.activos}</p>
         </article>
-        <article className="hce-surface-soft">
+        <article className="hce-surface-soft flex flex-col justify-center border-l-4 border-blue-400">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-ink-soft">
-            Seguimientos pendientes
+            En Seguimiento
           </p>
-          <p className="mt-2 text-2xl font-semibold text-ink">{overdueFollowUps.length}</p>
+          <p className="mt-2 text-3xl font-bold text-blue-700">{globalAnalytics.seguimiento}</p>
+        </article>
+        <article className="hce-surface-soft flex flex-col justify-center border-l-4 border-gray-400">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-ink-soft">
+            De Alta
+          </p>
+          <p className="mt-2 text-3xl font-bold text-gray-700">{globalAnalytics.alta}</p>
         </article>
       </div>
 
@@ -467,15 +449,17 @@ export default function PacientesPage() {
                 </p>
               </div>
 
-              {selectedPatient ? (
+              {patientHistory ? (
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="hce-surface-soft">
-                    <p className="text-xs uppercase tracking-[0.15em] text-ink-soft">Consultas</p>
+                    <p className="text-xs uppercase tracking-[0.15em] text-ink-soft">Consultas Registradas</p>
                     <p className="mt-1 text-lg font-semibold text-ink">{patientHistory.length}</p>
                   </div>
                   <div className="hce-surface-soft">
-                    <p className="text-xs uppercase tracking-[0.15em] text-ink-soft">Seguimientos</p>
-                    <p className="mt-1 text-lg font-semibold text-ink">{followUpTimelineRecords.length}</p>
+                    <p className="text-xs uppercase tracking-[0.15em] text-ink-soft">Ultima Atencion</p>
+                    <p className="mt-1 text-lg font-semibold text-ink">
+                      {patientHistory[0] ? formatDate(patientHistory[0].created_at).split(",")[0] : "Ninguna"}
+                    </p>
                   </div>
                 </div>
               ) : null}
@@ -519,131 +503,121 @@ export default function PacientesPage() {
           <article className="hce-surface">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <h2 className="text-lg font-semibold text-ink">Timeline de seguimientos</h2>
+                <h2 className="text-lg font-semibold text-ink">Historial Clinico</h2>
                 <p className="text-sm text-ink-soft">
-                  Filtro por estado para revisar seguimientos completados, pendientes y vencidos.
+                  Todas las atenciones ordenadas de la mas reciente a la mas antigua.
                 </p>
               </div>
               <Link
-                href="/consultas"
+                href={`/consultas?mode=consulta&patientId=${selectedPatientId}`}
                 className="hce-btn-secondary"
               >
-                Nueva consulta
+                Nueva atencion
               </Link>
             </div>
 
-            <div className="mt-4 flex flex-wrap gap-2">
-              {([
-                ["pendientes", "Pendientes"],
-                ["vencidos", "Vencidos"],
-                ["completados", "Completados"],
-              ] as Array<[FollowUpTimelineFilter, string]>).map(([filter, label]) => (
-                <button key={filter} type="button" onClick={() => setFollowUpFilter(filter)} className={`hce-chip ${
-                    followUpFilter === filter
-                      ? "border-teal-300 bg-teal-50 text-teal-900"
-                      : "border-border bg-card text-ink-soft hover:bg-bg-soft"
-                  }`}
-                >
-                  {label} ({followUpCounts[filter]})
-                </button>
-              ))}
-            </div>
-
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <label className="block space-y-2 text-sm font-medium text-ink-soft">
-                <span>Rango de fecha</span>
-                <select className="hce-input" value={dateRangeFilter} onChange={(event) => setDateRangeFilter(event.target.value as DateRangeFilter)}>
-                  <option value="all">Todo el historial</option>
-                  <option value="7">Ultimos 7 dias</option>
-                  <option value="30">Ultimos 30 dias</option>
-                  <option value="90">Ultimos 90 dias</option>
-                </select>
-              </label>
-
-              <label className="block space-y-2 text-sm font-medium text-ink-soft">
-                <span>Especialidad</span>
-                <select className="hce-input" value={specialtyFilter} onChange={(event) => setSpecialtyFilter(event.target.value)}>
-                  <option value="all">Todas</option>
-                  {specialtyOptions.map((specialty) => (
-                    <option key={specialty} value={specialty}>
-                      {specialty}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-
-            <div className="mt-4 space-y-3">
-              {timelineRecordsWithFilters.length === 0 ? (
-                <div className="hce-empty p-5">
-                  No hay seguimientos con los filtros seleccionados.
+            <div className="mt-6 space-y-4">
+              {patientHistory.length === 0 ? (
+                <div className="hce-empty p-8">
+                  Este paciente aun no tiene consultas registradas.
                 </div>
               ) : (
-                timelineRecordsWithFilters.map((item) => {
-                  const { record, details, timelineState } = item;
-                  const isSelected = selectedRecord?.id === record.id;
-                  const isExpanded = expandedRecordIds.includes(record.id) || isSelected;
+                patientHistory.map((record) => {
+                  const details = getHistoryDetails(record);
+                  const isExpanded = expandedRecordIds.includes(record.id);
 
                   return (
-                    <article
+                    <div
                       key={record.id}
-                      className={`w-full rounded-2xl border p-4 ${
-                        isSelected ? "border-teal-300 bg-teal-50" : "border-border bg-card"
-                      }`}
+                      className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-shadow hover:shadow-md"
                     >
+                      {/* Cabecera Clickable */}
                       <button
                         type="button"
-                        onClick={() => {
-                          setSelectedRecordId(record.id);
-                          toggleRecordExpand(record.id);
-                        }}
-                        className="w-full text-left transition hover:bg-bg-soft"
+                        onClick={() => toggleRecordExpand(record.id)}
+                        className="flex w-full flex-col items-start justify-between gap-4 bg-bg-soft px-5 py-4 text-left transition hover:bg-teal-50/50 sm:flex-row sm:items-center"
                       >
-                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
-                          <p className="text-sm font-semibold text-ink">
-                            {record.specialty_kind} · {formatDate(details.consultationDate)}
+                        <div className="space-y-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="rounded-full bg-teal-100 px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wider text-teal-800">
+                              {record.specialty_kind.replace("-", " ")}
+                            </span>
+                            <span className="text-sm font-medium text-ink-soft">
+                              {formatDate(details.consultationDate)}
+                            </span>
+                          </div>
+                          <p className="text-base font-semibold text-ink">
+                            Motivo: {details.chiefComplaint}
                           </p>
-                          <p className="mt-1 text-sm text-ink-soft">{details.diagnosis}</p>
                         </div>
-                        <span className="rounded-full bg-bg-soft px-3 py-1 text-xs font-semibold uppercase tracking-[0.15em] text-ink-soft">
-                          {timelineState === "vencidos"
-                            ? "Seguimiento vencido"
-                            : timelineState === "pendientes"
-                              ? "Seguimiento pendiente"
-                              : "Seguimiento completado"}
-                        </span>
-                      </div>
-
-                      <p className="mt-2 text-xs font-semibold uppercase tracking-[0.12em] text-teal-700">
-                        {isExpanded ? "Ocultar detalle" : "Ver detalle"}
-                      </p>
-
+                        <div className="flex items-center gap-4">
+                          <p className="text-sm font-medium text-ink-soft max-w-[200px] truncate">
+                            {details.diagnosis}
+                          </p>
+                          <div className={`flex h-8 w-8 items-center justify-center rounded-full transition-colors ${isExpanded ? "bg-teal-100 text-teal-700" : "bg-white text-ink-soft border"}`}>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}>
+                              <polyline points="6 9 12 15 18 9" />
+                            </svg>
+                          </div>
+                        </div>
                       </button>
-                      {isExpanded ? (
-                        <>
-                          <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                            <div>
-                              <p className="text-xs font-semibold uppercase tracking-[0.15em] text-ink-soft">Anamnesis</p>
-                              <p className="mt-1 text-sm text-ink-soft">{details.anamnesis}</p>
+
+                      {/* Contenido Expandido */}
+                      {isExpanded && (
+                        <div className="border-t border-border bg-card px-5 py-6">
+                          <div className="grid gap-6 md:grid-cols-2">
+                            {/* Columna Izquierda */}
+                            <div className="space-y-6">
+                              <div>
+                                <h4 className="text-xs font-bold uppercase tracking-widest text-ink-soft">Enfermedad Actual / Anamnesis</h4>
+                                <p className="mt-1.5 whitespace-pre-wrap text-sm text-ink">{details.anamnesis}</p>
+                              </div>
+                              {details.physicalExam && (
+                                <div>
+                                  <h4 className="text-xs font-bold uppercase tracking-widest text-ink-soft">Examen Físico</h4>
+                                  <p className="mt-1.5 whitespace-pre-wrap text-sm text-ink">{details.physicalExam}</p>
+                                </div>
+                              )}
+                              <div>
+                                <h4 className="text-xs font-bold uppercase tracking-widest text-ink-soft">Impresión Diagnóstica</h4>
+                                <p className="mt-1.5 text-sm font-medium text-ink">{details.diagnosis}</p>
+                                {details.cieCodes.length > 0 && (
+                                  <div className="mt-2 flex flex-wrap gap-1.5">
+                                    {details.cieCodes.map((code) => (
+                                      <span key={code} className="inline-flex rounded-md bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 border border-blue-100">
+                                        {code}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                            <div>
-                              <p className="text-xs font-semibold uppercase tracking-[0.15em] text-ink-soft">Tratamiento</p>
-                              <p className="mt-1 text-sm text-ink-soft">{details.treatmentPlan}</p>
+                            
+                            {/* Columna Derecha */}
+                            <div className="space-y-6">
+                              <div>
+                                <h4 className="text-xs font-bold uppercase tracking-widest text-ink-soft">Plan de Tratamiento</h4>
+                                <p className="mt-1.5 whitespace-pre-wrap text-sm text-ink">{details.treatmentPlan}</p>
+                              </div>
+                              {details.evolutionStatus && details.evolutionStatus !== "Sin evolucion registrada" && (
+                                <div>
+                                  <h4 className="text-xs font-bold uppercase tracking-widest text-ink-soft">Evolución</h4>
+                                  <p className="mt-1.5 whitespace-pre-wrap text-sm text-ink">{details.evolutionStatus}</p>
+                                </div>
+                              )}
+                              {details.nextFollowUpDate && (
+                                <div>
+                                  <h4 className="text-xs font-bold uppercase tracking-widest text-ink-soft">Próximo Control</h4>
+                                  <p className={`mt-1.5 text-sm font-semibold ${details.isFollowUpOverdue ? 'text-red-600' : 'text-emerald-600'}`}>
+                                    {new Date(details.nextFollowUpDate).toLocaleDateString("es-EC")} {details.isFollowUpOverdue ? "(Vencido)" : ""}
+                                  </p>
+                                </div>
+                              )}
                             </div>
                           </div>
 
-                          <div className="mt-3 flex flex-wrap gap-2 text-xs text-ink-soft">
-                            {details.cieCodes.map((code) => (
-                              <span key={code} className="rounded-full bg-bg-soft px-2.5 py-1">
-                                {code}
-                              </span>
-                            ))}
-                          </div>
-                        </>
-                      ) : null}
-
-                      <div className="mt-3 flex flex-wrap gap-2">
+                          {/* Acciones */}
+                          <div className="mt-8 flex flex-wrap items-center gap-3 border-t border-border pt-4">
                         <Link
                           href={`/consultas?mode=seguimiento&patientId=${record.patient_id}&recordId=${record.id}`}
                           className="inline-flex rounded-xl border border-teal-300 bg-teal-50 px-3 py-2 text-xs font-semibold text-teal-900 transition hover:bg-teal-100"
@@ -659,11 +633,21 @@ export default function PacientesPage() {
                               patientName: selectedPatient.full_name,
                               patientDocument: selectedPatient.document_number,
                               consultationDate: formatDate(details.consultationDate),
+                              gender: details.gender,
+                              occupation: details.occupation,
+                              insurance: details.insurance,
+                              chiefComplaint: details.chiefComplaint,
                               anamnesis: details.anamnesis,
-                              symptoms: details.symptoms,
+                              medicalHistory: details.medicalHistory,
+                              backgrounds: details.backgrounds,
+                              vitalSigns: details.vitalSigns,
+                              physicalExam: details.physicalExam,
                               diagnosis: details.diagnosis,
                               cieCodes: details.cieCodes,
+                              clinicalAnalysis: details.clinicalAnalysis,
                               treatmentPlan: details.treatmentPlan,
+                              recommendations: details.recommendations,
+                              warningSigns: details.warningSigns,
                               specialtyKind: record.specialty_kind,
                               evolutionStatus: details.evolutionStatus,
                               followUpDate: details.nextFollowUpDate ?? undefined,
@@ -682,47 +666,18 @@ export default function PacientesPage() {
                         <button
                           type="button"
                           onClick={() => setDeleteRecordTarget(record)}
-                          className="inline-flex items-center gap-1 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 transition hover:bg-red-100"
+                          className="inline-flex items-center gap-1.5 rounded-xl border border-red-200 bg-white px-3.5 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50"
                         >
                           Eliminar
                         </button>
                       </div>
-                    </article>
+                      </div>
+                      )}
+                    </div>
                   );
                 })
               )}
             </div>
-          </article>
-
-          <article className="hce-surface">
-            <h2 className="text-lg font-semibold text-ink">Detalle del seguimiento</h2>
-            {selectedDetails ? (
-              <div className="mt-4 grid gap-4 lg:grid-cols-2">
-                <div className="space-y-3 hce-surface-soft text-sm text-ink-soft">
-                  <p><span className="font-semibold text-ink">Fecha:</span> {formatDate(selectedDetails.consultationDate)}</p>
-                  <p><span className="font-semibold text-ink">Sintomas:</span> {selectedDetails.symptoms}</p>
-                  <p><span className="font-semibold text-ink">Diagnostico:</span> {selectedDetails.diagnosis}</p>
-                  <p><span className="font-semibold text-ink">Evolucion:</span> {selectedDetails.evolutionStatus}</p>
-                  <p><span className="font-semibold text-ink">Proximo control:</span> {selectedDetails.nextFollowUpDate ?? "No programado"}</p>
-                </div>
-                <div className="space-y-3 hce-surface-soft bg-[color:var(--card)]">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-ink-soft">Acciones</p>
-                  <Link
-                    href="/consultas"
-                    className="hce-btn-primary"
-                  >
-                    Registrar nueva consulta o seguimiento
-                  </Link>
-                  <p className="text-sm text-ink-soft">
-                    El paciente se crea y actualiza desde Consultas. En esta vista solo revisas su historia y controlas el seguimiento.
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <p className="mt-4 text-sm text-ink-soft">
-                Selecciona una consulta para ver el detalle del seguimiento.
-              </p>
-            )}
           </article>
         </section>
       </div>

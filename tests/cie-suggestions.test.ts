@@ -13,32 +13,30 @@ describe("cie suggestions", () => {
     expect(mergeCieCodeList("", "a09")).toBe("A09");
   });
 
-  it("builds a prompt with allowed codes", () => {
+  it("builds a prompt without catalog restrictions", () => {
     const prompt = buildCieSuggestionPrompt(
       {
         diagnosis: "cefalea",
         symptoms: "dolor de cabeza",
         anamnesis: "inicio agudo",
         specialtyKind: "medicina-general",
-      },
-      CIE_CATALOG.slice(0, 2),
+      }
     );
 
-    expect(prompt).toContain("Usa solo los codigos de la lista permitida.");
-    expect(prompt).toContain("A09");
+    expect(prompt).toContain("Asegúrate de que los códigos pertenezcan a la nomenclatura CIE-10 real");
   });
 
-  it("filters gemini output to known catalog codes", () => {
+  it("extracts gemini output correctly without filtering by catalog", () => {
     const suggestions = extractGeminiSuggestions(
       JSON.stringify([
         { code: "A09", rationale: "Coincide", confidence: 0.8 },
         { code: "ZZZ", rationale: "No valido", confidence: 0.9 },
-      ]),
-      CIE_CATALOG,
+      ])
     );
 
-    expect(suggestions).toHaveLength(1);
+    expect(suggestions).toHaveLength(2);
     expect(suggestions[0]?.code).toBe("A09");
+    expect(suggestions[1]?.code).toBe("ZZZ");
     expect(suggestions[0]?.source).toBe("gemini");
   });
 

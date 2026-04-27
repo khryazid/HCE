@@ -536,7 +536,7 @@ export default function DashboardPage() {
                     <div className="flex flex-col items-end gap-1">
                       <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider
                         ${item.status === 'activo' ? 'bg-emerald-100 text-emerald-700' : ''}
-                        ${item.status === 'inactivo' ? 'bg-slate-100 text-slate-600' : ''}
+                        ${item.status === 'inactivo' ? 'bg-bg-soft text-ink-soft' : ''}
                         ${item.status === 'en-seguimiento' ? 'bg-sky-100 text-sky-700' : ''}
                         ${item.status === 'alta' ? 'bg-amber-100 text-amber-700' : ''}
                       `}>

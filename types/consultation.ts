@@ -8,7 +8,6 @@ export type ClinicalRecordRecord = {
   chief_complaint: string;
   cie_codes: string[];
   specialty_kind: SpecialtyKind;
-  specialty_data_id: string;
   specialty_data: SpecialtyData | Record<string, unknown>;
   created_at: string;
   updated_at: string;

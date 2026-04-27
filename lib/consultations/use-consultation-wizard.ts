@@ -43,13 +43,49 @@ export type WizardForm = {
   entryMode: "consulta" | "seguimiento";
   patientId: string;
   linkedRecordId: string;
+  specialtyKind: "medicina-general" | "pediatria" | "odontologia";
+
+  // Identificación extendida (Snapshots)
+  gender: string;
+  occupation: string;
+  insurance: string;
+
+  // Registro clínico
+  chiefComplaint: string;
   anamnesis: string;
-  symptoms: string;
+  symptoms: string; // Keep for backward compat
+  medicalHistory: string;
+  backgrounds: {
+    pathological: string;
+    surgical: string;
+    allergic: string;
+    pharmacological: string;
+    family: string;
+    toxic: string;
+    gynecoObstetric: string;
+  };
+  vitalSigns: {
+    bloodPressure: string;
+    heartRate: string;
+    respiratoryRate: string;
+    temperature: string;
+    oxygenSaturation: string;
+    weight: string;
+    height: string;
+  };
+  physicalExam: string;
+
+  // Diagnóstico
   diagnosis: string;
   cieCodes: string;
-  specialtyKind: "medicina-general" | "pediatria" | "odontologia";
+  clinicalAnalysis: string;
+
+  // Plan de Manejo
   treatmentTemplateId: string;
   treatmentPlan: string;
+  recommendations: string;
+  warningSigns: string;
+
   evolutionStatus: string;
   nextFollowUpDate: string;
 };
@@ -58,13 +94,40 @@ export const EMPTY_FORM: WizardForm = {
   entryMode: "consulta",
   patientId: "",
   linkedRecordId: "",
+  specialtyKind: "medicina-general",
+  gender: "",
+  occupation: "",
+  insurance: "",
+  chiefComplaint: "",
   anamnesis: "",
   symptoms: "",
+  medicalHistory: "",
+  backgrounds: {
+    pathological: "",
+    surgical: "",
+    allergic: "",
+    pharmacological: "",
+    family: "",
+    toxic: "",
+    gynecoObstetric: "",
+  },
+  vitalSigns: {
+    bloodPressure: "",
+    heartRate: "",
+    respiratoryRate: "",
+    temperature: "",
+    oxygenSaturation: "",
+    weight: "",
+    height: "",
+  },
+  physicalExam: "",
   diagnosis: "",
   cieCodes: "",
-  specialtyKind: "medicina-general",
+  clinicalAnalysis: "",
   treatmentTemplateId: "",
   treatmentPlan: "",
+  recommendations: "",
+  warningSigns: "",
   evolutionStatus: "",
   nextFollowUpDate: "",
 };
@@ -90,12 +153,23 @@ export type PendingFollowUp = {
 export type ConsultationPdfPreviewData = {
   patientName: string;
   patientDocument: string;
+  birthDate?: string;
   consultationDate: string;
+  gender: string;
+  occupation: string;
+  insurance: string;
+  chiefComplaint: string;
   anamnesis: string;
-  symptoms: string;
+  medicalHistory: string;
+  backgrounds?: WizardForm["backgrounds"];
+  vitalSigns: WizardForm["vitalSigns"];
+  physicalExam: string;
   diagnosis: string;
   cieCodes: string[];
+  clinicalAnalysis: string;
   treatmentPlan: string;
+  recommendations: string;
+  warningSigns: string;
   specialtyKind: string;
   evolutionStatus?: string;
   followUpDate?: string;
@@ -128,6 +202,7 @@ export function useConsultationWizard(tenant: TenantProfile | null) {
   const [dataLoading, setDataLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
   // --- Restore draft from ClinicalContext on mount ---
 
@@ -167,6 +242,67 @@ export function useConsultationWizard(tenant: TenantProfile | null) {
     // Only re-run when form or step actually change (primitive/reference equality)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form, step, wizardOpen]);
+
+  // --- Auto-fill previous data ---
+  const autofillRef = useRef("");
+
+  useEffect(() => {
+    if (draftRestored.current && clinical.wizardDraft?.patientId === form.patientId) {
+      // Si el borrador acaba de ser restaurado y coincide con el paciente actual, 
+      // marcamos como "ya auto-llenado" para no sobreescribir el borrador con datos viejos.
+      autofillRef.current = form.patientId;
+    }
+
+    if (form.patientId && autofillRef.current !== form.patientId) {
+      const targetRecords = records
+        .filter((r) => r.patient_id === form.patientId)
+        .sort((a, b) => b.updated_at.localeCompare(a.updated_at));
+      
+      const latest = targetRecords[0];
+
+      if (latest) {
+        const specialtyData = (latest.specialty_data as Record<string, any>) || {};
+        const snap = specialtyData.patient_snapshot || {};
+        
+        setForm((c) => ({
+          ...c,
+          gender: snap.gender || "",
+          occupation: snap.occupation || "",
+          insurance: snap.insurance || "",
+          medicalHistory: specialtyData.medical_history || "",
+          backgrounds: specialtyData.backgrounds || {
+            pathological: "",
+            surgical: "",
+            allergic: "",
+            pharmacological: "",
+            family: "",
+            toxic: "",
+            gynecoObstetric: "",
+          },
+        }));
+      } else {
+        setForm((c) => ({
+          ...c,
+          gender: "",
+          occupation: "",
+          insurance: "",
+          medicalHistory: "",
+          backgrounds: {
+            pathological: "",
+            surgical: "",
+            allergic: "",
+            pharmacological: "",
+            family: "",
+            toxic: "",
+            gynecoObstetric: "",
+          },
+        }));
+      }
+      autofillRef.current = form.patientId;
+    } else if (!form.patientId) {
+      autofillRef.current = "";
+    }
+  }, [form.patientId, records, clinical.wizardDraft]);
 
   // --- Derived state ---
 
@@ -323,6 +459,8 @@ export function useConsultationWizard(tenant: TenantProfile | null) {
     const prevTreatment =
       typeof data.treatment_plan === "string" ? data.treatment_plan : "";
 
+    const prevChiefComplaint = typeof data.chief_complaint === "string" ? data.chief_complaint : "";
+
     setForm((current) => ({
       ...current,
       entryMode: "seguimiento",
@@ -330,10 +468,11 @@ export function useConsultationWizard(tenant: TenantProfile | null) {
       linkedRecordId: linkedRecord.id,
       diagnosis: prevDiagnosis,
       symptoms: prevSymptoms,
+      chiefComplaint: "Control de seguimiento",
       anamnesis: `Seguimiento de ${prevDiagnosis || "consulta previa"}`,
       treatmentPlan: prevTreatment,
       cieCodes: linkedRecord.cie_codes.join(", "),
-      specialtyKind: linkedRecord.specialty_kind,
+      specialtyKind: linkedRecord.specialty_kind as WizardForm["specialtyKind"],
     }));
     setStep(2);
     setWizardOpen(true);
@@ -496,7 +635,7 @@ export function useConsultationWizard(tenant: TenantProfile | null) {
   function openWizard() {
     setForm((current) => ({
       ...current,
-      patientId: current.patientId || patients[0]?.id || "",
+      patientId: current.patientId || "",
     }));
     setStep(1);
     setWizardOpen(true);
@@ -610,53 +749,73 @@ export function useConsultationWizard(tenant: TenantProfile | null) {
     }));
   }
 
-  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  async function triggerMagicCieFill() {
+    if (!form.diagnosis.trim()) return;
 
-  function validateStep(stepNumber: number): Record<string, string> {
+    try {
+      setCieSuggestionLoading(true);
+      const supabase = getSupabaseClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const res = await fetch("/api/cie-suggestions", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {})
+        },
+        body: JSON.stringify({
+          diagnosis: form.diagnosis,
+          symptoms: form.symptoms,
+          anamnesis: form.anamnesis,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const firstSuggestion = data.suggestions?.[0];
+        if (firstSuggestion && firstSuggestion.code) {
+           setForm((c) => ({
+             ...c,
+             cieCodes: firstSuggestion.code
+           }));
+        }
+      }
+    } catch (e) {
+      // Falla en silencio (mágico)
+    } finally {
+      setCieSuggestionLoading(false);
+    }
+  }
+
+  function validateAll(): Record<string, string> {
     const errors: Record<string, string> = {};
 
-    if (stepNumber === 1) {
-      if (!form.patientId) {
-        errors.patientId = "Selecciona o crea un paciente.";
-      }
+    if (!form.patientId) {
+      errors.patientId = "Selecciona o crea un paciente.";
     }
 
-    if (stepNumber === 2) {
-      if (!form.anamnesis.trim()) {
-        errors.anamnesis = "La anamnesis es obligatoria.";
-      }
-      if (!form.diagnosis.trim()) {
-        errors.diagnosis = "El diagnostico es obligatorio.";
-      }
+    if (form.entryMode === "consulta" && !form.chiefComplaint.trim()) {
+      errors.chiefComplaint = "El motivo de consulta es obligatorio.";
+    }
+    
+    if (!form.diagnosis.trim()) {
+      errors.diagnosis = "La impresión diagnóstica es obligatoria.";
     }
 
-    if (stepNumber === 3) {
-      if (form.entryMode === "consulta" && !form.treatmentPlan.trim()) {
-        errors.treatmentPlan = "El tratamiento es obligatorio para una consulta.";
-      }
-      if (form.entryMode === "seguimiento" && !form.evolutionStatus.trim()) {
-        errors.evolutionStatus = "La evolucion es obligatoria para un seguimiento.";
-      }
+    if (form.entryMode === "consulta" && !form.treatmentPlan.trim()) {
+      errors.treatmentPlan = "La prescripción es obligatoria para una consulta.";
+    }
+    
+    if (form.entryMode === "seguimiento" && !form.evolutionStatus.trim()) {
+      errors.evolutionStatus = "La evolución es obligatoria para un seguimiento.";
     }
 
     return errors;
   }
 
-  function nextStep() {
-    const errors = validateStep(step);
-    setValidationErrors(errors);
-
-    if (Object.keys(errors).length > 0) {
-      return;
-    }
-
-    setStep((current) => ensureWizardStep(current + 1));
-  }
-
-  function prevStep() {
-    setValidationErrors({});
-    setStep((current) => ensureWizardStep(current - 1));
-  }
+  // No longer needed:
+  // function nextStep() ...
+  // function prevStep() ...
 
   function buildPdfPreviewData(timestamp: string): ConsultationPdfPreviewData {
     const fallbackTreatment = pendingFollowUp?.treatmentPlan || "";
@@ -666,12 +825,23 @@ export function useConsultationWizard(tenant: TenantProfile | null) {
     return {
       patientName: patient?.full_name ?? "Paciente",
       patientDocument: patient?.document_number ?? "sin-documento",
+      birthDate: patient?.birth_date ?? undefined,
       consultationDate: new Date(timestamp).toLocaleString("es-EC"),
+      gender: form.gender,
+      occupation: form.occupation,
+      insurance: form.insurance,
+      chiefComplaint: form.chiefComplaint,
       anamnesis: form.anamnesis,
-      symptoms: form.symptoms,
+      medicalHistory: form.medicalHistory,
+      backgrounds: form.backgrounds,
+      vitalSigns: form.vitalSigns,
+      physicalExam: form.physicalExam,
       diagnosis: form.diagnosis,
       cieCodes: normalizeCommaValues(form.cieCodes),
+      clinicalAnalysis: form.clinicalAnalysis,
       treatmentPlan: finalTreatment,
+      recommendations: form.recommendations,
+      warningSigns: form.warningSigns,
       specialtyKind: form.specialtyKind,
       evolutionStatus: form.evolutionStatus || undefined,
       followUpDate: form.nextFollowUpDate || undefined,
@@ -718,13 +888,26 @@ export function useConsultationWizard(tenant: TenantProfile | null) {
 
     const specialtyData = {
       specialty_kind: form.specialtyKind,
-      schema_version: 2,
+      schema_version: 3, // Bumped to 3 for expanded clinical fields
       recorded_at: timestamp,
       doctor_id: tenant.doctor_id,
+      patient_snapshot: {
+        gender: form.gender,
+        occupation: form.occupation,
+        insurance: form.insurance,
+      },
+      chief_complaint: form.chiefComplaint.trim(),
       anamnesis: form.anamnesis.trim(),
       symptoms: form.symptoms.trim(),
+      medical_history: form.medicalHistory.trim(),
+      backgrounds: form.backgrounds,
+      vital_signs: form.vitalSigns,
+      physical_exam: form.physicalExam.trim(),
       diagnosis: form.diagnosis.trim(),
+      clinical_analysis: form.clinicalAnalysis.trim(),
       treatment_plan: finalTreatment,
+      recommendations: form.recommendations.trim(),
+      warning_signs: form.warningSigns.trim(),
       treatment_template_id: form.treatmentTemplateId || null,
       evolution_status: form.evolutionStatus.trim() || null,
       next_follow_up_date: form.nextFollowUpDate || null,
@@ -740,10 +923,9 @@ export function useConsultationWizard(tenant: TenantProfile | null) {
       clinic_id: tenant.clinic_id,
       doctor_id: tenant.doctor_id,
       patient_id: form.patientId,
-      chief_complaint: form.anamnesis.trim(),
+      chief_complaint: form.chiefComplaint.trim() || "Consulta médica",
       cie_codes: normalizeCommaValues(form.cieCodes),
       specialty_kind: form.specialtyKind,
-      specialty_data_id: specialtyId,
       specialty_data: specialtyData,
       created_at: timestamp,
       updated_at: timestamp,
@@ -816,6 +998,15 @@ export function useConsultationWizard(tenant: TenantProfile | null) {
   }
 
   async function handleSaveWithoutPdf() {
+    const errors = validateAll();
+    setValidationErrors(errors);
+    
+    if (Object.keys(errors).length > 0) {
+      setError("Revisa los campos obligatorios en rojo.");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
     setSaving(true);
     setError(null);
 
@@ -833,6 +1024,15 @@ export function useConsultationWizard(tenant: TenantProfile | null) {
   }
 
   async function handleSaveWithPdf() {
+    const errors = validateAll();
+    setValidationErrors(errors);
+    
+    if (Object.keys(errors).length > 0) {
+      setError("Revisa los campos obligatorios en rojo.");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
     setSaving(true);
     setError(null);
 
@@ -886,13 +1086,12 @@ export function useConsultationWizard(tenant: TenantProfile | null) {
     // Actions
     openWizard,
     resetWizard,
-    nextStep,
-    prevStep,
     applyTemplate,
     createQuickPatient,
     applyFollowUpMode,
     applyConsultaMode,
     applyCieSuggestion,
+    triggerMagicCieFill,
     handleSaveWithoutPdf,
     handleSaveWithPdf,
     getCurrentPdfPreviewData,

@@ -1,41 +1,20 @@
 "use client";
 
-import { useMemo, useState } from "react";
 import { useTenant } from "@/lib/supabase/tenant-context";
 import { ConsultasSkeleton } from "@/components/ui/skeletons";
 import { useConsultationWizard } from "@/lib/consultations/use-consultation-wizard";
 import { WizardStepPatient } from "@/components/clinical/wizard-step-patient";
 import { WizardStepDiagnosis } from "@/components/clinical/wizard-step-diagnosis";
 import { WizardStepTreatment } from "@/components/clinical/wizard-step-treatment";
-import { WizardStepConfirm } from "@/components/clinical/wizard-step-confirm";
-import { WizardNavigation } from "@/components/clinical/wizard-navigation";
-import { PatientTimeline } from "@/components/clinical/patient-timeline";
-import { WizardPdfPreviewModal } from "@/components/clinical/wizard-pdf-preview-modal";
-import { loadLetterheadSettings } from "@/lib/local-data/letterhead";
 
 export default function ConsultasPage() {
   const { tenant, loading: tenantLoading } = useTenant();
   const wizard = useConsultationWizard(tenant);
-  const [previewOpen, setPreviewOpen] = useState(false);
-
-  const letterhead = useMemo(() => {
-    if (!tenant) {
-      return null;
-    }
-
-    return loadLetterheadSettings(tenant.doctor_id, tenant.clinic_id);
-  }, [tenant]);
 
   if (tenantLoading || wizard.dataLoading) {
     return <ConsultasSkeleton />;
   }
 
-  const stepLabels = [
-    "Paciente",
-    "Diagnóstico",
-    "Tratamiento",
-    "Confirmación",
-  ];
 
   return (
     <section className="hce-page">
@@ -71,46 +50,24 @@ export default function ConsultasPage() {
       ) : null}
 
       {wizard.wizardOpen ? (
-        <article className="hce-surface space-y-5">
-          <div className="flex flex-col gap-4 border-b border-[color:var(--border)] pb-4 sm:flex-row sm:items-center sm:justify-between">
+        <article className="space-y-6">
+          <div className="flex flex-col gap-4 pb-4 sm:flex-row sm:items-center sm:justify-between hce-surface p-6 rounded-2xl">
             <div className="space-y-2">
-              <p className="hce-kicker">Registro guiado</p>
-              <h2 className="hce-section-title">
-                Paso {wizard.step} de 4 · {stepLabels[wizard.step - 1]}
-              </h2>
-              <div className="flex flex-wrap gap-2">
-                {stepLabels.map((label, index) => {
-                  const stepNumber = index + 1;
-                  const isCurrent = wizard.step === stepNumber;
-                  const isDone = wizard.step > stepNumber;
-
-                  return (
-                    <span
-                      key={label}
-                      className={`hce-chip ${
-                        isCurrent
-                          ? "border-teal-300 bg-teal-50 text-teal-900"
-                          : isDone
-                            ? "border-emerald-300 bg-emerald-50 text-emerald-900"
-                            : "border-[color:var(--border)] bg-[color:var(--bg-soft)] text-[color:var(--ink-soft)]"
-                      }`}
-                    >
-                      {stepNumber}. {label}
-                    </span>
-                  );
-                })}
-              </div>
+              <p className="hce-kicker">Registro Clínico</p>
+              <h2 className="text-2xl font-semibold text-ink">Nueva Consulta</h2>
+              <p className="text-sm text-ink-soft">Completa los datos en un solo formulario y guarda al finalizar.</p>
             </div>
             <button
               type="button"
               className="hce-btn-secondary"
               onClick={wizard.resetWizard}
             >
-              Cerrar
+              Cancelar
             </button>
           </div>
 
-          {wizard.step === 1 ? (
+          <section className="hce-surface p-6 rounded-2xl space-y-4">
+            <h3 className="text-lg font-semibold text-ink border-b border-border pb-3">1. Paciente</h3>
             <WizardStepPatient
               form={wizard.form}
               setForm={wizard.setForm}
@@ -124,83 +81,59 @@ export default function ConsultasPage() {
               onApplyConsultaMode={wizard.applyConsultaMode}
               onApplyFollowUpMode={wizard.applyFollowUpMode}
             />
-          ) : null}
+          </section>
 
-          {wizard.step === 2 ? (
-            <WizardStepDiagnosis
-              form={wizard.form}
-              setForm={wizard.setForm}
-              cieSuggestions={wizard.cieSuggestions}
-              cieSuggestionSource={wizard.cieSuggestionSource}
-              cieSuggestionLoading={wizard.cieSuggestionLoading}
-              cieSuggestionError={wizard.cieSuggestionError}
-              cieMatches={wizard.cieMatches}
-              selectedCieCodes={wizard.selectedCieCodes}
-              validationErrors={wizard.validationErrors}
-              onApplyCieSuggestion={wizard.applyCieSuggestion}
-            />
-          ) : null}
+          {wizard.form.patientId ? (
+            <>
+              <section className="hce-surface p-6 rounded-2xl space-y-4">
+                <WizardStepDiagnosis
+                  form={wizard.form}
+                  setForm={wizard.setForm}
+                  validationErrors={wizard.validationErrors}
+                  triggerMagicCieFill={wizard.triggerMagicCieFill}
+                />
+              </section>
 
-          {wizard.step === 3 ? (
-            <WizardStepTreatment
-              form={wizard.form}
-              setForm={wizard.setForm}
-              templates={wizard.templates}
-              validationErrors={wizard.validationErrors}
-              onApplyTemplate={wizard.applyTemplate}
-            />
-          ) : null}
+              <section className="hce-surface p-6 rounded-2xl space-y-4">
+                <WizardStepTreatment
+                  form={wizard.form}
+                  setForm={wizard.setForm}
+                  templates={wizard.templates}
+                  validationErrors={wizard.validationErrors}
+                  onApplyTemplate={wizard.applyTemplate}
+                />
+              </section>
 
-          {wizard.step === 4 ? (
-            <WizardStepConfirm
-              form={wizard.form}
-              patients={wizard.patients}
-              pendingFollowUp={wizard.pendingFollowUp}
-            />
-          ) : null}
-
-          <div className="border-t border-[color:var(--border)] pt-4">
-            <WizardNavigation
-              step={wizard.step}
-              saving={wizard.saving}
-              onPrev={wizard.prevStep}
-              onNext={wizard.nextStep}
-              onSaveWithoutPdf={() => void wizard.handleSaveWithoutPdf()}
-              onOpenPreview={() => setPreviewOpen(true)}
-            />
-          </div>
+              <div className="sticky bottom-4 z-10 rounded-2xl border border-border bg-card/95 backdrop-blur-sm p-4 shadow-xl flex flex-col sm:flex-row gap-4 items-center justify-between">
+                <div>
+                  <p className="font-semibold text-ink">Consulta lista para guardar</p>
+                  <p className="text-xs text-ink-soft">Revisa los datos antes de continuar.</p>
+                </div>
+                <div className="flex flex-wrap gap-3 w-full sm:w-auto">
+                  <button 
+                    onClick={() => void wizard.handleSaveWithoutPdf()} 
+                    className="hce-btn-secondary flex-1 sm:flex-none justify-center"
+                    disabled={wizard.saving}
+                  >
+                    {wizard.saving ? "Guardando..." : "Solo guardar"}
+                  </button>
+                  <button 
+                    onClick={() => void wizard.handleSaveWithPdf()} 
+                    className="hce-btn-primary flex-1 sm:flex-none justify-center"
+                    disabled={wizard.saving}
+                  >
+                    Guardar y Generar PDF
+                  </button>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="hce-surface p-6 rounded-2xl text-center">
+              <p className="text-ink-soft">Selecciona o crea un paciente para continuar con la consulta.</p>
+            </div>
+          )}
         </article>
       ) : null}
-
-      <WizardPdfPreviewModal
-        open={previewOpen}
-        data={wizard.getCurrentPdfPreviewData()}
-        letterhead={
-          letterhead ?? {
-            doctor_name: "Profesional de salud",
-            professional_title: "Especialista",
-            specialties: "",
-            address: "",
-            phone_primary: "",
-            phone_secondary: "",
-            contact_email: "",
-            logo_data_url: "",
-          }
-        }
-        saving={wizard.saving}
-        onClose={() => setPreviewOpen(false)}
-        onConfirmGenerate={() => {
-          setPreviewOpen(false);
-          void wizard.handleSaveWithPdf();
-        }}
-      />
-
-      <PatientTimeline
-        patients={wizard.patients}
-        timelineRows={wizard.timelineRows}
-        selectedPatientTimelineId={wizard.selectedPatientTimelineId}
-        onSelectPatient={wizard.setSelectedPatientTimelineId}
-      />
     </section>
   );
 }

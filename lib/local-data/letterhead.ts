@@ -7,6 +7,7 @@ export type LetterheadSettings = {
   phone_secondary?: string;
   contact_email?: string;
   logo_data_url?: string;
+  signature_data_url?: string;
 };
 
 const DEFAULT_SETTINGS: LetterheadSettings = {
@@ -18,6 +19,7 @@ const DEFAULT_SETTINGS: LetterheadSettings = {
   phone_secondary: "",
   contact_email: "",
   logo_data_url: "",
+  signature_data_url: "",
 };
 
 function key(doctorId: string, clinicId: string) {
@@ -76,6 +78,7 @@ export function saveLetterheadSettings(
       phone_secondary: settings.phone_secondary?.trim() || "",
       contact_email: settings.contact_email?.trim() || "",
       logo_data_url: settings.logo_data_url || "",
+      signature_data_url: settings.signature_data_url || "",
     }),
   );
 }

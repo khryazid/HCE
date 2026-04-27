@@ -49,9 +49,10 @@ const INITIAL_STATE: ProfessionalProfileFormState = {
   signatureName: "",
 };
 
-const EMPTY_LETTERHEAD_STATE: Pick<LetterheadSettings, "specialties" | "logo_data_url"> = {
+const EMPTY_LETTERHEAD_STATE: Pick<LetterheadSettings, "specialties" | "logo_data_url" | "signature_data_url"> = {
   specialties: "",
   logo_data_url: "",
+  signature_data_url: "",
 };
 
 function toProfile(state: ProfessionalProfileFormState): DoctorOnboardingProfile {
@@ -141,6 +142,7 @@ export function ProfessionalProfileForm({
       specialties:
         current.specialties || localLetterhead.specialties || tenant.specialties.join(", "),
       logo_data_url: localLetterhead.logo_data_url || current.logo_data_url,
+      signature_data_url: localLetterhead.signature_data_url || current.signature_data_url,
     }));
   }, [tenant]);
 
@@ -170,6 +172,32 @@ export function ProfessionalProfileForm({
     setError(null);
   }
 
+  async function handleSignatureSelected(file: File | null) {
+    if (!file) {
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      setError("La firma debe ser una imagen valida (PNG, JPG o WEBP).");
+      return;
+    }
+
+    if (file.size > 700_000) {
+      setError("La firma es muy pesada. Usa una imagen menor a 700KB.");
+      return;
+    }
+
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.onerror = () => reject(new Error("No se pudo leer el archivo."));
+      reader.readAsDataURL(file);
+    });
+
+    setLetterhead((current) => ({ ...current, signature_data_url: dataUrl }));
+    setError(null);
+  }
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSaving(true);
@@ -189,6 +217,7 @@ export function ProfessionalProfileForm({
           phone_secondary: form.secondaryPhone || "",
           contact_email: form.publicContactEmail || "",
           logo_data_url: letterhead.logo_data_url,
+          signature_data_url: letterhead.signature_data_url,
         });
       }
 
@@ -404,6 +433,43 @@ export function ProfessionalProfileForm({
                 className="rounded-lg border border-border bg-card px-3 py-2 text-xs font-semibold text-ink-soft"
               >
                 Quitar logo
+              </button>
+            </div>
+          ) : null}
+        </div>
+
+        <div className="space-y-3 rounded-2xl border border-border bg-bg-soft p-4 sm:col-span-2">
+          <div>
+            <p className="text-sm font-semibold text-ink">Firma profesional para PDF</p>
+            <p className="text-xs text-ink-soft">Dibuja tu firma en papel blanco, tómale una foto y súbela aquí. Se imprimirá al final de la receta.</p>
+          </div>
+
+          <input
+            className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm"
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            onChange={(event) => {
+              const file = event.target.files?.[0] ?? null;
+              void handleSignatureSelected(file);
+            }}
+          />
+
+          {letterhead.signature_data_url ? (
+            <div className="flex items-center gap-4">
+              <Image
+                src={letterhead.signature_data_url}
+                alt="Firma profesional"
+                width={120}
+                height={45}
+                unoptimized
+                className="h-[45px] w-[120px] rounded-xl border border-border bg-card object-contain p-1"
+              />
+              <button
+                type="button"
+                onClick={() => setLetterhead((current) => ({ ...current, signature_data_url: "" }))}
+                className="rounded-lg border border-border bg-card px-3 py-2 text-xs font-semibold text-ink-soft"
+              >
+                Quitar firma
               </button>
             </div>
           ) : null}

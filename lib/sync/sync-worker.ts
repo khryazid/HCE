@@ -3,7 +3,9 @@ import {
   deleteSyncQueueItem,
   getSyncQueueItemsByStatus,
   updateSyncItemStatus,
+  getOfflineDb,
 } from "@/lib/db/indexeddb";
+import { decryptJson, encryptJson } from "@/lib/db/crypto";
 import type { SyncQueueItem } from "@/types/sync";
 
 const MAX_RETRIES = 3;
@@ -187,6 +189,18 @@ async function syncItem(item: SyncQueueItem): Promise<"synced" | "conflicted"> {
     const { error } = await tableClient.upsert(payload, { onConflict: "id" });
 
     if (error) {
+      if ((error as any).code === "23505" && tableName === "patients") {
+        const { data: existingPatient } = await (supabase as any)
+          .from("patients")
+          .select("id")
+          .eq("clinic_id", item.clinic_id)
+          .eq("document_number", payload.document_number as string)
+          .single();
+
+        if (existingPatient) {
+          throw new Error(`PATIENT_MERGE_REQUIRED:${existingPatient.id}`);
+        }
+      }
       throw error;
     }
   }
@@ -269,6 +283,47 @@ export async function flushSyncQueue() {
               typeof (error as { message?: unknown }).message === "string"
             ? ((error as { message: string }).message)
             : "Unknown sync error";
+            
+      if (message.startsWith("PATIENT_MERGE_REQUIRED:")) {
+        const realId = message.split(":")[1];
+        if (realId) {
+          try {
+            const db = await getOfflineDb();
+            
+            await deleteSyncQueueItem(item.id);
+            
+            const allItems = await db.getAll("sync_queue");
+            for (const q of allItems) {
+              if (q.table_name === "clinical_records") {
+                const p = await decryptJson<Record<string, unknown>>(q.payload);
+                if (p.patient_id === item.record_id) {
+                  p.patient_id = realId;
+                  q.payload = await encryptJson(p);
+                  await db.put("sync_queue", q);
+                }
+              }
+            }
+            
+            const allRecords = await db.getAll("clinical_records");
+            for (const r of allRecords) {
+              if (r.patient_id === item.record_id) {
+                r.patient_id = realId;
+                await db.put("clinical_records", r);
+              }
+            }
+            
+            await db.delete("patients", item.record_id);
+            
+            succeeded += 1;
+            continue;
+          } catch (mergeError) {
+            console.error("Failed to merge duplicate patient:", mergeError);
+          }
+        }
+      }
+      
+      console.error("Sync failed for item", item.table_name, item.record_id, "Error:", error, "Message:", message);
+      
       const retryCount = item.retry_count + 1;
 
       if (retryCount >= MAX_RETRIES) {

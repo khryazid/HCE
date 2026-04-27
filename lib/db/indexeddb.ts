@@ -353,13 +353,11 @@ export async function listClinicalRecordsByTenant(
             chief_complaint: string;
             cie_codes: string[];
             specialty_data: ClinicalRecordRecord["specialty_data"];
-            specialty_data_id: string;
           }>(record.payload)
         : {
             chief_complaint: record.chief_complaint,
             cie_codes: record.cie_codes,
             specialty_data: record.specialty_data,
-            specialty_data_id: record.specialty_data_id,
           };
 
       return {
@@ -370,7 +368,6 @@ export async function listClinicalRecordsByTenant(
         chief_complaint: payload.chief_complaint,
         cie_codes: payload.cie_codes,
         specialty_kind: record.specialty_kind,
-        specialty_data_id: payload.specialty_data_id,
         specialty_data: payload.specialty_data,
         created_at: record.created_at,
         updated_at: record.updated_at,
@@ -389,14 +386,12 @@ export async function saveClinicalRecordLocal(record: ClinicalRecordRecord) {
     doctor_id: record.doctor_id,
     patient_id: record.patient_id,
     specialty_kind: record.specialty_kind,
-    specialty_data_id: record.specialty_data_id,
     created_at: record.created_at,
     updated_at: record.updated_at,
     payload: await encryptJson({
       chief_complaint: record.chief_complaint,
       cie_codes: record.cie_codes,
       specialty_data: record.specialty_data,
-      specialty_data_id: record.specialty_data_id,
     }),
   });
 }

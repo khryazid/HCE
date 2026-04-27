@@ -129,10 +129,7 @@ async function requestGeminiSuggestions(input: RequestBody) {
   const model = process.env.GEMINI_MODEL || "gemini-2.0-flash";
   const combinedQuery = [input.diagnosis, input.symptoms, input.anamnesis].filter(Boolean).join(" ").trim();
   const candidateEntries = searchCieCatalog(combinedQuery).slice(0, 8);
-
-  if (candidateEntries.length === 0) {
-    return buildCatalogSuggestions(CIE_CATALOG.slice(0, 5), "Sin coincidencias locales; usando catalogo base.");
-  }
+  const contextEntries = candidateEntries.length > 0 ? candidateEntries : CIE_CATALOG.slice(0, 8);
 
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
@@ -145,7 +142,7 @@ async function requestGeminiSuggestions(input: RequestBody) {
         contents: [
           {
             role: "user",
-            parts: [{ text: buildCieSuggestionPrompt(input, candidateEntries) }],
+            parts: [{ text: buildCieSuggestionPrompt(input) }],
           },
         ],
         generationConfig: {
@@ -171,13 +168,13 @@ async function requestGeminiSuggestions(input: RequestBody) {
   };
 
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-  const suggestions = extractGeminiSuggestions(text, candidateEntries);
+  const suggestions = extractGeminiSuggestions(text);
 
   if (suggestions.length > 0) {
     return suggestions;
   }
 
-  return buildCatalogSuggestions(candidateEntries.slice(0, 5), "El modelo no devolvio una respuesta valida; se muestran coincidencias locales.");
+  return buildCatalogSuggestions(CIE_CATALOG.slice(0, 5), "El modelo no devolvio una respuesta valida.");
 }
 
 export async function POST(request: Request) {
@@ -219,13 +216,6 @@ export async function POST(request: Request) {
       return NextResponse.json({
         source: "catalog",
         suggestions: buildCatalogSuggestions(CIE_CATALOG.slice(0, 5), "Completa diagnostico o sintomas para obtener sugerencias."),
-      });
-    }
-
-    if (localCandidates.length === 0) {
-      return NextResponse.json({
-        source: "catalog",
-        suggestions: buildCatalogSuggestions(CIE_CATALOG.slice(0, 5), "No hubo coincidencias locales claras."),
       });
     }
 
