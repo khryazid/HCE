@@ -150,33 +150,50 @@ Este es el único tasklist activo del proyecto. Resume lo ya completado y lo que
 - [x] Se extrajo el manejo de deep-link de seguimiento del wizard a un custom hook dedicado (`useFollowUpDeepLink`).
 - [x] Se extrajo el bootstrap de datos del wizard por tenant a un custom hook dedicado (`useConsultationBootstrapData`).
 
-## Pendiente
+## Pendiente priorizado
 
-- [x] Endurecer el worker de sincronización con backoff por item, reintentos controlados y separación clara entre fallo temporal y registro abandonado.
-- [x] Revisar [lib/sync/sync-worker.ts](lib/sync/sync-worker.ts) para que los fallos persistentes no entren en ciclos de reintento demasiado frecuentes.
-- [x] Separar `useConsultationWizard` en piezas menores para que la lógica de consulta sea testeable y mantenible.
-- [x] Revisar el copy de estados de éxito y error para que sea más accionable y menos genérico.
-- [x] Revisar la estructura de `components/ui` para seguir consolidando patrones reutilizables y evitar estilos aislados por pantalla.
-- [x] Hacer una revisión formal de teclado, foco visible, contraste y jerarquía visual en auth, dashboard, consultas, pacientes y ajustes.
-- [x] Validar la experiencia móvil en listas largas, wizard clínico y panel de sincronización.
-- [x] Revisar si hay controles que dependen demasiado del color para comunicar estado.
-- [x] Probar de forma explícita los estados vacíos, de carga y de error en cada flujo principal.
+### Alta
 
-### Hallazgos de auditoria 2026-04-27
+- [ ] Revisar la estructura de [components/ui](components/ui) para consolidar patrones reutilizables y evitar estilos aislados por pantalla.
+- [ ] Hacer revisión formal de teclado, foco visible, contraste y jerarquía visual en auth, dashboard, consultas, pacientes y ajustes.
+- [ ] Validar la experiencia móvil en listas largas, wizard clínico y panel de sincronización.
+- [ ] Corregir errores de color en login y registro para que no haya textos claros sobre fondos claros o ilegibles, sin refactorizar la pantalla.
+- [ ] Descomponer [app/(dashboard)/pacientes/page.tsx](app/(dashboard)/pacientes/page.tsx) en Container + componentes presentacionales para lista, perfil, historial y modales.
+- [ ] Endurecer el borrado de paciente/consultas en [app/(dashboard)/pacientes/page.tsx](app/(dashboard)/pacientes/page.tsx) para evitar operaciones secuenciales largas sin feedback por item.
+- [ ] Descomponer [app/(dashboard)/dashboard/page.tsx](app/(dashboard)/dashboard/page.tsx) separando métricas, seguimientos, actividad y gráficos en módulos reutilizables.
+- [ ] Seguir descomponiendo [lib/consultations/use-consultation-wizard.ts](lib/consultations/use-consultation-wizard.ts) extrayendo acciones de guardado y transiciones de modo a hooks dedicados.
+- [ ] Tipar mejor [lib/sync/sync-worker.ts](lib/sync/sync-worker.ts) eliminando casts `as any` en errores y cliente Supabase, con type guards para errores Postgres/RPC.
+- [ ] Optimizar el merge de pacientes duplicados en [lib/sync/sync-worker.ts](lib/sync/sync-worker.ts) para evitar recorridos completos de `sync_queue` y `clinical_records` en cada conflicto.
+- [ ] Descomponer [components/ui/professional-profile-form.tsx](components/ui/professional-profile-form.tsx) en secciones claras para perfil, logo/firma y backup de clave.
+- [ ] Unificar patrones visuales entre [components/ui/auth-form.tsx](components/ui/auth-form.tsx) y el resto de la UI usando tokens y variantes comunes.
+- [ ] Mejorar la semántica y accesibilidad de la selección de especialidades en [components/ui/auth-form.tsx](components/ui/auth-form.tsx).
+- [ ] Corregir el mapeo de especialidad canónica del registro de médicos para que no se pierda información al persistir `specialties`.
+- [ ] Corregir el espaciado en los PDFs generados para asegurar espacio después de `:` en todas las secciones.
+- [ ] Corregir la superposición de Exámenes Físicos y Signos Vitales en PDF separando y organizando visualmente el contenido, con signos de alarma en rojo.
+- [ ] Cambiar el formato de fecha de `mm/dd/aaaa` a `dd/mm/aaaa` en toda la app.
+- [ ] Investigar y corregir el `TypeError: Failed to fetch` al actualizar datos de usuario sin conexión.
+- [ ] Cerrar la brecha RLS por tenant en [lib/supabase/000_production_full_schema.sql](lib/supabase/000_production_full_schema.sql).
+- [ ] Reforzar la custodia de la clave PHI en [lib/db/crypto.ts](lib/db/crypto.ts) para que el backup y el almacenamiento local sean consistentes con el modelo de amenaza.
 
-- [ ] Descomponer `app/(dashboard)/pacientes/page.tsx` (694 lineas) en Container + componentes presentacionales (lista, perfil, historial, modales) para reducir acoplamiento y facilitar pruebas.
-- [x] Eliminar `eslint-disable react-hooks/exhaustive-deps` en `app/(dashboard)/pacientes/page.tsx` y reemplazarlo por dependencias estables con hooks/memos para evitar estados obsoletos.
-- [x] Mejorar accesibilidad del historial expandible en `app/(dashboard)/pacientes/page.tsx` agregando `aria-expanded`, `aria-controls` e `id` de panel.
-- [ ] Endurecer borrado de paciente/consultas en `app/(dashboard)/pacientes/page.tsx`: evitar operaciones secuenciales largas sin control de errores parcial, y agregar feedback por item fallido.
-- [ ] Descomponer `app/(dashboard)/dashboard/page.tsx` (516 lineas) separando calculo de metricas, panel de seguimientos, actividad y graficos en modulos reutilizables.
-- [ ] Agregar pruebas para dashboard y pacientes (unitarias de calculos + integracion de interacciones clave) para reducir regresiones en vistas core.
-- [ ] Seguir descomponiendo `lib/consultations/use-consultation-wizard.ts` (566 lineas): extraer acciones de guardado y transiciones de modo a hooks dedicados para cerrar el refactor iniciado.
-- [ ] Tipar mejor `lib/sync/sync-worker.ts` eliminando casts `as any` en errores y cliente Supabase, con type guards para errores Postgres/RPC.
-- [ ] Optimizar flujo de merge de pacientes duplicados en `lib/sync/sync-worker.ts` para evitar recorridos completos de `sync_queue` y `clinical_records` en cada conflicto, con helper dedicado y pruebas de volumen.
-- [ ] Descomponer `components/ui/professional-profile-form.tsx` (480 lineas) en secciones (perfil, logo/firma, backup de clave) y hooks de archivo/backup para aplicar SRP.
-- [ ] Unificar patrones visuales entre `components/ui/auth-form.tsx` y el resto de UI (`hce-input`, `hce-btn-*`, alertas), evitando estilos aislados por pantalla.
-- [ ] Mejorar semantica y a11y de seleccion de especialidades en `components/ui/auth-form.tsx` (chips con estado seleccionable accesible por teclado/lector).
-- [x] Reducir polling fijo en `components/ui/sync-queue-panel.tsx` (cada 4s): combinar refresco por eventos de sync/online/visibility y fallback temporal para ahorrar recursos.
+### Media
+
+- [ ] Formalizar observabilidad básica para errores de sync y de API.
+- [ ] Agregar pruebas para dashboard y pacientes con cálculos unitarios e integraciones de interacciones clave.
+- [ ] Crear pruebas de regresión para el wizard, la cola de sincronización y los casos de merge de pacientes.
+- [ ] Mejorar la experiencia de rate limiting CIE con métricas y feedback más claro de latencia o error.
+- [ ] Unificar componentes reutilizables en [components/ui](components/ui) para evitar estilos aislados por pantalla.
+- [ ] Convertir el wizard de consultas en un conjunto de hooks pequeños y componentes presentacionales.
+- [ ] Validar de forma explícita los estados vacíos, de carga y de error en cada flujo principal.
+- [ ] Revisar el sistema de PDF y overlays para estandarizar z-index, contraste y superposición.
+- [ ] Añadir una vista de recuperación para elementos `abandoned` de la cola de sincronización.
+
+### Baja
+
+- [ ] Reducir la lógica de polling residual en paneles de estado cuando no aporte valor operativo.
+- [ ] Hacer una limpieza de rutas y páginas de soporte que no aporten valor operativo.
+- [ ] Preparar una segunda pasada de UX centrada solo en claridad clínica y velocidad de uso.
+- [ ] Reforzar controles que dependan demasiado del color para comunicar estado.
+- [ ] Añadir métricas ligeras de uso para priorizar futuras mejoras de UI y flujo clínico.
 
 ## Siguientes pasos recomendados
 
@@ -184,52 +201,3 @@ Este es el único tasklist activo del proyecto. Resume lo ya completado y lo que
 2. Formalizar observabilidad básica para errores de sync y de API.
 3. Hacer una limpieza de rutas y páginas de soporte que no aporten valor operativo.
 4. Preparar una segunda pasada de UX centrada solo en claridad clínica y velocidad de uso.
-
-### Plan de ejecución priorizado (rápido y accionable)
-
-**Objetivo:** reducir riesgos inmediatos (datos, sync, accesibilidad) y preparar refactors grandes con cambios pequeños y verificables.
-
-- **Quick wins (pequeño, 0.5-1 día cada uno)**
-	- [ ] Eliminar `// eslint-disable-next-line react-hooks/exhaustive-deps` en `app/(dashboard)/pacientes/page.tsx` y arreglar dependencias de los hooks. (reduce bugs de estado)
-	- [ ] Añadir `aria-expanded`, `aria-controls` y `id` a los elementos expandibles del historial en `app/(dashboard)/pacientes/page.tsx`. (mejora a11y)
-	- [ ] Reducir polling en `components/ui/sync-queue-panel.tsx`: usar eventos `SYNC_FINISHED_EVENT`, `online` y `visibilitychange` con fallback de 30s. (ahorro CPU/batería)
-	- [ ] Añadir foco visible y roles a botones claves en `components/ui/auth-form.tsx` y `components/ui/professional-profile-form.tsx`. (mejora a11y)
-
-- **Medianos (2-4 días cada uno)**
-	- [ ] Descomponer `components/ui/professional-profile-form.tsx` en `ProfileForm`, `LetterheadUploader` y `KeyBackupSection` con hooks `useFileReader` y `useKeyBackup`. (SRP + testable)
-	- [ ] Añadir pruebas unitarias para `app/(dashboard)/dashboard/page.tsx` calculos de métricas y `app/(dashboard)/pacientes/page.tsx` filtros/selección. (reduce regresiones)
-	- [ ] Tipar `lib/sync/sync-worker.ts` eliminando `as any`, agregar type guards para errores Postgres y pruebas unitarias que simulen `PATIENT_MERGE_REQUIRED`. (seguridad de sync)
-
-- **Grandes (1-2+ semanas)**
-	- [ ] Dividir `app/(dashboard)/pacientes/page.tsx` en Container + `PatientList`, `PatientProfile`, `PatientHistory` y `PatientActions`. Migrar estado a hooks pequeños y contexto si es necesario. (mantenibilidad)
-	- [ ] Refactorizar `lib/consultations/use-consultation-wizard.ts` extrayendo `useWizardSave`, `useWizardAutofill`, `useWizardDraft` y componentes por paso. Añadir pruebas de integración del wizard. (reducción de complejidad)
-	- [ ] Refactorizar `app/(dashboard)/dashboard/page.tsx` en componentes reutilizables (MetricsCard, FollowUpPanel, ActivityFeed, Charts) y mover cálculos a utilitarios puros con tests. (claridad + reutilización)
-
-**Primer sprint recomendado (1 semana)**
-- Día 1-2: Quick wins listados arriba (eslint, a11y, polling, foco).
-- Día 3-5: Descomponer `professional-profile-form` y añadir tests básicos para sus helpers.
-
-Si confirmas, comienzo con los "Quick wins" en este repo: aplicaré los cambios en pequeñas PRs y ejecutaré tests locales tras cada cambio.
-
-## Análisis automatizado (Copilot) — 2026-04-27
-
-Resumen rápido: la base del proyecto es sólida (Next.js 16 App Router, TypeScript, Tailwind, tests y PWA). Hay refactors ya iniciados; sugiero añadir tareas operativas y técnicas de bajo coste que reducen riesgo inmediato y preparan refactors mayores.
-
-Tareas adicionales recomendadas (accionables):
-
-- **CI/E2E:** Añadir job en CI para `npm run test:e2e` (headed/headed=false según secreto) y reportes Playwright; marcar como obligatorio en merges de `main`.
-- **Pre-commit:** Instalar `husky` + `lint-staged` para ejecutar `npm run lint`, `npm run typecheck --noEmit` y tests rápidos antes de commit.
-- **A11y automatizada:** Integrar `axe-core` o `playwright-axe` en la suite E2E y añadir job de accesibilidad que falle en violaciones graves.
-- **Lint & reglas a11y:** Activar `eslint-plugin-jsx-a11y` y reglas clave (`interactive-supports-focus`, `no-autofocus`, `anchor-is-valid`) y corregir errores encontrados.
-- **Dependabot / seguridad:** Activar Dependabot para actualizaciones de libs y un escaneo SCA (GitHub Dependabot alerts o similar).
-- **TypeScript stricter:** Forzar `strict: true` en `tsconfig.json` y corregir los `any` más críticos (especialmente en `lib/sync` y WebCrypto wrappers).
-- **Component library / Storybook:** Iniciar `Storybook` o catálogo visual mínimo para `components/ui` y cubrir átomos (Button, Input, Modal, Skeleton) para evitar estilos duplicados.
-- **Design tokens:** Extraer variables de diseño (colores, espaciado, tipografías) a un archivo central (Tailwind config + tokens exportables) para consistencia visual.
-- **Observabilidad:** Añadir hooks para logging de errores en sync (Sentry/LogRocket opcional) y métricas básicas para fallos de sync y errores de guardado de consulta.
-- **Optimización assets:** Usar `next/image` donde aplique, y revisar `public/` para imágenes innecesarias; añadir `image-webpack-loader`/optimización en build si procede.
-- **Polling -> eventos:** Reemplazar polling fijo por eventos (`sync`/`online`/`visibilitychange`) con fallback razonable (30s) en paneles que consumen CPU.
-- **PR template & checklist:** Añadir plantilla de PR que requiera `lint`, `typecheck`, tests, y verificación de accesibilidad mínima.
-
-Prioridad sugerida: CI/E2E, Pre-commit, A11y automatizada y TypeScript stricter (alta); Storybook, Design tokens, Observabilidad (media); Optimización assets y Dependabot (baja-mediana).
-
-Si quieres, empiezo aplicando el primer bloque (CI + pre-commit + reglas a11y) en una PR pequeña.
