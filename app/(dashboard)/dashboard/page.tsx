@@ -32,25 +32,14 @@ const EMPTY_METRICS: DashboardMetrics = {
   incompleteRecords: 0,
 };
 
-type ActivityItem =
-  | {
-      type: "consultation";
-      id: string;
-      title: string;
-      subtitle: string;
-      detail: string;
-      date: string;
-      patientId: string;
-    }
-  | {
-      type: "patient";
-      id: string;
-      title: string;
-      subtitle: string;
-      detail: string;
-      date: string;
-      patientId: string;
-    };
+type ActivityItem = {
+  id: string;
+  fullName: string;
+  ageText: string;
+  lastVisitReason: string | null;
+  status: string;
+  date: string;
+};
 
 type FollowUpPanelFilter = "urgentes" | "vencidos" | "proximos";
 
@@ -196,45 +185,43 @@ function calculateMetrics(
   };
 }
 
+function calculateAge(birthDate: string | null): string {
+  if (!birthDate) return "Edad no registrada";
+  const birth = new Date(birthDate);
+  const diff = Date.now() - birth.getTime();
+  const ageDate = new Date(diff);
+  return `${Math.abs(ageDate.getUTCFullYear() - 1970)} años`;
+}
+
 function buildActivityFeed(
   patients: PatientRecord[],
-  records: ClinicalRecordRecord[],
+  records: ClinicalRecordRecord[]
 ): ActivityItem[] {
-  const patientMap = new Map(patients.map((patient) => [patient.id, patient]));
+  return patients
+    .slice(0, 5)
+    .map((patient) => {
+      const patientRecords = records
+        .filter((r) => r.patient_id === patient.id)
+        .sort((a, b) => b.updated_at.localeCompare(a.updated_at));
+      
+      const lastRecord = patientRecords[0];
 
-  const consultationItems = records.slice(0, 5).map((record) => {
-    const patient = patientMap.get(record.patient_id);
-    return {
-      type: "consultation" as const,
-      id: record.id,
-      title: patient ? patient.full_name : "Consulta clinica",
-      subtitle: record.specialty_kind,
-      detail: record.chief_complaint,
-      date: record.updated_at,
-      patientId: record.patient_id,
-    };
-  });
-
-  const patientItems = patients.slice(0, 5).map((patient) => ({
-    type: "patient" as const,
-    id: patient.id,
-    title: patient.full_name,
-    subtitle: patient.document_number,
-    detail: patient.birth_date ? `Nacimiento: ${patient.birth_date}` : "Paciente actualizado recientemente",
-    date: patient.updated_at,
-    patientId: patient.id,
-  }));
-
-  return [...consultationItems, ...patientItems]
-    .sort((first, second) => second.date.localeCompare(first.date))
-    .slice(0, 8);
+      return {
+        id: patient.id,
+        fullName: patient.full_name,
+        ageText: calculateAge(patient.birth_date),
+        lastVisitReason: lastRecord ? lastRecord.chief_complaint : null,
+        status: patient.status,
+        date: patient.updated_at,
+      };
+    })
+    .sort((a, b) => b.date.localeCompare(a.date));
 }
 
 export default function DashboardPage() {
   const { tenant, session, loading: tenantLoading, error: tenantError } = useTenant();
   const [metrics, setMetrics] = useState<DashboardMetrics>(EMPTY_METRICS);
   const [activity, setActivity] = useState<ActivityItem[]>([]);
-  const [selectedActivity, setSelectedActivity] = useState<ActivityItem | null>(null);
   const [patientsData, setPatientsData] = useState<PatientRecord[]>([]);
   const [recordsData, setRecordsData] = useState<ClinicalRecordRecord[]>([]);
   const [followUpFilter, setFollowUpFilter] = useState<FollowUpPanelFilter>("urgentes");
@@ -435,67 +422,28 @@ export default function DashboardPage() {
                 ? `Hoy registraste ${metrics.consultationsToday} consulta${metrics.consultationsToday === 1 ? "" : "s"}.`
                 : "Aun no registras consultas hoy. Puedes iniciar con una accion rapida."}
             </p>
-          </div>
-
-          <div className="grid w-full gap-2 sm:grid-cols-3 lg:w-auto">
-            <Link href="/consultas" className="rounded-2xl bg-teal-700 px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-teal-800">
-              Nueva consulta
-            </Link>
-            <Link href="/pacientes" className="rounded-2xl border border-teal-300 bg-card px-4 py-3 text-center text-sm font-semibold text-teal-900 transition hover:bg-teal-50">
-              Buscar paciente
-            </Link>
-            <Link href="/consultas?mode=seguimiento" className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-center text-sm font-semibold text-amber-900 transition hover:bg-amber-100">
-              Abrir seguimientos
-            </Link>
-          </div>
         </div>
-
-        <div className="mt-4 grid gap-2 sm:grid-cols-3">
-          <div className="hce-surface-soft px-3 py-2">
-            <p className="text-[11px] uppercase tracking-[0.15em] text-[color:var(--ink-soft)]">Consultas hoy</p>
-            <p className="mt-1 text-lg font-semibold text-[color:var(--ink)]">{metrics.consultationsToday}</p>
-          </div>
-          <div className="hce-surface-soft px-3 py-2">
-            <p className="text-[11px] uppercase tracking-[0.15em] text-[color:var(--ink-soft)]">Seguimientos urgentes</p>
-            <p className="mt-1 text-lg font-semibold text-[color:var(--ink)]">{urgentFollowUps}</p>
-          </div>
-          <div className="hce-surface-soft px-3 py-2">
-            <p className="text-[11px] uppercase tracking-[0.15em] text-[color:var(--ink-soft)]">Registros incompletos</p>
-            <p className="mt-1 text-lg font-semibold text-[color:var(--ink)]">{metrics.incompleteRecords}</p>
-          </div>
         </div>
       </article>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <article className="hce-surface-soft p-4">
-          <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-700">
+      <div className="grid gap-4 md:grid-cols-3">
+        <article className="hce-surface p-4 flex flex-col items-center justify-center text-center transition hover:shadow-md">
+          <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-ink-soft">
             Pacientes activos
           </h2>
-          <p className="mt-2 text-2xl font-semibold text-[color:var(--ink)]">{metrics.activePatients}</p>
+          <p className="mt-2 text-3xl font-semibold text-[color:var(--ink)]">{metrics.activePatients}</p>
         </article>
-        <article className="hce-surface-soft p-4">
-          <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
-            Consultas del dia
+        <article className="hce-surface p-4 flex flex-col items-center justify-center text-center transition hover:shadow-md">
+          <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-ink-soft">
+            Seguimientos pendientes
           </h2>
-          <p className="mt-2 text-2xl font-semibold text-[color:var(--ink)]">{metrics.consultationsToday}</p>
+          <p className="mt-2 text-3xl font-semibold text-[color:var(--ink)]">{metrics.followUpPending}</p>
         </article>
-        <article className="hce-surface-soft p-4">
-          <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-700">
-            Seguimiento pendiente
+        <article className={`hce-surface p-4 flex flex-col items-center justify-center text-center transition hover:shadow-md ${metrics.incompleteRecords > 0 ? 'border-amber-200 bg-amber-50/30' : ''}`}>
+          <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-ink-soft">
+            Registros incompletos
           </h2>
-          <p className="mt-2 text-2xl font-semibold text-[color:var(--ink)]">{metrics.followUpPending}</p>
-        </article>
-        <article className="hce-surface-soft p-4">
-          <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-violet-700">
-            Top especialidades
-          </h2>
-          <p className="mt-2 text-sm font-semibold text-[color:var(--ink)]">
-            {metrics.consultationsBySpecialty.length > 0
-              ? metrics.consultationsBySpecialty
-                  .map((entry) => `${entry.specialty} (${entry.total})`)
-                  .join(" · ")
-              : "Sin consultas registradas"}
-          </p>
+          <p className="mt-2 text-3xl font-semibold text-[color:var(--ink)]">{metrics.incompleteRecords}</p>
         </article>
       </div>
 
@@ -560,151 +508,84 @@ export default function DashboardPage() {
         </article>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+      <div className="grid gap-4 lg:grid-cols-2">
         <article className="hce-surface p-4">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="text-sm font-semibold text-[color:var(--ink)]">Actividad reciente</h2>
-            <p className="text-xs text-[color:var(--ink-soft)]">Toca un item para verlo en detalle</p>
+            <h2 className="text-sm font-semibold text-[color:var(--ink)]">Pacientes Recientes</h2>
+            <Link href="/pacientes" className="text-xs text-accent hover:underline">Ver todos</Link>
           </div>
-          <div className="mt-3 space-y-2">
+          <div className="mt-4 space-y-2">
             {activity.length === 0 ? (
               <div className="hce-empty">
                 Aun no hay actividad reciente.
               </div>
             ) : (
               activity.map((item) => (
-                <button
-                  key={`${item.type}-${item.id}`}
-                  type="button"
-                  onClick={() => setSelectedActivity(item)}
-                  className={`w-full rounded-xl border px-3 py-3 text-left transition hover:bg-[color:var(--bg-soft)] ${
-                    selectedActivity?.type === item.type && selectedActivity?.id === item.id
-                      ? "border-teal-300 bg-teal-50/70"
-                      : "border-[color:var(--border)] bg-[color:var(--card)]"
-                  }`}
+                <Link
+                  key={item.id}
+                  href={`/pacientes?id=${item.id}`}
+                  className="block w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--card)] px-4 py-3 text-left transition hover:bg-[color:var(--bg-soft)]"
                 >
-                  <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-semibold text-[color:var(--ink)]">{item.title}</p>
-                      <p className="text-xs uppercase tracking-[0.15em] text-[color:var(--ink-soft)]">
-                        {item.type === "consultation" ? "Consulta" : "Paciente"} · {item.subtitle}
+                      <p className="text-sm font-semibold text-[color:var(--ink)]">{item.fullName}</p>
+                      <p className="text-xs text-[color:var(--ink-soft)] mt-0.5">
+                        {item.ageText} {item.lastVisitReason ? `· Motivo: ${item.lastVisitReason.slice(0, 40)}${item.lastVisitReason.length > 40 ? '...' : ''}` : ''}
                       </p>
                     </div>
-                    <span className="text-xs text-[color:var(--ink-soft)]">{new Date(item.date).toLocaleString("es-EC")}</span>
+                    <div className="flex flex-col items-end gap-1">
+                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider
+                        ${item.status === 'activo' ? 'bg-emerald-100 text-emerald-700' : ''}
+                        ${item.status === 'inactivo' ? 'bg-slate-100 text-slate-600' : ''}
+                        ${item.status === 'en-seguimiento' ? 'bg-sky-100 text-sky-700' : ''}
+                        ${item.status === 'alta' ? 'bg-amber-100 text-amber-700' : ''}
+                      `}>
+                        {item.status.replace('-', ' ')}
+                      </span>
+                      <span className="text-[10px] text-[color:var(--ink-soft)]">{new Date(item.date).toLocaleDateString("es-EC")}</span>
+                    </div>
                   </div>
-                  <p className="mt-2 text-sm text-[color:var(--ink-soft)]">{item.detail}</p>
-                </button>
+                </Link>
               ))
             )}
           </div>
         </article>
 
         <article className="hce-surface p-4">
-          <h2 className="text-sm font-semibold text-[color:var(--ink)]">Detalle</h2>
-          {selectedActivity ? (
-            <div className="mt-3 space-y-3">
-              <div className="hce-surface-soft">
-                <p className="text-xs uppercase tracking-[0.15em] text-[color:var(--ink-soft)]">
-                  {selectedActivity.type === "consultation" ? "Consulta" : "Paciente"}
-                </p>
-                <h3 className="mt-1 text-lg font-semibold text-[color:var(--ink)]">{selectedActivity.title}</h3>
-                <p className="mt-1 text-sm text-[color:var(--ink-soft)]">{selectedActivity.detail}</p>
-                <p className="mt-2 text-xs text-[color:var(--ink-soft)]">
-                  {new Date(selectedActivity.date).toLocaleString("es-EC")}
-                </p>
-              </div>
-              <Link
-                href={selectedActivity.type === "consultation" ? "/consultas" : "/pacientes"}
-                className="hce-btn-primary"
-              >
-                Abrir modulo relacionado
-              </Link>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
+            <div>
+              <h2 className="text-sm font-semibold text-[color:var(--ink)]">Seguimientos Pendientes</h2>
+              <p className="text-xs text-[color:var(--ink-soft)]">Urgentes y vencidos</p>
             </div>
-          ) : (
-            <p className="mt-3 text-sm text-[color:var(--ink-soft)]">
-              Selecciona una actividad para ver detalles accionables.
-            </p>
-          )}
-        </article>
-      </div>
-
-      <article className="hce-surface p-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2 className="text-sm font-semibold text-[color:var(--ink)]">Panel de seguimientos pendientes</h2>
-            <p className="text-xs text-[color:var(--ink-soft)]">Filtra por urgentes, vencidos o proximos para priorizar controles.</p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {([
-              ["urgentes", "Urgentes"],
-              ["vencidos", "Vencidos"],
-              ["proximos", "Proximos"],
-            ] as Array<[FollowUpPanelFilter, string]>).map(([filter, label]) => (
-              <button
-                key={filter}
-                type="button"
-                onClick={() => setFollowUpFilter(filter)}
-                className={`hce-chip ${
-                  followUpFilter === filter
-                    ? "border-teal-300 bg-teal-50 text-teal-900"
-                      : "border-[color:var(--border)] bg-[color:var(--card)] text-[color:var(--ink)] hover:bg-[color:var(--bg-soft)]"
-                }`}
-              >
-                {label} ({followUpCounts[filter]})
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="mt-4 space-y-2">
-          {filteredFollowUpItems.length === 0 ? (
+          <div className="space-y-2">
+            {filteredFollowUpItems.length === 0 ? (
               <div className="hce-empty">
-              No hay seguimientos en este filtro.
-            </div>
-          ) : (
-            filteredFollowUpItems.map((item) => (
-              <div
-                key={item.recordId}
-                  className="rounded-xl border border-[color:var(--border)] bg-[color:var(--card)] px-3 py-3"
-              >
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                No hay seguimientos pendientes urgentes.
+              </div>
+            ) : (
+              filteredFollowUpItems.slice(0, 5).map((item) => (
+                <div
+                  key={item.recordId}
+                  className="rounded-xl border border-[color:var(--border)] bg-[color:var(--card)] px-4 py-3 flex items-center justify-between transition hover:bg-[color:var(--bg-soft)]"
+                >
                   <div>
                     <p className="text-sm font-semibold text-[color:var(--ink)]">{item.patientName}</p>
-                    <p className="text-xs uppercase tracking-[0.12em] text-[color:var(--ink-soft)]">
-                      {item.specialtyKind} · Control {new Date(item.dueDate).toLocaleDateString("es-EC")}
+                    <p className="text-xs text-[color:var(--ink-soft)] mt-0.5">
+                      Control: {new Date(item.dueDate).toLocaleDateString("es-EC")}
                     </p>
-                    <p className="mt-1 text-sm text-[color:var(--ink-soft)]">{item.diagnosis}</p>
                   </div>
                   <Link
                     href={`/consultas?mode=seguimiento&patientId=${item.patientId}&recordId=${item.recordId}`}
-                    className="hce-chip border-teal-300 bg-teal-50 text-teal-900 hover:bg-teal-100"
+                    className="text-xs font-semibold text-accent hover:underline"
                   >
-                    Abrir seguimiento
+                    Abrir
                   </Link>
                 </div>
-              </div>
-            ))
-          )}
-        </div>
-      </article>
-
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Link href="/pacientes" className="hce-surface-soft transition hover:-translate-y-0.5 hover:shadow-md">
-          <p className="text-sm font-semibold text-[color:var(--ink)]">Pacientes</p>
-          <p className="mt-2 text-sm text-[color:var(--ink-soft)]">Abrir y gestionar pacientes.</p>
-        </Link>
-        <Link href="/consultas" className="hce-surface-soft transition hover:-translate-y-0.5 hover:shadow-md">
-          <p className="text-sm font-semibold text-[color:var(--ink)]">Consultas</p>
-          <p className="mt-2 text-sm text-[color:var(--ink-soft)]">Registrar una nueva consulta guiada.</p>
-        </Link>
-        <Link href="/tratamientos" className="hce-surface-soft transition hover:-translate-y-0.5 hover:shadow-md">
-          <p className="text-sm font-semibold text-[color:var(--ink)]">Tratamientos</p>
-          <p className="mt-2 text-sm text-[color:var(--ink-soft)]">Revisar plantillas predeterminadas.</p>
-        </Link>
-        <Link href="/ajustes" className="hce-surface-soft transition hover:-translate-y-0.5 hover:shadow-md">
-          <p className="text-sm font-semibold text-[color:var(--ink)]">Ajustes</p>
-          <p className="mt-2 text-sm text-[color:var(--ink-soft)]">Editar membrete profesional y contacto.</p>
-        </Link>
+              ))
+            )}
+          </div>
+        </article>
       </div>
     </section>
   );
