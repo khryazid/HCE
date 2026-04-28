@@ -11,15 +11,15 @@ function shimmerClass() {
   return "animate-pulse rounded-xl bg-[color:var(--bg-soft)]";
 }
 
-export function SkeletonLine({ width = "100%", height = "0.875rem" }: { width?: string; height?: string }) {
+function SkeletonLine({ width = "100%", height = "0.875rem" }: { width?: string; height?: string }) {
   return <div className={shimmerClass()} style={{ width, height }} />;
 }
 
-export function SkeletonBlock({ height = "5rem" }: { height?: string }) {
+function SkeletonBlock({ height = "5rem" }: { height?: string }) {
   return <div className={shimmerClass()} style={{ height, width: "100%" }} />;
 }
 
-export function SkeletonCard({ lines = 3 }: { lines?: number }) {
+function SkeletonCard({ lines = 3 }: { lines?: number }) {
   return (
     <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--card)] p-5 space-y-3">
       <SkeletonLine width="40%" height="1rem" />

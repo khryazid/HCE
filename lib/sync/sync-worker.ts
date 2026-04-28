@@ -30,11 +30,14 @@ export type SyncFlushSummary = {
 
 type TableName = "profiles" | "patients" | "clinical_records" | "specialty_data";
 
+import type { Database } from "@/types/supabase.types";
+import type { SupabaseClient } from "@supabase/supabase-js";
+
 type SyncErrorLike = {
   message: string;
 };
 
-type TableSyncClient = {
+type GenericTableClient = {
   select: (columns: string) => {
     eq: (column: string, value: string) => {
       maybeSingle: () => Promise<{
@@ -44,20 +47,28 @@ type TableSyncClient = {
     };
   };
   delete: () => {
-    eq: (
-      column: string,
-      value: string,
-    ) => Promise<{
-      error: SyncErrorLike | null;
-    }>;
+    eq: (column: string, value: string) => Promise<{ error: SyncErrorLike | null }>;
   };
   upsert: (
     value: Record<string, unknown>,
     options: { onConflict: string },
-  ) => Promise<{
-    error: SyncErrorLike | null;
-  }>;
+  ) => Promise<{ error: SyncErrorLike | null }>;
 };
+
+function getTableClient(supabase: SupabaseClient<Database>, tableName: TableName): GenericTableClient {
+  switch (tableName) {
+    case "profiles":
+      return supabase.from("profiles") as unknown as GenericTableClient;
+    case "patients":
+      return supabase.from("patients") as unknown as GenericTableClient;
+    case "clinical_records":
+      return supabase.from("clinical_records") as unknown as GenericTableClient;
+    case "specialty_data":
+      return supabase.from("specialty_data") as unknown as GenericTableClient;
+    default:
+      throw new Error(`Unsupported table: ${tableName}`);
+  }
+}
 
 function getTablePriority(tableName: TableName) {
   switch (tableName) {
@@ -159,7 +170,7 @@ function mapPayloadByTable(tableName: TableName, payload: Record<string, unknown
 async function syncItem(item: SyncQueueItem): Promise<"synced" | "conflicted"> {
   const supabase = getSupabaseClient();
   const tableName = item.table_name as TableName;
-  const tableClient = supabase.from(tableName as never) as unknown as TableSyncClient;
+  const tableClient = getTableClient(supabase, tableName);
 
   await updateSyncItemStatus(item.id, "syncing");
 
@@ -329,9 +340,8 @@ export async function flushSyncQueue(options?: { forceRetry?: boolean }) {
               }
             }
 
-            // NF-04: Usamos índice "by_patient" si existe, o filtramos solo registros afectados.
-            const allRecords = await db.getAll("clinical_records");
-            const affectedRecords = allRecords.filter((r) => r.patient_id === item.record_id);
+            // Usamos índice "by_patient" para no cargar toda la base de datos a memoria
+            const affectedRecords = await db.getAllFromIndex("clinical_records", "by_patient", item.record_id);
             for (const r of affectedRecords) {
               r.patient_id = realId;
               await db.put("clinical_records", r);
@@ -408,14 +418,18 @@ export async function flushSyncQueue(options?: { forceRetry?: boolean }) {
 
 export function startSyncWorker() {
   const handleOnline = () => {
-    void flushSyncQueue();
+    void flushSyncQueue().catch((err) => {
+      logSyncError("flush_trigger", "Unhandled error starting flushSyncQueue", { error: String(err) });
+    });
   };
 
   if (typeof window !== "undefined") {
     window.addEventListener("online", handleOnline);
 
     if (window.navigator.onLine) {
-      void flushSyncQueue();
+      void flushSyncQueue().catch((err) => {
+        logSyncError("flush_trigger", "Unhandled error on initial flushSyncQueue", { error: String(err) });
+      });
     }
   }
 

@@ -17,11 +17,11 @@ import type { WizardForm } from "@/lib/consultations/use-consultation-wizard";
 import type { WizardPendingFollowUp } from "@/lib/consultations/wizard-domain";
 import type { ConsultationPdfPreviewData } from "@/lib/consultations/pdf-preview";
 
-export type SaveConsultationOptions = {
+type SaveConsultationOptions = {
   generatePdf?: boolean;
 };
 
-export type SaveConsultationContext = {
+type SaveConsultationContext = {
   tenant: TenantProfile;
   form: WizardForm;
   pendingFollowUp: WizardPendingFollowUp | null;

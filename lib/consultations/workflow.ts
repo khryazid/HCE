@@ -23,6 +23,6 @@ export function ensureWizardStep(currentStep: number) {
  * formatConsultationTimestamp: usa el utilitario centralizado.
  * @deprecated Usar formatDateTime de @/lib/ui/format-date directamente.
  */
-export function formatConsultationTimestamp(value: string): string {
+function formatConsultationTimestamp(value: string): string {
   return formatDateTime(value);
 }

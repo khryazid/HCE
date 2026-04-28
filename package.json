@@ -31,13 +31,11 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
     "fake-indexeddb": "^6.2.5",
-    "tailwindcss": "^4",
-    "typescript": "^5",
-    "vitest": "^4.1.4",
-    "workbox-window": "^7.4.0",
     "husky": "^8.0.0",
     "lint-staged": "^13.0.0",
-    "eslint-plugin-jsx-a11y": "^6.7.1"
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "vitest": "^4.1.4"
   },
   "lint-staged": {
     "**/*.{js,jsx,ts,tsx}": [
@@ -46,5 +44,3 @@
     ]
   }
 }
-
-

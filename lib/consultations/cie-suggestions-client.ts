@@ -14,7 +14,7 @@ import {
 } from "@/lib/observability/app-events";
 import { logApiError } from "@/lib/observability/error-logger";
 
-export type CieSuggestionRequestResult = {
+type CieSuggestionRequestResult = {
   source?: CieSuggestionSource;
   suggestions?: CieSuggestion[];
 };

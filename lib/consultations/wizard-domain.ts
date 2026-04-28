@@ -36,14 +36,14 @@ export function validateWizardForm(input: WizardValidationInput) {
   return errors;
 }
 
-export type QuickPatientInput = {
+type QuickPatientInput = {
   documentNumber: string;
   firstName: string;
   lastName: string;
   birthDate: string;
 };
 
-export type TenantIdentity = {
+type TenantIdentity = {
   doctor_id: string;
   clinic_id: string;
 };
@@ -83,7 +83,7 @@ export type DeepLinkFollowUpEditableFields = FollowUpEditableFields & {
   specialtyKind: string;
 };
 
-export type WizardPatientBackgrounds = {
+type WizardPatientBackgrounds = {
   pathological: string;
   surgical: string;
   allergic: string;
@@ -93,7 +93,7 @@ export type WizardPatientBackgrounds = {
   gynecoObstetric: string;
 };
 
-export type WizardAutofillEditableFields = {
+type WizardAutofillEditableFields = {
   gender: string;
   occupation: string;
   insurance: string;

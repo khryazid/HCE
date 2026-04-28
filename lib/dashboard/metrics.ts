@@ -15,7 +15,7 @@ import type {
   WeeklyConsultationPoint,
 } from "@/components/dashboard/types";
 
-export function getStartOfToday(): Date {
+function getStartOfToday(): Date {
   const date = new Date();
   date.setHours(0, 0, 0, 0);
   return date;

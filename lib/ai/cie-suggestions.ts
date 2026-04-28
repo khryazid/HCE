@@ -42,7 +42,7 @@ export function mergeCieCodeList(existingCodes: string, code: string) {
   return [...codes, normalizedCode].join(", ");
 }
 
-export function normalizeCode(code: string) {
+function normalizeCode(code: string) {
   return code.trim().toUpperCase();
 }
 

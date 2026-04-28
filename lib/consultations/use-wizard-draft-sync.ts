@@ -60,23 +60,17 @@ export function useWizardDraftSync<TForm>({
     setWizardOpen,
   ]);
 
-  const formRef = useRef(form);
-  const stepRef = useRef(step);
-  const wizardOpenRef = useRef(wizardOpen);
+  // Removemos el useEffect que sincronizaba refs redundantes.
 
   useEffect(() => {
-    formRef.current = form;
-    stepRef.current = step;
-    wizardOpenRef.current = wizardOpen;
-  }, [form, step, wizardOpen]);
-
-  useEffect(() => {
-    if (!wizardOpenRef.current || !draftRestoredRef.current) {
+    // Si no está abierto o no se ha restaurado aún, no sobrescribir el borrador
+    if (!wizardOpen || !draftRestoredRef.current) {
       return;
     }
 
+    // Debounce nativo simple: programamos el guardado y capturamos directamente por closure
     const timer = window.setTimeout(() => {
-      context.saveWizardDraft(formRef.current, stepRef.current);
+      context.saveWizardDraft(form, step);
     }, 300);
 
     return () => window.clearTimeout(timer);

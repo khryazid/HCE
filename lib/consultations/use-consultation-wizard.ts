@@ -82,7 +82,7 @@ export type WizardForm = {
   nextFollowUpDate: string;
 };
 
-export const EMPTY_FORM: WizardForm = {
+const EMPTY_FORM: WizardForm = {
   entryMode: "consulta",
   patientId: "",
   linkedRecordId: "",
@@ -146,7 +146,35 @@ export function useConsultationWizard(tenant: TenantProfile | null) {
   const [templates, setTemplates] = useState<TreatmentTemplate[]>([]);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [step, setStep] = useState(1);
-  const [form, setForm] = useState<WizardForm>(EMPTY_FORM);
+  const [formState, setFormState] = useState<WizardForm>(EMPTY_FORM);
+
+  const setForm = useMemo(() => {
+    return (next: WizardForm | ((prev: WizardForm) => WizardForm)) => {
+      setFormState((prev) => {
+        const nextForm = typeof next === "function" ? next(prev) : next;
+
+        // Auto-fill sincrónico al cambiar de paciente (evita useEffect cascade re-render)
+        if (nextForm.patientId && nextForm.patientId !== prev.patientId) {
+          // Si es una restauración de borrador, el draftDraftRestored maneja el estado
+          if (draftRestored.current && clinical.wizardDraft?.patientId === nextForm.patientId) {
+            return nextForm;
+          }
+
+          const latest = records
+            .filter((r) => r.patient_id === nextForm.patientId)
+            .sort((a, b) => b.updated_at.localeCompare(a.updated_at))[0] ?? null;
+          
+          if (latest) {
+            const patch = buildAutofillFormStatePatch(latest);
+            return { ...nextForm, ...patch };
+          }
+        }
+        return nextForm;
+      });
+    };
+  }, [records, clinical.wizardDraft]);
+
+  const form = formState;
   const [quickPatient, setQuickPatient] =
     useState<QuickPatientForm>(EMPTY_QUICK_PATIENT);
   const [selectedPatientTimelineId, setSelectedPatientTimelineId] =
@@ -192,29 +220,7 @@ export function useConsultationWizard(tenant: TenantProfile | null) {
     specialtyKind: form.specialtyKind,
   });
 
-  // --- Auto-fill previous data ---
-  const autofillRef = useRef("");
-
-  useEffect(() => {
-    if (draftRestored.current && clinical.wizardDraft?.patientId === form.patientId) {
-      autofillRef.current = form.patientId;
-    }
-
-    if (form.patientId && autofillRef.current !== form.patientId) {
-      const latest = records
-        .filter((r) => r.patient_id === form.patientId)
-        .sort((a, b) => b.updated_at.localeCompare(a.updated_at))[0] ?? null;
-      const patch = buildAutofillFormStatePatch(latest);
-
-      setForm((current) => ({
-        ...current,
-        ...patch,
-      }));
-      autofillRef.current = form.patientId;
-    } else if (!form.patientId) {
-      autofillRef.current = "";
-    }
-  }, [form.patientId, records, clinical.wizardDraft]);
+  // Auto-fill logic migrada al handler setForm para evitar re-renders en cascada.
 
   // --- Derived state ---
 

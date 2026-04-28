@@ -1,4 +1,4 @@
-export type TreatmentTemplateVersion = {
+type TreatmentTemplateVersion = {
   version: number;
   notes: string;
   updated_at: string;

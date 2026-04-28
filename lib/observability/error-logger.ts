@@ -13,9 +13,9 @@
  *   clearErrors()
  */
 
-export type ErrorSeverity = "warn" | "error" | "critical";
+type ErrorSeverity = "warn" | "error" | "critical";
 
-export type ErrorSource = "sync" | "api" | "crypto" | "db" | "auth" | "unknown";
+type ErrorSource = "sync" | "api" | "crypto" | "db" | "auth" | "unknown";
 
 export type StructuredError = {
   id: string;
@@ -109,7 +109,7 @@ export function logApiError(
   });
 }
 
-export function logDbError(
+function logDbError(
   context: string,
   message: string,
   detail?: Record<string, unknown>,
@@ -132,7 +132,7 @@ export function getRecentErrors(): StructuredError[] {
   return [...inMemoryErrors];
 }
 
-export function getUnseenErrorCount(): number {
+function getUnseenErrorCount(): number {
   return getRecentErrors().filter((e) => e.severity === "error" || e.severity === "critical").length;
 }
 

@@ -10,9 +10,9 @@ export const APP_EVENT_CIE_SUGGESTIONS_COMPLETED = "hce:cie-suggestions-complete
 export const APP_EVENT_SYNC_ERROR = "hce:sync-error";
 export const APP_EVENT_SYNC_ABANDONED = "hce:sync-abandoned";
 export const APP_EVENT_API_ERROR = "hce:api-error";
-export const APP_EVENT_AUTH_ERROR = "hce:auth-error";
+const APP_EVENT_AUTH_ERROR = "hce:auth-error";
 
-export type AppEventDetail = Record<string, unknown>;
+type AppEventDetail = Record<string, unknown>;
 
 export function emitAppEvent(eventName: string, detail: AppEventDetail) {
   if (typeof window === "undefined") {

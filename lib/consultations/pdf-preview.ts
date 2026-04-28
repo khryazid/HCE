@@ -41,7 +41,7 @@ export type ConsultationPdfPreviewData = {
   followUpDate?: string;
 };
 
-export type ConsultationPdfPreviewInput = Omit<ConsultationPdfPreviewData, "cieCodes"> & {
+type ConsultationPdfPreviewInput = Omit<ConsultationPdfPreviewData, "cieCodes"> & {
   cieCodes: string;
 };
 

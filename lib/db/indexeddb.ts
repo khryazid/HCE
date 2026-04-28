@@ -450,7 +450,7 @@ export async function saveSpecialtyDataLocal(row: SpecialtyDataRow) {
   });
 }
 
-export async function deleteSpecialtyDataLocal(id: string) {
+async function deleteSpecialtyDataLocal(id: string) {
   const db = await getOfflineDb();
   await db.delete("specialty_data", id);
 }

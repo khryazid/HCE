@@ -1,4 +1,4 @@
-export type SyncAction = "insert" | "update" | "delete";
+type SyncAction = "insert" | "update" | "delete";
 export type SyncStatus =
   | "pending"
   | "syncing"

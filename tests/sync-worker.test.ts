@@ -172,6 +172,17 @@ describe("sync worker retries", () => {
 
         return [];
       }),
+      getAllFromIndex: vi.fn(async (store: string, index: string, key: string) => {
+        if (store === "clinical_records" && index === "by_patient") {
+          return [
+            {
+              id: "record-1",
+              patient_id: "patient-1",
+            },
+          ].filter((r) => r.patient_id === key);
+        }
+        return [];
+      }),
       put: vi.fn(async () => undefined),
       delete: vi.fn(async () => undefined),
     });

@@ -29,7 +29,7 @@ export function formatDate(value: string | number | Date): string {
  * Equivalente a formatDateTime(value).split(",")[0] pero explícito y tipado.
  * Ejemplo: "27/04/2026"
  */
-export function formatDateOnly(value: string | number | Date): string {
+function formatDateOnly(value: string | number | Date): string {
   return new Date(value).toLocaleDateString(LOCALE, {
     day: "2-digit",
     month: "2-digit",

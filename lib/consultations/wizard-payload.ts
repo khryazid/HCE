@@ -50,7 +50,7 @@ export type ConsultationPayloadInput = {
   cieCodes: string;
 };
 
-export type ConsultationPayloadBundle = {
+type ConsultationPayloadBundle = {
   record: ClinicalRecordRecord;
   specialtyRow: SpecialtyDataRow;
 };

@@ -1,4 +1,4 @@
-export type FollowUpTimelineFilter = "completados" | "pendientes" | "vencidos";
+type FollowUpTimelineFilter = "completados" | "pendientes" | "vencidos";
 
 export function getNextFollowUpDate(specialtyData: Record<string, unknown>) {
   const value = specialtyData.next_follow_up_date;

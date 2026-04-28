@@ -4,7 +4,7 @@ export type CieCatalogEntry = {
   version: string;
 };
 
-export const CIE_CATALOG_VERSION = "2026.04";
+const CIE_CATALOG_VERSION = "2026.04";
 
 export const CIE_CATALOG: CieCatalogEntry[] = [
   { code: "A09", description: "Diarrea y gastroenteritis de presunto origen infeccioso", version: CIE_CATALOG_VERSION },

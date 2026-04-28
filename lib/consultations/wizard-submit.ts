@@ -1,10 +1,10 @@
 import { buildRetryableErrorMessage } from "@/lib/ui/feedback-copy";
 
-export type SubmitConsultationOptions = {
+type SubmitConsultationOptions = {
   generatePdf: boolean;
 };
 
-export type SubmitConsultationDependencies = {
+type SubmitConsultationDependencies = {
   validate: () => Record<string, string>;
   setValidationErrors: (errors: Record<string, string>) => void;
   setError: (message: string | null) => void;

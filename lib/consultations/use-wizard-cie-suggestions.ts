@@ -71,13 +71,10 @@ export function useWizardCieSuggestions({
 
   useEffect(() => {
     if (!wizardOpen || step !== 2) {
-      // Defer state updates to avoid synchronous setState in effect
-      Promise.resolve().then(() => {
-        setCieSuggestions([]);
-        setCieSuggestionSource("catalog");
-        setCieSuggestionLoading(false);
-        setCieSuggestionError(null);
-      });
+      setCieSuggestions([]);
+      setCieSuggestionSource("catalog");
+      setCieSuggestionLoading(false);
+      setCieSuggestionError(null);
       return;
     }
 
@@ -88,32 +85,27 @@ export function useWizardCieSuggestions({
     const localMatches = searchCieCatalog(query).slice(0, 5);
 
     if (!query) {
-      Promise.resolve().then(() => {
-        setCieSuggestions([]);
-        setCieSuggestionSource("catalog");
-        setCieSuggestionLoading(false);
-        setCieSuggestionError(null);
-      });
+      setCieSuggestions([]);
+      setCieSuggestionSource("catalog");
+      setCieSuggestionLoading(false);
+      setCieSuggestionError(null);
       return;
     }
 
-    // Set local matches synchronously but defer to microtask to avoid cascading renders
-    Promise.resolve().then(() => {
-      setCieSuggestions(
-        localMatches.map((entry, index) => ({
-          code: entry.code,
-          description: entry.description,
-          rationale: "Coincidencia del catalogo local.",
-          confidence: Math.max(0.55, 0.9 - index * 0.08),
-          source: "catalog",
-        })),
-      );
-      setCieSuggestionSource("catalog");
-      setCieSuggestionError(null);
-    });
+    setCieSuggestions(
+      localMatches.map((entry, index) => ({
+        code: entry.code,
+        description: entry.description,
+        rationale: "Coincidencia del catalogo local.",
+        confidence: Math.max(0.55, 0.9 - index * 0.08),
+        source: "catalog",
+      })),
+    );
+    setCieSuggestionSource("catalog");
+    setCieSuggestionError(null);
 
     if (query.length < 6) {
-      Promise.resolve().then(() => setCieSuggestionLoading(false));
+      setCieSuggestionLoading(false);
       return;
     }
 

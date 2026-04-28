@@ -32,6 +32,50 @@ const SECURITY_KEY_ID = "db-aes-gcm-key";
 /** Caché en memoria para evitar accesos repetidos a IDB durante la sesión. */
 let _keyCache: CryptoKey | null = null;
 
+const _nodeStorage = new Map<string, string>();
+function getStorage() {
+  if (typeof localStorage !== "undefined") {
+    return localStorage;
+  }
+  return {
+    getItem: (key: string) => _nodeStorage.get(key) || null,
+    setItem: (key: string, val: string) => _nodeStorage.set(key, val),
+  };
+}
+
+async function getDeviceKek(): Promise<CryptoKey> {
+  const storage = getStorage();
+  let deviceId = storage.getItem("hce_device_kek_id");
+  if (!deviceId) {
+    deviceId = typeof crypto.randomUUID === "function" 
+      ? crypto.randomUUID() 
+      : Date.now().toString(36) + Math.random().toString(36);
+    storage.setItem("hce_device_kek_id", deviceId);
+  }
+
+  const enc = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey(
+    "raw",
+    enc.encode(deviceId),
+    "PBKDF2",
+    false,
+    ["deriveKey"]
+  );
+
+  return crypto.subtle.deriveKey(
+    {
+      name: "PBKDF2",
+      salt: enc.encode("hce_secure_kek_salt_v1"),
+      iterations: 100000,
+      hash: "SHA-256",
+    },
+    keyMaterial,
+    { name: "AES-KW", length: 256 },
+    false,
+    ["wrapKey", "unwrapKey"]
+  );
+}
+
 export type EncryptedEnvelope = {
   __encrypted: true;
   iv: string;
@@ -42,6 +86,7 @@ type SecurityKeyRecord = {
   id: string;
   key_material: string;
   created_at: string;
+  is_wrapped?: boolean;
 };
 
 export type EncryptionKeyBackup = {
@@ -107,16 +152,51 @@ async function loadOrCreateAesKey() {
   const stored = (await db.get(SECURITY_STORE, SECURITY_KEY_ID)) as SecurityKeyRecord | undefined;
 
   if (stored) {
-    const rawKey = fromBase64(stored.key_material);
-    const key = await crypto.subtle.importKey(
-      "raw",
-      toStrictArrayBuffer(rawKey),
-      "AES-GCM",
-      false, // extractable: false — no se puede re-exportar desde memoria
-      ["encrypt", "decrypt"],
-    );
-    _keyCache = key;
-    return key;
+    if (stored.is_wrapped) {
+      const kek = await getDeviceKek();
+      const wrappedKeyBuffer = toStrictArrayBuffer(fromBase64(stored.key_material));
+      const unwrapped = await crypto.subtle.unwrapKey(
+        "raw",
+        wrappedKeyBuffer,
+        kek,
+        "AES-KW",
+        "AES-GCM",
+        false, // no extraíble en memoria
+        ["encrypt", "decrypt"]
+      );
+      _keyCache = unwrapped;
+      return unwrapped;
+    } else {
+      // MIGRATION: Clave legacy en crudo
+      const rawKeyBytes = fromBase64(stored.key_material);
+      const key = await crypto.subtle.importKey(
+        "raw",
+        toStrictArrayBuffer(rawKeyBytes),
+        "AES-GCM",
+        true, // Extraíble temporalmente para envolverla
+        ["encrypt", "decrypt"]
+      );
+      
+      const kek = await getDeviceKek();
+      const wrappedBuffer = await crypto.subtle.wrapKey("raw", key, kek, "AES-KW");
+      await db.put(SECURITY_STORE, {
+        ...stored,
+        key_material: toBase64(new Uint8Array(wrappedBuffer)),
+        is_wrapped: true
+      });
+      
+      const sessionKey = await crypto.subtle.unwrapKey(
+        "raw",
+        wrappedBuffer,
+        kek,
+        "AES-KW",
+        "AES-GCM",
+        false, // Mantenemos la versión en memoria como no extraíble
+        ["encrypt", "decrypt"]
+      );
+      _keyCache = sessionKey;
+      return sessionKey;
+    }
   }
 
   const generated = await crypto.subtle.generateKey(
@@ -125,22 +205,26 @@ async function loadOrCreateAesKey() {
     ["encrypt", "decrypt"],
   );
 
-  const rawKey = new Uint8Array(await crypto.subtle.exportKey("raw", generated));
+  const kek = await getDeviceKek();
+  const wrappedBuffer = await crypto.subtle.wrapKey("raw", generated, kek, "AES-KW");
+
   const record: SecurityKeyRecord = {
     id: SECURITY_KEY_ID,
-    key_material: toBase64(rawKey),
+    key_material: toBase64(new Uint8Array(wrappedBuffer)),
     created_at: new Date().toISOString(),
+    is_wrapped: true,
   };
 
   await db.put(SECURITY_STORE, record);
 
-  // Re-importar como non-extractable para el uso en sesión
-  const sessionKey = await crypto.subtle.importKey(
+  const sessionKey = await crypto.subtle.unwrapKey(
     "raw",
-    toStrictArrayBuffer(rawKey),
+    wrappedBuffer,
+    kek,
+    "AES-KW",
     "AES-GCM",
     false,
-    ["encrypt", "decrypt"],
+    ["encrypt", "decrypt"]
   );
   _keyCache = sessionKey;
   return sessionKey;
@@ -168,9 +252,28 @@ export async function exportEncryptionKeyBackup(): Promise<EncryptionKeyBackup> 
     throw new Error("No se pudo preparar la clave de cifrado para exportar.");
   }
 
+  let rawKeyBase64: string;
+  if (stored.is_wrapped) {
+    const kek = await getDeviceKek();
+    const wrappedKeyBuffer = toStrictArrayBuffer(fromBase64(stored.key_material));
+    const tempExtractable = await crypto.subtle.unwrapKey(
+      "raw",
+      wrappedKeyBuffer,
+      kek,
+      "AES-KW",
+      "AES-GCM",
+      true, // Debe ser extraíble para generar el backup en crudo
+      ["encrypt", "decrypt"]
+    );
+    const rawBuffer = await crypto.subtle.exportKey("raw", tempExtractable);
+    rawKeyBase64 = toBase64(new Uint8Array(rawBuffer));
+  } else {
+    rawKeyBase64 = stored.key_material;
+  }
+
   return {
     version: 1,
-    key_material: stored.key_material,
+    key_material: rawKeyBase64,
     created_at: stored.created_at,
     exported_at: new Date().toISOString(),
   };
@@ -198,27 +301,34 @@ export async function importEncryptionKeyBackup(backup: unknown) {
     throw new Error("No se pudo decodificar la clave del backup.");
   }
 
+  let tempKey: CryptoKey;
   try {
-    await crypto.subtle.importKey(
+    tempKey = await crypto.subtle.importKey(
       "raw",
       toStrictArrayBuffer(rawKey),
       "AES-GCM",
-      false,
+      true, // Extraíble temporalmente para envolverla
       ["encrypt", "decrypt"],
     );
   } catch {
     throw new Error("La clave del backup no es compatible con AES-GCM.");
   }
 
+  const kek = await getDeviceKek();
+  const wrappedBuffer = await crypto.subtle.wrapKey("raw", tempKey, kek, "AES-KW");
+
   const db = await getSecurityDb();
   await db.put(SECURITY_STORE, {
     id: SECURITY_KEY_ID,
-    key_material: payload.key_material.trim(),
+    key_material: toBase64(new Uint8Array(wrappedBuffer)),
     created_at:
       typeof payload.created_at === "string" && payload.created_at.trim()
         ? payload.created_at.trim()
         : new Date().toISOString(),
+    is_wrapped: true,
   } satisfies SecurityKeyRecord);
+  
+  clearEncryptionKey(); // Forzar recarga en la siguiente operación
 }
 
 export async function encryptJson<T>(value: T): Promise<EncryptedEnvelope> {

@@ -1,38 +1,38 @@
 export type SpecialtyKind = "odontologia" | "pediatria" | "medicina-general";
 
-export type OdontogramToothState = "sano" | "caries" | "ausente" | "tratado";
+type OdontogramToothState = "sano" | "caries" | "ausente" | "tratado";
 
-export type OdontogramTooth = {
+type OdontogramTooth = {
   numero: string;
   estado: OdontogramToothState;
   notas?: string;
 };
 
-export type GrowthPoint = {
+type GrowthPoint = {
   edad_meses: number;
   peso_kg: number;
   talla_cm: number;
   percentil: number;
 };
 
-export type SpecialtyCore = {
+type SpecialtyCore = {
   specialty_kind: SpecialtyKind;
   schema_version: number;
   recorded_at: string;
   doctor_id: string;
 };
 
-export type OdontologiaData = SpecialtyCore & {
+type OdontologiaData = SpecialtyCore & {
   specialty_kind: "odontologia";
   piezas: OdontogramTooth[];
 };
 
-export type PediatriaData = SpecialtyCore & {
+type PediatriaData = SpecialtyCore & {
   specialty_kind: "pediatria";
   growth: GrowthPoint[];
 };
 
-export type MedicinaGeneralData = SpecialtyCore & {
+type MedicinaGeneralData = SpecialtyCore & {
   specialty_kind: "medicina-general";
   motivo_consulta: string;
   cie10: string[];
@@ -44,7 +44,7 @@ export type SpecialtyData =
   | PediatriaData
   | MedicinaGeneralData;
 
-export function isSpecialtyData(value: unknown): value is SpecialtyData {
+function isSpecialtyData(value: unknown): value is SpecialtyData {
   if (!value || typeof value !== "object") {
     return false;
   }

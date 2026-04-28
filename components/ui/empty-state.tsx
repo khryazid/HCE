@@ -64,7 +64,7 @@ export function EmptyStateIconConsultations() {
   );
 }
 
-export function EmptyStateIconFollowUp() {
+function EmptyStateIconFollowUp() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
@@ -76,7 +76,7 @@ export function EmptyStateIconFollowUp() {
   );
 }
 
-export function EmptyStateIconError() {
+function EmptyStateIconError() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <circle cx="12" cy="12" r="10" />
@@ -126,7 +126,7 @@ export function EmptyState({
 /**
  * ErrorState — para errores de carga de datos con botón de reintento.
  */
-export function ErrorState({
+function ErrorState({
   message,
   onRetry,
 }: {

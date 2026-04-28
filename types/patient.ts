@@ -46,7 +46,7 @@ export type PatientRecord = {
   updated_at: string;
 };
 
-export type PatientFormValues = {
+type PatientFormValues = {
   document_number: string;
   full_name: string;
   birth_date: string;
