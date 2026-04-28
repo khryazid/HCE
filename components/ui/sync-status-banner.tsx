@@ -22,10 +22,24 @@ export function SyncStatusBanner() {
       }
     };
     void load();
-    const interval = setInterval(() => void load(), 5000);
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        void load();
+      }
+    };
+
+    const handleSyncFinished = () => {
+      void load();
+    };
+
+    window.addEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("hce:sync_finished", handleSyncFinished);
+
     return () => {
       active = false;
-      clearInterval(interval);
+      window.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("hce:sync_finished", handleSyncFinished);
     };
   }, []);
 

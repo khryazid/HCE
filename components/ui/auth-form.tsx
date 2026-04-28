@@ -319,7 +319,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                           onClick={() => toggleSpecialty(entry)}
                           className={`rounded-full border px-3 py-1 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 ${
                             checked
-                              ? "border-cyan-400 bg-cyan-600 text-white"
+                              ? "border-cyan-500 bg-cyan-700 text-white"
                               : "border-border bg-card text-ink-soft hover:bg-bg-soft"
                           }`}
                         >

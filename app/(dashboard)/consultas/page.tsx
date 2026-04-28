@@ -34,7 +34,10 @@ export default function ConsultasPage() {
         </div>
         <button
           type="button"
-          onClick={wizard.openWizard}
+          onClick={() => {
+            import("@/lib/observability/usage-tracker").then((m) => m.trackUsage("consultation:start"));
+            wizard.openWizard();
+          }}
           className="hce-btn-primary"
         >
           Nueva consulta

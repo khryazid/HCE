@@ -110,7 +110,7 @@ export function WizardStepPatient({
             </button>
           </div>
 
-          <div className="rounded-2xl border border-border bg-card p-4 space-y-4">
+          <div className="hce-card space-y-4">
             <h4 className="text-sm font-semibold text-ink">Datos complementarios para la consulta</h4>
             <div className="grid gap-4 sm:grid-cols-3">
               <div className="space-y-1.5">
@@ -147,7 +147,7 @@ export function WizardStepPatient({
             </div>
           </div>
 
-          <div className="rounded-2xl border border-border bg-card p-4 space-y-4">
+          <div className="hce-card space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <p className="text-sm font-semibold text-ink">
                 Tipo de registro clínico

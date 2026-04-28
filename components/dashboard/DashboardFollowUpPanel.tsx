@@ -66,8 +66,20 @@ export function DashboardFollowUpPanel({ items, counts, activeFilter, onFilterCh
               }`}
             >
               <div>
-                <p className="text-sm font-semibold text-[color:var(--ink)]">{item.patientName}</p>
-                <p className="text-xs text-[color:var(--ink-soft)] mt-0.5">
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-semibold text-[color:var(--ink)]">{item.patientName}</p>
+                  {item.isOverdue && (
+                    <span className="rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-red-800" aria-label="Estado: Vencido">
+                      Vencido
+                    </span>
+                  )}
+                  {!item.isOverdue && item.isUrgent && (
+                    <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-800" aria-label="Estado: Urgente">
+                      Urgente
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-[color:var(--ink-soft)] mt-1">
                   Control pendiente: {formatDate(item.dueDate)}
                 </p>
               </div>

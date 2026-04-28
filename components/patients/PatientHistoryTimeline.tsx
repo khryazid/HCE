@@ -11,6 +11,7 @@
 import Link from "next/link";
 import { formatDate, formatDateTime } from "@/lib/ui/format-date";
 import { generateConsultationPdf } from "@/lib/consultations/pdf";
+import { trackUsage } from "@/lib/observability/usage-tracker";
 import { loadLetterheadSettings } from "@/lib/local-data/letterhead";
 import { getNextFollowUpDate, isFollowUpOverdue } from "@/lib/clinical/follow-up";
 import {
@@ -328,6 +329,7 @@ export function PatientHistoryTimeline({
                             evolutionStatus: details.evolutionStatus,
                             followUpDate: details.nextFollowUpDate ?? undefined,
                           });
+                          trackUsage("pdf:generate");
                         }}
                         className="inline-flex items-center gap-1 rounded-xl border border-border bg-card px-3 py-2 text-xs font-semibold text-ink-soft transition hover:bg-bg-soft"
                       >

@@ -159,7 +159,7 @@ export default function TratamientosPage() {
       ) : null}
 
       <div className="grid gap-6 lg:grid-cols-[400px_minmax(0,1fr)]">
-        <form onSubmit={handleSave} className="rounded-3xl border border-border bg-card p-5 shadow-sm space-y-4">
+        <form onSubmit={handleSave} className="hce-surface space-y-4">
           <h2 className="hce-section-title">{editing ? "Editar plantilla" : "Nueva plantilla"}</h2>
           <label className="block space-y-2 text-sm font-medium text-ink-soft">
             <span>Enfermedad / sintoma trigger</span>
@@ -198,7 +198,7 @@ export default function TratamientosPage() {
           </div>
         </form>
 
-        <div className="rounded-3xl border border-border bg-card p-5 shadow-sm">
+        <div className="hce-surface">
           <h2 className="hce-section-title">Listado de plantillas</h2>
           <div className="mt-4 space-y-3">
             {templates.length === 0 ? (

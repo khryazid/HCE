@@ -181,10 +181,10 @@ Este es el único tasklist activo del proyecto. Resume lo ya completado y lo que
 - [x] **[NF-05]** Corregir `toLocaleString()` sin locale en [components/ui/sync-queue-panel.tsx](components/ui/sync-queue-panel.tsx) — usar `"es-EC"` consistente con el resto de la app.
 - [x] Crear utilidad centralizada `lib/ui/format-date.ts` con `formatDateEs()` para unificar el formato `dd/mm/aaaa` en toda la app y eliminar `toLocaleString` dispersos.
 - [x] Cambiar el formato de fecha de `mm/dd/aaaa` a `dd/mm/aaaa` en toda la app (migrado a `lib/ui/format-date.ts`).
-- [ ] Revisar la estructura de [components/ui](components/ui) para consolidar patrones reutilizables y evitar estilos aislados por pantalla.
-- [ ] Hacer revisión formal de teclado, foco visible, contraste y jerarquía visual en auth, dashboard, consultas, pacientes y ajustes.
-- [ ] Validar la experiencia móvil en listas largas, wizard clínico y panel de sincronización.
-- [ ] Corregir errores de color en login y registro para que no haya textos claros sobre fondos claros o ilegibles, sin refactorizar la pantalla.
+- [x] Revisar la estructura de [components/ui](components/ui) para consolidar patrones reutilizables y evitar estilos aislados por pantalla.
+- [x] Hacer revisión formal de teclado, foco visible, contraste y jerarquía visual en auth, dashboard, consultas, pacientes y ajustes.
+- [x] Validar la experiencia móvil en listas largas, wizard clínico y panel de sincronización.
+- [x] Corregir errores de color en login y registro para que no haya textos claros sobre fondos claros o ilegibles, sin refactorizar la pantalla.
 - [x] Descomponer [app/(dashboard)/pacientes/page.tsx](app/(dashboard)/pacientes/page.tsx) en Container + componentes presentacionales para lista, perfil, historial y modales.
 - [x] Endurecer el borrado de paciente/consultas en [app/(dashboard)/pacientes/page.tsx](app/(dashboard)/pacientes/page.tsx) para evitar operaciones secuenciales largas sin feedback por item.
 - [x] Descomponer [app/(dashboard)/dashboard/page.tsx](app/(dashboard)/dashboard/page.tsx) separando métricas, seguimientos, actividad y gráficos en módulos reutilizables. (584 líneas → ~250 container + 4 componentes en `components/dashboard/`)
@@ -202,7 +202,7 @@ Este es el único tasklist activo del proyecto. Resume lo ya completado y lo que
 - [x] Agregar pruebas para dashboard con cálculos unitarios e integraciones de interacciones clave. (17 tests en `tests/dashboard-metrics.test.ts` cubriendo `calculateAge`, `getLast7DaysConsultations`, `getSpecialtyBreakdown`, `calculateMetrics`, `buildActivityFeed`)
 - [x] Crear pruebas de regresión para el wizard: `validateWizardForm` (10 casos), `buildQuickPatientRecord` (4), `buildFollowUpFormState` (4), `buildConsultaModeFormState` (1), `buildConsultationPayload` (10), `buildConsultationSuccessMessage` (4). Total: 34 nuevos tests.
 - [x] Mejorar la experiencia de rate limiting CIE: `CieRateLimitError` tipado (lee `Retry-After`), countdown en segundos en el hook con `setInterval`, se inhibe el disparo durante el cooldown. `rateLimitCountdown` expuesto para la UI.
-- [ ] Unificar componentes reutilizables en [components/ui](components/ui) para evitar estilos aislados por pantalla.
+- [x] Unificar componentes reutilizables en [components/ui](components/ui) para evitar estilos aislados por pantalla.
 - [x] Convertir el wizard de consultas en un conjunto de hooks pequeños y componentes presentacionales. (Pasos 2 y 5 completos: 7 hooks dedicados extraidos)
 - [x] Validar de forma explícita los estados vacíos, de carga y de error en cada flujo principal: `EmptyState` + `ErrorState` centralizados en `components/ui/empty-state.tsx`; integrados en `PatientList`, `PatientProfileCard`, `PatientHistoryTimeline`, `ConsultasPage` (estado idle con CTA).
 - [x] Accesibilidad en pacientes: `aria-label` en busqueda, `role=list/listitem`, `aria-current` en paciente seleccionado, `focus-visible:ring-2` en todos los botones de acción críticos.
@@ -211,11 +211,11 @@ Este es el único tasklist activo del proyecto. Resume lo ya completado y lo que
 
 ### Baja
 
-- [ ] Reducir la lógica de polling residual en paneles de estado cuando no aporte valor operativo.
-- [ ] Hacer una limpieza de rutas y páginas de soporte que no aporten valor operativo.
-- [ ] Preparar una segunda pasada de UX centrada solo en claridad clínica y velocidad de uso.
-- [ ] Reforzar controles que dependan demasiado del color para comunicar estado.
-- [ ] Añadir métricas ligeras de uso para priorizar futuras mejoras de UI y flujo clínico.
+- [x] Reducir la lógica de polling residual en paneles de estado cuando no aporte valor operativo.
+- [x] Hacer una limpieza de rutas y páginas de soporte que no aporten valor operativo.
+- [x] Preparar una segunda pasada de UX centrada solo en claridad clínica y velocidad de uso.
+- [x] Reforzar controles que dependan demasiado del color para comunicar estado.
+- [x] Añadir métricas ligeras de uso para priorizar futuras mejoras de UI y flujo clínico.
 
 ## Siguientes pasos recomendados
 
@@ -232,7 +232,7 @@ Este es el único tasklist activo del proyecto. Resume lo ya completado y lo que
 11. **[HECHO - Paso 11]** Z-index centralizado en variables CSS (`--z-sticky/overlay/modal`). `ConfirmModal` migrado a `hce-modal-backdrop` + `dialog` nativo + scroll-lock. `SyncQueuePanel` con `role=status aria-live=polite aria-busy`. Skeletons con `role=status aria-busy=true`. Auth form unificada con tokens `hce-alert-*`, `fieldset/legend` en especialidades, `role=listbox/option`, `aria-invalid/describedby`. Total: **91/91 tests**.
 
 ### Ítems pendientes (siguiente ciclo)
-- Limpieza de rutas y páginas de soporte sin valor operativo.
-- Métricas ligeras de uso para priorizar mejoras futuras de UI.
-- Segunda pasada de UX: claridad clínica y velocidad de uso.
-- Reforzar controles que dependan del color para comunicar estado.
+- Limpieza de rutas y páginas de soporte sin valor operativo. (HECHO)
+- Métricas ligeras de uso para priorizar mejoras futuras de UI. (HECHO)
+- Segunda pasada de UX: claridad clínica y velocidad de uso. (HECHO)
+- Reforzar controles que dependan del color para comunicar estado. (HECHO)

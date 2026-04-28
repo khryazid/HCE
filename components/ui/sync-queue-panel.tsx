@@ -104,19 +104,6 @@ export function SyncQueuePanel() {
     }
 
     let active = true;
-    let timerId: number | undefined;
-
-    const scheduleFallbackRefresh = () => {
-      if (!active) {
-        return;
-      }
-
-      const delay = expanded ? 60_000 : 180_000;
-      timerId = window.setTimeout(() => {
-        void refreshQueue();
-        scheduleFallbackRefresh();
-      }, delay);
-    };
 
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
@@ -146,13 +133,9 @@ export function SyncQueuePanel() {
     window.addEventListener("offline", handleOffline);
     document.addEventListener("visibilitychange", handleVisibility);
     window.addEventListener(SYNC_FINISHED_EVENT, handleSyncFinished as EventListener);
-    scheduleFallbackRefresh();
 
     return () => {
       active = false;
-      if (timerId) {
-        window.clearTimeout(timerId);
-      }
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
       document.removeEventListener("visibilitychange", handleVisibility);
@@ -251,7 +234,7 @@ export function SyncQueuePanel() {
           ) : null}
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <button
             type="button"
             onClick={() => setExpanded((current) => !current)}

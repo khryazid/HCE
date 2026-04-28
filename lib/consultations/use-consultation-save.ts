@@ -10,6 +10,7 @@ import {
 import { persistConsultationLocally } from "@/lib/consultations/consultation-persistence";
 import { loadLetterheadSettings } from "@/lib/local-data/letterhead";
 import { APP_EVENT_CONSULTATION_SAVED, emitAppEvent } from "@/lib/observability/app-events";
+import { trackUsage } from "@/lib/observability/usage-tracker";
 import type { TenantProfile } from "@/lib/supabase/profile";
 import type { ClinicalRecordRecord } from "@/types/consultation";
 import type { WizardForm } from "@/lib/consultations/use-consultation-wizard";
@@ -142,6 +143,11 @@ export function useConsultationSave() {
         entryMode: form.entryMode,
         generatedPdf: shouldGeneratePdf,
       });
+
+      trackUsage("consultation:save");
+      if (shouldGeneratePdf) {
+        trackUsage("pdf:generate");
+      }
 
       onSuccess(nextRecords, message);
     },

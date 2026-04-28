@@ -32,7 +32,7 @@ export function DashboardOnboardingGuard() {
 
         const onboardingProfile = readOnboardingProfile(session.user.user_metadata);
         const isReady = isOnboardingProfileComplete(onboardingProfile);
-        const isProfileSetupPage = pathname === "/ajustes" || pathname === "/onboarding";
+        const isProfileSetupPage = pathname === "/ajustes";
 
         if (!isReady && !isProfileSetupPage) {
           if (active) {
