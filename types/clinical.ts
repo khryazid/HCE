@@ -44,16 +44,4 @@ export type SpecialtyData =
   | PediatriaData
   | MedicinaGeneralData;
 
-function isSpecialtyData(value: unknown): value is SpecialtyData {
-  if (!value || typeof value !== "object") {
-    return false;
-  }
 
-  const v = value as Record<string, unknown>;
-  return (
-    typeof v.specialty_kind === "string" &&
-    typeof v.schema_version === "number" &&
-    typeof v.recorded_at === "string" &&
-    typeof v.doctor_id === "string"
-  );
-}

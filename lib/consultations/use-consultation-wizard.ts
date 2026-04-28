@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { TenantProfile } from "@/lib/supabase/profile";
 import { useClinicalContext } from "@/lib/context/clinical-context";

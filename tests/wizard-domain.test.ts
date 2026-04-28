@@ -4,7 +4,7 @@ import {
   buildDeepLinkFollowUpFormState,
   buildPendingFollowUp,
   buildTimelineRows,
-  findLatestPatientRecord,
+
   listPatientRecordsByUpdatedAt,
   type DeepLinkFollowUpEditableFields,
 } from "@/lib/consultations/wizard-domain";
@@ -67,7 +67,7 @@ describe("wizard domain deep-link helper", () => {
     newer.id = "record-new";
     newer.updated_at = "2026-04-27T08:00:00.000Z";
 
-    const latest = findLatestPatientRecord([older, newer], "patient-1");
+    const latest = listPatientRecordsByUpdatedAt([older, newer], "patient-1")[0] ?? null;
 
     expect(latest?.id).toBe("record-new");
   });

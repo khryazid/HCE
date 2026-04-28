@@ -25,11 +25,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-      <html
-        lang="es"
-        className={`${inter.variable} h-full antialiased`}
-      >
-        <body className="min-h-full flex flex-col bg-bg text-ink font-sans">
+    <html lang="es" className={`${inter.variable} h-full antialiased`}>
+      <body className="min-h-full flex flex-col bg-bg text-ink font-sans">
         <SyncBootstrap />
         {children}
       </body>

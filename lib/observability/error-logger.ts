@@ -109,21 +109,7 @@ export function logApiError(
   });
 }
 
-function logDbError(
-  context: string,
-  message: string,
-  detail?: Record<string, unknown>,
-): void {
-  appendError({
-    id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-    source: "db",
-    severity: "error",
-    context,
-    message,
-    detail,
-    timestamp: Date.now(),
-  });
-}
+
 
 export function getRecentErrors(): StructuredError[] {
   if (inMemoryErrors.length === 0) {
@@ -132,9 +118,7 @@ export function getRecentErrors(): StructuredError[] {
   return [...inMemoryErrors];
 }
 
-function getUnseenErrorCount(): number {
-  return getRecentErrors().filter((e) => e.severity === "error" || e.severity === "critical").length;
-}
+
 
 export function clearErrors(): void {
   inMemoryErrors = [];

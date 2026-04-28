@@ -120,7 +120,8 @@ export async function saveOnboardingProfile(profile: DoctorOnboardingProfile) {
 
   try {
     if (clinicId && data.user) {
-      await supabase.rpc("log_audit_event", {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase.rpc as any)("log_audit_event", {
         p_clinic_id: clinicId,
         p_doctor_id: data.user.id,
         p_event_type: "update",
@@ -132,7 +133,7 @@ export async function saveOnboardingProfile(profile: DoctorOnboardingProfile) {
         p_metadata: {
           source: "onboarding_form",
         },
-      } as never);
+      });
     }
   } catch {
     // No bloquear onboarding si auditoria RPC no esta disponible en entorno local.

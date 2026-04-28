@@ -19,21 +19,7 @@ type SupabaseInsertError = {
   message: string;
 };
 
-type ProfilesInsertClient = {
-  insert: (value: {
-    doctor_id: string;
-    clinic_id: string;
-    full_name: string;
-    specialty: string;
-  }) => {
-    select: (columns: string) => {
-      single: () => Promise<{
-        data: TenantProfile | null;
-        error: SupabaseInsertError | null;
-      }>;
-    };
-  };
-};
+
 
 type TenantMetadata = {
   clinic_id?: unknown;
@@ -129,9 +115,9 @@ export async function ensureTenantProfile(
   }
 
   const supabase = getSupabaseClient();
-  const profilesInsertClient = supabase.from("profiles" as never) as unknown as ProfilesInsertClient;
 
-  const { data, error } = await profilesInsertClient
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase.from("profiles") as any)
     .insert({
       doctor_id: input.userId,
       clinic_id: clinicId,

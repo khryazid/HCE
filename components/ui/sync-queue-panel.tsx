@@ -103,8 +103,6 @@ export function SyncQueuePanel() {
       return;
     }
 
-    let active = true;
-
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
     const handleVisibility = () => {
@@ -135,7 +133,6 @@ export function SyncQueuePanel() {
     window.addEventListener(SYNC_FINISHED_EVENT, handleSyncFinished as EventListener);
 
     return () => {
-      active = false;
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
       document.removeEventListener("visibilitychange", handleVisibility);

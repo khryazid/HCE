@@ -24,15 +24,4 @@ export function formatDate(value: string | number | Date): string {
   return new Date(value).toLocaleDateString(LOCALE);
 }
 
-/**
- * Formatea solo la parte de la fecha de un ISO string para mostrar en tarjetas.
- * Equivalente a formatDateTime(value).split(",")[0] pero explícito y tipado.
- * Ejemplo: "27/04/2026"
- */
-function formatDateOnly(value: string | number | Date): string {
-  return new Date(value).toLocaleDateString(LOCALE, {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
-}
+

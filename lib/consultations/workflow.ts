@@ -1,4 +1,4 @@
-import { formatDateTime } from "@/lib/ui/format-date";
+
 
 export function normalizeCommaValues(input: string) {
   return input
@@ -19,10 +19,4 @@ export function ensureWizardStep(currentStep: number) {
   return currentStep;
 }
 
-/**
- * formatConsultationTimestamp: usa el utilitario centralizado.
- * @deprecated Usar formatDateTime de @/lib/ui/format-date directamente.
- */
-function formatConsultationTimestamp(value: string): string {
-  return formatDateTime(value);
-}
+

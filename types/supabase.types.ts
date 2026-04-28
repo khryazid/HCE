@@ -169,6 +169,21 @@ export type Database = {
         };
         Returns: boolean;
       };
+      log_audit_event: {
+        Args: {
+          p_clinic_id: string;
+          p_doctor_id: string;
+          p_event_type: string;
+          p_resource_type: string;
+          p_resource_id: string;
+          p_changes: Record<string, unknown>;
+          p_metadata?: Record<string, unknown>;
+        };
+        Returns: number;
+      };
     };
+    Views: Record<string, never>;
+    Enums: Record<string, never>;
+    CompositeTypes: Record<string, never>;
   };
 };

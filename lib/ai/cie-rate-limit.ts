@@ -37,12 +37,13 @@ export async function isCieSuggestionRateLimited({ userId, token }: RateLimitInp
     return true;
   }
 
-  const { data, error } = await supabase.rpc("claim_api_rate_limit", {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase.rpc as any)("claim_api_rate_limit", {
     p_scope: RATE_LIMIT_SCOPE,
     p_identifier: userId,
     p_window_seconds: RATE_LIMIT_WINDOW_SECONDS,
     p_max_requests: RATE_LIMIT_MAX_REQUESTS,
-  } as never);
+  });
 
   if (error || typeof data !== "boolean") {
     return true;

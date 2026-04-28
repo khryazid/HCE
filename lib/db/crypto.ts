@@ -18,9 +18,6 @@ import { openDB } from "idb";
  *   • El backup manual requiere acción explícita del usuario.
  *
  * MITIGACIONES PENDIENTES (next cycle):
- *   • Envolver la clave AES con una clave ECDH derivada del dispositivo
- *     (WebCrypto `wrapKey` + `unwrapKey`) para que el key_material en IDB
- *     sea un wrapped blob en lugar de material crudo.
  *   • Añadir confirmación de sesión activa antes de exportar backup.
  */
 
@@ -49,7 +46,7 @@ async function getDeviceKek(): Promise<CryptoKey> {
   if (!deviceId) {
     deviceId = typeof crypto.randomUUID === "function" 
       ? crypto.randomUUID() 
-      : Date.now().toString(36) + Math.random().toString(36);
+      : Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b => b.toString(16).padStart(2, "0")).join("");
     storage.setItem("hce_device_kek_id", deviceId);
   }
 

@@ -13,11 +13,6 @@ import type { Database } from "@/types/supabase.types";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-let consecutiveGeminiFailures = 0;
-let circuitBreakerResetTime = 0;
-const MAX_FAILURES = 3;
-const COOLDOWN_MS = 60000;
-
 type RequestBody = CieSuggestionInput;
 const MAX_INPUT_LENGTH = 1200;
 
@@ -105,14 +100,8 @@ async function requestGeminiSuggestions(input: RequestBody) {
   );
 
   if (!response.ok) {
-    consecutiveGeminiFailures++;
-    if (consecutiveGeminiFailures >= MAX_FAILURES) {
-      circuitBreakerResetTime = Date.now() + COOLDOWN_MS;
-    }
     return null;
   }
-
-  consecutiveGeminiFailures = 0;
 
   const data = (await response.json()) as {
     candidates?: Array<{
@@ -154,7 +143,10 @@ export async function POST(request: Request) {
           suggestions: [],
           error: "Rate limit exceeded",
         },
-        { status: 429 },
+        { 
+          status: 429,
+          headers: { "Retry-After": "60" }
+        },
       );
     }
 
@@ -172,17 +164,6 @@ export async function POST(request: Request) {
         source: "catalog",
         suggestions: buildCatalogSuggestions(CIE_CATALOG.slice(0, 5), "Completa diagnostico o sintomas para obtener sugerencias."),
       });
-    }
-
-    if (Date.now() < circuitBreakerResetTime) {
-      return NextResponse.json(
-        {
-          source: "catalog",
-          suggestions: buildCatalogSuggestions(localCandidates, "Gemini temporalmente no disponible (cooldown); se usan sugerencias locales."),
-          error: "Circuit breaker active",
-        },
-        { status: 503 },
-      );
     }
 
     const geminiSuggestions = await requestGeminiSuggestions({

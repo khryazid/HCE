@@ -11,6 +11,21 @@ Este es el único tasklist activo del proyecto. Resume lo que está en progreso 
 - [x] **[DEUDA TÉCNICA] Tipados Inseguros en Base de Datos:** Eliminar el casteo inseguro `supabase.from(tableName as never) as unknown as TableSyncClient` en la sincronización construyendo un Type Guard exhaustivo usando los tipos generados `Database['public']['Tables']`. (Archivo: `lib/sync/sync-worker.ts`)
 - [x] **[DEUDA TÉCNICA] Limpieza de Código Muerto:** Eliminar la asignación inútil `void candidateEntries;` en `app/api/cie-suggestions/route.ts` y auditar las llamadas flotantes (ej. `void flushSyncQueue();`) añadiendo manejo de errores adecuado a nivel global.
 
+## Correcciones Pre-Producción
+- [x] **[C-1]** Eliminar estado mutable (`consecutiveGeminiFailures`, `circuitBreakerResetTime`) en el Route Handler de Gemini para evitar inconsistencias en despliegues multi-instancia. (Archivo: `app/api/cie-suggestions/route.ts`)
+- [x] **[C-2]** Añadir header `Retry-After: 60` en respuestas 429 de la API para que el fallback del cliente pueda procesarlo adecuadamente. (Archivo: `app/api/cie-suggestions/route.ts`)
+- [x] **[C-3]** Exportar y llamar a `deleteSpecialtyDataLocal` al eliminar `clinical_records` para evitar datos PHI huérfanos en IndexedDB. (Archivo: `lib/db/indexeddb.ts`)
+- [x] **[A-1]** Limpiar `useEffect` importado pero no utilizado en `lib/consultations/use-consultation-wizard.ts`.
+- [x] **[A-3]** Eliminar y refactorizar castings inseguros (`as never`, `as unknown`) en `lib/supabase/profile.ts`, `lib/ai/cie-rate-limit.ts` y `lib/supabase/onboarding.ts`.
+
+## Optimizaciones y Tareas Menores (Pre-Producción)
+- [x] **[M-1 a M-6]** Eliminación de código muerto en loggers (`error-logger.ts`), eventos (`app-events.ts`), tipos/funciones huérfanas (`types/*`, `workflow.ts`) y componentes UI (`sync-queue-panel.tsx`, `empty-state.tsx`).
+- [x] **[B-2]** Guardas de entorno (`NODE_ENV === "production"`) para métodos destructivos en IndexedDB (`clearOfflineDataForTests`).
+- [x] **[B-3]** Mejora de entropía con `crypto.getRandomValues` como fallback de alta seguridad para la llave envolvente IDB.
+- [x] **[B-4/B-5]** Removidas funciones no usadas de prod (`findLatestPatientRecord`) e indentación HTML en `layout.tsx`.
+- [x] **[B-7]** Adición de instrucciones `pg_cron` en esquema SQL para las vistas materializadas.
+- [x] **[B-10]** Añadidas cabeceras HTTP de seguridad estandar (`X-Content-Type-Options`, `X-Frame-Options`, `HSTS`) en `next.config.ts`.
+
 ## Tareas Generadas por Auditoría Continua (Pendientes de Revisión)
 - [x] **[AUDITORÍA]** Analizar dependencias en `package.json` en busca de paquetes obsoletos o innecesarios.
 - [x] **[AUDITORÍA]** Escanear la base de código para identificar código muerto, archivos huérfanos o variables sin uso.

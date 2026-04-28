@@ -27,8 +27,8 @@ HCE Multiespecialidad permite gestionar pacientes, consultas y seguimientos clin
 
 | Campo | Valor |
 | --- | --- |
-| Version | 0.1.0 |
-| Estado | Fase de profesionalización y UX completada (MVP listo) |
+| Version | 1.0.0-rc.1 |
+| Estado | Lista para Produccion (Code Freeze) |
 | Repo | Pendiente de URL publica |
 | URL de produccion | Pendiente |
 
@@ -160,12 +160,7 @@ Incluye:
 - api_rate_limits,
 - RPC public.claim_api_rate_limit(...).
 
-Scripts historicos de referencia:
 
-- lib/supabase/001_init_schema.sql
-- lib/supabase/002_iteration2_followups.sql
-- lib/supabase/003_iteration3_patients.sql
-- lib/supabase/004_cie_rate_limits.sql
 
 ## Testing y calidad
 
@@ -223,7 +218,13 @@ Este README esta alineado con tu estructura operativa de Notion:
 
 ## Changelog
 
-### 2026-04-28
+### 2026-04-28 (Pre-Producción)
+
+- **Code Freeze y Optimización Final:** Purga masiva de deuda técnica, eliminación de componentes y tipos huérfanos, y optimización severa de bundle.
+- **Seguridad Serverless y Persistencia:** Eliminación de estado mutable en funciones edge/serverless, cierre de brechas de IndexedDB huérfana, envoltura AES-KW de alta entropía para claves IDB locales.
+- **Auditoría e Integridad:** Implementadas cabeceras CSP, estandarización de logs y 100% de la suite de 91 pruebas en verde (`Exit code: 0` en Next build).
+
+### 2026-04-28 (Iteración UX)
 
 - Finalización de iteración UX profesional: accesibilidad estricta WCAG AA, eliminación de rutas residuales, y adición de métricas ligeras de UI.
 - Eliminación de polling en segundo plano para ahorro de CPU/batería; los paneles de sincronización ahora son 100% dirigidos por eventos.

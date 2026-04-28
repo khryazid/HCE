@@ -24,30 +24,4 @@ export type SpecialtyDataRow = {
   updated_at: string;
 };
 
-type ConsultationFormState = {
-  patient_id: string;
-  chief_complaint: string;
-  cie_codes: string;
-  specialty_kind: SpecialtyKind;
-};
 
-type MedicineGeneralFields = {
-  motivo_consulta: string;
-  plan: string;
-};
-
-type PediatriaFields = {
-  edad_meses: string;
-  peso_kg: string;
-  talla_cm: string;
-  percentil: string;
-};
-
-type OdontologiaFields = {
-  piezas_json: string;
-};
-
-type SpecialtyFormState =
-  | ({ specialty_kind: "medicina-general" } & MedicineGeneralFields)
-  | ({ specialty_kind: "pediatria" } & PediatriaFields)
-  | ({ specialty_kind: "odontologia" } & OdontologiaFields);

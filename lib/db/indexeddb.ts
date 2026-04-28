@@ -336,6 +336,15 @@ export async function savePatientLocal(patient: PatientRecord) {
 export async function deletePatientLocal(id: string) {
   const db = await getOfflineDb();
   await db.delete("patients", id);
+
+  const recordKeys = await db.getAllKeysFromIndex("clinical_records", "by_patient", id);
+  for (const recordKey of recordKeys) {
+    await db.delete("clinical_records", recordKey);
+    const specialtyKeys = await db.getAllKeysFromIndex("specialty_data", "by_record", recordKey);
+    for (const specKey of specialtyKeys) {
+      await db.delete("specialty_data", specKey);
+    }
+  }
 }
 
 export async function updatePatientStatusLocal(
@@ -432,6 +441,11 @@ export async function saveClinicalRecordLocal(record: ClinicalRecordRecord) {
 export async function deleteClinicalRecordLocal(id: string) {
   const db = await getOfflineDb();
   await db.delete("clinical_records", id);
+
+  const specialtyKeys = await db.getAllKeysFromIndex("specialty_data", "by_record", id);
+  for (const specKey of specialtyKeys) {
+    await db.delete("specialty_data", specKey);
+  }
 }
 
 export async function saveSpecialtyDataLocal(row: SpecialtyDataRow) {
@@ -450,12 +464,10 @@ export async function saveSpecialtyDataLocal(row: SpecialtyDataRow) {
   });
 }
 
-async function deleteSpecialtyDataLocal(id: string) {
-  const db = await getOfflineDb();
-  await db.delete("specialty_data", id);
-}
-
 export async function clearOfflineDataForTests() {
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("No se puede borrar IDB en produccion");
+  }
   const db = await getOfflineDb();
 
   await Promise.all([

@@ -408,6 +408,9 @@ group by clinic_id, doctor_id, date_trunc('day', created_at)::date;
 create index if not exists idx_mv_dashboard_kpis_daily
   on public.mv_dashboard_kpis_daily (clinic_id, doctor_id, report_date desc);
 
+-- IMPORTANTE: Configurar un cron job usando pg_cron para refrescar esta vista
+-- ej: select cron.schedule('refresh_mv', '0 0 * * *', $$refresh materialized view concurrently public.mv_dashboard_kpis_daily$$);
+
 create table if not exists public.api_rate_limits (
   scope text not null,
   identifier uuid not null references auth.users (id) on delete cascade,

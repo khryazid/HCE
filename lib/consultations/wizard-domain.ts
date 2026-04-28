@@ -120,12 +120,7 @@ const EMPTY_BACKGROUNDS: WizardPatientBackgrounds = {
   gynecoObstetric: "",
 };
 
-export function findLatestPatientRecord(
-  records: ClinicalRecordRecord[],
-  patientId: string,
-) {
-  return listPatientRecordsByUpdatedAt(records, patientId)[0] ?? null;
-}
+
 
 export function listPatientRecordsByUpdatedAt(
   records: ClinicalRecordRecord[],
