@@ -2,71 +2,25 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
   pull_request:
-    branches: [main]
+    branches: [main, develop]
   workflow_dispatch:
     inputs:
       run_e2e:
         description: 'Run E2E tests'
         required: false
-        default: 'false'
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Use Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      - name: Install dependencies
-        run: npm ci
-      - name: Lint
-        run: npm run lint
-      - name: Typecheck
-        run: npm run typecheck
-      - name: Unit tests
-        run: npm run test
-
-  e2e:
-    if: ${{ github.event.inputs.run_e2e == 'true' }}
-    runs-on: ubuntu-latest
-    needs: test
-    steps:
-      - uses: actions/checkout@v4
-      - name: Use Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      - name: Install dependencies
-        run: npm ci
-      - name: Start app
-        run: |
-          npm run build
-          npm run start &
-          sleep 2
-      - name: Run Playwright E2E
-        run: npm run test:e2e
-name: CI
-
-on:
-  push:
-    branches:
-      - main
-      - develop
-  pull_request:
+        type: boolean
+        default: false
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -81,8 +35,35 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
-      - name: Test
+      - name: Run Unit Tests
         run: npm run test
 
-      - name: Build
+      - name: Build Application
         run: npm run build
+
+  e2e:
+    if: ${{ inputs.run_e2e == true }}
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Start app & run Playwright
+        run: |
+          npm run build
+          npm run start &
+          sleep 2
+          npm run test:e2e
