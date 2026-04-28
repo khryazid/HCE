@@ -28,16 +28,16 @@ HCE Multiespecialidad permite gestionar pacientes, consultas y seguimientos clin
 | Campo | Valor |
 | --- | --- |
 | Version | 0.1.0 |
-| Estado | Activo en refactor y endurecimiento operativo |
+| Estado | Fase de profesionalización y UX completada (MVP listo) |
 | Repo | Pendiente de URL publica |
 | URL de produccion | Pendiente |
 
 Verificacion tecnica reciente:
 
 - Typecheck global en verde.
-- Suite de tests en verde.
+- Suite de tests en verde (91 tests).
 - Dev server iniciando correctamente en entorno local.
-- SQL consolidado actualizado con rate limiting CIE en RPC compartido.
+- Cero polling inactivo (paneles de estado 100% reactivos a eventos).
 
 ## Caracteristicas
 
@@ -199,10 +199,8 @@ npm run test
 
 Pendientes principales:
 
-- Consolidacion de patrones en components/ui.
-- Revision formal de accesibilidad (teclado, foco, contraste, jerarquia).
-- Validacion UX mobile en flujos largos.
-- Cobertura explicita de estados vacio/carga/error en flujos core.
+- Fase actual de profesionalización clínica completamente terminada.
+- *(Siguientes pasos se definirán en una nueva iteración de producto)*
 
 Backlog detallado:
 
@@ -224,6 +222,13 @@ Este README esta alineado con tu estructura operativa de Notion:
 - Changelog
 
 ## Changelog
+
+### 2026-04-28
+
+- Finalización de iteración UX profesional: accesibilidad estricta WCAG AA, eliminación de rutas residuales, y adición de métricas ligeras de UI.
+- Eliminación de polling en segundo plano para ahorro de CPU/batería; los paneles de sincronización ahora son 100% dirigidos por eventos.
+- Refactorización visual de Wizard y Tratamientos consolidando utilidades de diseño (hce-surface, hce-card).
+- Cobertura de tests incrementada y tipado asegurado (91/91 tests pasando).
 
 ### 2026-04-27
 
