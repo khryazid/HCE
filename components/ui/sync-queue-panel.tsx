@@ -5,6 +5,7 @@ import {
   deleteSyncQueueItem,
   getSyncQueueStats,
   listSyncQueueItems,
+  updateSyncItemStatus,
 } from "@/lib/db/indexeddb";
 import {
   flushSyncQueue,
@@ -28,8 +29,9 @@ type LastSyncState = {
 
 const LAST_SYNC_KEY = "hce:last-sync";
 
+// NF-05: locale fijo "es-EC" — consistente con el resto de la app.
 function formatTimestamp(value: number) {
-  return new Date(value).toLocaleString();
+  return new Date(value).toLocaleString("es-EC");
 }
 
 export function SyncQueuePanel() {
@@ -194,10 +196,35 @@ export function SyncQueuePanel() {
     }
   }
 
+  // Reintento individual de un item abandonado — lo re-clasifica a pending
+  // con retry_count=0 y fuerza un flush inmediato.
+  async function handleRetryAbandoned(itemId: string) {
+    setWorking(true);
+    setError(null);
+
+    try {
+      await updateSyncItemStatus(itemId, "pending", undefined, 0, Date.now());
+      await flushSyncQueue({ forceRetry: true });
+      await refreshQueue();
+    } catch (retryError) {
+      setError(
+        retryError instanceof Error
+          ? retryError.message
+          : buildRetryableErrorMessage("reintentar el elemento abandonado"),
+      );
+    } finally {
+      setWorking(false);
+    }
+  }
+
   const hasErrors = stats.failed > 0 || stats.abandoned > 0 || stats.conflicted > 0;
 
   return (
     <section
+      role="status"
+      aria-live="polite"
+      aria-busy={working}
+      aria-label="Estado de sincronizacion"
       className={`px-4 py-3 ${
         hasErrors ? "hce-alert-warning" : "hce-alert-success"
       }`}
@@ -258,9 +285,24 @@ export function SyncQueuePanel() {
               {items.map((item) => (
                 <article key={item.id} className="flex flex-col gap-3 p-4 lg:flex-row lg:items-center lg:justify-between">
                   <div className="space-y-1">
-                    <p className="text-sm font-semibold text-ink">
-                      {item.action.toUpperCase()} · {item.table_name} · {item.status}
-                    </p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-sm font-semibold text-ink">
+                        {item.action.toUpperCase()} · {item.table_name}
+                      </p>
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                          item.status === "abandoned"
+                            ? "bg-red-100 text-red-700"
+                            : item.status === "conflicted"
+                              ? "bg-amber-100 text-amber-700"
+                              : item.status === "failed"
+                                ? "bg-orange-100 text-orange-700"
+                                : "bg-sky-100 text-sky-700"
+                        }`}
+                      >
+                        {item.status}
+                      </span>
+                    </div>
                     <p className="text-xs text-ink-soft">{item.record_id}</p>
                     <p className="text-xs text-ink-soft/80">
                       {formatTimestamp(item.client_timestamp)} · intentos {item.retry_count}
@@ -269,7 +311,17 @@ export function SyncQueuePanel() {
                       <p className="text-xs text-red-500">{item.last_error}</p>
                     ) : null}
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 shrink-0">
+                    {item.status === "abandoned" ? (
+                      <button
+                        type="button"
+                        onClick={() => void handleRetryAbandoned(item.id)}
+                        disabled={working || !isOnline}
+                        className="rounded-xl border border-sky-300/40 bg-sky-500/10 px-3 py-2 text-xs font-semibold uppercase tracking-[0.15em] text-sky-700 disabled:opacity-60 hover:bg-sky-500/20 transition"
+                      >
+                        Reintentar
+                      </button>
+                    ) : null}
                     <button
                       type="button"
                       onClick={() => void handleDiscard(item.id)}

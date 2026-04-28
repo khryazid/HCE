@@ -1,12 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   type CieSuggestion,
   type CieSuggestionSource,
 } from "@/lib/ai/cie-suggestions";
 import { searchCieCatalog } from "@/lib/constants/cie-catalog";
-import { fetchCieSuggestionsFromApi } from "@/lib/consultations/cie-suggestions-client";
+import {
+  fetchCieSuggestionsFromApi,
+  CieRateLimitError,
+} from "@/lib/consultations/cie-suggestions-client";
 import type { SpecialtyKind } from "@/types/clinical";
 
 type Params = {
@@ -33,6 +36,38 @@ export function useWizardCieSuggestions({
   const [cieSuggestionError, setCieSuggestionError] = useState<string | null>(
     null,
   );
+  /** Segundos restantes del cooldown por rate-limit. 0 = sin cooldown. */
+  const [rateLimitCountdown, setRateLimitCountdown] = useState(0);
+  const rateLimitTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  /** Inicia el countdown de rate-limit y limpia el estado al terminar. */
+  function startRateLimitCountdown(retryAfterMs: number) {
+    const seconds = Math.ceil(retryAfterMs / 1000);
+    setRateLimitCountdown(seconds);
+    setCieSuggestionError(`Limite de solicitudes alcanzado. Intenta en ${seconds} s.`);
+
+    if (rateLimitTimerRef.current) clearInterval(rateLimitTimerRef.current);
+
+    rateLimitTimerRef.current = setInterval(() => {
+      setRateLimitCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(rateLimitTimerRef.current!);
+          rateLimitTimerRef.current = null;
+          setCieSuggestionError(null);
+          return 0;
+        }
+        const next = prev - 1;
+        setCieSuggestionError(`Limite de solicitudes alcanzado. Intenta en ${next} s.`);
+        return next;
+      });
+    }, 1000);
+  }
+
+  useEffect(() => {
+    return () => {
+      if (rateLimitTimerRef.current) clearInterval(rateLimitTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     if (!wizardOpen || step !== 2) {
@@ -82,6 +117,11 @@ export function useWizardCieSuggestions({
       return;
     }
 
+    // No disparar si el cooldown aún está activo
+    if (rateLimitCountdown > 0) {
+      return;
+    }
+
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => {
       setCieSuggestionLoading(true);
@@ -106,21 +146,26 @@ export function useWizardCieSuggestions({
           }
         })
         .catch((requestError: unknown) => {
-          if (!controller.signal.aborted) {
-            if (
-              requestError instanceof Error &&
-              requestError.message === "CIE_UNAUTHORIZED"
-            ) {
-              setCieSuggestionError(
-                "Tu sesion expiro para sugerencias asistidas. Vuelve a iniciar sesion para usar Gemini.",
-              );
-              return;
-            }
+          if (controller.signal.aborted) return;
 
-            setCieSuggestionError(
-              "La sugerencia asistida no estuvo disponible; se conservan coincidencias locales.",
-            );
+          if (requestError instanceof CieRateLimitError) {
+            startRateLimitCountdown(requestError.retryAfterMs);
+            return;
           }
+
+          if (
+            requestError instanceof Error &&
+            requestError.message === "CIE_UNAUTHORIZED"
+          ) {
+            setCieSuggestionError(
+              "Tu sesion expiro para sugerencias asistidas. Vuelve a iniciar sesion para usar Gemini.",
+            );
+            return;
+          }
+
+          setCieSuggestionError(
+            "La sugerencia asistida no estuvo disponible; se conservan coincidencias locales.",
+          );
         })
         .finally(() => {
           if (!controller.signal.aborted) {
@@ -133,6 +178,8 @@ export function useWizardCieSuggestions({
       controller.abort();
       window.clearTimeout(timeoutId);
     };
+    // rateLimitCountdown intencionalmente excluido para no re-lanzar durante cooldown
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [anamnesis, diagnosis, specialtyKind, step, symptoms, wizardOpen]);
 
   return {
@@ -140,6 +187,7 @@ export function useWizardCieSuggestions({
     cieSuggestionSource,
     cieSuggestionLoading,
     cieSuggestionError,
+    rateLimitCountdown,
     setCieSuggestionLoading,
   };
-}
+}

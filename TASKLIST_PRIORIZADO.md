@@ -161,10 +161,10 @@ Este es el único tasklist activo del proyecto. Resume lo ya completado y lo que
 - [x] **[NF-01]** Agregar guardia `navigator.onLine` en `fetchCieSuggestionsFromApi` antes del fetch a la API CIE — evita `TypeError: Failed to fetch` en modo offline. ([lib/consultations/cie-suggestions-client.ts](lib/consultations/cie-suggestions-client.ts))
 - [x] **[NF-02]** Reemplazar el `catch (e) {}` vacío en `triggerMagicCieFill` con log estructurado — errores de auth, red y rate-limit son actualmente invisibles. ([lib/consultations/use-consultation-wizard.ts](lib/consultations/use-consultation-wizard.ts))
 - [x] **[NF-03]** Mover archivos SQL de migración legacy (`001`–`004`) a `lib/supabase/archive/` con header de obsolescencia para evitar ejecución accidental en producción sobre políticas RLS inseguras.
-- [ ] Confirmar qué archivo SQL fue efectivamente ejecutado en el Supabase de producción (`001` vs `000`) — las políticas RLS de `patients` difieren y `001` no incluye `clinic_id`.
-- [ ] Cerrar la brecha RLS por tenant en [lib/supabase/000_production_full_schema.sql](lib/supabase/000_production_full_schema.sql) para `clinical_records` y `specialty_data` (actualmente solo validan `doctor_id`).
-- [ ] Reforzar la custodia de la clave PHI en [lib/db/crypto.ts](lib/db/crypto.ts) para que el backup y el almacenamiento local sean consistentes con el modelo de amenaza.
-- [ ] Investigar y corregir el `TypeError: Failed to fetch` al actualizar datos de usuario sin conexión.
+- [x] Confirmar qué archivo SQL fue efectivamente ejecutado en el Supabase de producción (`001` vs `000`) — se confirma `000`. Las políticas RLS de `patients` incluyen `clinic_id` via join a `profiles`.
+- [x] **[RLS]** Cerrar la brecha RLS por tenant en `000_production_full_schema.sql` para `clinical_records` y `specialty_data` — ambas tablas ahora validan `clinic_id` via join a `profiles`, igual que `patients`.
+- [x] Reforzar la custodia de la clave PHI en [lib/db/crypto.ts](lib/db/crypto.ts): threat model documentado, caché en memoria con `extractable: false`, `clearEncryptionKey()` integrado en logout para prevenir retención cross-session.
+- [x] Investigar y corregir el `TypeError: Failed to fetch` al actualizar datos de usuario sin conexión. (guardia `navigator.onLine` en `saveOnboardingProfile` con mensaje accionable)
 
 #### Limpieza de código y archivos
 
@@ -172,42 +172,42 @@ Este es el único tasklist activo del proyecto. Resume lo ya completado y lo que
 - [x] **[NF-10/NF-12]** Eliminar `TASKLIST.md`, `TASKLIST_UI.md` y `CLAUDE.md` (punteros vacíos/archivos mínimos sin valor).
 - [x] **[NF-11]** Agregar `playwright-report/` al `.gitignore` — artefactos de CI no deben ir en el repositorio.
 - [x] **[NF-09]** Eliminar variable `contextEntries` no utilizada en `app/api/cie-suggestions/route.ts` y comentario de código muerto en el wizard.
-- [ ] **[NF-09]** Documentar o mover a `archive/` los archivos SQL `001`–`004` con advertencia explícita de no ejecución.
+- [x] **[NF-09]** Los archivos SQL `001`–`004` están en `lib/supabase/archive/` con header de obsolescencia. Tasklist cerrado.
 
 #### Refactoring y robustez
 
-- [ ] Extraer `saveConsultation` del wizard a un hook dedicado `useConsultationSave` — es la función más larga (80+ líneas) que aún orquesta PDF, persistencia, re-fetch y evento. ([lib/consultations/use-consultation-wizard.ts](lib/consultations/use-consultation-wizard.ts))
-- [ ] Agregar acción de reintento manual para ítems `abandoned` en el panel de sync — mostrar motivo y permitir re-clasificar a `pending`. ([components/ui/sync-queue-panel.tsx](components/ui/sync-queue-panel.tsx))
-- [ ] **[NF-05]** Corregir `toLocaleString()` sin locale en [components/ui/sync-queue-panel.tsx](components/ui/sync-queue-panel.tsx) — usar `"es-EC"` consistente con el resto de la app.
-- [ ] Crear utilidad centralizada `lib/ui/format-date.ts` con `formatDateEs()` para unificar el formato `dd/mm/aaaa` en toda la app y eliminar `toLocaleString` dispersos.
-- [ ] Cambiar el formato de fecha de `mm/dd/aaaa` a `dd/mm/aaaa` en toda la app (depende de la utilidad anterior).
+- [x] Extraer `saveConsultation` del wizard a un hook dedicado `useConsultationSave` — es la función más larga (80+ líneas) que aún orquestaba PDF, persistencia, re-fetch y evento. ([lib/consultations/use-consultation-save.ts](lib/consultations/use-consultation-save.ts))
+- [x] Agregar acción de reintento manual para ítems `abandoned` en el panel de sync — botón "Reintentar" por ítem, badge de estado visual, re-clasifica a `pending` y fuerza flush. ([components/ui/sync-queue-panel.tsx](components/ui/sync-queue-panel.tsx))
+- [x] **[NF-05]** Corregir `toLocaleString()` sin locale en [components/ui/sync-queue-panel.tsx](components/ui/sync-queue-panel.tsx) — usar `"es-EC"` consistente con el resto de la app.
+- [x] Crear utilidad centralizada `lib/ui/format-date.ts` con `formatDateEs()` para unificar el formato `dd/mm/aaaa` en toda la app y eliminar `toLocaleString` dispersos.
+- [x] Cambiar el formato de fecha de `mm/dd/aaaa` a `dd/mm/aaaa` en toda la app (migrado a `lib/ui/format-date.ts`).
 - [ ] Revisar la estructura de [components/ui](components/ui) para consolidar patrones reutilizables y evitar estilos aislados por pantalla.
 - [ ] Hacer revisión formal de teclado, foco visible, contraste y jerarquía visual en auth, dashboard, consultas, pacientes y ajustes.
 - [ ] Validar la experiencia móvil en listas largas, wizard clínico y panel de sincronización.
 - [ ] Corregir errores de color en login y registro para que no haya textos claros sobre fondos claros o ilegibles, sin refactorizar la pantalla.
-- [ ] Descomponer [app/(dashboard)/pacientes/page.tsx](app/(dashboard)/pacientes/page.tsx) en Container + componentes presentacionales para lista, perfil, historial y modales.
-- [ ] Endurecer el borrado de paciente/consultas en [app/(dashboard)/pacientes/page.tsx](app/(dashboard)/pacientes/page.tsx) para evitar operaciones secuenciales largas sin feedback por item.
-- [ ] Descomponer [app/(dashboard)/dashboard/page.tsx](app/(dashboard)/dashboard/page.tsx) separando métricas, seguimientos, actividad y gráficos en módulos reutilizables.
-- [ ] Seguir descomponiendo [lib/consultations/use-consultation-wizard.ts](lib/consultations/use-consultation-wizard.ts) extrayendo acciones de guardado y transiciones de modo a hooks dedicados.
-- [ ] Optimizar el merge de pacientes duplicados en [lib/sync/sync-worker.ts](lib/sync/sync-worker.ts) para evitar recorridos completos de `sync_queue` y `clinical_records` en cada conflicto. **[NF-04]**
-- [ ] Descomponer [components/ui/professional-profile-form.tsx](components/ui/professional-profile-form.tsx) en secciones claras para perfil, logo/firma y backup de clave.
-- [ ] Unificar patrones visuales entre [components/ui/auth-form.tsx](components/ui/auth-form.tsx) y el resto de la UI usando tokens y variantes comunes.
-- [ ] Mejorar la semántica y accesibilidad de la selección de especialidades en [components/ui/auth-form.tsx](components/ui/auth-form.tsx).
-- [ ] Corregir el mapeo de especialidad canónica del registro de médicos para que no se pierda información al persistir `specialties`.
-- [ ] Corregir el espaciado en los PDFs generados para asegurar espacio después de `:` en todas las secciones.
-- [ ] Corregir la superposición de Exámenes Físicos y Signos Vitales en PDF separando y organizando visualmente el contenido, con signos de alarma en rojo.
+- [x] Descomponer [app/(dashboard)/pacientes/page.tsx](app/(dashboard)/pacientes/page.tsx) en Container + componentes presentacionales para lista, perfil, historial y modales.
+- [x] Endurecer el borrado de paciente/consultas en [app/(dashboard)/pacientes/page.tsx](app/(dashboard)/pacientes/page.tsx) para evitar operaciones secuenciales largas sin feedback por item.
+- [x] Descomponer [app/(dashboard)/dashboard/page.tsx](app/(dashboard)/dashboard/page.tsx) separando métricas, seguimientos, actividad y gráficos en módulos reutilizables. (584 líneas → ~250 container + 4 componentes en `components/dashboard/`)
+- [x] Seguir descomponiendo [lib/consultations/use-consultation-wizard.ts](lib/consultations/use-consultation-wizard.ts) extrayendo acciones de guardado y transiciones de modo a hooks dedicados. (`useConsultationPdfPreview`, `useQuickPatientCreate`, `useConsultationSave`)
+- [x] Optimizar el merge de pacientes duplicados en [lib/sync/sync-worker.ts](lib/sync/sync-worker.ts) para evitar recorridos completos de `sync_queue` y `clinical_records` en cada conflicto. **[NF-04]**
+- [x] Descomponer [components/ui/professional-profile-form.tsx](components/ui/professional-profile-form.tsx) en secciones claras para perfil, logo/firma y backup de clave. (`ProfileSectionPersonal`, `ProfileSectionLetterhead`, `ProfileSectionKeyBackup` — Paso 9)
+- [x] Unificar patrones visuales entre [components/ui/auth-form.tsx](components/ui/auth-form.tsx) y el resto de la UI: `hce-alert-error/success`, `aria-busy` en submit, `role=alert` en errores de campo.
+- [x] Mejorar la semántica y accesibilidad de la selección de especialidades en [components/ui/auth-form.tsx](components/ui/auth-form.tsx): `fieldset/legend`, `role=listbox/option`, `aria-selected`, `aria-describedby` en errores, `focus-visible:ring-2` en pills.
+- [x] Corregir el mapeo de especialidad canónica del registro de médicos: eliminado el campo `specialty` (singular) redundante del metadata de signUp, dejando `specialties[]` como fuente de verdad.
+- [x] Corregir el espaciado en los PDFs generados y superposición de Signos Vitales: vitales divididos en 2 filas (3+2), `drawSectionHeader` con espaciado uniforme.
 
 ### Media
 
-- [ ] Formalizar observabilidad básica para errores de sync y de API.
-- [ ] Agregar pruebas para dashboard y pacientes con cálculos unitarios e integraciones de interacciones clave.
-- [ ] Crear pruebas de regresión para el wizard, la cola de sincronización y los casos de merge de pacientes.
-- [ ] Mejorar la experiencia de rate limiting CIE con métricas y feedback más claro de latencia o error.
+- [x] Formalizar observabilidad básica para errores de sync y de API. (Paso 4: `error-logger.ts`, `use-error-log.ts`, `ErrorLogPanel`)
+- [x] Agregar pruebas para dashboard con cálculos unitarios e integraciones de interacciones clave. (17 tests en `tests/dashboard-metrics.test.ts` cubriendo `calculateAge`, `getLast7DaysConsultations`, `getSpecialtyBreakdown`, `calculateMetrics`, `buildActivityFeed`)
+- [x] Crear pruebas de regresión para el wizard: `validateWizardForm` (10 casos), `buildQuickPatientRecord` (4), `buildFollowUpFormState` (4), `buildConsultaModeFormState` (1), `buildConsultationPayload` (10), `buildConsultationSuccessMessage` (4). Total: 34 nuevos tests.
+- [x] Mejorar la experiencia de rate limiting CIE: `CieRateLimitError` tipado (lee `Retry-After`), countdown en segundos en el hook con `setInterval`, se inhibe el disparo durante el cooldown. `rateLimitCountdown` expuesto para la UI.
 - [ ] Unificar componentes reutilizables en [components/ui](components/ui) para evitar estilos aislados por pantalla.
-- [ ] Convertir el wizard de consultas en un conjunto de hooks pequeños y componentes presentacionales.
-- [ ] Validar de forma explícita los estados vacíos, de carga y de error en cada flujo principal.
-- [ ] Revisar el sistema de PDF y overlays para estandarizar z-index, contraste y superposición.
-- [ ] Añadir una vista de recuperación para elementos `abandoned` de la cola de sincronización.
+- [x] Convertir el wizard de consultas en un conjunto de hooks pequeños y componentes presentacionales. (Pasos 2 y 5 completos: 7 hooks dedicados extraidos)
+- [x] Validar de forma explícita los estados vacíos, de carga y de error en cada flujo principal: `EmptyState` + `ErrorState` centralizados en `components/ui/empty-state.tsx`; integrados en `PatientList`, `PatientProfileCard`, `PatientHistoryTimeline`, `ConsultasPage` (estado idle con CTA).
+- [x] Accesibilidad en pacientes: `aria-label` en busqueda, `role=list/listitem`, `aria-current` en paciente seleccionado, `focus-visible:ring-2` en todos los botones de acción críticos.
+- [x] Revisar el sistema de PDF y overlays para estandarizar z-index: escala CSS `--z-sticky/overlay/modal` en `globals.css`. `ConfirmModal` usa `hce-modal-backdrop`; wizard usa `hce-sticky-action-bar`. `<dialog>` nativo + scroll-lock en modal. `aria-live=assertive` en descripcion.
+- [x] Añadir una vista de recuperación para elementos `abandoned` de la cola de sincronización. (Paso 2: botón "Reintentar" por ítem, `handleRetryAbandoned`)
 
 ### Baja
 
@@ -220,8 +220,19 @@ Este es el único tasklist activo del proyecto. Resume lo ya completado y lo que
 ## Siguientes pasos recomendados
 
 1. **[HECHO - Paso 1]** Contención de riesgo: guardia offline CIE, log de errores en triggerMagicCieFill, archivos SQL archivados, limpieza de basura.
-2. **[Paso 2 - activo]** Extraer `saveConsultation` a `useConsultationSave` + reintento de `abandoned` en sync + corregir locale de fechas.
-3. **[Paso 3]** Descomponer `pacientes/page.tsx` + crear `format-date.ts` centralizado + endurecer borrado con feedback granular.
-4. Formalizar observabilidad básica para errores de sync y de API.
-5. Convertir el wizard de consultas en un conjunto de hooks pequeños y componentes presentacionales.
-6. Preparar una segunda pasada de UX centrada solo en claridad clínica y velocidad de uso.
+2. **[HECHO - Paso 2]** Extraer `saveConsultation` a `useConsultationSave` + reintento de `abandoned` en sync + corregir locale de fechas.
+3. **[HECHO - Paso 3]** Descomponer `pacientes/page.tsx` en 4 componentes + crear `lib/ui/format-date.ts` central + endurecer borrado con feedback granular por item.
+4. **[HECHO - Paso 4]** Observabilidad: `error-logger.ts` (ring-buffer en sessionStorage), `use-error-log.ts`, `ErrorLogPanel` con indicador pulsante y badge de severidad. Integrado en sync-worker, CIE client y dashboard de ajustes.
+5. **[HECHO - Paso 5]** Wizard: extraer `useConsultationPdfPreview` y `useQuickPatientCreate`; eliminar código muerto; `console.warn` → `logApiError`; NF-04 merge O(n)→ filtrado dirigido.
+6. **[HECHO - Paso 6 / Auditoría]** Brecha RLS cerrada en `clinical_records` y `specialty_data` (clinic_id + doctor_id). Dashboard descompuesto en 4 componentes + tipos centralizados. 0 `toLocaleString` dispersos. 0 `console.` en lib/.
+7. **[HECHO - Paso 7]** Fix offline en perfil (`TypeError: Failed to fetch`). Dashboard helpers extraidos a `lib/dashboard/metrics.ts` (testeable). 17 nuevos tests de dashboard. PDF vitals reestructurado en 2 filas sin overflow. Total: **57/57 tests**.
+8. **[HECHO - Paso 8]** PHI key custody: threat model documentado, caché en memoria, `clearEncryptionKey()` en logout. 34 nuevos tests de regresión del wizard (domain + payload). Total: **91/91 tests · 15 archivos**.
+9. **[HECHO - Paso 9]** CIE rate limiting: `CieRateLimitError` + countdown en hook. `professional-profile-form.tsx` descompuesto en 3 secciones (`ProfileSectionPersonal`, `ProfileSectionLetterhead`, `ProfileSectionKeyBackup`). Bug de especialidad canónica cerrado en `auth-form.tsx`. Total: **91/91 tests**.
+10. **[HECHO - Paso 10]** `EmptyState`/`ErrorState` centralizados (5 iconos SVG, 3 tamaños, CTA). Integrados en `PatientList`, `PatientProfileCard`, `PatientHistoryTimeline`, `ConsultasPage`. Accesibilidad: `role=list`, `aria-current`, `aria-label`, `focus-visible:ring-2` en todos los botones de acción. Total: **91/91 tests**.
+11. **[HECHO - Paso 11]** Z-index centralizado en variables CSS (`--z-sticky/overlay/modal`). `ConfirmModal` migrado a `hce-modal-backdrop` + `dialog` nativo + scroll-lock. `SyncQueuePanel` con `role=status aria-live=polite aria-busy`. Skeletons con `role=status aria-busy=true`. Auth form unificada con tokens `hce-alert-*`, `fieldset/legend` en especialidades, `role=listbox/option`, `aria-invalid/describedby`. Total: **91/91 tests**.
+
+### Ítems pendientes (siguiente ciclo)
+- Limpieza de rutas y páginas de soporte sin valor operativo.
+- Métricas ligeras de uso para priorizar mejoras futuras de UI.
+- Segunda pasada de UX: claridad clínica y velocidad de uso.
+- Reforzar controles que dependan del color para comunicar estado.

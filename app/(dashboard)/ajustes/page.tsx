@@ -1,5 +1,6 @@
 import { ProfessionalProfileForm } from "@/components/ui/professional-profile-form";
 import { SyncQueuePanel } from "@/components/ui/sync-queue-panel";
+import { ErrorLogPanel } from "@/components/ui/error-log-panel";
 
 export default function AjustesPage() {
   return (
@@ -10,8 +11,9 @@ export default function AjustesPage() {
         lead="Centraliza los datos profesionales, el logo de PDF y el backup de la clave de cifrado en una sola pantalla."
         submitLabel="Guardar ajustes"
       />
-      <section className="hce-surface">
-        <h2 className="text-lg font-semibold text-ink mb-4">Estado de Sincronización</h2>
+      <section className="hce-surface space-y-4">
+        <h2 className="text-lg font-semibold text-ink">Estado del Sistema</h2>
+        <ErrorLogPanel />
         <SyncQueuePanel />
       </section>
     </div>

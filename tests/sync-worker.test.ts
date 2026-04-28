@@ -48,8 +48,9 @@ vi.mock("@/lib/supabase/client", () => ({
       select: () => ({
         eq: () => ({
           maybeSingle: mockMaybeSingle,
+          // Second .eq() chained for the duplicate-patient lookup
           eq: () => ({
-            single: mockSingle,
+            maybeSingle: mockMaybeSingle,
           }),
         }),
       }),
@@ -267,10 +268,11 @@ describe("sync worker retries", () => {
         message: "duplicate key value violates unique constraint",
       },
     });
-    mockSingle.mockResolvedValue({
-      data: { id: "patient-merged" },
-      error: null,
-    });
+    // First maybeSingle call: remote timestamp check in syncItem returns null (no remote record).
+    // Second maybeSingle call: duplicate-patient lookup returns existing patient id.
+    mockMaybeSingle
+      .mockResolvedValueOnce({ data: null, error: null })
+      .mockResolvedValueOnce({ data: { id: "patient-merged" }, error: null });
 
     await flushSyncQueue();
 

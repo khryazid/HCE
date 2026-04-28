@@ -26,30 +26,34 @@ export function ConfirmModal({
   const [loading, setLoading] = useState(false);
   const cancelButtonRef = useRef<HTMLButtonElement | null>(null);
 
+  // Focus el primer botón al abrir
   useEffect(() => {
     if (open) {
       cancelButtonRef.current?.focus();
     }
   }, [open]);
 
+  // Escape key handler
   useEffect(() => {
-    if (!open) {
-      return;
-    }
-
+    if (!open) return;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        onCancel();
-      }
+      if (event.key === "Escape") onCancel();
     };
-
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [open, onCancel]);
 
-  if (!open) {
-    return null;
-  }
+  // Scroll lock mientras el modal está abierto
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [open]);
+
+  if (!open) return null;
 
   const handleConfirm = async () => {
     setLoading(true);
@@ -66,16 +70,17 @@ export function ConfirmModal({
       : "hce-btn bg-amber-600 text-white hover:bg-amber-700";
 
   return (
+    // hce-modal-backdrop usa --z-modal (100) definido en globals.css
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm"
+      className="hce-modal-backdrop"
       onClick={onCancel}
       role="presentation"
     >
-      <div
-        className="mx-4 w-full max-w-sm rounded-3xl border border-[color:var(--border)] bg-[color:var(--card)] p-6 shadow-2xl space-y-5"
-        role="dialog"
+      <dialog
+        open
+        className="mx-4 w-full max-w-sm rounded-3xl border border-[color:var(--border)] bg-[color:var(--card)] p-6 shadow-2xl space-y-5 not-italic"
         aria-modal="true"
-        aria-label={title}
+        aria-labelledby="confirm-modal-title"
         aria-describedby="confirm-modal-description"
         onClick={(event) => event.stopPropagation()}
       >
@@ -88,7 +93,12 @@ export function ConfirmModal({
                 : "bg-amber-50 text-amber-600"
             }`}
           >
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              width="28" height="28" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor"
+              strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
+              aria-hidden="true"
+            >
               <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
               <line x1="10" y1="11" x2="10" y2="17" />
               <line x1="14" y1="11" x2="14" y2="17" />
@@ -97,8 +107,16 @@ export function ConfirmModal({
         </div>
 
         <div className="text-center">
-          <h3 className="text-lg font-semibold text-[color:var(--ink)]">{title}</h3>
-          <p id="confirm-modal-description" className="mt-1 text-sm text-[color:var(--ink-soft)]">{description}</p>
+          <h3 id="confirm-modal-title" className="text-lg font-semibold text-[color:var(--ink)]">
+            {title}
+          </h3>
+          <p
+            id="confirm-modal-description"
+            className="mt-1 text-sm text-[color:var(--ink-soft)]"
+            aria-live="assertive"
+          >
+            {description}
+          </p>
         </div>
 
         <div className="flex gap-3">
@@ -120,7 +138,7 @@ export function ConfirmModal({
             {loading ? "Procesando..." : confirmLabel}
           </button>
         </div>
-      </div>
+      </dialog>
     </div>
   );
 }

@@ -96,6 +96,12 @@ export async function saveOnboardingProfile(profile: DoctorOnboardingProfile) {
     throw new Error("Completa todos los campos obligatorios del perfil profesional.");
   }
 
+  if (typeof navigator !== "undefined" && !navigator.onLine) {
+    throw new Error(
+      "Sin conexión a internet. Tus cambios locales (logo, firma, membrete) ya fueron guardados. Vuelve a intentarlo cuando tengas acceso a la red.",
+    );
+  }
+
   const supabase = getSupabaseClient();
   const { data, error } = await supabase.auth.updateUser({
     data: {

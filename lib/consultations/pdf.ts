@@ -178,7 +178,7 @@ export function generateConsultationPdf(
     doc.setFontSize(10);
     setColor(COLOR_DARK_BLUE);
     doc.text(title.toUpperCase(), margin + 12, yPos + 14);
-    return yPos + 35;
+    return yPos + 28;
   };
 
   const checkPageBreak = (neededHeight: number) => {
@@ -264,17 +264,15 @@ export function generateConsultationPdf(
   checkPageBreak(120);
   y = drawSectionHeader("EXAMEN FÍSICO Y SIGNOS VITALES", y);
 
-  // Vitals Grid
   const drawVitals = () => {
     const vY = y;
-    const vCols = 4;
-    const vWidth = contentWidth / vCols;
-    
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    setColor(COLOR_LIGHT_TEXT);
-    
-    // IMC calculation
+    // Row 1: 3 vitals — TA, FC, FR
+    const row1 = [
+      { label: "Tensión Arterial",  val: data.vitalSigns.bloodPressure     ? `${data.vitalSigns.bloodPressure} mmHg`    : "-", isRed: false },
+      { label: "Frec. Cardíaca",    val: data.vitalSigns.heartRate          ? `${data.vitalSigns.heartRate} lpm`         : "-", isRed: false },
+      { label: "Frec. Resp.",       val: data.vitalSigns.respiratoryRate    ? `${data.vitalSigns.respiratoryRate} rpm`   : "-", isRed: false },
+    ];
+    // Row 2: 2 vitals — Sat O2, Temp/Peso/Talla+IMC
     let bmiLabel = "";
     if (data.vitalSigns.weight && data.vitalSigns.height) {
       const w = parseFloat(data.vitalSigns.weight.replace(",", "."));
@@ -285,44 +283,55 @@ export function generateConsultationPdf(
         if (bmi < 18.5) lbl = "Bajo peso";
         else if (bmi >= 25 && bmi < 30) lbl = "Sobrepeso";
         else if (bmi >= 30) lbl = "Obesidad";
-        bmiLabel = ` / IMC: ${bmi.toFixed(1)} (${lbl})`;
+        bmiLabel = `  IMC: ${bmi.toFixed(1)} (${lbl})`;
       }
     }
-
-    const vitals = [
-      { label: "Tensión Arterial", val: data.vitalSigns.bloodPressure ? `${data.vitalSigns.bloodPressure} mmHg` : "-", isRed: false },
-      { label: "Frec. Cardíaca", val: data.vitalSigns.heartRate ? `${data.vitalSigns.heartRate} lpm` : "-", isRed: false },
-      { label: "Frec. Resp.", val: data.vitalSigns.respiratoryRate ? `${data.vitalSigns.respiratoryRate} rpm` : "-", isRed: false },
+    const row2 = [
       { label: "Saturación O2", val: data.vitalSigns.oxygenSaturation ? `${data.vitalSigns.oxygenSaturation}%` : "-", isRed: false },
-      { label: "Temp. / Peso / Talla", val: `${data.vitalSigns.temperature ? data.vitalSigns.temperature + ' °C' : '-'} / ${data.vitalSigns.weight ? data.vitalSigns.weight + ' kg' : '-'} / ${data.vitalSigns.height ? data.vitalSigns.height + ' m' : '-'}${bmiLabel}`, isRed: false },
+      {
+        label: "Temp / Peso / Talla",
+        val: [
+          data.vitalSigns.temperature ? `${data.vitalSigns.temperature} °C` : "-",
+          data.vitalSigns.weight ? `${data.vitalSigns.weight} kg` : "-",
+          data.vitalSigns.height ? `${data.vitalSigns.height} m` : "-",
+        ].join(" / ") + bmiLabel,
+        isRed: false,
+      },
     ];
 
+    // Auto-flag alerts
     if (data.vitalSigns.bloodPressure) {
       const bpMatch = data.vitalSigns.bloodPressure.match(/(\d+)\s*\/\s*(\d+)/);
-      if (bpMatch) {
-        if (parseInt(bpMatch[1]) >= 140 || parseInt(bpMatch[2]) >= 90) vitals[0].isRed = true;
-      }
+      if (bpMatch && (parseInt(bpMatch[1]) >= 140 || parseInt(bpMatch[2]) >= 90)) row1[0].isRed = true;
     }
-    if (data.vitalSigns.heartRate && (parseInt(data.vitalSigns.heartRate) >= 100 || parseInt(data.vitalSigns.heartRate) < 50)) vitals[1].isRed = true;
-    if (data.vitalSigns.respiratoryRate && parseInt(data.vitalSigns.respiratoryRate) >= 22) vitals[2].isRed = true;
-    if (data.vitalSigns.oxygenSaturation && parseInt(data.vitalSigns.oxygenSaturation) <= 90) vitals[3].isRed = true;
+    if (data.vitalSigns.heartRate) {
+      const hr = parseInt(data.vitalSigns.heartRate);
+      if (hr >= 100 || hr < 50) row1[1].isRed = true;
+    }
+    if (data.vitalSigns.respiratoryRate && parseInt(data.vitalSigns.respiratoryRate) >= 22) row1[2].isRed = true;
+    if (data.vitalSigns.oxygenSaturation && parseInt(data.vitalSigns.oxygenSaturation) <= 90) row2[0].isRed = true;
 
-    for (let i = 0; i < vitals.length; i++) {
-      const cx = margin + i * vWidth + (vWidth / 2);
-      setColor(COLOR_LIGHT_TEXT);
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(8);
-      const lW = doc.getTextWidth(vitals[i].label);
-      doc.text(vitals[i].label, cx - lW/2, vY);
-      
-      if (vitals[i].isRed) setColor(COLOR_RED);
-      else setColor(COLOR_TEXT);
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(12);
-      const vW = doc.getTextWidth(vitals[i].val);
-      doc.text(vitals[i].val, cx - vW/2, vY + 16);
-    }
-    y += 40;
+    const drawRow = (items: typeof row1, rowY: number, cols: number) => {
+      const colW = contentWidth / cols;
+      for (let i = 0; i < items.length; i++) {
+        const cx = margin + i * colW + colW / 2;
+        setColor(COLOR_LIGHT_TEXT);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        const lW = doc.getTextWidth(items[i].label);
+        doc.text(items[i].label, cx - lW / 2, rowY);
+        if (items[i].isRed) setColor(COLOR_RED);
+        else setColor(COLOR_TEXT);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(11);
+        const vW = doc.getTextWidth(items[i].val);
+        doc.text(items[i].val, cx - vW / 2, rowY + 15);
+      }
+    };
+
+    drawRow(row1, vY, 3);
+    drawRow(row2, vY + 34, 2);
+    y += 68;
   };
   drawVitals();
 

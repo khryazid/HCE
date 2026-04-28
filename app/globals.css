@@ -15,6 +15,11 @@
   --surface-glow: rgba(14, 118, 110, 0.08);
   --accent: #0f766e;
   --warning: #c05621;
+  /* Z-index scale — fuente unica de verdad para capas del UI */
+  --z-negative: -10;  /* fondos decorativos */
+  --z-sticky: 10;     /* barras de accion sticky */
+  --z-overlay: 50;    /* sidepanels, drawers */
+  --z-modal: 100;     /* dialogos de confirmacion, alertas */
   color-scheme: light;
 }
 
@@ -232,4 +237,23 @@ html {
   border-color: color-mix(in srgb, #06b6d4 30%, var(--border));
   color: color-mix(in srgb, #06b6d4 90%, var(--ink));
   background: color-mix(in srgb, #06b6d4 10%, var(--card));
+}
+
+/**
+ * Overlay de modal — usa la variable CSS en vez del valor arbitrario.
+ * Aplica en el backdrop de ConfirmModal y futuros dialogos.
+ */
+@utility hce-modal-backdrop {
+  @apply fixed inset-0 flex items-center justify-center backdrop-blur-sm;
+  background: rgba(0, 0, 0, 0.42);
+  z-index: var(--z-modal);
+}
+
+/**
+ * Panel sticky de acciones dentro del wizard.
+ * Reemplaza z-10 hardcoded.
+ */
+@utility hce-sticky-action-bar {
+  @apply sticky bottom-4 rounded-2xl border border-border bg-card/95 backdrop-blur-sm p-4 shadow-xl;
+  z-index: var(--z-sticky);
 }

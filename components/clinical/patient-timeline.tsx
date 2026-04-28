@@ -2,7 +2,7 @@
 
 import type { ClinicalRecordRecord } from "@/types/consultation";
 import type { PatientRecord } from "@/types/patient";
-import { formatTimelineDate } from "@/lib/consultations/workflow";
+import { formatDateTime } from "@/lib/ui/format-date";
 import { CIE_CATALOG } from "@/lib/constants/cie-catalog";
 
 type Props = {
@@ -51,7 +51,7 @@ export function PatientTimeline({
                   className="hce-card space-y-1"
                 >
                   <p className="font-semibold text-ink">
-                    {formatTimelineDate(row.updated_at)} ·{" "}
+                    {formatDateTime(row.updated_at)} ·{" "}
                     {row.specialty_kind}
                   </p>
                   <p className="text-ink">

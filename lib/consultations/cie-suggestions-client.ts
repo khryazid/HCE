@@ -9,13 +9,28 @@ import type {
 import {
   APP_EVENT_CIE_SUGGESTIONS_COMPLETED,
   APP_EVENT_CIE_SUGGESTIONS_REQUESTED,
+  APP_EVENT_API_ERROR,
   emitAppEvent,
 } from "@/lib/observability/app-events";
+import { logApiError } from "@/lib/observability/error-logger";
 
 export type CieSuggestionRequestResult = {
   source?: CieSuggestionSource;
   suggestions?: CieSuggestion[];
 };
+
+/**
+ * Error tipado para rate limiting 429.
+ * Permite que el consumidor distinga el caso y muestre un countdown.
+ */
+export class CieRateLimitError extends Error {
+  readonly retryAfterMs: number;
+  constructor(retryAfterMs: number) {
+    super("CIE_RATE_LIMITED");
+    this.name = "CieRateLimitError";
+    this.retryAfterMs = retryAfterMs;
+  }
+}
 
 export async function fetchCieSuggestionsFromApi(
   input: CieSuggestionInput,
@@ -53,16 +68,27 @@ export async function fetchCieSuggestionsFromApi(
 
   if (!response.ok) {
     if (response.status === 401) {
-      emitAppEvent(APP_EVENT_CIE_SUGGESTIONS_COMPLETED, {
-        source: "unauthorized",
-      });
+      const detail = { status: 401, specialtyKind: input.specialtyKind };
+      logApiError("fetchCieSuggestionsFromApi", "Sesion no autorizada para CIE", detail);
+      emitAppEvent(APP_EVENT_API_ERROR, { source: "cie", ...detail });
+      emitAppEvent(APP_EVENT_CIE_SUGGESTIONS_COMPLETED, { source: "unauthorized" });
       throw new Error("CIE_UNAUTHORIZED");
     }
 
-    emitAppEvent(APP_EVENT_CIE_SUGGESTIONS_COMPLETED, {
-      source: "error",
-      status: response.status,
-    });
+    if (response.status === 429) {
+      const retryAfterSec = Number(response.headers.get("Retry-After") ?? "60");
+      const retryAfterMs = (Number.isFinite(retryAfterSec) ? retryAfterSec : 60) * 1000;
+      const detail = { status: 429, retryAfterMs, specialtyKind: input.specialtyKind };
+      logApiError("fetchCieSuggestionsFromApi", "Rate limit CIE alcanzado", detail);
+      emitAppEvent(APP_EVENT_API_ERROR, { source: "cie", ...detail });
+      emitAppEvent(APP_EVENT_CIE_SUGGESTIONS_COMPLETED, { source: "rate_limited", retryAfterMs });
+      throw new CieRateLimitError(retryAfterMs);
+    }
+
+    const detail = { status: response.status, specialtyKind: input.specialtyKind };
+    logApiError("fetchCieSuggestionsFromApi", "Error al consultar sugerencias CIE", detail);
+    emitAppEvent(APP_EVENT_API_ERROR, { source: "cie", ...detail });
+    emitAppEvent(APP_EVENT_CIE_SUGGESTIONS_COMPLETED, { source: "error", status: response.status });
     throw new Error("No se pudo consultar sugerencias CIE.");
   }
 

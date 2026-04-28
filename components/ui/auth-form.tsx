@@ -151,7 +151,8 @@ export function AuthForm({ mode }: AuthFormProps) {
             options: {
               data: {
                 full_name: fullName.trim(),
-                specialty: specialties[0],
+                // 'specialties' es el array completo; 'specialty' (singular)
+                // se omite para evitar inconsistencias con el array canónico.
                 specialties,
                 clinic_id: normalizedClinicId,
               },
@@ -231,9 +232,11 @@ export function AuthForm({ mode }: AuthFormProps) {
             }}
             placeholder="tu-correo@empresa.com"
             required
+            aria-invalid={fieldErrors.email ? "true" : undefined}
+            aria-describedby={fieldErrors.email ? "field-error-email" : undefined}
           />
           {fieldErrors.email ? (
-            <p className="text-xs text-red-700">{fieldErrors.email}</p>
+            <p id="field-error-email" className="text-xs text-red-700" role="alert">{fieldErrors.email}</p>
           ) : null}
         </label>
 
@@ -251,32 +254,42 @@ export function AuthForm({ mode }: AuthFormProps) {
                 }}
                 placeholder="Nombre y apellido"
                 required
+                aria-invalid={fieldErrors.fullName ? "true" : undefined}
+                aria-describedby={fieldErrors.fullName ? "field-error-fullname" : undefined}
               />
               {fieldErrors.fullName ? (
-                <p className="text-xs text-red-700">{fieldErrors.fullName}</p>
+                <p id="field-error-fullname" className="text-xs text-red-700" role="alert">{fieldErrors.fullName}</p>
               ) : null}
             </label>
 
-            <label className="block space-y-2 text-sm font-medium text-ink-soft">
-              <span>Especialidades</span>
+            <fieldset
+              aria-describedby={fieldErrors.specialties ? "field-error-specialties" : undefined}
+              className="space-y-2"
+            >
+              <legend className="text-sm font-medium text-ink-soft">Especialidades</legend>
+
               <Input
                 type="text"
                 value={specialtySearch}
                 onChange={(event) => setSpecialtySearch(event.target.value)}
                 placeholder="Buscar especialidad..."
+                aria-label="Buscar especialidad"
               />
+
               {specialties.length > 0 ? (
                 <div className="rounded-xl border border-cyan-100 bg-cyan-50/60 p-2">
                   <p className="mb-2 text-xs font-semibold text-cyan-900">
                     Seleccionadas ({specialties.length})
                   </p>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2" role="list" aria-label="Especialidades seleccionadas">
                     {specialties.map((entry) => (
                       <button
                         key={`selected-${entry}`}
                         type="button"
+                        role="listitem"
                         onClick={() => toggleSpecialty(entry)}
-                        className="rounded-full border border-cyan-300 bg-card px-3 py-1 text-xs font-semibold text-cyan-900 transition hover:bg-cyan-100"
+                        className="rounded-full border border-cyan-300 bg-card px-3 py-1 text-xs font-semibold text-cyan-900 transition hover:bg-cyan-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500"
+                        aria-label={`Quitar ${entry}`}
                       >
                         {entry} ×
                       </button>
@@ -287,19 +300,24 @@ export function AuthForm({ mode }: AuthFormProps) {
                 <p className="text-xs text-ink-soft">Selecciona una o varias especialidades.</p>
               )}
 
-              <div className="max-h-44 overflow-auto rounded-xl border border-border bg-bg-soft p-2">
+              <div
+                className="max-h-44 overflow-auto rounded-xl border border-border bg-bg-soft p-2"
+                role="listbox"
+                aria-label="Lista de especialidades disponibles"
+                aria-multiselectable="true"
+              >
                 {filteredSpecialties.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
                     {filteredSpecialties.map((entry) => {
                       const checked = specialties.includes(entry);
-
                       return (
                         <button
                           key={entry}
                           type="button"
-                          aria-pressed={checked}
+                          role="option"
+                          aria-selected={checked}
                           onClick={() => toggleSpecialty(entry)}
-                          className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${
+                          className={`rounded-full border px-3 py-1 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 ${
                             checked
                               ? "border-cyan-400 bg-cyan-600 text-white"
                               : "border-border bg-card text-ink-soft hover:bg-bg-soft"
@@ -316,10 +334,13 @@ export function AuthForm({ mode }: AuthFormProps) {
                   </p>
                 )}
               </div>
+
               {fieldErrors.specialties ? (
-                <p className="text-xs text-red-700">{fieldErrors.specialties}</p>
+                <p id="field-error-specialties" className="text-xs text-red-700" role="alert">
+                  {fieldErrors.specialties}
+                </p>
               ) : null}
-            </label>
+            </fieldset>
 
             <p className="rounded-xl border border-border bg-bg-soft px-3 py-2 text-xs text-ink-soft">
               El espacio de clinica se crea automaticamente para ti durante el registro.
@@ -357,21 +378,18 @@ export function AuthForm({ mode }: AuthFormProps) {
         </label>
 
         {error ? (
-          <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-            {error}
-          </p>
+          <p className="hce-alert-error" role="alert">{error}</p>
         ) : null}
 
         {message ? (
-          <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
-            {message}
-          </p>
+          <p className="hce-alert-success" role="status">{message}</p>
         ) : null}
 
         <Button
           type="submit"
           disabled={loading}
           className="w-full justify-center px-4 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+          aria-busy={loading}
         >
           {loading
             ? "Procesando..."

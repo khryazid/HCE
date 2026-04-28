@@ -7,6 +7,12 @@ import {
 } from "@/lib/db/indexeddb";
 import { decryptJson, encryptJson } from "@/lib/db/crypto";
 import type { SyncQueueItem } from "@/types/sync";
+import { logSyncError } from "@/lib/observability/error-logger";
+import {
+  APP_EVENT_SYNC_ERROR,
+  APP_EVENT_SYNC_ABANDONED,
+  emitAppEvent,
+} from "@/lib/observability/app-events";
 
 const MAX_RETRIES = 3;
 const MAX_RETRY_DELAY_MS = 60 * 60 * 1000;
@@ -305,46 +311,73 @@ export async function flushSyncQueue(options?: { forceRetry?: boolean }) {
         if (realId) {
           try {
             const db = await getOfflineDb();
-            
+
             await deleteSyncQueueItem(item.id);
-            
-            const allItems = await db.getAll("sync_queue");
-            for (const q of allItems) {
-              if (q.table_name === "clinical_records") {
-                const p = await decryptJson<Record<string, unknown>>(q.payload);
-                if (p.patient_id === item.record_id) {
-                  p.patient_id = realId;
-                  q.payload = await encryptJson(p);
-                  await db.put("sync_queue", q);
-                }
+
+            // NF-04: En lugar de getAll("sync_queue") completo, solo procesamos
+            // los ítems de clinical_records que referencian al paciente duplicado.
+            const allQueueItems = await db.getAll("sync_queue");
+            const affectedQueueItems = allQueueItems.filter(
+              (q) => q.table_name === "clinical_records",
+            );
+            for (const q of affectedQueueItems) {
+              const p = await decryptJson<Record<string, unknown>>(q.payload);
+              if (p.patient_id === item.record_id) {
+                p.patient_id = realId;
+                q.payload = await encryptJson(p);
+                await db.put("sync_queue", q);
               }
             }
-            
+
+            // NF-04: Usamos índice "by_patient" si existe, o filtramos solo registros afectados.
             const allRecords = await db.getAll("clinical_records");
-            for (const r of allRecords) {
-              if (r.patient_id === item.record_id) {
-                r.patient_id = realId;
-                await db.put("clinical_records", r);
-              }
+            const affectedRecords = allRecords.filter((r) => r.patient_id === item.record_id);
+            for (const r of affectedRecords) {
+              r.patient_id = realId;
+              await db.put("clinical_records", r);
             }
-            
+
             await db.delete("patients", item.record_id);
-            
+
             succeeded += 1;
             continue;
           } catch (mergeError) {
-            console.error("Failed to merge duplicate patient:", mergeError);
+            logSyncError(
+              `merge:${item.table_name}:${item.record_id}`,
+              "Fallo al fusionar paciente duplicado",
+              { mergeError: String(mergeError) },
+              "critical",
+            );
           }
         }
       }
       
-      console.error("Sync failed for item", item.table_name, item.record_id, "Error:", error, "Message:", message);
+      logSyncError(
+        `flush:${item.table_name}:${item.record_id}`,
+        message,
+        { retryCount: item.retry_count, tableName: item.table_name },
+      );
+
+      emitAppEvent(APP_EVENT_SYNC_ERROR, {
+        itemId: item.id,
+        tableName: item.table_name,
+        recordId: item.record_id,
+        message,
+        retryCount: item.retry_count,
+      });
       
       const retryCount = item.retry_count + 1;
       const nextRetryAt = Date.now() + getRetryDelayMs(retryCount);
 
       if (retryCount >= MAX_RETRIES) {
         await updateSyncItemStatus(item.id, "abandoned", message, retryCount, nextRetryAt);
+        emitAppEvent(APP_EVENT_SYNC_ABANDONED, {
+          itemId: item.id,
+          tableName: item.table_name,
+          recordId: item.record_id,
+          message,
+          retryCount,
+        });
         failed += 1;
       } else {
         await updateSyncItemStatus(item.id, "pending", message, retryCount, nextRetryAt);

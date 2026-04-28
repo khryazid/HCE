@@ -4,60 +4,32 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { TenantProfile } from "@/lib/supabase/profile";
 import { useClinicalContext } from "@/lib/context/clinical-context";
-import {
-  enqueueSyncItem,
-  listClinicalRecordsByTenant,
-  savePatientLocal,
-} from "@/lib/db/indexeddb";
-import {
-  mergeCieCodeList,
-} from "@/lib/ai/cie-suggestions";
-import {
-  fetchFirstCieSuggestionCode,
-} from "@/lib/consultations/cie-suggestions-client";
+import { mergeCieCodeList } from "@/lib/ai/cie-suggestions";
+import { fetchFirstCieSuggestionCode } from "@/lib/consultations/cie-suggestions-client";
 import type { ClinicalRecordRecord } from "@/types/consultation";
 import type { PatientRecord } from "@/types/patient";
 import { searchCieCatalog } from "@/lib/constants/cie-catalog";
-import { generateConsultationPdf } from "@/lib/consultations/pdf";
-import {
-  ensureWizardStep,
-  normalizeCommaValues,
-} from "@/lib/consultations/workflow";
-import {
-  buildConsultationPdfPreviewData,
-  type ConsultationPdfPreviewData,
-} from "@/lib/consultations/pdf-preview";
+import { normalizeCommaValues } from "@/lib/consultations/workflow";
 import {
   buildAutofillFormStatePatch,
   buildPendingFollowUp,
   buildTimelineRows,
   buildConsultaModeFormState,
   buildFollowUpFormState,
-  buildQuickPatientRecord,
-  findLatestPatientRecord,
   listPatientRecordsByUpdatedAt,
   validateWizardForm,
   type WizardPendingFollowUp,
 } from "@/lib/consultations/wizard-domain";
-import {
-  buildConsultationPayload,
-  buildConsultationSuccessMessage,
-} from "@/lib/consultations/wizard-payload";
-import { persistConsultationLocally } from "@/lib/consultations/consultation-persistence";
 import { submitConsultationWithValidation } from "@/lib/consultations/wizard-submit";
-import { loadLetterheadSettings } from "@/lib/local-data/letterhead";
-import {
-  type TreatmentTemplate,
-} from "@/lib/local-data/treatments";
-import { APP_EVENT_CONSULTATION_SAVED, emitAppEvent } from "@/lib/observability/app-events";
+import { type TreatmentTemplate } from "@/lib/local-data/treatments";
 import { useWizardDraftSync } from "@/lib/consultations/use-wizard-draft-sync";
 import { useWizardCieSuggestions } from "@/lib/consultations/use-wizard-cie-suggestions";
 import { useFollowUpDeepLink } from "@/lib/consultations/use-follow-up-deeplink";
 import { useConsultationBootstrapData } from "@/lib/consultations/use-consultation-bootstrap-data";
-
-function nowIso() {
-  return new Date().toISOString();
-}
+import { useConsultationSave } from "@/lib/consultations/use-consultation-save";
+import { useConsultationPdfPreview } from "@/lib/consultations/use-consultation-pdf-preview";
+import { useQuickPatientCreate } from "@/lib/consultations/use-quick-patient-create";
+import { logApiError } from "@/lib/observability/error-logger";
 
 export type WizardForm = {
   entryMode: "consulta" | "seguimiento";
@@ -185,6 +157,8 @@ export function useConsultationWizard(tenant: TenantProfile | null) {
   const [message, setMessage] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
+  const { saveConsultation: save } = useConsultationSave();
+
   useWizardDraftSync({
     dataLoading,
     wizardOpen,
@@ -223,13 +197,13 @@ export function useConsultationWizard(tenant: TenantProfile | null) {
 
   useEffect(() => {
     if (draftRestored.current && clinical.wizardDraft?.patientId === form.patientId) {
-      // Si el borrador acaba de ser restaurado y coincide con el paciente actual, 
-      // marcamos como "ya auto-llenado" para no sobreescribir el borrador con datos viejos.
       autofillRef.current = form.patientId;
     }
 
     if (form.patientId && autofillRef.current !== form.patientId) {
-      const latest = findLatestPatientRecord(records, form.patientId);
+      const latest = records
+        .filter((r) => r.patient_id === form.patientId)
+        .sort((a, b) => b.updated_at.localeCompare(a.updated_at))[0] ?? null;
       const patch = buildAutofillFormStatePatch(latest);
 
       setForm((current) => ({
@@ -255,6 +229,29 @@ export function useConsultationWizard(tenant: TenantProfile | null) {
     (): WizardPendingFollowUp | null => buildPendingFollowUp(latestPatientRecord),
     [latestPatientRecord],
   );
+
+  const { buildPdfPreviewData, getCurrentPdfPreviewData } = useConsultationPdfPreview({
+    form,
+    patients,
+    pendingFollowUp,
+  });
+
+  const { createQuickPatient } = useQuickPatientCreate({
+    tenant,
+    quickPatient,
+    patients,
+    onSuccess: (nextPatients, newPatientId) => {
+      setPatients(nextPatients);
+      setForm((current) => ({
+        ...current,
+        patientId: newPatientId,
+        entryMode: "consulta",
+        linkedRecordId: "",
+      }));
+      setQuickPatient(EMPTY_QUICK_PATIENT);
+    },
+    onError: (msg) => setError(msg),
+  });
 
   const timelineRows = useMemo(
     () => buildTimelineRows(records, selectedPatientTimelineId, patients[0]?.id),
@@ -321,48 +318,6 @@ export function useConsultationWizard(tenant: TenantProfile | null) {
     });
   }
 
-  async function createQuickPatient() {
-    if (!tenant) {
-      return;
-    }
-
-    if (!quickPatient.documentNumber.trim() || !quickPatient.firstName.trim() || !quickPatient.lastName.trim()) {
-      setError("Completa documento, nombre y apellido del paciente.");
-      return;
-    }
-
-    const timestamp = nowIso();
-    const patient = buildQuickPatientRecord(
-      quickPatient,
-      tenant,
-      timestamp,
-      crypto.randomUUID(),
-    );
-
-    await savePatientLocal(patient);
-    await enqueueSyncItem({
-      id: crypto.randomUUID(),
-      table_name: "patients",
-      record_id: patient.id,
-      action: "insert",
-      payload: patient,
-      doctor_id: tenant.doctor_id,
-      clinic_id: tenant.clinic_id,
-      client_timestamp: Date.now(),
-      status: "pending",
-      retry_count: 0,
-    });
-
-    const nextPatients = [patient, ...patients];
-    setPatients(nextPatients);
-    setForm((current) => ({
-      ...current,
-      patientId: patient.id,
-      entryMode: "consulta",
-      linkedRecordId: "",
-    }));
-    setQuickPatient(EMPTY_QUICK_PATIENT);
-  }
 
   function applyFollowUpMode(record: ClinicalRecordRecord | null) {
     setForm((current) => buildFollowUpFormState(current, record));
@@ -382,7 +337,7 @@ export function useConsultationWizard(tenant: TenantProfile | null) {
   async function triggerMagicCieFill() {
     if (!form.diagnosis.trim()) return;
 
-    // NF-01: No intentar si estamos offline—el hook ya muestra catálogo local.
+    // NF-01: No intentar si estamos offline — el hook ya muestra catálogo local.
     if (typeof navigator !== "undefined" && !navigator.onLine) return;
 
     try {
@@ -401,11 +356,10 @@ export function useConsultationWizard(tenant: TenantProfile | null) {
         }));
       }
     } catch (e) {
-      // NF-02: Log estructurado — no silenciar errores de CIE
       const msg = e instanceof Error ? e.message : "Error desconocido en sugerencia CIE";
       if (msg !== "CIE_UNAUTHORIZED") {
-        // Los errores de sesión expirada son esperados; el resto se loguean.
-        console.warn("[CIE] triggerMagicCieFill falló:", msg);
+        // NF-02: Log estructurado — errores que no son de sesión se registran.
+        logApiError("triggerMagicCieFill", msg, { diagnosis: form.diagnosis });
       }
       setError(
         msg === "CIE_UNAUTHORIZED"
@@ -428,146 +382,25 @@ export function useConsultationWizard(tenant: TenantProfile | null) {
     });
   }
 
-  function buildPdfPreviewData(timestamp: string): ConsultationPdfPreviewData {
-    const fallbackTreatment = pendingFollowUp?.treatmentPlan || "";
-    const finalTreatment = form.treatmentPlan.trim() || fallbackTreatment;
-    const patient = patients.find((item) => item.id === form.patientId);
-
-    return buildConsultationPdfPreviewData({
-      patientName: patient?.full_name ?? "Paciente",
-      patientDocument: patient?.document_number ?? "sin-documento",
-      birthDate: patient?.birth_date ?? undefined,
-      consultationDate: new Date(timestamp).toLocaleString("es-EC"),
-      gender: form.gender,
-      occupation: form.occupation,
-      insurance: form.insurance,
-      chiefComplaint: form.chiefComplaint,
-      anamnesis: form.anamnesis,
-      medicalHistory: form.medicalHistory,
-      backgrounds: form.backgrounds,
-      vitalSigns: form.vitalSigns,
-      physicalExam: form.physicalExam,
-      diagnosis: form.diagnosis,
-      cieCodes: form.cieCodes,
-      clinicalAnalysis: form.clinicalAnalysis,
-      treatmentPlan: finalTreatment,
-      recommendations: form.recommendations,
-      warningSigns: form.warningSigns,
-      specialtyKind: form.specialtyKind,
-      evolutionStatus: form.evolutionStatus || undefined,
-      followUpDate: form.nextFollowUpDate || undefined,
-    });
-  }
-
-  function getCurrentPdfPreviewData(): ConsultationPdfPreviewData | null {
-    if (!form.patientId) {
-      return null;
-    }
-
-    return buildPdfPreviewData(nowIso());
-  }
-
   async function saveConsultation(options?: { generatePdf?: boolean }) {
     if (!tenant) {
       return;
     }
 
-    if (!form.patientId) {
-      throw new Error("Selecciona o crea un paciente antes de continuar.");
-    }
-
-    if (!form.anamnesis.trim() || !form.diagnosis.trim()) {
-      throw new Error("Anamnesis y diagnostico son obligatorios.");
-    }
-
-    if (form.entryMode === "consulta" && !form.treatmentPlan.trim()) {
-      throw new Error(
-        "Debes definir un tratamiento para cerrar la consulta.",
-      );
-    }
-
-    if (form.entryMode === "seguimiento" && !form.evolutionStatus.trim()) {
-      throw new Error("Para seguimiento debes registrar la evolucion.");
-    }
-
-    const fallbackTreatment = pendingFollowUp?.treatmentPlan || "";
-
-    const timestamp = nowIso();
-    const recordId = crypto.randomUUID();
-    const specialtyId = crypto.randomUUID();
-    const { record, specialtyRow } = buildConsultationPayload({
-      tenant: {
-        clinicId: tenant.clinic_id,
-        doctorId: tenant.doctor_id,
-      },
-      patientId: form.patientId,
-      specialtyKind: form.specialtyKind,
-      entryMode: form.entryMode,
-      linkedRecordId: form.linkedRecordId,
-      chiefComplaint: form.chiefComplaint,
-      anamnesis: form.anamnesis,
-      symptoms: form.symptoms,
-      medicalHistory: form.medicalHistory,
-      backgrounds: form.backgrounds,
-      vitalSigns: form.vitalSigns,
-      physicalExam: form.physicalExam,
-      diagnosis: form.diagnosis,
-      clinicalAnalysis: form.clinicalAnalysis,
-      treatmentTemplateId: form.treatmentTemplateId,
-      treatmentPlan: form.treatmentPlan,
-      recommendations: form.recommendations,
-      warningSigns: form.warningSigns,
-      evolutionStatus: form.evolutionStatus,
-      nextFollowUpDate: form.nextFollowUpDate,
-      patientSnapshot: {
-        gender: form.gender,
-        occupation: form.occupation,
-        insurance: form.insurance,
-      },
-      fallbackTreatmentPlan: fallbackTreatment,
-      timestamp,
-      recordId,
-      specialtyId,
-      cieCodes: form.cieCodes,
-    });
-
-    await persistConsultationLocally(
+    await save(
+      { generatePdf: options?.generatePdf ?? false },
       {
-        clinicId: tenant.clinic_id,
-        doctorId: tenant.doctor_id,
+        tenant,
+        form,
+        pendingFollowUp,
+        buildPdfPreviewData,
+        onSuccess: (nextRecords, successMessage) => {
+          setRecords(nextRecords);
+          resetWizard();
+          setMessage(successMessage);
+        },
       },
-      record,
-      specialtyRow,
     );
-
-    const shouldGeneratePdf = options?.generatePdf ?? false;
-    if (shouldGeneratePdf) {
-      const letterhead = loadLetterheadSettings(
-        tenant.doctor_id,
-        tenant.clinic_id,
-      );
-      generateConsultationPdf(letterhead, buildPdfPreviewData(timestamp));
-    }
-
-    const nextRecords = await listClinicalRecordsByTenant(
-      tenant.doctor_id,
-      tenant.clinic_id,
-    );
-    setRecords(nextRecords);
-    resetWizard();
-    setMessage(
-      buildConsultationSuccessMessage({
-        entryMode: form.entryMode,
-        generatedPdf: shouldGeneratePdf,
-      }),
-    );
-
-    emitAppEvent(APP_EVENT_CONSULTATION_SAVED, {
-      recordId: record.id,
-      specialtyKind: form.specialtyKind,
-      entryMode: form.entryMode,
-      generatedPdf: shouldGeneratePdf,
-    });
   }
 
   async function submitConsultation(generatePdf: boolean) {

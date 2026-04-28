@@ -2,6 +2,10 @@
 
 import { useTenant } from "@/lib/supabase/tenant-context";
 import { ConsultasSkeleton } from "@/components/ui/skeletons";
+import {
+  EmptyState,
+  EmptyStateIconConsultations,
+} from "@/components/ui/empty-state";
 import { useConsultationWizard } from "@/lib/consultations/use-consultation-wizard";
 import { WizardStepPatient } from "@/components/clinical/wizard-step-patient";
 import { WizardStepDiagnosis } from "@/components/clinical/wizard-step-diagnosis";
@@ -44,7 +48,7 @@ export default function ConsultasPage() {
       ) : null}
 
       {wizard.error ? (
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700" role="alert" aria-live="assertive">
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700" role="alert" aria-live="assertive">
           {wizard.error}
         </div>
       ) : null}
@@ -104,7 +108,7 @@ export default function ConsultasPage() {
                 />
               </section>
 
-              <div className="sticky bottom-4 z-10 rounded-2xl border border-border bg-card/95 backdrop-blur-sm p-4 shadow-xl flex flex-col sm:flex-row gap-4 items-center justify-between pb-[calc(env(safe-area-inset-bottom)+1rem)] sm:pb-4">
+              <div className="hce-sticky-action-bar flex flex-col sm:flex-row gap-4 items-center justify-between pb-[calc(env(safe-area-inset-bottom)+1rem)] sm:pb-4">
                 <div>
                   <p className="font-semibold text-ink">Consulta lista para guardar</p>
                   <p className="text-xs text-ink-soft">Revisa los datos antes de continuar.</p>
@@ -133,7 +137,25 @@ export default function ConsultasPage() {
             </div>
           )}
         </article>
-      ) : null}
+      ) : (
+        <div className="hce-surface">
+          <EmptyState
+            icon={<EmptyStateIconConsultations />}
+            title="Listo para registrar una atencion"
+            description="Inicia el flujo guiado para crear una nueva consulta o seguimiento. Los datos se guardan offline y se sincronizan al recuperar conexion."
+            size="md"
+            action={
+              <button
+                type="button"
+                onClick={wizard.openWizard}
+                className="hce-btn-primary"
+              >
+                Nueva consulta
+              </button>
+            }
+          />
+        </div>
+      )}
     </section>
   );
 }

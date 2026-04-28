@@ -173,30 +173,72 @@ create policy "records_tenant_select"
   on public.clinical_records
   for select
   to authenticated
-  using (doctor_id = auth.uid());
+  using (
+    exists (
+      select 1
+      from public.profiles p
+      where p.doctor_id = auth.uid()
+        and p.clinic_id = public.clinical_records.clinic_id
+    )
+  );
 
 drop policy if exists "records_tenant_write" on public.clinical_records;
 create policy "records_tenant_write"
   on public.clinical_records
   for all
   to authenticated
-  using (doctor_id = auth.uid())
-  with check (doctor_id = auth.uid());
+  using (
+    exists (
+      select 1
+      from public.profiles p
+      where p.doctor_id = auth.uid()
+        and p.clinic_id = public.clinical_records.clinic_id
+    )
+  )
+  with check (
+    exists (
+      select 1
+      from public.profiles p
+      where p.doctor_id = auth.uid()
+        and p.clinic_id = public.clinical_records.clinic_id
+    )
+  );
 
 drop policy if exists "specialty_tenant_select" on public.specialty_data;
 create policy "specialty_tenant_select"
   on public.specialty_data
   for select
   to authenticated
-  using (doctor_id = auth.uid());
+  using (
+    exists (
+      select 1
+      from public.profiles p
+      where p.doctor_id = auth.uid()
+        and p.clinic_id = public.specialty_data.clinic_id
+    )
+  );
 
 drop policy if exists "specialty_tenant_write" on public.specialty_data;
 create policy "specialty_tenant_write"
   on public.specialty_data
   for all
   to authenticated
-  using (doctor_id = auth.uid())
-  with check (doctor_id = auth.uid());
+  using (
+    exists (
+      select 1
+      from public.profiles p
+      where p.doctor_id = auth.uid()
+        and p.clinic_id = public.specialty_data.clinic_id
+    )
+  )
+  with check (
+    exists (
+      select 1
+      from public.profiles p
+      where p.doctor_id = auth.uid()
+        and p.clinic_id = public.specialty_data.clinic_id
+    )
+  );
 
 drop policy if exists "audit_tenant_insert" on public.audit_logs;
 create policy "audit_tenant_insert"

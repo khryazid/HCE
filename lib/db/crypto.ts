@@ -1,9 +1,36 @@
 import { openDB } from "idb";
 
+/**
+ * THREAT MODEL — Custodia de clave PHI (AES-GCM 256)
+ * ─────────────────────────────────────────────────────────────────────────────
+ * La clave de cifrado se almacena como material base64 crudo en una base de
+ * datos IndexedDB separada (`hce-security-db`). Esto implica:
+ *
+ * RIESGO ACEPTADO:
+ *   Un atacante con acceso físico al perfil del navegador (sistema de archivos
+ *   local) puede extraer el `key_material` y descifrar los datos PHI en IDB.
+ *
+ * MITIGACIONES ACTUALES:
+ *   • La clave NO se envía a ningún servidor externo (localStorage, Supabase).
+ *   • Está en una base IDB separada del resto de datos clínicos.
+ *   • La clave se importa como `extractable: false` para uso en memoria,
+ *     impidiendo su exportación desde el contexto de ejecución JS normal.
+ *   • El backup manual requiere acción explícita del usuario.
+ *
+ * MITIGACIONES PENDIENTES (next cycle):
+ *   • Envolver la clave AES con una clave ECDH derivada del dispositivo
+ *     (WebCrypto `wrapKey` + `unwrapKey`) para que el key_material en IDB
+ *     sea un wrapped blob en lugar de material crudo.
+ *   • Añadir confirmación de sesión activa antes de exportar backup.
+ */
+
 const SECURITY_DB_NAME = "hce-security-db";
 const SECURITY_DB_VERSION = 1;
 const SECURITY_STORE = "crypto_keys";
 const SECURITY_KEY_ID = "db-aes-gcm-key";
+
+/** Caché en memoria para evitar accesos repetidos a IDB durante la sesión. */
+let _keyCache: CryptoKey | null = null;
 
 export type EncryptedEnvelope = {
   __encrypted: true;
@@ -74,25 +101,26 @@ async function getSecurityDb() {
 }
 
 async function loadOrCreateAesKey() {
+  if (_keyCache) return _keyCache;
+
   const db = await getSecurityDb();
   const stored = (await db.get(SECURITY_STORE, SECURITY_KEY_ID)) as SecurityKeyRecord | undefined;
 
   if (stored) {
     const rawKey = fromBase64(stored.key_material);
-    return crypto.subtle.importKey(
+    const key = await crypto.subtle.importKey(
       "raw",
       toStrictArrayBuffer(rawKey),
       "AES-GCM",
-      false,
+      false, // extractable: false — no se puede re-exportar desde memoria
       ["encrypt", "decrypt"],
     );
+    _keyCache = key;
+    return key;
   }
 
   const generated = await crypto.subtle.generateKey(
-    {
-      name: "AES-GCM",
-      length: 256,
-    },
+    { name: "AES-GCM", length: 256 },
     true,
     ["encrypt", "decrypt"],
   );
@@ -105,7 +133,25 @@ async function loadOrCreateAesKey() {
   };
 
   await db.put(SECURITY_STORE, record);
-  return generated;
+
+  // Re-importar como non-extractable para el uso en sesión
+  const sessionKey = await crypto.subtle.importKey(
+    "raw",
+    toStrictArrayBuffer(rawKey),
+    "AES-GCM",
+    false,
+    ["encrypt", "decrypt"],
+  );
+  _keyCache = sessionKey;
+  return sessionKey;
+}
+
+/**
+ * Descarta la clave en memoria. Llamar en logout para que la siguiente
+ * sesión cargue la clave de IDB de nuevo (evita retención cross-session).
+ */
+export function clearEncryptionKey() {
+  _keyCache = null;
 }
 
 export async function exportEncryptionKeyBackup(): Promise<EncryptionKeyBackup> {

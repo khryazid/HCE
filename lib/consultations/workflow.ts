@@ -1,3 +1,5 @@
+import { formatDateTime } from "@/lib/ui/format-date";
+
 export function normalizeCommaValues(input: string) {
   return input
     .split(",")
@@ -17,10 +19,10 @@ export function ensureWizardStep(currentStep: number) {
   return currentStep;
 }
 
-export function formatTimelineDate(value: string) {
-  try {
-    return new Date(value).toLocaleString("es-EC");
-  } catch {
-    return value;
-  }
+/**
+ * formatConsultationTimestamp: usa el utilitario centralizado.
+ * @deprecated Usar formatDateTime de @/lib/ui/format-date directamente.
+ */
+export function formatConsultationTimestamp(value: string): string {
+  return formatDateTime(value);
 }
