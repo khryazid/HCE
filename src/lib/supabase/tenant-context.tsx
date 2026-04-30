@@ -41,40 +41,40 @@ export function TenantProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let active = true;
+    const supabase = getSupabaseClient();
 
     const bootstrap = async () => {
       try {
-        const supabase = getSupabaseClient();
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
+        // getUser() validates with the server — safer than getSession()
+        // which can trigger a background refresh and log noisy errors.
+        const { data: { user }, error } = await supabase.auth.getUser();
 
-        if (!session) {
-          router.replace("/login");
+        if (error || !user) {
+          if (active) router.replace("/login");
           return;
         }
 
-        const profile = await loadTenantProfile(session.user.id);
+        const profile = await loadTenantProfile(user.id);
 
         if (active) {
           setState({
             tenant: profile,
-            session,
+            session: null, // session not needed downstream
             loading: false,
             error: profile
               ? null
               : "No se encontro perfil de tenant para esta cuenta.",
           });
         }
-      } catch (error) {
+      } catch (err) {
         if (active) {
           setState({
             tenant: null,
             session: null,
             loading: false,
             error:
-              error instanceof Error
-                ? error.message
+              err instanceof Error
+                ? err.message
                 : "No se pudo cargar la sesion.",
           });
         }
@@ -83,8 +83,22 @@ export function TenantProvider({ children }: { children: ReactNode }) {
 
     void bootstrap();
 
+    // Listen for session events. SIGNED_OUT fires when the refresh token
+    // is invalid/expired — redirect instead of logging uncaught errors.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event) => {
+        if (event === "SIGNED_OUT") {
+          if (active) {
+            setState({ tenant: null, session: null, loading: false, error: null });
+            router.replace("/login");
+          }
+        }
+      }
+    );
+
     return () => {
       active = false;
+      subscription.unsubscribe();
     };
   }, [router]);
 

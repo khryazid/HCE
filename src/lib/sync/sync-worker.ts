@@ -237,11 +237,22 @@ async function syncItem(item: SyncQueueItem): Promise<"synced" | "conflicted"> {
 export async function flushSyncQueue(options?: { forceRetry?: boolean }) {
   const startedAt = Date.now();
   const supabase = getSupabaseClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-  const currentDoctorId = session?.user?.id ?? null;
+  // If the session is invalid (e.g. refresh token revoked), skip this flush
+  // gracefully. The middleware will redirect to login on the next navigation.
+  if (authError || !user) {
+    return {
+      startedAt,
+      finishedAt: Date.now(),
+      processed: 0,
+      succeeded: 0,
+      failed: 0,
+      conflicted: 0,
+    };
+  }
+
+  const currentDoctorId = user.id;
 
   const pending = await getSyncQueueItemsByStatus(["pending", "failed"], {
     includeDelayed: options?.forceRetry ?? false,
