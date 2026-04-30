@@ -3,6 +3,7 @@
 import { ChipSelector } from "@/features/consultations/components/chip-selector";
 import type { TreatmentTemplate } from "@/features/consultations/lib/treatments";
 import type { WizardForm } from "@/features/consultations/lib/use-consultation-wizard";
+import type { ClinicalRecordRecord } from "@/features/consultations/types";
 
 const LAB_CATALOG = [
   "Hemograma completo (CBC)",
@@ -48,6 +49,7 @@ type Props = {
   setForm: React.Dispatch<React.SetStateAction<WizardForm>>;
   templates: TreatmentTemplate[];
   validationErrors: Record<string, string>;
+  latestPatientRecord?: ClinicalRecordRecord | null;
   onApplyTemplate: (templateId: string) => void;
 };
 
@@ -56,6 +58,7 @@ export function WizardStepTreatment({
   setForm,
   templates,
   validationErrors,
+  latestPatientRecord,
   onApplyTemplate,
 }: Props) {
 
@@ -223,6 +226,36 @@ export function WizardStepTreatment({
           <label className="text-xs font-semibold text-ink">
             Evolución Clínica {form.entryMode === "seguimiento" && <span className="text-red-500">*</span>}
           </label>
+          
+          {form.entryMode === "seguimiento" && latestPatientRecord ? (
+            <div className="mb-3 rounded-xl border border-teal-500/30 bg-teal-500/10 p-3 space-y-2">
+              <p className="text-[10px] font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider">Contexto Anterior ({new Date(latestPatientRecord.updated_at).toLocaleDateString("es-EC")})</p>
+              <div className="text-xs text-ink space-y-1">
+                <p><strong>Diagnóstico:</strong> {typeof (latestPatientRecord.specialty_data as Record<string, unknown>).diagnosis === 'string' && ((latestPatientRecord.specialty_data as Record<string, unknown>).diagnosis as string).trim() ? ((latestPatientRecord.specialty_data as Record<string, unknown>).diagnosis as string) : latestPatientRecord.chief_complaint}</p>
+                <p><strong>Tratamiento:</strong> {typeof (latestPatientRecord.specialty_data as Record<string, unknown>).treatment_plan === 'string' && ((latestPatientRecord.specialty_data as Record<string, unknown>).treatment_plan as string).trim() ? ((latestPatientRecord.specialty_data as Record<string, unknown>).treatment_plan as string) : "Sin tratamiento registrado."}</p>
+              </div>
+            </div>
+          ) : null}
+
+          {form.entryMode === "seguimiento" ? (
+            <div className="mb-2 flex flex-wrap gap-2">
+              {["Mejoría clínica evidente", "Estacionario / Sin cambios", "Empeoramiento de síntomas", "Adecuada tolerancia al tratamiento", "Efectos adversos presentes", "Alta médica"].map((chip) => (
+                <button
+                  key={chip}
+                  type="button"
+                  onClick={() => {
+                    const currentText = form.evolutionStatus.trim();
+                    const prefix = currentText ? `${currentText}\n` : "";
+                    setForm(c => ({ ...c, evolutionStatus: prefix + `[${chip}] ` }));
+                  }}
+                  className="rounded-md border border-border bg-bg-soft px-2.5 py-1 text-[11px] font-semibold text-ink transition-colors hover:bg-teal-500/10 hover:border-teal-500/50"
+                >
+                  + {chip}
+                </button>
+              ))}
+            </div>
+          ) : null}
+
           <textarea
             id="field-evolutionStatus"
             className="hce-input min-h-20"
