@@ -5,9 +5,9 @@ import {
   getSpecialtyBreakdown,
   calculateMetrics,
   buildActivityFeed,
-} from "@/lib/dashboard/metrics";
-import type { ClinicalRecordRecord } from "@/types/consultation";
-import type { PatientRecord } from "@/types/patient";
+} from "@/features/dashboard/lib/metrics";
+import type { ClinicalRecordRecord } from "@/features/consultations/types";
+import type { PatientRecord } from "@/features/patients/types";
 
 // ─── Factories ────────────────────────────────────────────────────────────────
 
@@ -144,14 +144,15 @@ describe("calculateMetrics", () => {
     expect(result.consultationsToday).toBe(1);
   });
 
-  it("counts incomplete records (no CIE or empty complaint)", () => {
+  it("counts consultations this month", () => {
+    // today = 2026-01-10
     const records = [
-      makeRecord({ cie_codes: [], chief_complaint: "Algo" }), // missing CIE
-      makeRecord({ cie_codes: ["R51"], chief_complaint: "" }), // empty complaint
-      makeRecord({ cie_codes: ["R51"], chief_complaint: "Normal" }), // complete
+      makeRecord({ created_at: "2026-01-05T10:00:00.000Z" }), // same month
+      makeRecord({ created_at: "2026-01-10T08:00:00.000Z" }), // same month (today)
+      makeRecord({ created_at: "2025-12-31T23:59:00.000Z" }), // previous month — excluded
     ];
     const result = calculateMetrics([], records, { conflicted: 0, failedOrAbandoned: 0 }, today);
-    expect(result.incompleteRecords).toBe(2);
+    expect(result.consultationsThisMonth).toBe(2);
   });
 
   it("passes sync stats from queueStats", () => {

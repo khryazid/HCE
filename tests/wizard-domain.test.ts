@@ -7,8 +7,8 @@ import {
 
   listPatientRecordsByUpdatedAt,
   type DeepLinkFollowUpEditableFields,
-} from "@/lib/consultations/wizard-domain";
-import type { ClinicalRecordRecord } from "@/types/consultation";
+} from "@/features/consultations/lib/wizard-domain";
+import type { ClinicalRecordRecord } from "@/features/consultations/types";
 
 function buildRecord(): ClinicalRecordRecord {
   return {

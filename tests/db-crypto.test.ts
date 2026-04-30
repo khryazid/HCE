@@ -6,14 +6,14 @@ import {
   getSyncQueueItemsByStatus,
   listPatientsByTenant,
   savePatientLocal,
-} from "../lib/db/indexeddb";
+} from "../src/lib/db/indexeddb";
 import {
   decryptJson,
   encryptJson,
   exportEncryptionKeyBackup,
   importEncryptionKeyBackup,
-} from "../lib/db/crypto";
-import type { PatientRecord } from "../types/patient";
+} from "../src/lib/db/crypto";
+import type { PatientRecord } from "@/features/patients/types";
 
 const tenant = {
   doctorId: "doctor-1",

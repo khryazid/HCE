@@ -4,7 +4,7 @@ import {
   getFollowUpTimelineState,
   getNextFollowUpDate,
   isFollowUpOverdue,
-} from "@/lib/clinical/follow-up";
+} from "@/features/consultations/lib/follow-up";
 
 describe("follow up utils", () => {
   const referenceTime = new Date("2026-04-27T12:00:00.000Z").getTime();

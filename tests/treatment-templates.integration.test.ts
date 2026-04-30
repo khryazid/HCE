@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildNextTemplate } from "@/lib/local-data/treatments";
+import { buildNextTemplate } from "@/features/consultations/lib/treatments";
 
 describe("treatment templates versioning", () => {
   it("creates template version 1 then updates to version 2", () => {

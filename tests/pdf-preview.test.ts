@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildConsultationPdfPreviewData } from "@/lib/consultations/pdf-preview";
+import { buildConsultationPdfPreviewData } from "@/features/consultations/lib/pdf-preview";
 
 describe("pdf preview builder", () => {
   it("normalizes cie codes into an array for printable previews", () => {
@@ -23,6 +23,7 @@ describe("pdf preview builder", () => {
         height: "1.75",
       },
       physicalExam: "Abdomen blando",
+      physicalExamStructured: [{ system: "Abdomen", content: "Abdomen blando" }],
       diagnosis: "Gastroenteritis",
       cieCodes: "A09,  K30",
       clinicalAnalysis: "Cuadro compatible con GEA",

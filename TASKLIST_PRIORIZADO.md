@@ -1,109 +1,136 @@
-# Tasklist canónico de mejora
+# Tasklist Canónico de Mejora
 
-Este es el único tasklist activo del proyecto. Resume lo que está en progreso y archiva el historial de lo ya completado.
+Este es el único tasklist activo del proyecto. Muestra lo que está en progreso, las tareas manuales requeridas por el usuario y archiva el historial de lo ya completado.
 
-## Fase Actual: Auditoría de Código y Deuda Técnica [28 de Abril de 2026]
+## Fase Actual: Migración a Vertical Slices (Prioridad Máxima)
 
-- [x] **[CRÍTICO] Sincronización Offline-First y Rendimiento:** Reemplazar el `getAll("clinical_records")` iterativo por cursores o índices IndexedDB (`getAllFromIndex`) durante la resolución de conflictos (Merge de pacientes). El escaneo en memoria puede causar bloqueos y Out-Of-Memory en dispositivos móviles con gran volumen de consultas. (Archivo: `lib/sync/sync-worker.ts`)
-- [x] **[CRÍTICO] Crash por OOM en PDF (Robustez y Edge Cases):** Implementar compresión previa de las imágenes (`logo_data_url` y `signature_data_url`) utilizando Canvas API (reducción de dimensiones y calidad a JPEG/WebP) en el momento en que se suben, ANTES de persistirlas o inyectarlas en jsPDF. (Archivo: Módulo de Ajustes/Perfil y `lib/consultations/pdf.ts`)
-- [x] **[ALTO] Arquitectura React 19 y Clean Code:** Eliminar los anti-patrones de estado en efectos (`Promise.resolve().then(...)` para evitar re-renders sincrónicos) que causan cascadas de renderizado. Migrar a `useTransition`, derivación de estado puro o Handlers nativos. (Archivo: `lib/consultations/use-wizard-cie-suggestions.ts`)
-- [x] **[MEDIO] Seguridad y Disponibilidad (Circuit Breaker):** Reforzar validación de la `GEMINI_API_KEY` e implementar límite de tasa (circuit breaker) local cuando ocurren fallos repetitivos hacia Gemini. Previene latencia acumulada y cuotas excedidas durante el fallback. (Archivo: `app/api/cie-suggestions/route.ts`)
-- [x] **[DEUDA TÉCNICA] Tipados Inseguros en Base de Datos:** Eliminar el casteo inseguro `supabase.from(tableName as never) as unknown as TableSyncClient` en la sincronización construyendo un Type Guard exhaustivo usando los tipos generados `Database['public']['Tables']`. (Archivo: `lib/sync/sync-worker.ts`)
-- [x] **[DEUDA TÉCNICA] Limpieza de Código Muerto:** Eliminar la asignación inútil `void candidateEntries;` en `app/api/cie-suggestions/route.ts` y auditar las llamadas flotantes (ej. `void flushSyncQueue();`) añadiendo manejo de errores adecuado a nivel global.
+- [x] **Fase 0: Preparación de Dependencias**
+  - [x] Instalar herramientas para manejo robusto de formularios: `npm install react-hook-form @hookform/resolvers zod`
+  - [x] Instalar manejador de fechas (recomendado): `npm install date-fns` (o `dayjs` si se prefiere).
+  - [x] Verificar instalación de componentes puros faltantes: `npx shadcn@latest add sheet`
+- [x] **Fase 1: Migración de Tipos de Dominio (Modelos)**
+  - [x] Crear subdirectorios de tipos: `/src/features/patients/types`, `/src/features/consultations/types`, etc.
+  - [x] Mover `src/types/patient.ts` -> `/src/features/patients/types/index.ts`
+  - [x] Mover `src/types/consultation.ts` -> `/src/features/consultations/types/index.ts`
+  - [x] Mover `src/types/clinical.ts` -> `/src/features/consultations/types/clinical.ts`
+  - [x] Buscar y corregir todas las importaciones rotas tras el movimiento.
+- [x] **Fase 2: Purgar Componentes de Dominio de `components/ui`**
+  - [x] Mover `auth-form.tsx`, `auth-route-shell.tsx`, `logout-button.tsx` a `/src/features/auth/components/`
+  - [x] Mover `dashboard-onboarding-guard.tsx`, `sidebar.tsx`, `global-search.tsx` a `/src/features/dashboard/components/`
+  - [x] Mover `professional-profile-form.tsx` y sections a `/src/features/dashboard/components/` (o feature `/profile/`)
+  - [x] Crear `/src/features/sync/components/` y mover componentes de sincronización.
+  - [x] Corregir importaciones en `src/app/` y subcomponentes.
+- [x] **Fase 3: Reubicación de Lógica (DB, Local Data y Actions)**
+  - [x] Auditar `src/lib/actions` y `src/lib/db`.
+  - [x] Mover lógicas de DB específicas a `/src/features/[feature]/api/` o `/src/features/[feature]/lib/`.
+  - [x] Mover almacenamiento local de `src/lib/local-data` a `/src/features/[feature]/lib/local.ts`.
+  - [x] Limpiar `src/lib/` dejando solo utilidades genéricas.
+- [x] **Fase 4: Limpieza de Rutas (Next.js App Router)**
+  - [x] Revisar `/src/app/(auth)/*` y refactorizar para importar solo la vista.
+  - [x] Revisar `/src/app/(dashboard)/*` y extraer lógica compleja a las features.
+- [x] **Fase 5: Refactorización de Formularios (Opcional)**
+  - [x] Refactorizar `auth-form.tsx` con `react-hook-form` y `zod`.
 
-## Correcciones Pre-Producción
-- [x] **[C-1]** Eliminar estado mutable (`consecutiveGeminiFailures`, `circuitBreakerResetTime`) en el Route Handler de Gemini para evitar inconsistencias en despliegues multi-instancia. (Archivo: `app/api/cie-suggestions/route.ts`)
-- [x] **[C-2]** Añadir header `Retry-After: 60` en respuestas 429 de la API para que el fallback del cliente pueda procesarlo adecuadamente. (Archivo: `app/api/cie-suggestions/route.ts`)
-- [x] **[C-3]** Exportar y llamar a `deleteSpecialtyDataLocal` al eliminar `clinical_records` para evitar datos PHI huérfanos en IndexedDB. (Archivo: `lib/db/indexeddb.ts`)
-- [x] **[A-1]** Limpiar `useEffect` importado pero no utilizado en `lib/consultations/use-consultation-wizard.ts`.
-- [x] **[A-3]** Eliminar y refactorizar castings inseguros (`as never`, `as unknown`) en `lib/supabase/profile.ts`, `lib/ai/cie-rate-limit.ts` y `lib/supabase/onboarding.ts`.
+## Fase Siguiente: Despliegue y Pulido Final (Fase 6)
 
-## Optimizaciones y Tareas Menores (Pre-Producción)
-- [x] **[M-1 a M-6]** Eliminación de código muerto en loggers (`error-logger.ts`), eventos (`app-events.ts`), tipos/funciones huérfanas (`types/*`, `workflow.ts`) y componentes UI (`sync-queue-panel.tsx`, `empty-state.tsx`).
-- [x] **[B-2]** Guardas de entorno (`NODE_ENV === "production"`) para métodos destructivos en IndexedDB (`clearOfflineDataForTests`).
-- [x] **[B-3]** Mejora de entropía con `crypto.getRandomValues` como fallback de alta seguridad para la llave envolvente IDB.
-- [x] **[B-4/B-5]** Removidas funciones no usadas de prod (`findLatestPatientRecord`) e indentación HTML en `layout.tsx`.
-- [x] **[B-7]** Adición de instrucciones `pg_cron` en esquema SQL para las vistas materializadas.
-- [x] **[B-10]** Añadidas cabeceras HTTP de seguridad estandar (`X-Content-Type-Options`, `X-Frame-Options`, `HSTS`) en `next.config.ts`.
+- [x] **[UI/UX] Pulido General:** Revisar espaciados, contrastes y consistencia de componentes `shadcn/ui` en vistas móviles y de escritorio para una experiencia "Cero Curva de Aprendizaje".
+- [x] **[PERFORMANCE] Optimización de Carga:** Analizar el bundle de Webpack, optimizar imágenes y diferir la carga de librerías pesadas (ej. `jspdf`, `stripe-js`).
+- [ ] **[QA] Pruebas End-to-End de Pagos:** Verificar el flujo completo desde el registro hasta el pago y redirección exitosa usando tarjetas de prueba de Stripe.
+- [x] **[DEVOPS] CI/CD y Despliegue:** Preparar el proyecto para producción en Vercel verificando que el build y el typcheck de Next.js pasen correctamente y la PWA compile sin errores.
 
-## Tareas Generadas por Auditoría Continua (Pendientes de Revisión)
-- [x] **[AUDITORÍA]** Analizar dependencias en `package.json` en busca de paquetes obsoletos o innecesarios.
-- [x] **[AUDITORÍA]** Escanear la base de código para identificar código muerto, archivos huérfanos o variables sin uso.
-- [x] **[AUDITORÍA]** Revisar la implementación del cifrado de PHI en IndexedDB y endpoints para garantizar cero fugas de datos.
+## Intervención Manual del Usuario (To-Do List)
 
-## Plan de Remediación (Deuda Técnica y Seguridad)
-- [x] **[ALTA PRIORIDAD - SEGURIDAD]** Envolver la clave AES de IndexedDB (`lib/db/crypto.ts`) con una clave AES-KW (WebCrypto `wrapKey`) derivada del dispositivo (`localStorage` PBKDF2). Mitigado el riesgo de material crudo Base64 extraíble.
-- [x] **[MEDIA PRIORIDAD - LIMPIEZA]** Eliminar dependencias innecesarias en `package.json` (`workbox-window`, `eslint-plugin-jsx-a11y` - redundante con Next.js).
-- [x] **[MEDIA PRIORIDAD - LIMPIEZA]** Eliminar los 9 archivos de lógica y UI huérfanos detectados (`wizard-step-confirm.tsx`, `odontogram.tsx`, `growth-curve.tsx`, `modal.tsx`, `tenant.ts`, `conflict-strategy.ts`, etc).
-- [x] **[MEDIA PRIORIDAD - LIMPIEZA]** Purgar las 17 funciones/constantes exportadas y 33 tipos que no tienen uso en toda la aplicación (se retiraron los `export` para reducir el Scope y favorecer el Tree-Shaking).
+Estas tareas requieren tu acceso a consolas externas (Stripe, Supabase, Resend, Vercel) y **NO** pueden ser automatizadas por el agente:
+
+- [ ] **Stripe - Productos y Precios:**
+  1. Entra a tu Dashboard de Stripe (Modo Prueba para empezar).
+  2. Crea un producto llamado "Plan Profesional Independiente" con precio de $29/mes (recurrente).
+  3. Copia el ID del precio (empieza con `price_...`) y actualízalo en el archivo `src/app/(dashboard)/billing/page.tsx` donde dice `"price_placeholder_123"`.
+- [ ] **Stripe - Webhooks:**
+  1. Registra un Webhook URL en Stripe que apunte a `https://<tu-dominio>/api/stripe/webhook`.
+  2. Suscríbete a los eventos: `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated` y `customer.subscription.deleted`.
+  3. Obtén el secreto de firma (`STRIPE_WEBHOOK_SECRET`).
+- [ ] **Supabase - Configuración de Dominio:**
+  1. Configura la URL del sitio (`Site URL`) y las Redirect URLs en *Authentication -> URL Configuration* para que los enlaces de confirmación por correo apunten a tu dominio real (y no a `localhost`).
+- [ ] **Resend - Verificación de Dominio:**
+  1. Verifica tu dominio emisor en Resend (ej. `no-reply@glyph-app.com`) agregando los registros DNS correspondientes para evitar que los correos de PDF (recetas) y confirmaciones lleguen a spam.
+- [ ] **Variables de Entorno (Producción):**
+  1. Configura de forma segura las variables de entorno en tu plataforma de hosting (Vercel):
+     - `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+     - `SUPABASE_SERVICE_ROLE_KEY` (Oculta, nunca pública)
+     - `RESEND_API_KEY`
+     - `STRIPE_SECRET_KEY` y `STRIPE_WEBHOOK_SECRET`
+     - `NEXT_PUBLIC_SITE_URL` (Debe ser tu dominio, ej. `https://glyph-app.com`)
+     - `GEMINI_API_KEY` (Asegurar límites de uso en Google AI Studio)
 
 ---
 
-## Historial de Tareas Completadas
+## Historial de Fases Completadas
 
 <details>
-<summary><strong>Ver todas las tareas completadas (150+ ítems)</strong></summary>
+<summary><strong>Ver historial detallado de tareas completadas</strong></summary>
 
-### 1. Infraestructura, PWA y Base de Datos
+### Fase 5: Onboarding B2B/B2C e Integración Stripe
+- [x] **[ONBOARDING] Pantallas de Venta B2B/B2C**
+- [x] **[INFRAESTRUCTURA] Integración Stripe**
+- [x] **[AUTORIZACIÓN] RBAC por Suscripción**
+
+### Fase Previa 2: Alineación Arquitectónica y Sistema de Diseño (ADR-001) [Abril 2026]
+- [x] **[ARQUITECTURA] Migración a Vertical Slices:** Mover `app/` a `src/app/`, extraer dominios hacia `/src/features/*`.
+- [x] **[INFRAESTRUCTURA] Resolución de Dependencias:** Instalar React Query, Supabase SSR, shadcn, Resend.
+- [x] **[CORE] Inicializar shadcn/ui:** Setup de CLI y regenerar componentes.
+- [x] **[CORE] Setup de Supabase SSR:** Clientes server, client, middleware.
+- [x] **[CORE] Proveedor Global React Query.**
+- [x] **[MIGRACIÓN] Refactorización de Estado (Pacientes y Consultas):** Caché global optimista.
+- [x] **[SEGURIDAD] Protección de Rutas con @supabase/ssr.**
+- [x] **[INFRAESTRUCTURA] Resend Integration para PDFs.**
+
+### Auditoría de Código y Deuda Técnica
+- [x] Sincronización Offline-First y Rendimiento (OOM Mitigation IndexDB).
+- [x] Crash por OOM en PDF (Compresión Canvas API).
+- [x] Arquitectura React 19 y Clean Code (Eliminar anti-patrones en efectos).
+- [x] Seguridad y Disponibilidad (Circuit Breaker para Gemini API).
+- [x] Tipados Inseguros en Base de Datos (Type Guard Exhaustivo).
+- [x] Limpieza de Código Muerto y optimización de loggers.
+
+### Correcciones Pre-Producción y Optimizaciones
+- [x] Eliminación de estado mutable en Route Handlers.
+- [x] Añadir cabeceras `Retry-After: 60`.
+- [x] Eliminar datos PHI huérfanos.
+- [x] Guardas de entorno y mejoras de entropía.
+- [x] Cabeceras de seguridad HTTP estandar.
+
+### Plan de Remediación de Seguridad
+- [x] Envolver la clave AES de IndexedDB con WebCrypto AES-KW.
+- [x] Purgar dependencias innecesarias, archivos huérfanos y tipos sin uso.
+
+### 1. Infraestructura, PWA y Base de Datos (Fases Iniciales)
 - [x] Inicializar Next.js 16 App Router + Tailwind.
 - [x] Configurar PWA con `next-pwa` y fallback offline.
 - [x] Crear estructura de carpetas por dominio (app, components, lib, types, public).
 - [x] Implementar capa IndexedDB con stores espejo + `sync_queue`.
-- [x] Implementar cliente Supabase y utilidades de tenant.
 - [x] Agregar SQL inicial con tablas, RLS y `audit_logs` append-only.
-- [x] Implementar worker de sincronizacion que se activa en evento `online`.
 - [x] Añadir cifrado de PHI en IndexedDB con WebCrypto AES-GCM.
 - [x] Definir pipeline CI para lint, typecheck y build.
-- [x] Incorporar `husky` + `lint-staged` para pre-commit.
-- [x] Activar reglas básicas de accesibilidad con `eslint-plugin-jsx-a11y`.
-- [x] Implementar panel visual de `sync_queue` con reintento y descarte.
-- [x] Consolidar el esquema SQL de Supabase en un unico archivo de despliegue a produccion.
-- [x] Dejar en verde pipeline local.
-- [x] Mecanismo de backup de clave de cifrado.
-- [x] Corregir typecheck de WebCrypto.
 
 ### 2. Autenticación y Sistema Multi-Tenant
 - [x] Crear rutas base de auth/dashboard y vistas dinamicas de especialidades.
 - [x] Integrar autenticacion real Supabase en UI de login.
-- [x] Implementar registro completo (nombre, especialidad, clinic_id) y bootstrap de perfil tenant.
-- [x] Integrar catalogo oficial de especialidades medicas en el registro.
-- [x] Conectar el tenant autenticado al dashboard real.
-- [x] Cargar perfil de doctor y clinic_id desde Supabase.
-- [x] Separar claramente flujo de login vs registro en la interfaz.
-- [x] Multi-usuario por clinica.
-- [x] Seccion `Ajustes` para membrete del medico.
+- [x] Implementar registro completo y bootstrap de perfil tenant.
 
 ### 3. Consultas Clínicas, Pacientes y Evolución
-- [x] Crear CRUD funcional de pacientes con persistencia local y sync.
-- [x] Crear CRUD de consultas con `clinical_records` y `specialty_data`.
-- [x] Boton `Nueva consulta` con flujo guiado por pasos.
-- [x] Paso 1: seleccionar paciente existente o crear paciente rapido desde la misma consulta.
-- [x] Paso 2: registrar anamnesis, sintomas, diagnostico y codigos CIE.
-- [x] Paso 3: seleccionar tratamiento predeterminado o editar tratamiento manual.
-- [x] Paso 4: confirmar, guardar consulta y generar salida documental.
-- [x] CRUD de plantillas de tratamiento gestionado por cada medico.
+- [x] Crear CRUD funcional de pacientes y consultas con persistencia local y sync.
+- [x] Flujo guiado por pasos (wizard) para consultas.
+- [x] CRUD de plantillas de tratamiento.
 - [x] Timeline clinico por paciente y seguimientos sucesivos.
-- [x] Estado del paciente: activo, inactivo, en seguimiento, alta.
 
 ### 4. Inteligencia Artificial (CIE Asistido) y Documentos (PDF)
-- [x] Definir catalogo CIE local en IndexedDB.
 - [x] Implementar sugerencias CIE asistidas por Gemini con fallback local.
-- [x] Se extrajo la consulta CIE asistida del wizard a un helper reutilizable.
-- [x] Se reordenó la API CIE para autenticar primero, limitar por usuario y exponer fallos del proveedor.
-- [x] Crear generador PDF de consulta listo para impresion.
-- [x] Aplicar membrete configurable en todos los PDFs generados.
-- [x] Preview de PDF antes de generar.
+- [x] Crear generador PDF de consulta listo para impresion con membrete.
 
 ### 5. Estabilización, Refactoring y Pruebas
-- [x] Descomponer `consultas/page.tsx` de 1020 lineas a ~120 lineas.
-- [x] Extraer `useConsultationWizard` hook con toda la logica del wizard.
 - [x] Añadir cobertura de pruebas unitarias y E2E (91/91 tests).
-- [x] Se endureció la cola de sincronización con backoff persistente y reintento forzado manual.
-- [x] Reforzar la custodia de la clave PHI en `lib/db/crypto.ts` (threat model, caché).
+- [x] Se endureció la cola de sincronización con backoff persistente.
 - [x] Cerrar brecha RLS por tenant en `clinical_records` y `specialty_data`.
-- [x] Unificar componentes reutilizables en `components/ui`.
-- [x] Consistencia visual, dark mode, accesibilidad (WAI-ARIA).
-- [x] Implementar observabilidad básica para errores de sync y de API (`error-logger.ts`).
-- [x] Limpieza de código muerto, rutas y componentes sin valor operativo.
 
 </details>

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { submitConsultationWithValidation } from "@/lib/consultations/wizard-submit";
+import { submitConsultationWithValidation } from "@/features/consultations/lib/wizard-submit";
 
 describe("wizard submit helper", () => {
   it("stops submit and reports validation errors", async () => {

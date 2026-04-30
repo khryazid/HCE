@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { buildConsultationPayload, buildConsultationSuccessMessage } from "@/lib/consultations/wizard-payload";
-import type { ConsultationPayloadInput } from "@/lib/consultations/wizard-payload";
+import { buildConsultationPayload, buildConsultationSuccessMessage } from "@/features/consultations/lib/wizard-payload";
+import type { ConsultationPayloadInput } from "@/features/consultations/lib/wizard-payload";
 
 // ─── Factory ──────────────────────────────────────────────────────────────────
 
@@ -17,7 +17,7 @@ function makeInput(overrides: Partial<ConsultationPayloadInput> = {}): Consultat
     medicalHistory: "",
     backgrounds: { pathological: "", surgical: "", allergic: "", pharmacological: "", family: "", toxic: "", gynecoObstetric: "" },
     vitalSigns: { bloodPressure: "130/85", heartRate: "72", respiratoryRate: "16", temperature: "36.5", oxygenSaturation: "98", weight: "70", height: "1.70" },
-    physicalExam: "Sin focalidad neurológica",
+    physicalExam: [{ system: "Neurológico", content: "Sin focalidad neurológica" }],
     diagnosis: "Migraña sin aura",
     clinicalAnalysis: "",
     treatmentTemplateId: "",

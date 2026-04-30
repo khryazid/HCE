@@ -1,0 +1,280 @@
+"use client";
+
+/**
+ * app/(dashboard)/pacientes/page.tsx
+ *
+ * Container de la vista de pacientes.
+ * Refactorizado a React Query.
+ */
+
+import Link from "next/link";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTenant } from "@/lib/supabase/tenant-context";
+import { useClinicalContext } from "@/features/consultations/context/clinical-context";
+import { PacientesSkeleton } from "@/components/ui/skeletons";
+import { ConfirmModal } from "@/components/ui/confirm-modal";
+import type { ClinicalRecordRecord } from "@/features/consultations/types";
+import { PATIENT_STATUS_OPTIONS, type PatientRecord, type PatientStatus } from "@/features/patients/types";
+import { buildRetryableErrorMessage } from "@/lib/ui/feedback-copy";
+import { PatientList } from "@/features/patients/components/PatientList";
+import { PatientProfileCard } from "@/features/patients/components/PatientProfileCard";
+import { PatientHistoryTimeline } from "@/features/patients/components/PatientHistoryTimeline";
+import { PatientAnalyticsBar } from "@/features/patients/components/PatientAnalyticsBar";
+import {
+  usePatients,
+  useClinicalRecords,
+  useUpdatePatientStatus,
+  useDeletePatient,
+  useDeleteClinicalRecord,
+} from "@/features/patients/lib/use-patients-queries";
+
+// ─── Estado de borrado ─────────────────────────────────────────────────────────
+
+type DeletePatientProgress = {
+  total: number;
+  done: number;
+  label: string;
+} | null;
+
+// ─── Page Container ──────────────────────────────────────────────────────────
+
+export default function PatientsView() {
+  const { tenant, loading: tenantLoading } = useTenant();
+  const clinical = useClinicalContext();
+
+  // ─── React Query Hooks ───────────────────────────────────────────────────────
+  const { data: patients = [], isLoading: patientsLoading, error: patientsError } = usePatients(tenant);
+  const { data: records = [], isLoading: recordsLoading } = useClinicalRecords(tenant);
+  
+  const updateStatusMutation = useUpdatePatientStatus();
+  const deletePatientMutation = useDeletePatient();
+  const deleteRecordMutation = useDeleteClinicalRecord();
+
+  // ─── Local State ─────────────────────────────────────────────────────────────
+  const [selectedPatientId, setSelectedPatientIdLocal] = useState<string>(
+    clinical.selectedPatientId || "",
+  );
+  const [search, setSearch] = useState("");
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [expandedRecordIds, setExpandedRecordIds] = useState<string[]>([]);
+  const [deletePatientTarget, setDeletePatientTarget] = useState<PatientRecord | null>(null);
+  const [deleteRecordTarget, setDeleteRecordTarget] = useState<ClinicalRecordRecord | null>(null);
+  const [deleteProgress, setDeleteProgress] = useState<DeletePatientProgress>(null);
+
+  // ─── Selección de paciente (sincroniza al contexto clínico global) ───────────
+  const setSelectedPatientId = useCallback(
+    (id: string) => {
+      setSelectedPatientIdLocal(id);
+      clinical.setSelectedPatientId(id);
+      setStatusMessage(null);
+    },
+    [clinical],
+  );
+
+  // Auto-select first patient when data arrives
+  useEffect(() => {
+    if (!patientsLoading && patients.length > 0 && !selectedPatientId) {
+      const initialId = clinical.selectedPatientId || patients[0]?.id || "";
+      setSelectedPatientIdLocal(initialId);
+    }
+  }, [patientsLoading, patients, selectedPatientId, clinical.selectedPatientId]);
+
+  // ─── Filtrado de pacientes ────────────────────────────────────────────────────
+  const filteredPatients = useMemo(() => {
+    const normalized = search.trim().toLowerCase();
+    if (!normalized) return patients;
+    return patients.filter(
+      (p) =>
+        p.full_name.toLowerCase().includes(normalized) ||
+        p.document_number.toLowerCase().includes(normalized),
+    );
+  }, [patients, search]);
+
+  useEffect(() => {
+    if (!patientsLoading && filteredPatients.length > 0 && !filteredPatients.some((p) => p.id === selectedPatientId)) {
+      setSelectedPatientId(filteredPatients[0]?.id ?? "");
+    }
+  }, [filteredPatients, selectedPatientId, setSelectedPatientId, patientsLoading]);
+
+  // ─── Datos derivados ──────────────────────────────────────────────────────────
+  const selectedPatient = useMemo(
+    () => patients.find((p) => p.id === selectedPatientId) ?? null,
+    [patients, selectedPatientId],
+  );
+
+  const patientHistory = useMemo(() => {
+    if (!selectedPatient) return [];
+    return records
+      .filter((r) => r.patient_id === selectedPatient.id)
+      .sort((a, b) => b.updated_at.localeCompare(a.updated_at));
+  }, [records, selectedPatient]);
+
+  const globalAnalytics = useMemo(() => {
+    let activos = 0;
+    let seguimiento = 0;
+    let alta = 0;
+
+    for (const p of patients) {
+      if (p.status === "en-seguimiento") seguimiento++;
+      else if (p.status === "alta") alta++;
+      else if (p.status !== "inactivo") activos++;
+    }
+
+    return { total: patients.length, activos, seguimiento, alta };
+  }, [patients]);
+
+  // ─── Acciones ─────────────────────────────────────────────────────────────────
+
+  async function handlePatientStatusChange(nextStatus: PatientStatus) {
+    if (!tenant || !selectedPatient || nextStatus === selectedPatient.status) return;
+    setStatusMessage(null);
+
+    try {
+      await updateStatusMutation.mutateAsync({ patient: selectedPatient, nextStatus, tenant });
+      setStatusMessage(`Estado actualizado a ${PATIENT_STATUS_OPTIONS[nextStatus].label}.`);
+    } catch (statusError) {
+      setStatusMessage(
+        statusError instanceof Error
+          ? statusError.message
+          : buildRetryableErrorMessage("actualizar el estado del paciente"),
+      );
+    }
+  }
+
+  function toggleRecordExpand(recordId: string) {
+    setExpandedRecordIds((current) =>
+      current.includes(recordId)
+        ? current.filter((id) => id !== recordId)
+        : [...current, recordId],
+    );
+  }
+
+  // Borrado de paciente con feedback granular por ítem
+  async function handleConfirmDeletePatient() {
+    if (!deletePatientTarget || !tenant) return;
+
+    try {
+      await deletePatientMutation.mutateAsync({
+        patient: deletePatientTarget,
+        records,
+        tenant,
+        onProgress: (label, done, total) => setDeleteProgress({ label, done, total }),
+      });
+      setSelectedPatientId("");
+    } finally {
+      setDeleteProgress(null);
+      setDeletePatientTarget(null);
+    }
+  }
+
+  async function handleConfirmDeleteRecord() {
+    if (!deleteRecordTarget || !tenant) return;
+
+    await deleteRecordMutation.mutateAsync({ recordId: deleteRecordTarget.id, tenant });
+    setDeleteRecordTarget(null);
+  }
+
+  // ─── Render ───────────────────────────────────────────────────────────────────
+
+  if (tenantLoading || patientsLoading || recordsLoading) return <PacientesSkeleton />;
+
+  return (
+    <section className="hce-page">
+      <header className="hce-surface">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="hce-page-header">
+            <p className="hce-kicker">Historial de pacientes</p>
+            <h1 className="hce-page-title">Pacientes</h1>
+            <p className="hce-page-lead max-w-3xl">
+              Aqui ves el historial de consultas y seguimientos por paciente. El alta de pacientes
+              se hace desde Consultas para mantener un solo flujo de ingreso.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/consultas" className="hce-btn-primary">
+              Crear consulta / paciente
+            </Link>
+            <Link href="/dashboard" className="hce-btn-secondary">
+              Volver al panel
+            </Link>
+          </div>
+        </div>
+      </header>
+
+      {patientsError ? (
+        <div className="hce-alert-error" role="alert" aria-live="assertive">
+          {patientsError instanceof Error ? patientsError.message : buildRetryableErrorMessage("cargar pacientes")}
+        </div>
+      ) : null}
+
+      <PatientAnalyticsBar
+        total={globalAnalytics.total}
+        activos={globalAnalytics.activos}
+        seguimiento={globalAnalytics.seguimiento}
+        alta={globalAnalytics.alta}
+      />
+
+      <div className="grid gap-6 xl:grid-cols-[340px_minmax(0,1fr)]">
+        <PatientList
+          patients={filteredPatients}
+          selectedPatientId={selectedPatientId}
+          search={search}
+          onSearchChange={setSearch}
+          onSelect={setSelectedPatientId}
+        />
+
+        <section className="space-y-6">
+          <PatientProfileCard
+            patient={selectedPatient}
+            patientHistory={patientHistory}
+            statusSaving={updateStatusMutation.isPending}
+            statusMessage={statusMessage}
+            onStatusChange={(nextStatus) => void handlePatientStatusChange(nextStatus)}
+            onDeleteRequest={() => {
+              if (selectedPatient) setDeletePatientTarget(selectedPatient);
+            }}
+          />
+
+          <PatientHistoryTimeline
+            records={patientHistory}
+            expandedRecordIds={expandedRecordIds}
+            selectedPatientId={selectedPatientId}
+            selectedPatient={selectedPatient}
+            tenant={tenant}
+            onToggleExpand={toggleRecordExpand}
+            onDeleteRecordRequest={setDeleteRecordTarget}
+          />
+        </section>
+      </div>
+
+      {/* Modal: Eliminar paciente con feedback de progreso */}
+      <ConfirmModal
+        open={deletePatientTarget !== null}
+        title="Eliminar paciente"
+        description={
+          deleteProgress
+            ? `${deleteProgress.label} (${deleteProgress.done}/${deleteProgress.total})`
+            : `Se eliminara a ${deletePatientTarget?.full_name ?? ""} y todas sus consultas. Esta accion no se puede deshacer.`
+        }
+        confirmLabel={deleteProgress ? "Eliminando…" : "Eliminar"}
+        variant="danger"
+        onCancel={() => {
+          if (!deleteProgress) setDeletePatientTarget(null);
+        }}
+        onConfirm={() => void handleConfirmDeletePatient()}
+      />
+
+      {/* Modal: Eliminar consulta */}
+      <ConfirmModal
+        open={deleteRecordTarget !== null}
+        title="Eliminar consulta"
+        description="Se eliminara esta consulta del historial. Esta accion no se puede deshacer."
+        confirmLabel={deleteRecordMutation.isPending ? "Eliminando..." : "Eliminar"}
+        variant="danger"
+        onCancel={() => setDeleteRecordTarget(null)}
+        onConfirm={() => void handleConfirmDeleteRecord()}
+      />
+    </section>
+  );
+}
+

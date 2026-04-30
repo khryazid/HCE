@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ensureWizardStep, normalizeCommaValues } from "@/lib/consultations/workflow";
+import { ensureWizardStep, normalizeCommaValues } from "@/features/consultations/lib/workflow";
 
 describe("consultation workflow helpers", () => {
   it("normalizes CIE comma values", () => {

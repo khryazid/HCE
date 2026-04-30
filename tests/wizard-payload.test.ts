@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildConsultationPayload,
   buildConsultationSuccessMessage,
-} from "@/lib/consultations/wizard-payload";
+} from "@/features/consultations/lib/wizard-payload";
 
 describe("wizard payload helpers", () => {
   it("builds the clinical payload bundle from wizard state", () => {
@@ -34,7 +34,7 @@ describe("wizard payload helpers", () => {
         weight: "70",
         height: "170",
       },
-      physicalExam: "Normal",
+      physicalExam: [{ system: "General", content: "Normal" }],
       diagnosis: "Migraña",
       clinicalAnalysis: "Compatible con cefalea primaria",
       treatmentTemplateId: "template-1",

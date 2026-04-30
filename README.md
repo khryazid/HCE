@@ -21,21 +21,22 @@ Plataforma SaaS de historias clinicas multiespecialidad con enfoque offline-firs
 
 ## Descripcion
 
-HCE Multiespecialidad permite gestionar pacientes, consultas y seguimientos clinicos con soporte para trabajo offline, sincronizacion posterior, sugerencias CIE asistidas y generacion de PDF clinico.
+HCE Multiespecialidad permite gestionar pacientes, consultas y seguimientos clinicos con soporte para trabajo offline, sincronizacion posterior, sugerencias CIE-10 asistidas por IA y generacion de PDF clinico multipagina.
 
 ## Estado actual
 
 | Campo | Valor |
 | --- | --- |
-| Version | 1.0.0-rc.1 |
-| Estado | Lista para Produccion (Code Freeze) |
+| Version | 1.0.0-rc.2 |
+| Estado | Lista para Produccion |
 | Repo | Pendiente de URL publica |
 | URL de produccion | Pendiente |
 
 Verificacion tecnica reciente:
 
-- Typecheck global en verde.
-- Suite de tests en verde (91 tests).
+- Typecheck global en verde (0 errores).
+- Linter sin advertencias ni deuda técnica (0 warnings, 0 unused vars).
+- Suite de tests en verde (90 tests, 15 archivos, 100% integridad).
 - Dev server iniciando correctamente en entorno local.
 - Cero polling inactivo (paneles de estado 100% reactivos a eventos).
 
@@ -46,12 +47,18 @@ Verificacion tecnica reciente:
 - Onboarding y perfil profesional centralizados en ajustes.
 - Dashboard con KPIs clinicos, actividad y alertas.
 - Wizard de consulta por pasos con modo consulta y seguimiento.
-- Sugerencias CIE asistidas con fallback al catalogo local.
+- Sugerencias CIE-10 asistidas exclusivamente por Gemini AI (con retry automatico en 503).
+- Especialidad real del medico enviada a Gemini como contexto (no hardcodeada).
+- Campos de antecedentes y plan de manejo con listas de bullets automaticas al presionar Enter.
+- Campo T.A. con autoformato inteligente (espacio o 3 digitos insertan la barra automaticamente).
+- Campos de fecha con mascara DD/MM/AAAA (sin selector de calendario nativo).
+- Hoja de instrucciones al paciente separada de la receta medica (privacidad ante la farmacia).
+- PDF clinico de 3 paginas: historia clinica, receta para farmacia, hoja del paciente.
 - Pacientes como historial clinico navegable con timeline.
 - Modulo de tratamientos con CRUD por medico.
-- Generacion y previsualizacion de PDF clinico con membrete.
 - Persistencia local en IndexedDB con cifrado PHI.
 - Cola de sincronizacion con backoff por item y estado terminal abandoned.
+- Dependency guard en sync worker: salta registros hijos si el paciente padre falla.
 - Soporte PWA y pantalla offline.
 
 ## Stack tecnologico
@@ -75,6 +82,11 @@ Verificacion tecnica reciente:
 - RLS
 - RPC para rate limit de CIE
 
+### IA
+
+- Google Gemini (gemini-2.0-flash por defecto)
+- Graceful degradation: retorna sugerencias vacias si Gemini no responde
+
 ### Calidad
 
 - Vitest para unit e integration tests
@@ -84,9 +96,9 @@ Verificacion tecnica reciente:
 ## Arquitectura
 
 - Offline-first: la app guarda localmente y sincroniza por cola cuando hay conectividad.
-- Sync robusto: diferencia entre fallo temporal y registro abandonado.
+- Sync robusto: diferencia entre fallo temporal y registro abandonado. Si un paciente falla, sus consultas dependientes se saltan en esa pasada (FK guard).
 - Dominio desacoplado: el wizard de consultas fue dividido en hooks y helpers testeables.
-- Fallback controlado: si Gemini no responde, se usa catalogo local de CIE.
+- IA sin fallback de catalogo: si Gemini no responde, retorna array vacio y el UI informa al usuario.
 
 ## Instalacion y arranque
 
@@ -122,14 +134,15 @@ Solo nombres de keys. No guardar valores en este archivo.
 - NEXT_PUBLIC_SUPABASE_URL
 - NEXT_PUBLIC_SUPABASE_ANON_KEY
 - GEMINI_API_KEY
-- GEMINI_MODEL
+- GEMINI_MODEL (opcional, default: gemini-2.0-flash)
 - NEXT_ALLOWED_DEV_ORIGINS
 - E2E_EMAIL
 - E2E_PASSWORD
 
 Notas:
 
-- GEMINI_API_KEY es opcional; sin esta key se usa solo catalogo local CIE.
+- GEMINI_API_KEY es requerida para sugerencias CIE. Sin ella la API retorna sugerencias vacias.
+- GEMINI_MODEL permite cambiar el modelo sin redeployar. Ver modelos disponibles en aistudio.google.com.
 - NEXT_ALLOWED_DEV_ORIGINS aplica en desarrollo para accesos de red local.
 
 ## Scripts disponibles
@@ -160,8 +173,6 @@ Incluye:
 - api_rate_limits,
 - RPC public.claim_api_rate_limit(...).
 
-
-
 ## Testing y calidad
 
 Checklist recomendada antes de merge:
@@ -176,34 +187,42 @@ npm run test
 
 ```text
 /
-├── app/
-├── components/
-│   ├── clinical/
-│   └── ui/
-├── lib/
-│   ├── consultations/
-│   ├── db/
-│   ├── supabase/
-│   └── sync/
-├── tests/
-├── types/
-└── public/
+├── src/
+│   ├── app/                  # App Router (Next.js)
+│   │   └── api/              # API routes (cie-suggestions, etc.)
+│   ├── components/           # Componentes UI compartidos
+│   ├── features/             # Vertical slices por dominio
+│   │   ├── auth/             # Autenticacion y sesion
+│   │   ├── billing/          # Stripe y suscripciones
+│   │   ├── consultations/    # Wizard, CIE, PDF, sync
+│   │   ├── dashboard/        # KPIs y metricas
+│   │   ├── patients/         # Historial clinico
+│   │   └── sync/             # UI del estado de sincronizacion
+│   ├── lib/                  # Utilitarios globales
+│   │   ├── constants/        # Constantes de dominio
+│   │   ├── db/               # IndexedDB + crypto
+│   │   ├── observability/    # Logging y eventos de app
+│   │   ├── supabase/         # Cliente y schema SQL
+│   │   ├── sync/             # Cola de sincronizacion offline
+│   │   └── ui/               # Helpers de formato y UI
+│   └── types/                # Tipos Supabase generados
+├── tests/                    # Unit e integration tests (Vitest)
+├── tests/e2e/                # E2E tests (Playwright)
+└── public/                   # Assets estaticos y PWA manifest
 ```
 
 ## Roadmap
 
 Pendientes principales:
 
-- Fase actual de profesionalización clínica completamente terminada.
-- *(Siguientes pasos se definirán en una nueva iteración de producto)*
-
-Backlog detallado:
-
-- TASKLIST_PRIORIZADO.md
+- QA E2E de flujo completo en staging.
+- Activar y probar flujo completo de Stripe (SDK ya integrado, falta configuracion de productos/precios).
+- Activación de entorno de producción real para Base de Datos y APIs.
+- Despliegue en Vercel con variables de entorno de produccion.
 
 ## Control operativo en Notion
 
-Este README esta alineado con tu estructura operativa de Notion:
+Este README esta alineado con la estructura operativa de Notion:
 
 - Resumen general
 - Stack tecnologico
@@ -218,18 +237,28 @@ Este README esta alineado con tu estructura operativa de Notion:
 
 ## Changelog
 
-### 2026-04-28 (Pre-Producción)
+### 2026-04-30 (RC2 — Limpieza de produccion)
 
-- **Code Freeze y Optimización Final:** Purga masiva de deuda técnica, eliminación de componentes y tipos huérfanos, y optimización severa de bundle.
-- **Seguridad Serverless y Persistencia:** Eliminación de estado mutable en funciones edge/serverless, cierre de brechas de IndexedDB huérfana, envoltura AES-KW de alta entropía para claves IDB locales.
-- **Auditoría e Integridad:** Implementadas cabeceras CSP, estandarización de logs y 100% de la suite de 91 pruebas en verde (`Exit code: 0` en Next build).
+- **Eliminado catalogo local CIE-10:** Removido `cie-catalog.ts` y toda logica de fallback. Las sugerencias CIE son exclusivamente por Gemini AI.
+- **PDF multipagina final:** Formato visual pulido con corrección de alineaciones, bloques de firma responsivos, manejo dinámico de desbordamiento de página y separación absoluta entre paciente (receta + indicaciones) y paraclínicos (órdenes de laboratorio e imagenología).
+- **Examen Físico Estructurado:** Nuevo UI por sistemas para el examen físico en el Wizard. Soporta compatibilidad hacia atrás en la generación de PDFs históricos.
+- **UX clinica:** Listas de bullets automaticas en antecedentes y plan de manejo al presionar Enter. Autoformato inteligente en campo T.A.
+- **Limpieza exhaustiva (Deuda Técnica Cero):** Eliminadas todas las variables sin uso (`unused vars`), `any` types estrictos corregidos, advertencias de efectos asíncronos parcheados y remoción de carpetas vacías / prototipos muertos (ej: modulo independiente de recetas).
+- **Correccion critica Vitest:** El alias `@` apuntaba a la raiz del proyecto en lugar de `./src`.
+- **Especialidad real en Gemini:** El prompt de CIE ahora envia la especialidad registrada del medico (ej. "Ortopedia y Traumatologia") en lugar de siempre "medicina-general".
+- **Tests actualizados:** Ajustados tests de CIE para reflejar comportamiento de graceful degradation y validaciones de PDF para el nuevo modelo del examen físico estructurado.
 
-### 2026-04-28 (Iteración UX)
+### 2026-04-29 (Estabilizacion)
 
-- Finalización de iteración UX profesional: accesibilidad estricta WCAG AA, eliminación de rutas residuales, y adición de métricas ligeras de UI.
-- Eliminación de polling en segundo plano para ahorro de CPU/batería; los paneles de sincronización ahora son 100% dirigidos por eventos.
-- Refactorización visual de Wizard y Tratamientos consolidando utilidades de diseño (hce-surface, hce-card).
-- Cobertura de tests incrementada y tipado asegurado (91/91 tests pasando).
+- **Sincronizacion:** Dependency guard en sync worker previene violaciones de FK cuando el paciente padre falla. Los hijos quedan pending para el siguiente flush.
+- **Resiliencia CIE API:** Retry automatico (1 vez, delay 1.2s) en errores 503. Graceful degradation al 200 con array vacio si Gemini no responde.
+- **Fechas:** Reemplazado input nativo `type="date"` por input de texto con mascara DD/MM/AAAA en todos los campos de fecha del wizard (nacimiento y proxima cita).
+
+### 2026-04-28 (Pre-Produccion)
+
+- **Code Freeze y Optimizacion Final:** Purga masiva de deuda tecnica, eliminacion de componentes y tipos huerfanos, optimizacion severa de bundle.
+- **Seguridad Serverless y Persistencia:** Eliminacion de estado mutable en funciones edge/serverless, cierre de brechas de IndexedDB huerfana, envoltura AES-KW de alta entropia para claves IDB locales.
+- **Auditoria e Integridad:** Implementadas cabeceras CSP, estandarizacion de logs y suite de 91 pruebas en verde.
 
 ### 2026-04-27
 

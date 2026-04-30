@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildPdfLines } from "@/lib/consultations/pdf";
+import { buildPdfLines } from "@/features/consultations/lib/pdf";
 
 describe("pdf export payload", () => {
   it("builds printable lines with letterhead", () => {
@@ -33,6 +33,7 @@ describe("pdf export payload", () => {
           height: "1.75",
         },
         physicalExam: "Abdomen blando depresible doloroso",
+        physicalExamStructured: [{ system: "Abdomen", content: "Abdomen blando depresible doloroso" }],
         diagnosis: "Gastroenteritis",
         cieCodes: ["A09"],
         clinicalAnalysis: "Cuadro compatible con GEA",

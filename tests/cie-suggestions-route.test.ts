@@ -18,7 +18,7 @@ vi.mock("@supabase/supabase-js", () => ({
   }),
 }));
 
-vi.mock("@/lib/ai/cie-rate-limit", () => ({
+vi.mock("@/features/consultations/lib/ai/cie-rate-limit", () => ({
   isCieSuggestionRateLimited: mockIsRateLimited,
 }));
 
@@ -97,13 +97,13 @@ describe("cie suggestions route", () => {
     expect(lastResponse?.status).toBe(429);
   });
 
-  it("returns 503 when Gemini is configured but unavailable", async () => {
+  it("returns 200 with empty suggestions when Gemini is configured but unavailable", async () => {
     process.env.GEMINI_API_KEY = "gemini-key";
     mockGetUser.mockResolvedValue({
       data: { user: { id: "doctor-gemini" } },
       error: null,
     });
-    mockFetch.mockResolvedValue({ ok: false });
+    mockFetch.mockResolvedValue({ ok: false, status: 503 });
 
     const response = await POST(
       buildRequest(
@@ -112,10 +112,12 @@ describe("cie suggestions route", () => {
       ),
     );
 
-    expect(response.status).toBe(503);
+    // Gemini no disponible → 200 con array vacío (graceful degradation, no error para el cliente)
+    expect(response.status).toBe(200);
 
-    const payload = (await response.json()) as { source?: string; error?: string };
-    expect(payload.source).toBe("catalog");
-    expect(payload.error).toBe("Gemini unavailable");
+    const payload = (await response.json()) as { source?: string; suggestions?: unknown[] };
+    expect(payload.source).toBe("gemini");
+    expect(Array.isArray(payload.suggestions)).toBe(true);
+    expect(payload.suggestions).toHaveLength(0);
   });
 });
