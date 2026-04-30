@@ -36,6 +36,7 @@ export type WizardForm = {
   patientId: string;
   linkedRecordId: string;
   specialtyKind: "medicina-general" | "pediatria" | "odontologia";
+  patientStatus: "activo" | "inactivo" | "en-seguimiento" | "alta";
 
   // Identificación extendida (Snapshots)
   gender: string;
@@ -93,6 +94,7 @@ const EMPTY_FORM: WizardForm = {
   patientId: "",
   linkedRecordId: "",
   specialtyKind: "medicina-general",
+  patientStatus: "activo",
   gender: "",
   occupation: "",
   insurance: "",
@@ -397,6 +399,7 @@ export function useConsultationWizard(tenant: TenantProfile | null) {
         tenant,
         form,
         pendingFollowUp,
+        patients,
         buildPdfPreviewData,
         onSuccess: (successMessage) => {
           resetWizard();

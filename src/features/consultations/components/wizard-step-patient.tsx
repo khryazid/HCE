@@ -68,10 +68,12 @@ export function WizardStepPatient({
   }, [patients, searchQuery]);
 
   function selectPatient(patientId: string) {
+    const p = patients.find(p => p.id === patientId);
     setForm((current) => ({
       ...current,
       patientId,
       linkedRecordId: "",
+      patientStatus: p?.status ?? "activo",
     }));
     setSearchQuery("");
     setShowSuggestions(false);
@@ -208,6 +210,19 @@ export function WizardStepPatient({
                 Puedes usar modo seguimiento si solo vas a registrar la evolución de un paciente frecuente.
               </p>
             )}
+
+            <div className="mt-4 border-t border-border pt-4">
+              <label className="text-xs font-semibold text-ink">Especialidad de la Consulta</label>
+              <select
+                className="hce-input mt-1.5"
+                value={form.specialtyKind}
+                onChange={(e) => setForm(c => ({ ...c, specialtyKind: e.target.value as "medicina-general" | "pediatria" | "odontologia" }))}
+              >
+                <option value="medicina-general">Medicina General</option>
+                <option value="pediatria">Pediatría</option>
+                <option value="odontologia">Odontología</option>
+              </select>
+            </div>
           </div>
         </div>
       ) : (

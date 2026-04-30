@@ -14,7 +14,9 @@ import type { TenantProfile } from "@/lib/supabase/profile";
 import type { WizardForm } from "@/features/consultations/lib/use-consultation-wizard";
 import type { WizardPendingFollowUp } from "@/features/consultations/lib/wizard-domain";
 import type { ConsultationPdfPreviewData } from "@/features/consultations/lib/pdf-preview";
-import { recordKeys } from "@/features/patients/lib/use-patients-queries";
+import { recordKeys, patientKeys } from "@/features/patients/lib/use-patients-queries";
+import type { PatientRecord, PatientStatus } from "@/features/patients/types";
+import { updatePatientStatusLocal, enqueueSyncItem } from "@/lib/db/indexeddb";
 
 type SaveConsultationOptions = {
   generatePdf?: boolean;
@@ -24,6 +26,7 @@ type SaveConsultationContext = {
   tenant: TenantProfile;
   form: WizardForm;
   pendingFollowUp: WizardPendingFollowUp | null;
+  patients: PatientRecord[];
   buildPdfPreviewData: (timestamp: string) => ConsultationPdfPreviewData;
   onSuccess: (message: string) => void;
 };
@@ -39,7 +42,7 @@ export function useConsultationSave() {
       options: SaveConsultationOptions;
       context: SaveConsultationContext;
     }) => {
-      const { tenant, form, pendingFollowUp, buildPdfPreviewData } = context;
+      const { tenant, form, pendingFollowUp, patients, buildPdfPreviewData } = context;
 
       // --- Validaciones de negocio ---
       if (!form.patientId) {
@@ -109,6 +112,26 @@ export function useConsultationSave() {
         specialtyRow,
       );
 
+      // --- Update Patient Status ---
+      const patient = patients.find(p => p.id === form.patientId);
+      if (patient && patient.status !== form.patientStatus) {
+        const nextStatus = form.patientStatus as PatientStatus;
+        const updatedPatient = { ...patient, status: nextStatus, updated_at: timestamp };
+        await updatePatientStatusLocal(patient.id, nextStatus);
+        await enqueueSyncItem({
+          id: crypto.randomUUID(),
+          table_name: "patients",
+          record_id: patient.id,
+          action: "update",
+          payload: updatedPatient,
+          doctor_id: tenant.doctor_id,
+          clinic_id: tenant.clinic_id,
+          client_timestamp: Date.now(),
+          status: "pending",
+          retry_count: 0,
+        });
+      }
+
       // --- PDF (opcional) ---
       const shouldGeneratePdf = options.generatePdf ?? false;
       if (shouldGeneratePdf) {
@@ -138,6 +161,7 @@ export function useConsultationSave() {
     },
     onSuccess: (message, { context }) => {
       queryClient.invalidateQueries({ queryKey: recordKeys.tenant(context.tenant.clinic_id) });
+      queryClient.invalidateQueries({ queryKey: patientKeys.tenant(context.tenant.clinic_id) });
       context.onSuccess(message);
     },
   });

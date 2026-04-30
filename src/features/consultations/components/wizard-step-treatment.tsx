@@ -219,25 +219,21 @@ export function WizardStepTreatment({
         </div>
       </div>
 
-      <div className="space-y-4">
-        <h4 className="text-sm font-semibold text-teal-900 border-b border-teal-100 pb-2">E. Evolución y Próximo Control</h4>
+      {form.entryMode === "seguimiento" ? (
+        <div className="space-y-4">
+          <h4 className="text-sm font-semibold text-teal-900 border-b border-teal-100 pb-2 dark:text-teal-100 dark:border-teal-500/30">E. Evolución Clínica</h4>
 
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-ink">
-            Evolución Clínica {form.entryMode === "seguimiento" && <span className="text-red-500">*</span>}
-          </label>
-          
-          {form.entryMode === "seguimiento" && latestPatientRecord ? (
-            <div className="mb-3 rounded-xl border border-teal-500/30 bg-teal-500/10 p-3 space-y-2">
-              <p className="text-[10px] font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider">Contexto Anterior ({new Date(latestPatientRecord.updated_at).toLocaleDateString("es-EC")})</p>
-              <div className="text-xs text-ink space-y-1">
-                <p><strong>Diagnóstico:</strong> {typeof (latestPatientRecord.specialty_data as Record<string, unknown>).diagnosis === 'string' && ((latestPatientRecord.specialty_data as Record<string, unknown>).diagnosis as string).trim() ? ((latestPatientRecord.specialty_data as Record<string, unknown>).diagnosis as string) : latestPatientRecord.chief_complaint}</p>
-                <p><strong>Tratamiento:</strong> {typeof (latestPatientRecord.specialty_data as Record<string, unknown>).treatment_plan === 'string' && ((latestPatientRecord.specialty_data as Record<string, unknown>).treatment_plan as string).trim() ? ((latestPatientRecord.specialty_data as Record<string, unknown>).treatment_plan as string) : "Sin tratamiento registrado."}</p>
+          <div className="space-y-1.5">
+            {latestPatientRecord ? (
+              <div className="mb-3 rounded-xl border border-teal-500/30 bg-teal-500/10 p-3 space-y-2">
+                <p className="text-[10px] font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider">Contexto Anterior ({new Date(latestPatientRecord.updated_at).toLocaleDateString("es-EC")})</p>
+                <div className="text-xs text-ink space-y-1">
+                  <p><strong>Diagnóstico:</strong> {typeof (latestPatientRecord.specialty_data as Record<string, unknown>).diagnosis === 'string' && ((latestPatientRecord.specialty_data as Record<string, unknown>).diagnosis as string).trim() ? ((latestPatientRecord.specialty_data as Record<string, unknown>).diagnosis as string) : latestPatientRecord.chief_complaint}</p>
+                  <p><strong>Tratamiento:</strong> {typeof (latestPatientRecord.specialty_data as Record<string, unknown>).treatment_plan === 'string' && ((latestPatientRecord.specialty_data as Record<string, unknown>).treatment_plan as string).trim() ? ((latestPatientRecord.specialty_data as Record<string, unknown>).treatment_plan as string) : "Sin tratamiento registrado."}</p>
+                </div>
               </div>
-            </div>
-          ) : null}
+            ) : null}
 
-          {form.entryMode === "seguimiento" ? (
             <div className="mb-2 flex flex-wrap gap-2">
               {["Mejoría clínica evidente", "Estacionario / Sin cambios", "Empeoramiento de síntomas", "Adecuada tolerancia al tratamiento", "Efectos adversos presentes", "Alta médica"].map((chip) => (
                 <button
@@ -254,55 +250,77 @@ export function WizardStepTreatment({
                 </button>
               ))}
             </div>
-          ) : null}
 
-          <textarea
-            id="field-evolutionStatus"
-            className="hce-input min-h-20"
-            placeholder="¿Cómo se encuentra el paciente hoy respecto al tratamiento instaurado?"
-            value={form.evolutionStatus}
-            onChange={(event) =>
-              setForm((current) => ({
-                ...current,
-                evolutionStatus: event.target.value,
-              }))
-            }
-          />
-          {validationErrors.evolutionStatus ? (
-            <p className="text-sm font-medium text-red-600">{validationErrors.evolutionStatus}</p>
-          ) : null}
+            <textarea
+              id="field-evolutionStatus"
+              className="hce-input min-h-20"
+              placeholder="¿Cómo se encuentra el paciente hoy respecto al tratamiento instaurado?"
+              value={form.evolutionStatus}
+              onChange={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  evolutionStatus: event.target.value,
+                }))
+              }
+            />
+            {validationErrors.evolutionStatus ? (
+              <p className="text-sm font-medium text-red-600">{validationErrors.evolutionStatus}</p>
+            ) : null}
+          </div>
         </div>
+      ) : null}
 
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-ink">Próximo Control (Cita Médica)</label>
-          <input
-            className="hce-input"
-            type="text"
-            placeholder="DD/MM/AAAA"
-            value={
-              form.nextFollowUpDate.includes("-") && form.nextFollowUpDate.length === 10
-                ? form.nextFollowUpDate.split("-").reverse().join("/")
-                : form.nextFollowUpDate
-            }
-            onChange={(event) => {
-              let val = event.target.value.replace(/\D/g, "");
-              if (val.length > 8) val = val.slice(0, 8);
+      <div className="space-y-4">
+        <h4 className="text-sm font-semibold text-teal-900 border-b border-teal-100 pb-2 dark:text-teal-100 dark:border-teal-500/30">
+          {form.entryMode === "seguimiento" ? "F. Plan a Futuro" : "E. Próximo Control"}
+        </h4>
 
-              let formatted = val;
-              if (val.length > 4) {
-                formatted = `${val.slice(0, 2)}/${val.slice(2, 4)}/${val.slice(4)}`;
-              } else if (val.length > 2) {
-                formatted = `${val.slice(0, 2)}/${val.slice(2)}`;
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-ink">Estado Clínico del Paciente</label>
+            <select
+              className="hce-input"
+              value={form.patientStatus}
+              onChange={(e) => setForm(c => ({ ...c, patientStatus: e.target.value as "activo" | "inactivo" | "en-seguimiento" | "alta" }))}
+            >
+              <option value="activo">Activo (Tratamiento en curso)</option>
+              <option value="en-seguimiento">En Seguimiento Constante</option>
+              <option value="alta">Alta Médica (Resuelto)</option>
+              <option value="inactivo">Inactivo / Abandono</option>
+            </select>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-ink">Fecha del Próximo Control (Opcional)</label>
+            <input
+              className="hce-input"
+              type="text"
+              placeholder="DD/MM/AAAA"
+              value={
+                form.nextFollowUpDate.includes("-") && form.nextFollowUpDate.length === 10
+                  ? form.nextFollowUpDate.split("-").reverse().join("/")
+                  : form.nextFollowUpDate
               }
+              onChange={(event) => {
+                let val = event.target.value.replace(/\D/g, "");
+                if (val.length > 8) val = val.slice(0, 8);
 
-              if (val.length === 8) {
-                const iso = `${val.slice(4)}-${val.slice(2, 4)}-${val.slice(0, 2)}`;
-                setForm((current) => ({ ...current, nextFollowUpDate: iso }));
-              } else {
-                setForm((current) => ({ ...current, nextFollowUpDate: formatted }));
-              }
-            }}
-          />
+                let formatted = val;
+                if (val.length > 4) {
+                  formatted = `${val.slice(0, 2)}/${val.slice(2, 4)}/${val.slice(4)}`;
+                } else if (val.length > 2) {
+                  formatted = `${val.slice(0, 2)}/${val.slice(2)}`;
+                }
+
+                if (val.length === 8) {
+                  const iso = `${val.slice(4)}-${val.slice(2, 4)}-${val.slice(0, 2)}`;
+                  setForm((current) => ({ ...current, nextFollowUpDate: iso }));
+                } else {
+                  setForm((current) => ({ ...current, nextFollowUpDate: formatted }));
+                }
+              }}
+            />
+          </div>
         </div>
       </div>
     </div>
