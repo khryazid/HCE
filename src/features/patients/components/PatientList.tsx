@@ -72,7 +72,7 @@ export function PatientList({
               onClick={() => onSelect(patient.id)}
               className={`w-full rounded-2xl border px-4 py-3 text-left transition hover:bg-bg-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 ${
                 selectedPatientId === patient.id
-                  ? "border-teal-300 bg-teal-50"
+                  ? "border-teal-500/50 bg-teal-500/10"
                   : "border-border bg-card"
               }`}
             >
