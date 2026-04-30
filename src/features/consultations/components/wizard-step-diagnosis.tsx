@@ -92,7 +92,7 @@ export function WizardStepDiagnosis({
 
       {/* REGISTRO CLÍNICO */}
       <div className="space-y-4">
-        <h4 className="text-sm font-semibold text-teal-900 border-b border-teal-100 pb-2">A. Registro Clínico</h4>
+        <h4 className="text-sm font-semibold text-teal-900 dark:text-teal-400 border-b border-teal-100 dark:border-teal-500/30 pb-2">A. Registro Clínico</h4>
         
         <div className="space-y-1.5">
           <label className="text-xs font-semibold text-ink">Motivo de consulta <span className="text-red-500">*</span></label>
@@ -225,7 +225,7 @@ export function WizardStepDiagnosis({
 
       {/* EXAMEN FÍSICO */}
       <div className="space-y-4">
-        <h4 className="text-sm font-semibold text-teal-900 border-b border-teal-100 pb-2">B. Examen Físico</h4>
+        <h4 className="text-sm font-semibold text-teal-900 dark:text-teal-400 border-b border-teal-100 dark:border-teal-500/30 pb-2">B. Examen Físico</h4>
         
         <div className="rounded-2xl border border-border bg-bg-soft p-4">
           <p className="text-xs font-semibold text-ink mb-3">Signos Vitales</p>
@@ -439,7 +439,7 @@ export function WizardStepDiagnosis({
 
       {/* DIAGNÓSTICO */}
       <div className="space-y-4">
-        <h4 className="text-sm font-semibold text-teal-900 border-b border-teal-100 pb-2">C. Diagnóstico</h4>
+        <h4 className="text-sm font-semibold text-teal-900 dark:text-teal-400 border-b border-teal-100 dark:border-teal-500/30 pb-2">C. Diagnóstico</h4>
 
         <div className="space-y-1.5">
           <label className="text-xs font-semibold text-ink">Análisis Clínico</label>

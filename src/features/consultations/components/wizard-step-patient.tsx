@@ -31,6 +31,7 @@ type Props = {
   pendingFollowUp: PendingFollowUp | null;
   latestPatientRecord: ClinicalRecordRecord | null;
   validationErrors: Record<string, string>;
+  tenantSpecialties: string[];
   onCreateQuickPatient: () => void;
   onApplyConsultaMode: () => void;
   onApplyFollowUpMode: (record: ClinicalRecordRecord | null) => void;
@@ -45,6 +46,7 @@ export function WizardStepPatient({
   pendingFollowUp,
   latestPatientRecord,
   validationErrors,
+  tenantSpecialties,
   onCreateQuickPatient,
   onApplyConsultaMode,
   onApplyFollowUpMode,
@@ -216,11 +218,19 @@ export function WizardStepPatient({
               <select
                 className="hce-input mt-1.5"
                 value={form.specialtyKind}
-                onChange={(e) => setForm(c => ({ ...c, specialtyKind: e.target.value as "medicina-general" | "pediatria" | "odontologia" }))}
+                onChange={(e) => setForm(c => ({ ...c, specialtyKind: e.target.value }))}
               >
-                <option value="medicina-general">Medicina General</option>
-                <option value="pediatria">Pediatría</option>
-                <option value="odontologia">Odontología</option>
+                {tenantSpecialties.length > 0 ? (
+                  tenantSpecialties.map(spec => (
+                    <option key={spec} value={spec}>{spec}</option>
+                  ))
+                ) : (
+                  <>
+                    <option value="medicina-general">Medicina General</option>
+                    <option value="pediatria">Pediatría</option>
+                    <option value="odontologia">Odontología</option>
+                  </>
+                )}
               </select>
             </div>
           </div>

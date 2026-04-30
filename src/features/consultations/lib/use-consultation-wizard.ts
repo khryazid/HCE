@@ -35,7 +35,7 @@ export type WizardForm = {
   entryMode: "consulta" | "seguimiento";
   patientId: string;
   linkedRecordId: string;
-  specialtyKind: "medicina-general" | "pediatria" | "odontologia";
+  specialtyKind: string;
   patientStatus: "activo" | "inactivo" | "en-seguimiento" | "alta";
 
   // Identificación extendida (Snapshots)
@@ -306,9 +306,11 @@ export function useConsultationWizard(tenant: TenantProfile | null) {
   }
 
   function openWizard() {
+    const initialSpecialty = tenant?.specialties?.[0] ?? "medicina-general";
     setForm((current) => ({
       ...current,
       patientId: current.patientId || "",
+      specialtyKind: initialSpecialty,
     }));
     setStep(1);
     setWizardOpen(true);

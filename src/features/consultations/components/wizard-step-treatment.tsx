@@ -103,7 +103,7 @@ export function WizardStepTreatment({
       ) : null}
 
       <div className="space-y-4">
-        <h4 className="text-sm font-semibold text-teal-900 border-b border-teal-100 pb-2">D. Plan de Manejo</h4>
+        <h4 className="text-sm font-semibold text-teal-900 dark:text-teal-400 border-b border-teal-100 dark:border-teal-500/30 pb-2">D. Plan de Manejo</h4>
 
         <div className="space-y-1.5">
           <label className="text-xs font-semibold text-ink">Plantilla de Prescripción Rápida</label>
@@ -194,7 +194,7 @@ export function WizardStepTreatment({
 
       {/* PARACLÍNICOS */}
       <div className="space-y-4">
-        <h4 className="text-sm font-semibold text-teal-900 border-b border-teal-100 pb-2">E. Paraclínicos Solicitados</h4>
+        <h4 className="text-sm font-semibold text-teal-900 dark:text-teal-400 border-b border-teal-100 dark:border-teal-500/30 pb-2">E. Paraclínicos Solicitados</h4>
 
         <div className="space-y-1.5">
           <label className="text-xs font-semibold text-ink">Órdenes de Laboratorio</label>
@@ -221,7 +221,7 @@ export function WizardStepTreatment({
 
       {form.entryMode === "seguimiento" ? (
         <div className="space-y-4">
-          <h4 className="text-sm font-semibold text-teal-900 border-b border-teal-100 pb-2 dark:text-teal-100 dark:border-teal-500/30">E. Evolución Clínica</h4>
+          <h4 className="text-sm font-semibold text-teal-900 dark:text-teal-400 border-b border-teal-100 dark:border-teal-500/30 pb-2">E. Evolución Clínica</h4>
 
           <div className="space-y-1.5">
             {latestPatientRecord ? (
@@ -271,7 +271,7 @@ export function WizardStepTreatment({
       ) : null}
 
       <div className="space-y-4">
-        <h4 className="text-sm font-semibold text-teal-900 border-b border-teal-100 pb-2 dark:text-teal-100 dark:border-teal-500/30">
+        <h4 className="text-sm font-semibold text-teal-900 dark:text-teal-400 border-b border-teal-100 dark:border-teal-500/30 pb-2">
           {form.entryMode === "seguimiento" ? "F. Plan a Futuro" : "E. Próximo Control"}
         </h4>
 

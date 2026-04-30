@@ -84,6 +84,7 @@ export default function ConsultationsView() {
               pendingFollowUp={wizard.pendingFollowUp}
               latestPatientRecord={wizard.latestPatientRecord}
               validationErrors={wizard.validationErrors}
+              tenantSpecialties={tenant?.specialties ?? []}
               onCreateQuickPatient={() => void wizard.createQuickPatient()}
               onApplyConsultaMode={wizard.applyConsultaMode}
               onApplyFollowUpMode={wizard.applyFollowUpMode}
