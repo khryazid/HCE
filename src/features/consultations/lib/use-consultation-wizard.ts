@@ -415,8 +415,19 @@ export function useConsultationWizard(tenant: TenantProfile | null) {
         setError,
         setSaving,
         saveConsultation,
-        onValidationFailed: () => {
-          window.scrollTo({ top: 0, behavior: "smooth" });
+        onValidationFailed: (errors) => {
+          const firstErrorKey = Object.keys(errors)[0];
+          if (firstErrorKey) {
+            const el = document.getElementById(`field-${firstErrorKey}`);
+            if (el) {
+              el.scrollIntoView({ behavior: "smooth", block: "center" });
+              el.focus();
+            } else {
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }
+          } else {
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }
         },
       },
     );

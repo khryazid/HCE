@@ -84,7 +84,7 @@ export function WizardStepPatient({
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5" id="field-patientId">
       {/* Selected patient display overrides everything else */}
       {selectedPatientLabel ? (
         <div className="space-y-4">

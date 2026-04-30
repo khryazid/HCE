@@ -97,6 +97,7 @@ export function WizardStepDiagnosis({
         <div className="space-y-1.5">
           <label className="text-xs font-semibold text-ink">Motivo de consulta <span className="text-red-500">*</span></label>
           <input
+            id="field-chiefComplaint"
             className="hce-input"
             placeholder="¿Por qué viene hoy? Ej: Dolor abdominal intenso"
             value={form.chiefComplaint}
@@ -454,6 +455,7 @@ export function WizardStepDiagnosis({
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-ink">Impresión Diagnóstica <span className="text-red-500">*</span></label>
             <textarea
+              id="field-diagnosis"
               className="hce-input min-h-20"
               placeholder="Ej: Apendicitis aguda"
               value={form.diagnosis}

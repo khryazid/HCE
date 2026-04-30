@@ -10,7 +10,7 @@ type SubmitConsultationDependencies = {
   setError: (message: string | null) => void;
   setSaving: (saving: boolean) => void;
   saveConsultation: (options: SubmitConsultationOptions) => Promise<void>;
-  onValidationFailed?: () => void;
+  onValidationFailed?: (errors: Record<string, string>) => void;
 };
 
 export async function submitConsultationWithValidation(
@@ -24,7 +24,7 @@ export async function submitConsultationWithValidation(
     deps.setError(
       "Corrige los campos obligatorios marcados en rojo y vuelve a guardar.",
     );
-    deps.onValidationFailed?.();
+    deps.onValidationFailed?.(errors);
     return;
   }
 

@@ -121,6 +121,7 @@ export function WizardStepTreatment({
         <div className="space-y-1.5">
           <label className="text-xs font-semibold text-ink">Prescripción Médica (Receta) <span className="text-red-500">*</span></label>
           <textarea
+            id="field-treatmentPlan"
             className="hce-input min-h-32"
             placeholder="Medicamento, Dosis, Vía de administración, Frecuencia y Duración..."
             value={form.treatmentPlan}
@@ -223,6 +224,7 @@ export function WizardStepTreatment({
             Evolución Clínica {form.entryMode === "seguimiento" && <span className="text-red-500">*</span>}
           </label>
           <textarea
+            id="field-evolutionStatus"
             className="hce-input min-h-20"
             placeholder="¿Cómo se encuentra el paciente hoy respecto al tratamiento instaurado?"
             value={form.evolutionStatus}
