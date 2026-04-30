@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient } from "@supabase/supabase-js";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 
 // ─── SUPER-ADMIN CONFIG ────────────────────────────────────────────────────────
 // Only this email has access to the /admin panel.

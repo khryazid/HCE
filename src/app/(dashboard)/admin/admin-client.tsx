@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useTransition } from "react";
-import { toast } from "react-hot-toast";
+import { toast } from "sonner";
 import type { AdminUserRecord, AdminStats } from "@/features/admin/actions";
 import { setSubscriptionStatus, deleteUserAccount } from "@/features/admin/actions";
 

@@ -1,4 +1,6 @@
-export type SpecialtyKind = "odontologia" | "pediatria" | "medicina-general";
+// Known built-in specialties are listed for autocomplete; any string is valid
+// to support custom tenant specialties set during onboarding.
+export type SpecialtyKind = "odontologia" | "pediatria" | "medicina-general" | (string & {});
 
 type OdontogramToothState = "sano" | "caries" | "ausente" | "tratado";
 
