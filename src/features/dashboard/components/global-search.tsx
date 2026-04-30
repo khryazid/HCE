@@ -300,7 +300,7 @@ export function GlobalSearch() {
                     onMouseEnter={() => setActiveIndex(index)}
                     className={`mb-1 w-full rounded-xl border px-3 py-2 text-left transition ${
                       index === activeIndex
-                        ? "border-teal-300 bg-teal-50"
+                        ? "border-teal-500/50 bg-teal-500/10"
                         : "border-transparent bg-card hover:border-border hover:bg-bg-soft"
                     }`}
                   >

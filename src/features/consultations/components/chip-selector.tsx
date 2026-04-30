@@ -98,7 +98,7 @@ export function ChipSelector({ catalog, selected, onChange, placeholder = "Escri
         <button
           type="button"
           onClick={addCustom}
-          className="rounded-lg border border-border bg-bg-soft px-3 py-1.5 text-xs font-semibold text-ink hover:bg-teal-50 hover:border-teal-300 transition-colors"
+          className="rounded-lg border border-border bg-bg-soft px-3 py-1.5 text-xs font-semibold text-ink hover:bg-teal-500/10 hover:border-teal-500/50 transition-colors"
         >
           + Agregar
         </button>

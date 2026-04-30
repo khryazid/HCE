@@ -166,7 +166,7 @@ export function PatientHistoryTimeline({
                   aria-expanded={isExpanded}
                   aria-controls={`record-panel-${record.id}`}
                   onClick={() => onToggleExpand(record.id)}
-                  className="flex w-full flex-col items-start justify-between gap-4 bg-bg-soft px-5 py-4 text-left transition hover:bg-teal-50/50 sm:flex-row sm:items-center"
+                  className="flex w-full flex-col items-start justify-between gap-4 bg-bg-soft px-5 py-4 text-left transition hover:bg-teal-500/10 sm:flex-row sm:items-center"
                 >
                   <div className="space-y-1">
                     <div className="flex flex-wrap items-center gap-2">
@@ -294,7 +294,7 @@ export function PatientHistoryTimeline({
                     <div className="mt-8 flex flex-wrap items-center gap-3 border-t border-border pt-4">
                       <Link
                         href={`/consultas?mode=seguimiento&patientId=${record.patient_id}&recordId=${record.id}`}
-                        className="inline-flex rounded-xl border border-teal-300 bg-teal-50 px-3 py-2 text-xs font-semibold text-teal-900 transition hover:bg-teal-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+                        className="inline-flex rounded-xl border border-teal-500/50 bg-teal-500/10 px-3 py-2 text-xs font-semibold text-teal-900 dark:text-teal-100 transition hover:bg-teal-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
                       >
                         Crear seguimiento
                       </Link>

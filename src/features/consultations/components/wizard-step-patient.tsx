@@ -88,12 +88,12 @@ export function WizardStepPatient({
       {/* Selected patient display overrides everything else */}
       {selectedPatientLabel ? (
         <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-teal-200 bg-teal-50/50 p-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-teal-500/30 bg-teal-500/10 p-4">
             <div>
-              <p className="text-sm font-semibold text-teal-900">
+              <p className="text-sm font-semibold text-teal-900 dark:text-teal-100">
                 {selectedPatientLabel.full_name}
               </p>
-              <p className="text-xs text-teal-700 mt-1">
+              <p className="mt-1 text-xs text-teal-800 dark:text-teal-200">
                 DNI: {selectedPatientLabel.document_number}
                 {selectedPatientLabel.birth_date
                   ? ` · Edad: ${calculateAge(selectedPatientLabel.birth_date)} (${selectedPatientLabel.birth_date})`
@@ -105,7 +105,7 @@ export function WizardStepPatient({
               onClick={() =>
                 setForm((current) => ({ ...current, patientId: "" }))
               }
-              className="hce-btn-secondary bg-card text-teal-700 hover:bg-teal-50"
+              className="hce-btn-secondary"
             >
               Cambiar paciente
             </button>
@@ -178,7 +178,7 @@ export function WizardStepPatient({
                 onClick={onApplyConsultaMode}
                 className={`hce-chip ${
                   form.entryMode === "consulta"
-                    ? "border-teal-300 bg-teal-50 text-teal-900"
+                    ? "border-teal-500/50 bg-teal-500/10 text-teal-900 dark:text-teal-100"
                     : "border-border bg-card text-ink hover:bg-bg-soft"
                 }`}
               >
@@ -189,7 +189,7 @@ export function WizardStepPatient({
                 onClick={() => onApplyFollowUpMode(latestPatientRecord)}
                 className={`hce-chip ${
                   form.entryMode === "seguimiento"
-                    ? "border-teal-300 bg-teal-50 text-teal-900"
+                    ? "border-teal-500/50 bg-teal-500/10 text-teal-900 dark:text-teal-100"
                     : "border-border bg-card text-ink hover:bg-bg-soft"
                 }`}
               >
@@ -273,7 +273,7 @@ export function WizardStepPatient({
                         onClick={() => selectPatient(patient.id)}
                         className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm transition hover:bg-bg-soft border-b border-border last:border-0"
                       >
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-teal-50 text-sm font-bold text-teal-700">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-teal-500/10 text-sm font-bold text-teal-700 dark:text-teal-400">
                           {patient.full_name.charAt(0).toUpperCase()}
                         </div>
                         <div>
@@ -363,7 +363,7 @@ export function WizardStepPatient({
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-semibold text-ink">Fecha de nacimiento</label>
                     {quickPatient.birthDate && quickPatient.birthDate.length === 10 && quickPatient.birthDate.includes("-") ? (
-                      <span className="text-xs font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-full">
+                      <span className="text-xs font-bold text-teal-700 dark:text-teal-300 bg-teal-500/10 px-2 py-0.5 rounded-full">
                         {calculateAge(quickPatient.birthDate)}
                       </span>
                     ) : null}
