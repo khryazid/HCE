@@ -4,17 +4,25 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useTenant } from "@/lib/supabase/tenant-context";
 import { isOnboardingProfileComplete, readOnboardingProfile } from "@/lib/supabase/onboarding";
+import { getSupabaseClient } from "@/lib/supabase/client";
 
 export function DashboardOnboardingGuard() {
   const router = useRouter();
   const pathname = usePathname();
-  const { tenant, session, loading } = useTenant();
+  const { tenant, loading } = useTenant();
   const [ready, setReady] = useState(false);
+  const supabase = getSupabaseClient();
 
   useEffect(() => {
     if (loading) return;
 
-    if (!session || !tenant) {
+    // /admin is the super-admin panel — skip all clinical checks.
+    if (pathname === "/admin") {
+      const t = setTimeout(() => setReady(true), 0);
+      return () => clearTimeout(t);
+    }
+
+    if (!tenant) {
       router.replace("/login");
       return;
     }
@@ -23,7 +31,8 @@ export function DashboardOnboardingGuard() {
     const isProfileSetupPage = pathname === "/ajustes";
 
     // 1. Check Subscription Status
-    const validSubscriptionStatuses = ["active", "trialing"];
+    // "lifetime" and "active" and "trialing" all grant access.
+    const validSubscriptionStatuses = ["active", "trialing", "lifetime"];
     const status = tenant.subscription_status;
     const hasActiveSub = validSubscriptionStatuses.includes(status ?? "incomplete");
 
@@ -32,24 +41,31 @@ export function DashboardOnboardingGuard() {
       return;
     }
 
-    // Si ya está activo y entra a /billing, lo devolvemos al dashboard
     if (hasActiveSub && isBillingPage) {
       router.replace("/dashboard");
       return;
     }
 
-    // 2. Check Onboarding Complete
-    const onboardingProfile = readOnboardingProfile(session.user.user_metadata);
-    const isReady = isOnboardingProfileComplete(onboardingProfile);
+    // 2. Check Onboarding Complete — read from Supabase user metadata.
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) {
+        router.replace("/login");
+        return;
+      }
 
-    if (!isReady && !isProfileSetupPage && !isBillingPage) {
-      router.replace("/ajustes");
-      return;
-    }
+      const onboardingProfile = readOnboardingProfile(user.user_metadata);
+      const isReady = isOnboardingProfileComplete(onboardingProfile);
 
-    const timer = setTimeout(() => setReady(true), 0);
-    return () => clearTimeout(timer);
-  }, [loading, session, tenant, pathname, router]);
+      if (!isReady && !isProfileSetupPage && !isBillingPage) {
+        router.replace("/ajustes");
+        return;
+      }
+
+      setReady(true);
+    }).catch(() => {
+      router.replace("/login");
+    });
+  }, [loading, tenant, pathname, router, supabase]);
 
   if (ready) {
     return null;
