@@ -30,6 +30,7 @@ export const MEDICAL_SPECIALTIES = [
   "Mastología",
   "Medicina Física y Rehabilitación",
   "Medicina Interna",
+  "Medicina General",
   "Medicina Perinatal",
   "Nefrología",
   "Neonatología",
