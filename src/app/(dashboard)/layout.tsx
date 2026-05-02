@@ -1,5 +1,5 @@
 import { DashboardOnboardingGuard } from "@/features/dashboard/components/dashboard-onboarding-guard";
-import { Sidebar, BottomNav } from "@/features/dashboard/components/sidebar";
+import { Sidebar, BottomNav, MobileHeader } from "@/features/dashboard/components/sidebar";
 import { SyncStatusBanner } from "@/features/sync/components/sync-status-banner";
 import { GlobalSearch } from "@/features/dashboard/components/global-search";
 import { TenantProvider } from "@/lib/supabase/tenant-context";
@@ -19,7 +19,7 @@ export default function DashboardLayout({
           <div className="flex flex-1 flex-col overflow-x-hidden">
             <DashboardOnboardingGuard />
 
-            <main className="flex-1 p-4 pb-24 sm:p-6 lg:p-8 lg:pb-8">
+            <main className="flex-1 p-4 pb-24 pt-14 sm:p-6 sm:pt-6 lg:p-8 lg:pb-8 lg:pt-8">
               <div className="mx-auto w-full max-w-6xl">
                 <div className="mb-4 space-y-3">
                   <GlobalSearch />
@@ -29,6 +29,9 @@ export default function DashboardLayout({
               </div>
             </main>
           </div>
+
+          {/* Mobile top header (logo + logout) */}
+          <MobileHeader />
 
           {/* Mobile bottom nav */}
           <BottomNav />

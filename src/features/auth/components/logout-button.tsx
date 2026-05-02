@@ -38,9 +38,9 @@ export function LogoutButton({ mode = "full" }: LogoutButtonProps) {
         title="Cerrar sesion"
         className={
           mode === "icon"
-            ? "inline-flex h-10 w-full items-center justify-center rounded-xl border border-border bg-card text-ink-soft transition hover:bg-bg-soft"
+            ? "inline-flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-card text-ink-soft transition hover:bg-bg-soft hover:text-ink active:scale-95"
             : mode === "nav"
-              ? "flex min-h-11 flex-col items-center justify-center gap-0.5 rounded-xl px-3 py-1.5 text-[11px] font-medium text-ink-soft transition hover:text-ink-soft"
+              ? "flex min-h-11 flex-col items-center justify-center gap-0.5 rounded-xl px-3 py-1.5 text-[11px] font-medium text-ink-soft transition hover:text-ink"
               : "inline-flex w-full min-h-11 items-center justify-center gap-2 rounded-xl border border-border bg-card px-4 py-2 text-sm font-semibold text-ink transition hover:bg-bg-soft"
         }
       >

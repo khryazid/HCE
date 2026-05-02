@@ -161,13 +161,38 @@ export function Sidebar() {
   );
 }
 
+/* ── Mobile Header (mobile, < lg) ───────────────────────── */
+
+export function MobileHeader() {
+  return (
+    <header className="fixed inset-x-0 top-0 z-50 flex h-14 items-center justify-between border-b border-border bg-card/95 px-4 backdrop-blur-sm lg:hidden">
+      {/* Brand */}
+      <div className="flex items-center gap-2.5">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-accent text-sm font-bold text-white shadow-sm">
+          G
+        </div>
+        <div>
+          <p className="text-[14px] font-bold text-ink leading-tight">Glyph</p>
+          <p className="text-[11px] text-ink-soft leading-tight">Clinica digital</p>
+        </div>
+      </div>
+
+      {/* Logout */}
+      <LogoutButton mode="icon" />
+    </header>
+  );
+}
+
 /* ── Bottom Nav (mobile, < lg) ──────────────────────────── */
 
 export function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-50 flex items-center justify-around border-t border-border bg-card/95 px-2 py-1.5 backdrop-blur-sm lg:hidden" aria-label="Navegacion principal movil">
+    <nav
+      className="fixed inset-x-0 bottom-0 z-50 flex items-stretch border-t border-border bg-card/95 backdrop-blur-sm lg:hidden"
+      aria-label="Navegacion principal movil"
+    >
       {BOTTOM_NAV_ITEMS.map((item) => {
         const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
 
@@ -175,27 +200,25 @@ export function BottomNav() {
           <Link
             key={item.href}
             href={item.href}
-            className={`flex min-h-11 flex-col items-center justify-center gap-0.5 rounded-xl px-3 py-1.5 text-[11px] font-medium transition-all ${
-              isActive
-                ? "text-accent"
-                : "text-ink-soft hover:text-ink"
+            className={`relative flex flex-1 flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-medium transition-colors ${
+              isActive ? "text-accent" : "text-ink-soft"
             }`}
           >
+            {/* Active indicator bar at top */}
+            {isActive && (
+              <span className="absolute inset-x-3 top-0 h-0.5 rounded-b-full bg-accent" />
+            )}
             <span
-              className={`transition-transform ${
-                isActive ? "scale-110 text-accent" : ""
+              className={`transition-transform duration-150 ${
+                isActive ? "scale-110" : ""
               }`}
             >
               {item.icon}
             </span>
-            <span>{item.label}</span>
-            {isActive && (
-              <span className="mt-0.5 h-1 w-4 rounded-full bg-accent" />
-            )}
+            <span className="leading-none">{item.label}</span>
           </Link>
         );
       })}
-      <LogoutButton mode="nav" />
     </nav>
   );
 }
