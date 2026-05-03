@@ -13,6 +13,8 @@ const {
   mockGetSession,
   mockEncryptJson,
   mockDecryptJson,
+  mockRpc,
+  mockDbPut,
 } = vi.hoisted(() => ({
   mockGetSyncQueueItemsByStatus: vi.fn(),
   mockUpdateSyncItemStatus: vi.fn(),
@@ -25,6 +27,8 @@ const {
   mockGetSession: vi.fn(),
   mockEncryptJson: vi.fn(),
   mockDecryptJson: vi.fn(),
+  mockRpc: vi.fn(),
+  mockDbPut: vi.fn(),
 }));
 
 vi.mock("@/lib/db/indexeddb", () => ({
@@ -60,6 +64,7 @@ vi.mock("@/lib/supabase/client", () => ({
       }),
       upsert: mockUpsert,
     }),
+    rpc: mockRpc,
   }),
 }));
 
@@ -125,6 +130,11 @@ describe("sync worker retries", () => {
       },
     });
 
+    mockRpc.mockResolvedValue({
+      error: null,
+      data: null,
+    });
+
     mockSingle.mockResolvedValue({
       data: null,
       error: null,
@@ -182,7 +192,7 @@ describe("sync worker retries", () => {
         }
         return [];
       }),
-      put: vi.fn(async () => undefined),
+      put: mockDbPut,
       delete: vi.fn(async () => undefined),
     });
   });
@@ -287,10 +297,11 @@ describe("sync worker retries", () => {
     await flushSyncQueue();
 
     expect(mockDeleteSyncQueueItem).toHaveBeenCalledWith("sync-merge");
-    expect(mockEncryptJson).toHaveBeenCalledWith(
+    expect(mockDbPut).toHaveBeenCalledWith(
+      "clinical_records",
       expect.objectContaining({
         patient_id: "patient-merged",
-      }),
+      })
     );
     expect(mockUpdateSyncItemStatus).not.toHaveBeenCalledWith(
       "sync-merge",
