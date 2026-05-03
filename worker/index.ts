@@ -1,5 +1,6 @@
 /// <reference lib="webworker" />
-export default {};
+const workerConfig = {};
+export default workerConfig;
 
 declare let self: ServiceWorkerGlobalScope & { __WB_DISABLE_DEV_LOGS: boolean };
 
