@@ -444,6 +444,22 @@ export async function flushSyncQueue(options?: { forceRetry?: boolean }) {
 
       if (retryCount >= MAX_RETRIES) {
         await updateSyncItemStatus(item.id, "abandoned", message, retryCount, nextRetryAt);
+        
+        // Try to log abandoned event to Supabase for Admin monitoring
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await (supabase.rpc as any)("log_audit_event", {
+            p_clinic_id: item.clinic_id,
+            p_doctor_id: item.doctor_id,
+            p_event_type: "sync_abandoned",
+            p_resource_type: item.table_name,
+            p_resource_id: item.record_id,
+            p_changes: { error: message, original_payload: item.payload },
+          });
+        } catch {
+          // If offline, we simply ignore this telemetry
+        }
+
         emitAppEvent(APP_EVENT_SYNC_ABANDONED, {
           itemId: item.id,
           tableName: item.table_name,

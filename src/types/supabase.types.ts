@@ -15,7 +15,7 @@ export type Database = {
           clinic_id: string;
           doctor_id: string;
           full_name: string;
-          specialty: string;
+          specialty: string[];
           stripe_customer_id: string | null;
           stripe_subscription_id: string | null;
           subscription_status: string | null;
@@ -27,7 +27,7 @@ export type Database = {
           clinic_id: string;
           doctor_id: string;
           full_name: string;
-          specialty: string;
+          specialty: string[];
           stripe_customer_id?: string | null;
           stripe_subscription_id?: string | null;
           subscription_status?: string | null;
@@ -38,7 +38,7 @@ export type Database = {
           clinic_id: string;
           doctor_id: string;
           full_name: string;
-          specialty: string;
+          specialty: string[];
           stripe_customer_id: string | null;
           stripe_subscription_id: string | null;
           subscription_status: string | null;
@@ -244,6 +244,35 @@ export type Database = {
           note: string;
           updated_at: string;
         }>;
+      };
+      push_subscriptions: {
+        Row: {
+          id: string;
+          clinic_id: string;
+          doctor_id: string;
+          endpoint: string;
+          p256dh: string;
+          auth: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          clinic_id: string;
+          doctor_id: string;
+          endpoint: string;
+          p256dh: string;
+          auth: string;
+          created_at?: string;
+        };
+        Update: Partial<{
+          clinic_id: string;
+          doctor_id: string;
+          endpoint: string;
+          p256dh: string;
+          auth: string;
+          created_at: string;
+        }>;
+        Relationships: [];
       };
     };
     Views: {

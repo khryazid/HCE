@@ -52,6 +52,22 @@ export type AdminStats = {
 };
 
 // ─── QUERIES ───────────────────────────────────────────────────────────────────
+export async function getAbandonedSyncItems() {
+  await verifySuperAdmin();
+  const admin = getSupabaseAdmin();
+
+  const { data, error } = await admin
+    .from("audit_logs")
+    .select("id, clinic_id, doctor_id, resource_type, resource_id, changes, created_at")
+    .eq("event_type", "sync_abandoned")
+    .order("created_at", { ascending: false })
+    .limit(100);
+
+  if (error) throw error;
+
+  return data;
+}
+
 export async function getAllUsersWithProfiles(): Promise<{
   users: AdminUserRecord[];
   stats: AdminStats;
@@ -77,7 +93,7 @@ export async function getAllUsersWithProfiles(): Promise<{
         email: u.email,
         created_at: u.created_at,
         full_name: profile?.full_name ?? "Sin Perfil",
-        specialty: profile?.specialty ?? "—",
+        specialty: Array.isArray(profile?.specialty) ? profile.specialty.join(", ") : (profile?.specialty ?? "—"),
         subscription_status: profile?.subscription_status ?? "none",
         subscription_expires_at: profile?.subscription_expires_at ?? null,
       };

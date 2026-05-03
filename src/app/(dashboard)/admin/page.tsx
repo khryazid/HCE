@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
-import { verifySuperAdmin, getAllUsersWithProfiles } from "@/features/admin/actions";
+import { verifySuperAdmin, getAllUsersWithProfiles, getAbandonedSyncItems } from "@/features/admin/actions";
 import { AdminPanelClient } from "./admin-client";
 
 export const metadata = {
@@ -43,6 +43,9 @@ export default async function AdminPage() {
 }
 
 async function AdminDataLayer() {
-  const { users, stats } = await getAllUsersWithProfiles();
-  return <AdminPanelClient initialUsers={users} stats={stats} />;
+  const [{ users, stats }, abandonedItems] = await Promise.all([
+    getAllUsersWithProfiles(),
+    getAbandonedSyncItems(),
+  ]);
+  return <AdminPanelClient initialUsers={users} stats={stats} abandonedItems={abandonedItems} />;
 }

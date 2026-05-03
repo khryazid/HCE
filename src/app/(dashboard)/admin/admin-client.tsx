@@ -7,9 +7,20 @@ import { setSubscriptionStatus, deleteUserAccount } from "@/features/admin/actio
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
 
+type AbandonedItem = {
+  id: number;
+  clinic_id: string;
+  doctor_id: string | null;
+  resource_type: string;
+  resource_id: string;
+  changes: Record<string, unknown>;
+  created_at: string;
+};
+
 type Props = {
   initialUsers: AdminUserRecord[];
   stats: AdminStats;
+  abandonedItems: AbandonedItem[];
 };
 
 type PlanDraft = {
@@ -223,7 +234,7 @@ function PlanEditor({
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 
-export function AdminPanelClient({ initialUsers, stats }: Props) {
+export function AdminPanelClient({ initialUsers, stats, abandonedItems }: Props) {
   const [users, setUsers] = useState<AdminUserRecord[]>(initialUsers);
   const [search, setSearch] = useState("");
   const [loadingId, setLoadingId] = useState<string | null>(null);
@@ -403,8 +414,62 @@ export function AdminPanelClient({ initialUsers, stats }: Props) {
         </div>
       </div>
 
+      {/* ABANDONED SYNC ITEMS PANEL */}
+      <div className="mt-12 hce-surface rounded-xl overflow-hidden border border-border">
+        <div className="px-5 py-4 border-b border-border bg-bg-soft">
+          <h2 className="text-lg font-bold text-ink">Registros de Sincronización Abandonados</h2>
+          <p className="text-sm text-ink-soft mt-1">
+            Logs de ítems que fallaron más de 3 veces intentando sincronizar al servidor.
+          </p>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left">
+            <thead className="bg-bg-soft text-ink-soft border-b border-border text-xs uppercase tracking-wider">
+              <tr>
+                <th className="px-5 py-3">Fecha</th>
+                <th className="px-5 py-3">Tabla</th>
+                <th className="px-5 py-3">ID Registro</th>
+                <th className="px-5 py-3">Error</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {abandonedItems.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="px-6 py-8 text-center text-ink-soft">
+                    No hay registros de sincronización abandonados recientes. ¡Excelente!
+                  </td>
+                </tr>
+              ) : (
+                abandonedItems.map((item) => {
+                  const errorMsg =
+                    item.changes && typeof item.changes.error === "string"
+                      ? item.changes.error
+                      : "Error desconocido";
+                  return (
+                    <tr key={item.id} className="hover:bg-bg-soft/50 transition-colors">
+                      <td className="px-5 py-4 text-xs text-ink-soft whitespace-nowrap">
+                        {new Date(item.created_at).toLocaleString("es-ES")}
+                      </td>
+                      <td className="px-5 py-4 font-medium text-amber-600">
+                        {item.resource_type}
+                      </td>
+                      <td className="px-5 py-4 text-xs font-mono text-ink-soft">
+                        {item.resource_id}
+                      </td>
+                      <td className="px-5 py-4 text-xs text-red-500 max-w-md truncate" title={errorMsg}>
+                        {errorMsg}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       {/* NOTE */}
-      <p className="text-xs text-ink-soft text-right">
+      <p className="text-xs text-ink-soft text-right mt-4">
         ⚠️ Panel visible únicamente para <strong>khristian.yazid@gmail.com</strong>.
         No indexado por buscadores.
       </p>

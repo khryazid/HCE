@@ -29,7 +29,7 @@ create table if not exists public.profiles (
   clinic_id               uuid        not null,
   doctor_id               uuid        not null references auth.users (id) on delete cascade,
   full_name               text        not null,
-  specialty               text        not null,
+  specialty               text[]      not null default '{}',
   stripe_customer_id      text,
   stripe_subscription_id  text,
   -- Valores posibles:
@@ -139,6 +139,18 @@ create table if not exists public.api_rate_limits (
   primary key (scope, identifier)
 );
 
+-- push_subscriptions
+-- Almacena las suscripciones de los dispositivos para Web Push Notifications.
+create table if not exists public.push_subscriptions (
+  id          uuid    primary key default gen_random_uuid(),
+  clinic_id   uuid    not null,
+  doctor_id   uuid    not null references auth.users (id) on delete cascade,
+  endpoint    text    not null unique,
+  p256dh      text    not null,
+  auth        text    not null,
+  created_at  timestamptz not null default now()
+);
+
 -- ════════════════════════════════════════════════════════════
 -- COMPATIBILIDAD: columnas / constraints sobre entornos ya creados
 -- Estas líneas son no-ops en una instalación nueva.
@@ -175,6 +187,19 @@ alter table public.audit_logs
 alter table public.audit_logs
   add constraint audit_logs_doctor_id_fkey
   foreign key (doctor_id) references auth.users (id) on delete set null;
+
+-- ════════════════════════════════════════════════════════════
+-- MIGRACIÓN DE specialty (TEXT -> TEXT[])
+-- ════════════════════════════════════════════════════════════
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_schema='public' AND table_name='profiles' AND column_name='specialty' AND data_type='text'
+  ) THEN
+    ALTER TABLE public.profiles ALTER COLUMN specialty TYPE text[] USING string_to_array(specialty, ' | ');
+  END IF;
+END $$;
 
 -- ════════════════════════════════════════════════════════════
 -- ÍNDICES

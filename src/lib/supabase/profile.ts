@@ -4,7 +4,7 @@ export type TenantProfile = {
   doctor_id: string;
   clinic_id: string;
   full_name: string;
-  specialty: string;
+  specialty: string[];
   specialties: string[];
   subscription_status?: string | null;
 };
@@ -15,10 +15,6 @@ type EnsureTenantProfileInput = {
   fullName: string;
   specialties: string[];
 };
-
-
-
-
 
 type TenantMetadata = {
   clinic_id?: unknown;
@@ -38,28 +34,16 @@ function normalizeTenantText(value: string) {
   return value.trim();
 }
 
-function serializeSpecialties(values: string[]) {
-  return values.map((value) => normalizeTenantText(value)).filter(Boolean).join(" | ");
-}
-
-function parseSpecialties(value: string) {
-  const entries = value
-    .split("|")
-    .map((entry) => normalizeTenantText(entry))
-    .filter(Boolean);
-
-  return entries.length > 0 ? entries : [value];
-}
-
 function withSpecialties(profile: {
   doctor_id: string;
   clinic_id: string;
   full_name: string;
-  specialty: string;
+  specialty: string[];
+  subscription_status?: string | null;
 }) {
   return {
     ...profile,
-    specialties: parseSpecialties(profile.specialty),
+    specialties: profile.specialty,
   } satisfies TenantProfile;
 }
 
@@ -93,7 +77,6 @@ export async function ensureTenantProfile(
   const specialties = input.specialties
     .map((value) => normalizeTenantText(value))
     .filter(Boolean);
-  const serializedSpecialty = serializeSpecialties(specialties);
   const clinicId = normalizeTenantText(input.clinicId);
 
   if (!fullName) {
@@ -121,7 +104,7 @@ export async function ensureTenantProfile(
       doctor_id: input.userId,
       clinic_id: clinicId,
       full_name: fullName,
-      specialty: serializedSpecialty,
+      specialty: specialties,
     })
     .select("doctor_id, clinic_id, full_name, specialty, subscription_status")
     .single();

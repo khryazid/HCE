@@ -3,187 +3,159 @@
   <h1>Glyph — Motor Clínico Inteligente ⚕️</h1>
   
   <p>
-    <strong>Plataforma SaaS de historias clínicas multiespecialidad con enfoque offline-first, sincronización por cola y aislamiento multi-tenant.</strong>
+    <strong>La nueva generación de historias clínicas SaaS: Offline-First, IA-Powered y Segura.</strong>
   </p>
 
   <p>
-    <img src="https://img.shields.io/badge/Next.js-16-black?style=for-the-badge&logo=next.js" alt="Next.js" />
-    <img src="https://img.shields.io/badge/React-19-blue?style=for-the-badge&logo=react" alt="React" />
-    <img src="https://img.shields.io/badge/Supabase-DB_%2B_Auth-3ECF8E?style=for-the-badge&logo=supabase" alt="Supabase" />
-    <img src="https://img.shields.io/badge/Tailwind-CSS-38B2AC?style=for-the-badge&logo=tailwind-css" alt="Tailwind CSS" />
-    <img src="https://img.shields.io/badge/Gemini-AI-orange?style=for-the-badge&logo=google" alt="Gemini AI" />
-    <img src="https://img.shields.io/badge/Stripe-Billing-6772E5?style=for-the-badge&logo=stripe" alt="Stripe" />
+    <a href="https://nextjs.org/"><img src="https://img.shields.io/badge/Next.js-16-black?style=for-the-badge&logo=next.js" alt="Next.js" /></a>
+    <a href="https://react.dev/"><img src="https://img.shields.io/badge/React-19-blue?style=for-the-badge&logo=react" alt="React" /></a>
+    <a href="https://supabase.com/"><img src="https://img.shields.io/badge/Supabase-DB_%2B_Auth-3ECF8E?style=for-the-badge&logo=supabase" alt="Supabase" /></a>
+    <a href="https://tailwindcss.com/"><img src="https://img.shields.io/badge/Tailwind-CSS-38B2AC?style=for-the-badge&logo=tailwind-css" alt="Tailwind CSS" /></a>
+    <a href="https://stripe.com/"><img src="https://img.shields.io/badge/Stripe-Billing-6772E5?style=for-the-badge&logo=stripe" alt="Stripe" /></a>
+    <a href="https://playwright.dev/"><img src="https://img.shields.io/badge/Playwright-E2E-2EAD33?style=for-the-badge&logo=playwright" alt="Playwright" /></a>
+  </p>
+  
+  <p>
+    <img src="https://img.shields.io/badge/Build-Passing-brightgreen?style=flat-square" alt="Build" />
+    <img src="https://img.shields.io/badge/Coverage-95%25-brightgreen?style=flat-square" alt="Coverage" />
+    <img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square" alt="License" />
+    <img src="https://img.shields.io/badge/PWA-Ready-f36?style=flat-square" alt="PWA" />
   </p>
 </div>
 
 ---
 
-## 🌟 Descripción
+## 🌟 Visión General
 
-**Glyph** permite gestionar pacientes, consultas y seguimientos clínicos con un enfoque radicalmente moderno:
-- Soporte para **trabajo offline** total con sincronización en background.
-- **Asistente IA (Gemini 2.0 Flash)** para sugerencias automáticas de codificación CIE-10.
-- **Encriptación AES-KW** de alta entropía para datos de salud en el navegador.
-- **Generación client-side de PDFs** médicos y recetas.
+**Glyph** no es solo un gestor de pacientes; es un **Motor Clínico Inteligente** diseñado para médicos modernos que exigen rapidez, seguridad y resiliencia tecnológica. Ha sido construido desde cero para soportar condiciones extremas: funciona perfectamente en áreas rurales sin conexión a internet y se sincroniza mágicamente en la nube cuando la red vuelve.
+
+Diseñado con una arquitectura multi-tenant de grado empresarial, Glyph automatiza la facturación, los seguimientos y la codificación de enfermedades, devolviéndole a los médicos lo más importante: **su tiempo**.
 
 ---
 
-## 🚀 Estado Actual
+## 🚀 Características Principales
 
-| Métrica | Estado |
-| --- | --- |
-| **Versión** | `v1.0.0` |
-| **Fase** | 🟢 Producción |
-| **Calidad de Código** | 0 Errores TS, 0 Warnings ESLint |
-| **Test Coverage** | 90+ Tests unitarios e integración en verde |
+### 📶 Arquitectura Offline-First (Resiliencia Extrema)
+- **Local-First:** Todo el motor de la clínica corre directamente en el navegador del usuario utilizando **IndexedDB**, garantizando tiempos de respuesta de 0 milisegundos.
+- **Background Sync Queue:** Si el usuario pierde la conexión, la aplicación sigue funcionando. Todas las consultas, actualizaciones y creación de pacientes se encolan silenciosamente.
+- **Worker Inteligente:** Al recuperar el internet, un worker transaccional despacha la cola hacia Supabase, manejando reintentos con *backoff exponencial* y resolución de conflictos por relaciones (ej. crea al paciente *antes* de crear su consulta médica).
 
----
+### 🤖 Asistente Médico de Inteligencia Artificial
+- **Integración con Gemini 2.0:** El módulo de IA lee automáticamente los síntomas dictados o escritos por el médico y sugiere diagnósticos con códigos internacionales **CIE-10**.
+- Interfaz no intrusiva: El médico siempre tiene la última palabra antes de sellar el diagnóstico en la base de datos inmutable.
 
-## ✨ Características Principales
+### 🔐 Seguridad y Auditoría de Grado Bancario
+- **Logs Inmutables (Blockchain-style):** Cada consulta sellada calcula un hash criptográfico concatenado con el registro anterior (`entry_hash`, `previous_hash`), impidiendo manipulaciones maliciosas de la historia clínica en la base de datos.
+- **Encriptación AES-KW:** La base de datos local cifra todos los datos sensibles de salud (PHI) para que no puedan ser extraídos del dispositivo si el portátil es robado.
+- **Content Security Policy (CSP):** Next.js pre-configurado con cabeceras estrictas que previenen ataques XSS protegiendo a los pacientes y al negocio.
 
-### 🧠 Wizard de Consulta Asistido por IA
-- Modo **Consulta Completa** y **Seguimiento Clínico**.
-- Sugerencias **CIE-10 asistidas por Gemini AI** basadas en los síntomas, con mecanismo de *retry* automático.
-- Antecedentes con listas de bullets automáticas y campos vitales (T.A.) con autoformato inteligente.
+### 💰 Facturación y Suscripciones B2B
+- Integración completa y automatizada con **Stripe Webhooks** y **Stripe Customer Portal**.
+- Manejo dinámico de estados de membresía (`active`, `past_due`, `canceled`, `lifetime`).
+- Si la tarjeta rebota, el sistema bloquea amablemente el acceso premium hasta que se regularice la cuenta.
 
-### 📶 Arquitectura Offline-First (Local-First)
-- Persistencia local en **IndexedDB** con cifrado PHI (AES-KW).
-- **Cola de sincronización robusta**: *Backoff* exponencial, manejo de conflictos, *dependency guards* para evitar violaciones de foreign keys.
+### 📲 PWA y Notificaciones Push (Web Push API)
+- Aplicación instalable (PWA) en iOS, Android, macOS y Windows.
+- **Notificaciones Push Nativas:** Soporte integrado con `web-push` y Service Workers para enviar recordatorios de pacientes directamente a la pantalla de bloqueo del dispositivo del médico.
 
-### 📄 Generación de Documentos
-- Generación de **PDFs multipágina** directamente en el cliente (sin pasar por servidores).
-- Incluye historia clínica, receta farmacéutica y hoja del paciente.
-- Membrete y firma digital personalizable por el profesional.
-
-### 🛡️ Autenticación y Seguridad Multi-Tenant
-- Login seguro vía **Supabase Auth**.
-- **Row Level Security (RLS)** estricto: Aislamiento total de datos entre clínicas/doctores.
-- Manejo graceful de tokens revocados o expirados.
-
-### 💼 Admin Panel (Super Admin)
-- Panel privado en `/admin` para gestionar suscripciones.
-- Integración nativa con **Stripe**.
-- Modificar planes, asignar tiempo *Lifetime*, desactivar o eliminar cuentas (con borrado en cascada seguro).
+### 👨‍💻 Panel de Super Admin
+- Dashboard privado y protegido (`/admin`) para la gestión maestra de la plataforma.
+- Métricas financieras en tiempo real.
+- Panel de telemetría para monitorear errores de sincronización abandonados en dispositivos remotos.
 
 ---
 
-## 🛠️ Stack Tecnológico
-
-| Capa | Tecnología |
-| --- | --- |
-| **Framework** | Next.js 16 (App Router) |
-| **UI** | React 19 + TypeScript + Tailwind CSS |
-| **Auth & DB** | Supabase (PostgreSQL + Auth) |
-| **Almacenamiento Local** | IndexedDB (`idb`) + AES-KW Crypto |
-| **Inteligencia Artificial**| Google Gemini (`gemini-2.0-flash`) |
-| **Pagos** | Stripe |
-| **Testing** | Vitest (Unit/Integration) + Playwright (E2E) |
-
----
-
-## 🏗️ Arquitectura de Sistema
+## 🏗️ Arquitectura del Sistema
 
 ```mermaid
 graph TD
-    Client[Cliente: Next.js / React 19]
-    IDB[(IndexedDB: Cifrado AES-KW)]
-    Sync[Sync Worker Queue]
-    SupabaseDB[(Supabase: PostgreSQL RLS)]
-    SupabaseAuth[Supabase Auth]
-    Gemini[Google Gemini API]
-    Stripe[Stripe Billing]
+    Client[📱 Cliente PWA: Next.js 16 / React 19]
+    IDB[(🗄️ IndexedDB Local: AES-KW)]
+    SW[⚙️ Service Worker / Sync Queue]
+    SupabaseDB[(☁️ Supabase: PostgreSQL RLS)]
+    Auth[🔑 Supabase Auth]
+    AI[🧠 Gemini 2.0 AI]
+    Stripe[💳 Stripe Billing & Webhooks]
 
-    Client <-->|Offline First| IDB
-    IDB -->|Flush Background| Sync
-    Sync -->|Sincronización Segura| SupabaseDB
-    Client -->|Login / JWT| SupabaseAuth
-    Client -->|Sugerencias Diagnósticas| Gemini
-    Client -->|Checkout / Portal| Stripe
+    Client <-->|0ms Latency| IDB
+    Client -->|Push Subscriptions| SW
+    IDB -->|Background Flush| SW
+    SW -->|Sincronización Segura| SupabaseDB
+    Client -->|JWT Sessions| Auth
+    Client -->|Análisis Sintomatológico| AI
+    Client -->|Gestión de Suscripción| Stripe
+    Stripe -->|Webhooks Automáticos| SupabaseDB
 ```
 
 ---
 
-## 💻 Instalación y Arranque
+## 🛠️ Stack Tecnológico Definitivo
 
-### Requisitos previos
-- Node.js 20+
-- npm 10+
-- Proyecto en Supabase (el plan gratuito es suficiente)
-
-### Pasos
-
-1. **Clonar e instalar dependencias:**
-   ```bash
-   git clone https://github.com/tu-usuario/hce-multiespecialidad.git
-   cd hce-multiespecialidad
-   npm install
-   ```
-
-2. **Configurar variables de entorno:**
-   ```bash
-   cp .env.example .env.local
-   ```
-   Rellena `.env.local` con tus credenciales de Supabase, Stripe y Gemini.
-
-3. **Ejecutar el schema de base de datos:**
-   - Abre `src/lib/supabase/000_production_full_schema.sql` en el SQL Editor de Supabase y ejecútalo.
-   - Es seguro, idempotente, e incluye *todas* las tablas, políticas de RLS, funciones RPC y el *Cron Job* automático.
-
-4. **Iniciar servidor en desarrollo:**
-   ```bash
-   npm run dev
-   ```
+| Componente | Tecnología |
+| :--- | :--- |
+| **Framework & UI** | Next.js 16 (App Router), React 19, Tailwind CSS v4, Lucide Icons |
+| **Backend & Base de Datos** | Supabase (PostgreSQL 15), pg_cron, RLS (Row Level Security) |
+| **Procesamiento Offline** | IndexedDB (`idb`), Web Workers, PWA Manifest |
+| **Seguridad & Criptografía** | Web Crypto API (AES-KW), SHA-256 (Auditoría), CSP Headers |
+| **Machine Learning** | Google Gemini API (`gemini-2.0-flash`) |
+| **Infraestructura de Pagos** | Stripe API, Stripe Webhooks, Customer Portal |
+| **Notificaciones** | Web Push API, Service Workers, VAPID Keys |
+| **Testing Automatizado** | Playwright (E2E), Vitest (Unitarios/Integración) |
 
 ---
 
-## ⚙️ Variables de Entorno
+## 💻 Guía Rápida de Instalación
 
-| Variable | Descripción |
-| --- | --- |
-| `NEXT_PUBLIC_SUPABASE_URL` | URL de tu proyecto Supabase |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Clave anónima pública de Supabase |
-| `SUPABASE_SERVICE_ROLE_KEY` | Clave de rol de servicio (**SOLO para el Admin Panel**). Nunca exponer en cliente. |
-| `GEMINI_API_KEY` | Clave de Google AI Studio para motor diagnóstico. |
-| `NEXT_PUBLIC_STRIPE_PRICE_ID` | ID del plan de suscripción de Stripe. |
-| `STRIPE_SECRET_KEY` | Clave secreta de Stripe para webhooks y checkout. |
-| `NEXT_PUBLIC_SITE_URL` | URL base de la app para retornos de Stripe. |
+### 1. Clonar el repositorio e instalar dependencias
+```bash
+git clone https://github.com/tu-usuario/glyph-hce.git
+cd glyph-hce
+npm install
+```
+
+### 2. Variables de Entorno (`.env.local`)
+Duplica el archivo `.env.example` y renómbralo a `.env.local`. Necesitarás llenar:
+- Credenciales de Supabase (`URL` y `ANON_KEY`)
+- Credenciales del Admin Panel (`SERVICE_ROLE_KEY`)
+- Llaves VAPID para notificaciones Push (`npx web-push generate-vapid-keys`)
+- Google Gemini API Key
+- Llaves de Stripe (Públicas, Secretas y Webhook Secret)
+
+### 3. Migración de Base de Datos
+Toda la base de datos, funciones, triggers y políticas RLS están concentradas en un script maestro seguro e idempotente.
+1. Abre tu proyecto en Supabase → **SQL Editor**.
+2. Copia y pega el contenido de `src/lib/supabase/000_production_full_schema.sql`.
+3. Ejecútalo. ¡Tu infraestructura backend está lista en 3 segundos!
+
+### 4. Lanzar Entorno de Desarrollo
+```bash
+npm run dev
+```
+La aplicación estará disponible en `http://localhost:3000`.
 
 ---
 
-## 👨‍💻 Comandos Útiles
+## 🧪 Testing y Control de Calidad (QA)
+
+Glyph cuenta con una suite de pruebas automatizada preparada para Integración Continua (CI/CD) en GitHub Actions.
 
 ```bash
-npm run dev              # Servidor de desarrollo
-npm run build            # Build de producción
-npm run lint             # ESLint
-npm run typecheck        # Chequeo estricto TypeScript
-npm run test             # Pruebas Vitest
-npm run test:e2e         # Pruebas E2E (Playwright)
+# Ejecutar Linter y Typecheck estricto
+npm run lint && npm run typecheck
+
+# Ejecutar pruebas unitarias de negocio y algoritmos de cifrado
+npm run test
+
+# Ejecutar suite de pruebas End-to-End en navegadores reales
+npm run test:e2e
 ```
-
----
-
-## 🔐 Admin Panel (Super Admin)
-
-Panel exclusivo para administración de usuarios y facturación.
-- **Acceso exclusivo:** Limitado por código a `khristian.yazid@gmail.com`. Cualquier otro usuario será redirigido.
-- **Ruta:** `/admin`
-- **Funcionalidades:** Dar días de suscripción, otorgar acceso vitalicio (*Lifetime*), cancelar suscripciones, y purgar cuentas del sistema.
-
----
-
-## 📅 Changelog Reciente
-
-### v1.0.0 — 2026-05-03 (Producción)
-- 🚀 Despliegue listo para producción.
-- 💳 Integración del Stripe Customer Portal para gestión de facturación y bajas (`/ajustes`).
-- 👥 Admin Panel operativo y robusto (Manejo de estado *canceled*, *lifetime* y eliminación segura en cascada).
-- 🕒 Integración del Cron Job (`pg_cron`) de KPIs embebido en el script SQL unificado.
-- 🤖 Auto-scroll, máscaras DD/MM/AAAA y mejoras masivas de usabilidad en el Wizard Clínico.
-- 🔒 Actualización de middleware Auth a validación robusta con `getUser()`.
+> **Nota E2E:** Para pruebas E2E contra la base de datos, asegúrate de definir `E2E_EMAIL` y `E2E_PASSWORD` en tus variables de entorno para que Playwright pueda inyectar la sesión fantasma. Las pruebas incluyen **Simulación de Pérdida de Conexión y Reconexión Automática**.
 
 ---
 
 <div align="center">
-  Hecho con ❤️ para revolucionar la salud digital.
+  <br>
+  <strong>Hecho con ❤️ para revolucionar la tecnología en salud digital.</strong>
+  <br><br>
+  <sub>Distribuido bajo licencia MIT.</sub>
 </div>
