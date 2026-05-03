@@ -98,7 +98,12 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ sessionId: session.id, url: session.url });
   } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Error interno del servidor.";
     console.error("Stripe Checkout Error:", error);
-    return NextResponse.json({ error: "Internal Error" }, { status: 500 });
+    return NextResponse.json(
+      { error: process.env.NODE_ENV === "development" ? message : "Error al procesar el pago. Intenta de nuevo." },
+      { status: 500 }
+    );
   }
 }

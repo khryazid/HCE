@@ -90,7 +90,7 @@ export async function getAllUsersWithProfiles(): Promise<{
     total: users.length,
     active: users.filter((u) => u.subscription_status === "active").length,
     lifetime: users.filter((u) => u.subscription_status === "lifetime").length,
-    inactive: users.filter((u) => u.subscription_status === "inactive").length,
+    inactive: users.filter((u) => u.subscription_status === "canceled").length,
     none: users.filter((u) => u.subscription_status === "none" || !u.subscription_status).length,
   };
 
@@ -102,7 +102,7 @@ export async function getAllUsersWithProfiles(): Promise<{
 /**
  * Set a subscription plan for a user.
  * @param userId        Supabase auth user ID
- * @param status        "active" | "lifetime" | "inactive"
+ * @param status        "active" | "lifetime" | "canceled"
  * @param durationDays  Optional. If set, computes expiry = now + N days. Ignored for "lifetime".
  */
 export async function setSubscriptionStatus(
@@ -122,7 +122,7 @@ export async function setSubscriptionStatus(
     const d = new Date();
     d.setDate(d.getDate() + durationDays);
     expires_at = d.toISOString();
-  } else if (status === "inactive") {
+  } else if (status === "canceled") {
     expires_at = null;
   }
 

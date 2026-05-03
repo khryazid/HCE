@@ -530,13 +530,19 @@ group by clinic_id, doctor_id, date_trunc('day', created_at)::date;
 create index if not exists idx_mv_dashboard_kpis_daily
   on public.mv_dashboard_kpis_daily (clinic_id, doctor_id, report_date desc);
 
--- NOTA: para refrescar la vista automáticamente activa pg_cron en
--- Supabase (Database → Extensions) y ejecuta:
---
---   select cron.schedule(
---     'refresh_mv_kpis_daily',
---     '0 0 * * *',
---     $$refresh materialized view concurrently public.mv_dashboard_kpis_daily$$
---   );
+-- ════════════════════════════════════════════════════════════
+-- CRON JOBS (Requiere extensión pg_cron activada)
+-- ════════════════════════════════════════════════════════════
+
+-- Activar pg_cron (por si no está activa en Supabase)
+create extension if not exists "pg_cron" with schema "extensions";
+
+-- Crear el cron job que refresca los KPIs a la medianoche (00:00)
+-- (Si el job ya existe, cron.schedule lo actualiza automáticamente)
+select cron.schedule(
+  'refresh_mv_kpis_daily',
+  '0 0 * * *',
+  $$refresh materialized view public.mv_dashboard_kpis_daily$$
+);
 
 commit;

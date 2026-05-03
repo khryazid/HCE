@@ -13,7 +13,7 @@ type Props = {
 };
 
 type PlanDraft = {
-  status: "active" | "lifetime" | "inactive";
+  status: "active" | "lifetime" | "canceled";
   days?: number; // only relevant for "active"
 };
 
@@ -23,7 +23,7 @@ function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { bg: string; text: string; label: string }> = {
     active:   { bg: "bg-emerald-100 dark:bg-emerald-900/40", text: "text-emerald-800 dark:text-emerald-300", label: "Activo" },
     lifetime: { bg: "bg-purple-100 dark:bg-purple-900/40",  text: "text-purple-800 dark:text-purple-300",  label: "Lifetime" },
-    inactive: { bg: "bg-red-100 dark:bg-red-900/40",        text: "text-red-800 dark:text-red-300",        label: "Inactivo" },
+    canceled: { bg: "bg-red-100 dark:bg-red-900/40",        text: "text-red-800 dark:text-red-300",        label: "Inactivo" },
     none:     { bg: "bg-slate-100 dark:bg-slate-700",        text: "text-slate-600 dark:text-slate-300",    label: "Sin plan" },
   };
   const cfg = map[status] ?? map["none"];
@@ -61,7 +61,7 @@ function ConfirmDialog({
   const planLabel = {
     active: plan.days ? `Activo por ${plan.days} día(s)` : "Activo",
     lifetime: "Lifetime (sin expiración)",
-    inactive: "Inactivo",
+    canceled: "Inactivo",
   }[plan.status];
 
   return (
@@ -178,7 +178,7 @@ function PlanEditor({
       >
         <option value="active">Activo</option>
         <option value="lifetime">Lifetime ∞</option>
-        <option value="inactive">Inactivo</option>
+        <option value="canceled">Inactivo</option>
       </select>
 
       {/* Days selector (only for "active") */}

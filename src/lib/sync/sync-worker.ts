@@ -198,6 +198,17 @@ async function syncItem(item: SyncQueueItem): Promise<"synced" | "conflicted"> {
     if (error) {
       throw error;
     }
+    
+    // Log the audit event
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase.rpc as any)("log_audit_event", {
+      p_clinic_id: item.clinic_id,
+      p_doctor_id: item.doctor_id,
+      p_event_type: "delete",
+      p_resource_type: tableName,
+      p_resource_id: item.record_id,
+      p_changes: { deleted_via: "sync_worker" },
+    });
   } else {
     const payload = mapPayloadByTable(tableName, {
       ...item.payload,
@@ -227,6 +238,20 @@ async function syncItem(item: SyncQueueItem): Promise<"synced" | "conflicted"> {
       }
       throw error;
     }
+
+    // Determine event type based on action
+    const eventType = item.action === "update" ? "update" : "create";
+
+    // Log the audit event
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase.rpc as any)("log_audit_event", {
+      p_clinic_id: item.clinic_id,
+      p_doctor_id: item.doctor_id,
+      p_event_type: eventType,
+      p_resource_type: tableName,
+      p_resource_id: item.record_id,
+      p_changes: payload,
+    });
   }
 
   await deleteSyncQueueItem(item.id);
