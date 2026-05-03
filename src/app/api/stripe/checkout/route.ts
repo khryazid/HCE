@@ -5,11 +5,7 @@ import { cookies } from "next/headers";
 
 export const dynamic = "force-dynamic";
 
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error("Missing STRIPE_SECRET_KEY environment variable");
-}
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "dummy", {
   apiVersion: "2026-04-22.dahlia",
 });
 
