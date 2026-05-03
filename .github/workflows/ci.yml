@@ -59,6 +59,11 @@ jobs:
         run: npx vitest run --coverage
 
       - name: 📦 Build Application
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: "https://dummy.supabase.co"
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: "dummy_anon_key"
+          NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: "pk_test_dummy"
+          NEXT_PUBLIC_VAPID_PUBLIC_KEY: "dummy_vapid_key"
         run: npm run build
 
   e2e:
