@@ -1,0 +1,25 @@
+name: "Stale Issue & PR Manager"
+on:
+  schedule:
+    - cron: '0 0 * * *' # Runs every day at midnight
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  stale:
+    name: 🧹 Clean up stale items
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/stale@v9
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          stale-issue-message: 'Este Issue ha estado inactivo por 60 días y será cerrado en 7 días si no hay más actividad. Si el problema persiste, por favor deja un comentario.'
+          stale-pr-message: 'Este Pull Request ha estado inactivo por 30 días y será cerrado en 7 días. Por favor, actualiza el código si deseas continuar.'
+          days-before-stale: 60
+          days-before-pr-stale: 30
+          days-before-close: 7
+          stale-issue-label: 'stale'
+          stale-pr-label: 'stale'
+          exempt-issue-labels: 'bug,security,enhancement'
