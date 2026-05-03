@@ -43,6 +43,7 @@ vi.mock("@/lib/supabase/client", () => ({
   getSupabaseClient: () => ({
     auth: {
       getSession: mockGetSession,
+      getUser: mockGetSession,
     },
     from: () => ({
       select: () => ({
@@ -103,10 +104,8 @@ describe("sync worker retries", () => {
 
     mockGetSession.mockResolvedValue({
       data: {
-        session: {
-          user: {
-            id: "doctor-1",
-          },
+        user: {
+          id: "doctor-1",
         },
       },
     });

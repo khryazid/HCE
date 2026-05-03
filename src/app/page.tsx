@@ -53,48 +53,7 @@ const stats = [
   { value: "< 2s", label: "Tiempo de carga" },
 ];
 
-const features = [
-  {
-    id: "wizard",
-    icon: Stethoscope,
-    title: "Wizard de consulta inteligente",
-    description:
-      "Flujo guiado por pasos que se adapta al modo consulta o seguimiento clínico. Auto-scroll a errores, máscara de fecha y bullets automáticos.",
-    size: "large",
-  },
-  {
-    id: "ai",
-    icon: Brain,
-    title: "CIE-10 asistido por IA",
-    description:
-      "Sugerencias de diagnóstico en tiempo real usando Gemini. Sin catálogo local — siempre actualizado.",
-    size: "small",
-  },
-  {
-    id: "offline",
-    icon: WifiOff,
-    title: "Funciona sin internet",
-    description:
-      "Guarda localmente con cifrado AES y sincroniza automáticamente al volver la conexión.",
-    size: "small",
-  },
-  {
-    id: "pdf",
-    icon: FileText,
-    title: "PDF clínico multipágina",
-    description:
-      "Historia completa + receta + hoja del paciente. Con membrete profesional personalizable.",
-    size: "small",
-  },
-  {
-    id: "security",
-    icon: ShieldCheck,
-    title: "Seguridad y privacidad",
-    description:
-      "Aislamiento multi-tenant con RLS en base de datos. PHI cifrado en dispositivo. Auditoría de accesos.",
-    size: "small",
-  },
-];
+
 
 const testimonials = [
   {
