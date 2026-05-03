@@ -180,19 +180,33 @@ export default function PatientsView() {
 
   return (
     <section className="hce-page">
-      <header className="hce-surface">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="hce-page-header">
-            <p className="hce-kicker">Historial de pacientes</p>
-            <h1 className="hce-page-title">Pacientes</h1>
-            <p className="hce-page-lead max-w-3xl">
-              Aqui ves el historial de consultas y seguimientos por paciente. El alta de pacientes
+
+      {/* Header */}
+      <header className="relative overflow-hidden rounded-3xl border border-border bg-card p-6 shadow-sm sm:p-8">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(ellipse 70% 80% at 100% 0%, rgba(15,118,110,0.10) 0%, transparent 60%)",
+          }}
+        />
+        <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-accent">
+              Historial de pacientes
+            </p>
+            <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">
+              Pacientes
+            </h1>
+            <p className="mt-2 max-w-xl text-sm leading-7 text-ink-soft">
+              Aquí ves el historial de consultas y seguimientos por paciente. El alta de pacientes
               se hace desde Consultas para mantener un solo flujo de ingreso.
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-3">
             <Link href="/consultas" className="hce-btn-primary">
-              Crear consulta / paciente
+              Crear consulta
             </Link>
             <Link href="/dashboard" className="hce-btn-secondary">
               Volver al panel

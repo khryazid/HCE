@@ -5,15 +5,17 @@ import type {
   ClinicalRecordRecord,
   SpecialtyDataRow,
 } from "@/features/consultations/types";
-import {
-  decryptJson,
-  encryptJson,
-  isEncryptedEnvelope,
-} from "@/lib/db/crypto";
 import { getSupabaseClient } from "@/lib/supabase/client";
 
+/**
+ * Opción B de cifrado: sin cifrado local de PHI.
+ * Los datos se almacenan en texto plano en IndexedDB.
+ * La seguridad está garantizada por autenticación + RLS en Supabase + HTTPS.
+ * Esto permite multidevice transparente sin gestión de claves por el usuario.
+ */
+
 const DB_NAME = "hce-offline-db";
-const DB_VERSION = 1;
+const DB_VERSION = 2; // Bump de versión para migrar de payload cifrado a plano
 const DEFAULT_RETRY_DELAY_MS = 30_000;
 const MAX_RETRY_DELAY_MS = 60 * 60 * 1000;
 
@@ -29,29 +31,59 @@ interface HceOfflineSchema extends DBSchema {
   };
   patients: {
     key: string;
-    value: Record<string, unknown>;
+    value: {
+      id: string;
+      clinic_id: string;
+      doctor_id: string;
+      document_number: string;
+      full_name: string;
+      birth_date: string | null;
+      status: PatientStatus;
+      created_at: string;
+      updated_at: string;
+    };
     indexes: {
       by_doctor: string;
       by_clinic: string;
-      by_updated_at: number;
+      by_updated_at: string;
     };
   };
   clinical_records: {
     key: string;
-    value: Record<string, unknown>;
+    value: {
+      id: string;
+      clinic_id: string;
+      doctor_id: string;
+      patient_id: string;
+      specialty_kind: string;
+      chief_complaint: string;
+      cie_codes: string[];
+      specialty_data: ClinicalRecordRecord["specialty_data"];
+      created_at: string;
+      updated_at: string;
+    };
     indexes: {
       by_patient: string;
       by_doctor: string;
-      by_updated_at: number;
+      by_updated_at: string;
     };
   };
   specialty_data: {
     key: string;
-    value: Record<string, unknown>;
+    value: {
+      id: string;
+      clinic_id: string;
+      doctor_id: string;
+      clinical_record_id: string;
+      specialty_kind: string;
+      data: SpecialtyDataRow["data"];
+      created_at: string;
+      updated_at: string;
+    };
     indexes: {
       by_record: string;
       by_doctor: string;
-      by_updated_at: number;
+      by_updated_at: string;
     };
   };
   sync_queue: {
@@ -70,7 +102,20 @@ let dbPromise: Promise<IDBPDatabase<HceOfflineSchema>> | null = null;
 export function getOfflineDb() {
   if (!dbPromise) {
     dbPromise = openDB<HceOfflineSchema>(DB_NAME, DB_VERSION, {
-      upgrade(db) {
+      upgrade(db, oldVersion) {
+        // v1 → v2: recrea todos los stores sin payload cifrado.
+        // Los datos locales cifrados de v1 no son migrables (requieren la clave),
+        // así que los descartamos. Los datos canónicos viven en Supabase y se
+        // vuelven a descargar en la próxima carga online.
+        if (oldVersion < 2) {
+          const stores = ["profiles", "patients", "clinical_records", "specialty_data", "sync_queue"] as const;
+          for (const s of stores) {
+            if (db.objectStoreNames.contains(s)) {
+              db.deleteObjectStore(s);
+            }
+          }
+        }
+
         if (!db.objectStoreNames.contains("profiles")) {
           const store = db.createObjectStore("profiles", { keyPath: "id" });
           store.createIndex("by_doctor", "doctor_id");
@@ -112,16 +157,18 @@ export function getOfflineDb() {
   return dbPromise;
 }
 
+// ─── Sync Queue ───────────────────────────────────────────────────────────────
+
 export async function enqueueSyncItem(item: SyncQueueItem) {
   const db = await getOfflineDb();
   await db.put("sync_queue", {
     ...item,
     table_name_record_id: `${item.table_name}:${item.record_id}`,
-    payload: await encryptJson({
+    payload: {
       ...item.payload,
       doctor_id: item.doctor_id,
       clinic_id: item.clinic_id,
-    }),
+    },
     next_retry_at: item.next_retry_at ?? Date.now(),
   });
 }
@@ -138,24 +185,11 @@ export async function getSyncQueueItemsByStatus(
   const allItems = await db.getAll("sync_queue");
   const now = Date.now();
 
-  const matchingItems = allItems.filter((item) => {
-    if (!statuses.includes(item.status)) {
-      return false;
-    }
-
-    if (options?.includeDelayed) {
-      return true;
-    }
-
+  return allItems.filter((item) => {
+    if (!statuses.includes(item.status)) return false;
+    if (options?.includeDelayed) return true;
     return isRetryDue(item, now);
   });
-
-  return Promise.all(
-    matchingItems.map(async (item) => ({
-      ...item,
-      payload: await decryptJson<Record<string, unknown>>(item.payload),
-    })),
-  );
 }
 
 export async function updateSyncItemStatus(
@@ -168,9 +202,7 @@ export async function updateSyncItemStatus(
   const db = await getOfflineDb();
   const current = await db.get("sync_queue", id);
 
-  if (!current) {
-    return;
-  }
+  if (!current) return;
 
   const retryCount =
     typeof retryCountOverride === "number"
@@ -205,115 +237,62 @@ export async function getSyncQueueStats() {
   const allItems = await db.getAll("sync_queue");
 
   return {
-    pending: allItems.filter((item) => item.status === "pending").length,
-    failed: allItems.filter((item) => item.status === "failed").length,
-    abandoned: allItems.filter((item) => item.status === "abandoned").length,
-    conflicted: allItems.filter((item) => item.status === "conflicted").length,
+    pending: allItems.filter((i) => i.status === "pending").length,
+    failed: allItems.filter((i) => i.status === "failed").length,
+    abandoned: allItems.filter((i) => i.status === "abandoned").length,
+    conflicted: allItems.filter((i) => i.status === "conflicted").length,
   };
 }
 
 export async function listSyncQueueItems() {
   const db = await getOfflineDb();
   const allItems = await db.getAll("sync_queue");
-
-  const hydrated = await Promise.all(
-    allItems.map(async (item) => ({
-      ...item,
-      payload: await decryptJson<Record<string, unknown>>(item.payload),
-    })),
-  );
-
-  return hydrated.sort((first, second) => second.client_timestamp - first.client_timestamp);
+  return allItems.sort((a, b) => b.client_timestamp - a.client_timestamp);
 }
+
+// ─── Patients ─────────────────────────────────────────────────────────────────
 
 export async function listPatientsByTenant(clinicId: string) {
   const db = await getOfflineDb();
 
+  // Online-first: refresca desde Supabase si hay sesión activa
   try {
     const supabase = getSupabaseClient();
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
+    const { data: { session } } = await supabase.auth.getSession();
 
     if (session) {
       const { data: remotePatients, error } = await supabase
         .from("patients")
-        .select(
-          "id, clinic_id, doctor_id, document_number, full_name, birth_date, status, created_at, updated_at",
-        )
+        .select("id, clinic_id, doctor_id, document_number, full_name, birth_date, status, created_at, updated_at")
         .eq("clinic_id", clinicId);
 
-      type RemotePatientRow = Pick<
-        PatientRecord,
-        | "id"
-        | "clinic_id"
-        | "doctor_id"
-        | "document_number"
-        | "full_name"
-        | "birth_date"
-        | "status"
-        | "created_at"
-        | "updated_at"
-      >;
-
-      const safeRemotePatients = (remotePatients ?? []) as RemotePatientRow[];
-
-      if (!error && safeRemotePatients.length > 0) {
+      if (!error && remotePatients && remotePatients.length > 0) {
+        const typedPatients = remotePatients as PatientRecord[];
         await Promise.all(
-          safeRemotePatients.map(async (patient) => {
-            await db.put("patients", {
+          typedPatients.map((patient) =>
+            db.put("patients", {
               id: patient.id,
               clinic_id: patient.clinic_id,
               doctor_id: patient.doctor_id,
+              document_number: patient.document_number,
+              full_name: patient.full_name,
+              birth_date: patient.birth_date ?? null,
+              status: (patient.status as PatientStatus) ?? "activo",
               created_at: patient.created_at,
               updated_at: patient.updated_at,
-              payload: await encryptJson({
-                document_number: patient.document_number,
-                full_name: patient.full_name,
-                birth_date: patient.birth_date,
-                status: patient.status ?? "activo",
-              }),
-            });
-          }),
+            }),
+          ),
         );
       }
     }
   } catch {
-    // Offline-first: si el refresco remoto falla, usamos solo la cache local.
+    // Offline-first: si el refresco remoto falla, usamos solo la caché local
   }
 
   const allPatients = await db.getAll("patients");
-
-  const matchingPatients = allPatients.filter((patient) => patient.clinic_id === clinicId);
-
-  const hydratedPatients = await Promise.all(
-    matchingPatients.map(async (patient) => {
-      const payload = isEncryptedEnvelope(patient.payload)
-        ? await decryptJson<Pick<PatientRecord, "document_number" | "full_name" | "birth_date" | "status">>(
-            patient.payload,
-          )
-        : {
-            document_number: patient.document_number,
-            full_name: patient.full_name,
-            birth_date: patient.birth_date,
-            status: patient.status,
-          };
-
-      return {
-        id: patient.id,
-        clinic_id: patient.clinic_id,
-        doctor_id: patient.doctor_id,
-        document_number: payload.document_number,
-        full_name: payload.full_name,
-        birth_date: payload.birth_date ?? null,
-        status: (payload.status as PatientStatus) ?? "activo",
-        created_at: patient.created_at,
-        updated_at: patient.updated_at,
-      } as PatientRecord;
-    }),
-  );
-
-  return hydratedPatients.sort((first, second) => second.updated_at.localeCompare(first.updated_at));
+  return allPatients
+    .filter((p) => p.clinic_id === clinicId)
+    .sort((a, b) => b.updated_at.localeCompare(a.updated_at)) as PatientRecord[];
 }
 
 export async function savePatientLocal(patient: PatientRecord) {
@@ -322,14 +301,12 @@ export async function savePatientLocal(patient: PatientRecord) {
     id: patient.id,
     clinic_id: patient.clinic_id,
     doctor_id: patient.doctor_id,
+    document_number: patient.document_number,
+    full_name: patient.full_name,
+    birth_date: patient.birth_date ?? null,
+    status: patient.status ?? "activo",
     created_at: patient.created_at,
     updated_at: patient.updated_at,
-    payload: await encryptJson({
-      document_number: patient.document_number,
-      full_name: patient.full_name,
-      birth_date: patient.birth_date,
-      status: patient.status ?? "activo",
-    }),
   });
 }
 
@@ -347,77 +324,27 @@ export async function deletePatientLocal(id: string) {
   }
 }
 
-export async function updatePatientStatusLocal(
-  id: string,
-  status: PatientStatus,
-) {
+export async function updatePatientStatusLocal(id: string, status: PatientStatus) {
   const db = await getOfflineDb();
   const existing = await db.get("patients", id);
-
-  if (!existing) {
-    return;
-  }
-
-  const decrypted = isEncryptedEnvelope(existing.payload)
-    ? await decryptJson<Record<string, unknown>>(existing.payload)
-    : {
-        document_number: existing.document_number,
-        full_name: existing.full_name,
-        birth_date: existing.birth_date,
-        status: existing.status,
-      };
+  if (!existing) return;
 
   await db.put("patients", {
     ...existing,
+    status,
     updated_at: new Date().toISOString(),
-    payload: await encryptJson({
-      ...decrypted,
-      status,
-    }),
   });
 }
 
-export async function listClinicalRecordsByTenant(
-  doctorId: string,
-  clinicId: string,
-) {
+// ─── Clinical Records ─────────────────────────────────────────────────────────
+
+export async function listClinicalRecordsByTenant(doctorId: string, clinicId: string) {
   const db = await getOfflineDb();
   const allRecords = await db.getAll("clinical_records");
 
-  const matchingRecords = allRecords.filter(
-    (record) => record.doctor_id === doctorId && record.clinic_id === clinicId,
-  );
-
-  const hydratedRecords = await Promise.all(
-    matchingRecords.map(async (record) => {
-      const payload = isEncryptedEnvelope(record.payload)
-        ? await decryptJson<{
-            chief_complaint: string;
-            cie_codes: string[];
-            specialty_data: ClinicalRecordRecord["specialty_data"];
-          }>(record.payload)
-        : {
-            chief_complaint: record.chief_complaint,
-            cie_codes: record.cie_codes,
-            specialty_data: record.specialty_data,
-          };
-
-      return {
-        id: record.id,
-        clinic_id: record.clinic_id,
-        doctor_id: record.doctor_id,
-        patient_id: record.patient_id,
-        chief_complaint: payload.chief_complaint,
-        cie_codes: payload.cie_codes,
-        specialty_kind: record.specialty_kind,
-        specialty_data: payload.specialty_data,
-        created_at: record.created_at,
-        updated_at: record.updated_at,
-      } as ClinicalRecordRecord;
-    }),
-  );
-
-  return hydratedRecords.sort((first, second) => second.updated_at.localeCompare(first.updated_at));
+  return allRecords
+    .filter((r) => r.doctor_id === doctorId && r.clinic_id === clinicId)
+    .sort((a, b) => b.updated_at.localeCompare(a.updated_at)) as ClinicalRecordRecord[];
 }
 
 export async function saveClinicalRecordLocal(record: ClinicalRecordRecord) {
@@ -428,13 +355,11 @@ export async function saveClinicalRecordLocal(record: ClinicalRecordRecord) {
     doctor_id: record.doctor_id,
     patient_id: record.patient_id,
     specialty_kind: record.specialty_kind,
+    chief_complaint: record.chief_complaint,
+    cie_codes: record.cie_codes,
+    specialty_data: record.specialty_data,
     created_at: record.created_at,
     updated_at: record.updated_at,
-    payload: await encryptJson({
-      chief_complaint: record.chief_complaint,
-      cie_codes: record.cie_codes,
-      specialty_data: record.specialty_data,
-    }),
   });
 }
 
@@ -448,6 +373,8 @@ export async function deleteClinicalRecordLocal(id: string) {
   }
 }
 
+// ─── Specialty Data ───────────────────────────────────────────────────────────
+
 export async function saveSpecialtyDataLocal(row: SpecialtyDataRow) {
   const db = await getOfflineDb();
   await db.put("specialty_data", {
@@ -456,13 +383,13 @@ export async function saveSpecialtyDataLocal(row: SpecialtyDataRow) {
     doctor_id: row.doctor_id,
     clinical_record_id: row.clinical_record_id,
     specialty_kind: row.specialty_kind,
+    data: row.data,
     created_at: row.created_at,
     updated_at: row.updated_at,
-    payload: await encryptJson({
-      data: row.data,
-    }),
   });
 }
+
+// ─── Test Utilities ───────────────────────────────────────────────────────────
 
 export async function clearOfflineDataForTests() {
   if (process.env.NODE_ENV === "production") {

@@ -50,6 +50,10 @@ export async function fetchCieSuggestionsFromApi(
   }
 
   const supabase = getSupabaseClient();
+  // getSession() is intentional here: we only need the access_token to send
+  // as a Bearer header to our own API route. We are NOT using it for identity
+  // verification — the API route calls getUser() server-side for that.
+  // Using getUser() here would require an extra server round-trip for no benefit.
   const {
     data: { session },
   } = await supabase.auth.getSession();

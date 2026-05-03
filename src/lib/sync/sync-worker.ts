@@ -5,7 +5,6 @@ import {
   updateSyncItemStatus,
   getOfflineDb,
 } from "@/lib/db/indexeddb";
-import { decryptJson, encryptJson } from "@/lib/db/crypto";
 import type { SyncQueueItem } from "@/types/sync";
 import { logSyncError } from "@/lib/observability/error-logger";
 import {
@@ -359,22 +358,20 @@ export async function flushSyncQueue(options?: { forceRetry?: boolean }) {
 
             await deleteSyncQueueItem(item.id);
 
-            // NF-04: En lugar de getAll("sync_queue") completo, solo procesamos
-            // los ítems de clinical_records que referencian al paciente duplicado.
+            // Corregir patient_id en clinical_records pendientes de sync
             const allQueueItems = await db.getAll("sync_queue");
             const affectedQueueItems = allQueueItems.filter(
               (q) => q.table_name === "clinical_records",
             );
             for (const q of affectedQueueItems) {
-              const p = await decryptJson<Record<string, unknown>>(q.payload);
+              const p = q.payload as Record<string, unknown>;
               if (p.patient_id === item.record_id) {
                 p.patient_id = realId;
-                q.payload = await encryptJson(p);
                 await db.put("sync_queue", q);
               }
             }
 
-            // Usamos índice "by_patient" para no cargar toda la base de datos a memoria
+            // Corregir patient_id en clinical_records locales
             const affectedRecords = await db.getAllFromIndex("clinical_records", "by_patient", item.record_id);
             for (const r of affectedRecords) {
               r.patient_id = realId;

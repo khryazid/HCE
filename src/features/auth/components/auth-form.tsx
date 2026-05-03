@@ -182,16 +182,19 @@ export function AuthForm({ mode }: AuthFormProps) {
   }
 
   return (
-    <section className="mx-auto w-full max-w-xl rounded-3xl border border-cyan-100/90 bg-card/90 p-6 shadow-2xl shadow-cyan-900/10 backdrop-blur sm:p-8">
-      <div className="space-y-3">
-        <p className="hce-kicker text-cyan-700">Glyph</p>
-        <h1 className="hce-page-title text-2xl sm:text-2xl">
-          {isSignUp ? "Crear cuenta" : "Iniciar sesion"}
-        </h1>
-        <p className="hce-page-lead text-ink-soft">
+    <section
+      className="mx-auto w-full max-w-xl rounded-3xl border border-border bg-card/90 p-6 shadow-2xl backdrop-blur-sm sm:p-8"
+      aria-label={isSignUp ? "Formulario de registro" : "Formulario de inicio de sesión"}
+    >
+      <div className="space-y-2">
+        <p className="text-xs font-semibold uppercase tracking-widest text-accent">Glyph</p>
+        <h2 className="text-2xl font-extrabold tracking-tight text-ink">
+          {isSignUp ? "Crear cuenta" : "Iniciar sesión"}
+        </h2>
+        <p className="text-sm leading-6 text-ink-soft">
           {isSignUp
             ? "Registra tu cuenta y define tu perfil de especialidades para comenzar."
-            : "Ingresa con tu cuenta para continuar con tu flujo clinico."}
+            : "Ingresa con tu cuenta para continuar con tu flujo clínico."}
         </p>
       </div>
 
@@ -358,20 +361,20 @@ export function AuthForm({ mode }: AuthFormProps) {
         <Button
           type="submit"
           disabled={isSubmitting}
-          className="w-full justify-center px-4 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+          className="hce-btn-primary w-full justify-center py-3 text-sm font-semibold disabled:cursor-not-allowed"
           aria-busy={isSubmitting}
         >
           {isSubmitting ? "Procesando..." : isSignUp ? "Crear cuenta" : "Entrar"}
         </Button>
       </form>
 
-      <p className="mt-4 text-center text-sm text-ink-soft">
-        {isSignUp ? "Ya tienes cuenta?" : "Aun no tienes cuenta?"}{" "}
+      <p className="mt-5 text-center text-sm text-ink-soft">
+        {isSignUp ? "¿Ya tienes cuenta?" : "¿Aún no tienes cuenta?"}{" "}
         <Link
-          href={isSignUp ? "/" : "/registro"}
-          className="font-semibold text-cyan-700 underline-offset-4 hover:underline"
+          href={isSignUp ? "/login" : "/registro"}
+          className="font-semibold text-accent underline-offset-4 hover:underline"
         >
-          {isSignUp ? "Inicia sesion" : "Crear cuenta"}
+          {isSignUp ? "Inicia sesión" : "Crear cuenta"}
         </Link>
       </p>
     </section>

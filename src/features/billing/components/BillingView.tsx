@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+
+const STRIPE_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_PRICE_ID ?? null;
+
 export default function BillingView() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -16,7 +19,7 @@ export default function BillingView() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          priceId: "price_placeholder_123", // In production this would be env var
+          priceId: STRIPE_PRICE_ID,
         }),
       });
       
@@ -59,6 +62,12 @@ export default function BillingView() {
           <li>✓ Sincronización Local / Offline-first</li>
         </ul>
 
+        {!STRIPE_PRICE_ID && (
+          <p className="mt-4 rounded bg-yellow-100 px-3 py-2 text-sm text-yellow-800">
+            Plan no configurado. Contacta al administrador.
+          </p>
+        )}
+
         {error && (
           <p className="mt-4 rounded bg-red-100 px-3 py-2 text-sm text-red-800">
             {error}
@@ -67,7 +76,7 @@ export default function BillingView() {
 
         <Button
           onClick={handleCheckout}
-          disabled={loading}
+          disabled={loading || !STRIPE_PRICE_ID}
           className="mt-8 w-full py-6 text-base hce-btn-primary"
         >
           {loading ? "Procesando..." : "Proceder al Pago"}

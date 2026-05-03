@@ -22,59 +22,89 @@ export default function ConsultationsView() {
 
   return (
     <section className="hce-page">
-      <header className="hce-surface flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="hce-page-header">
-          <h1 className="hce-page-title">
-            Flujo de consulta
-          </h1>
-          <p className="hce-page-lead">
-            Registro guiado por pasos: paciente, anamnesis y diagnostico,
-            tratamiento, confirmacion y PDF.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => {
-            import("@/lib/observability/usage-tracker").then((m) => m.trackUsage("consultation:start"));
-            wizard.openWizard();
+
+      {/* Header */}
+      <header className="relative overflow-hidden rounded-3xl border border-border bg-card p-6 shadow-sm sm:p-8">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(ellipse 70% 80% at 100% 0%, rgba(15,118,110,0.10) 0%, transparent 60%)",
           }}
-          className="hce-btn-primary"
-        >
-          Nueva consulta
-        </button>
+        />
+        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-accent">
+              Motor clínico
+            </p>
+            <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">
+              Flujo de consulta
+            </h1>
+            <p className="mt-2 text-sm leading-7 text-ink-soft">
+              Registro guiado por pasos: paciente, anamnesis y diagnóstico, tratamiento y PDF.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              import("@/lib/observability/usage-tracker").then((m) => m.trackUsage("consultation:start"));
+              wizard.openWizard();
+            }}
+            className="hce-btn-primary shrink-0"
+          >
+            Nueva consulta
+          </button>
+        </div>
       </header>
 
       {wizard.message ? (
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700" role="status" aria-live="polite">
+        <div className="hce-alert-success" role="status" aria-live="polite">
           {wizard.message}
         </div>
       ) : null}
 
       {wizard.error ? (
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700" role="alert" aria-live="assertive">
+        <div className="hce-alert-error" role="alert" aria-live="assertive">
           {wizard.error}
         </div>
       ) : null}
 
       {wizard.wizardOpen ? (
-        <article className="space-y-6">
-          <div className="flex flex-col gap-4 pb-4 sm:flex-row sm:items-center sm:justify-between hce-surface p-6 rounded-2xl">
-            <div className="space-y-2">
-              <p className="hce-kicker">Registro Clínico</p>
-              <h2 className="text-2xl font-semibold text-ink">Nueva Consulta</h2>
-              <p className="text-sm text-ink-soft">Completa los datos en un solo formulario y guarda al finalizar.</p>
+        <article className="space-y-4">
+
+          {/* Wizard header */}
+          <div className="relative overflow-hidden rounded-3xl border border-border bg-card p-6 shadow-sm">
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0"
+              style={{
+                background:
+                  "radial-gradient(circle at top right, rgba(14,118,110,.08), transparent 45%)",
+              }}
+            />
+            <div className="relative flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-widest text-accent">Registro Clínico</p>
+                <h2 className="mt-1 text-2xl font-extrabold tracking-tight text-ink">Nueva Consulta</h2>
+                <p className="text-sm text-ink-soft">Completa los datos y guarda al finalizar.</p>
+              </div>
+              <button
+                type="button"
+                className="hce-btn-secondary shrink-0"
+                onClick={wizard.resetWizard}
+              >
+                Cancelar
+              </button>
             </div>
-            <button
-              type="button"
-              className="hce-btn-secondary"
-              onClick={wizard.resetWizard}
-            >
-              Cancelar
-            </button>
           </div>
 
-          <section className="hce-surface p-6 rounded-2xl space-y-4">
-            <h3 className="text-lg font-semibold text-ink border-b border-border pb-3">1. Paciente</h3>
+          {/* Step 1: Paciente */}
+          <section className="rounded-3xl border border-border bg-card p-6 shadow-sm space-y-4">
+            <h3 className="text-base font-bold text-ink border-b border-border pb-3">
+              <span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-accent/10 text-xs font-extrabold text-accent">1</span>
+              Paciente
+            </h3>
             <WizardStepPatient
               form={wizard.form}
               setForm={wizard.setForm}
@@ -93,7 +123,12 @@ export default function ConsultationsView() {
 
           {wizard.form.patientId ? (
             <>
-              <section className="hce-surface p-6 rounded-2xl space-y-4">
+              {/* Step 2: Diagnóstico */}
+              <section className="rounded-3xl border border-border bg-card p-6 shadow-sm space-y-4">
+                <h3 className="text-base font-bold text-ink border-b border-border pb-3">
+                  <span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-accent/10 text-xs font-extrabold text-accent">2</span>
+                  Anamnesis y Diagnóstico
+                </h3>
                 <WizardStepDiagnosis
                   form={wizard.form}
                   setForm={wizard.setForm}
@@ -102,7 +137,12 @@ export default function ConsultationsView() {
                 />
               </section>
 
-              <section className="hce-surface p-6 rounded-2xl space-y-4">
+              {/* Step 3: Tratamiento */}
+              <section className="rounded-3xl border border-border bg-card p-6 shadow-sm space-y-4">
+                <h3 className="text-base font-bold text-ink border-b border-border pb-3">
+                  <span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-accent/10 text-xs font-extrabold text-accent">3</span>
+                  Tratamiento
+                </h3>
                 <WizardStepTreatment
                   form={wizard.form}
                   setForm={wizard.setForm}
@@ -112,21 +152,22 @@ export default function ConsultationsView() {
                 />
               </section>
 
+              {/* Action bar */}
               <div className="hce-sticky-action-bar flex flex-col sm:flex-row gap-4 items-center justify-between pb-[calc(env(safe-area-inset-bottom)+1rem)] sm:pb-4">
                 <div>
-                  <p className="font-semibold text-ink">Consulta lista para guardar</p>
+                  <p className="font-bold text-ink">Consulta lista para guardar</p>
                   <p className="text-xs text-ink-soft">Revisa los datos antes de continuar.</p>
                 </div>
                 <div className="flex flex-wrap gap-3 w-full sm:w-auto">
-                  <button 
-                    onClick={() => void wizard.handleSaveWithoutPdf()} 
+                  <button
+                    onClick={() => void wizard.handleSaveWithoutPdf()}
                     className="hce-btn-secondary flex-1 sm:flex-none justify-center"
                     disabled={wizard.saving}
                   >
                     {wizard.saving ? "Guardando..." : "Solo guardar"}
                   </button>
-                  <button 
-                    onClick={() => void wizard.handleSaveWithPdf()} 
+                  <button
+                    onClick={() => void wizard.handleSaveWithPdf()}
                     className="hce-btn-primary flex-1 sm:flex-none justify-center"
                     disabled={wizard.saving}
                   >
@@ -136,17 +177,17 @@ export default function ConsultationsView() {
               </div>
             </>
           ) : (
-            <div className="hce-surface p-6 rounded-2xl text-center">
+            <div className="rounded-3xl border border-border bg-card p-6 text-center shadow-sm">
               <p className="text-ink-soft">Selecciona o crea un paciente para continuar con la consulta.</p>
             </div>
           )}
         </article>
       ) : (
-        <div className="hce-surface">
+        <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
           <EmptyState
             icon={<EmptyStateIconConsultations />}
-            title="Listo para registrar una atencion"
-            description="Inicia el flujo guiado para crear una nueva consulta o seguimiento. Los datos se guardan offline y se sincronizan al recuperar conexion."
+            title="Listo para registrar una atención"
+            description="Inicia el flujo guiado para crear una nueva consulta o seguimiento. Los datos se guardan offline y se sincronizan al recuperar conexión."
             size="md"
             action={
               <button
@@ -163,4 +204,3 @@ export default function ConsultationsView() {
     </section>
   );
 }
-

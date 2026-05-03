@@ -175,24 +175,48 @@ export default function DashboardView() {
 
   return (
     <section className="hce-page">
-      <header className="hce-surface p-5 sm:p-6">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="hce-page-header">
-            <p className="hce-kicker">Sesion activa</p>
-            <h1 className="hce-page-title">
-              Hola{displayName ? `, ${displayName}` : ""}
+
+      {/* ── Hero header ── */}
+      <header className="relative overflow-hidden rounded-3xl border border-border bg-card p-6 shadow-sm sm:p-8">
+        {/* Ambient gradient */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 -z-0"
+          style={{
+            background:
+              "radial-gradient(ellipse 70% 80% at 100% 0%, rgba(15,118,110,0.10) 0%, transparent 60%), radial-gradient(ellipse 40% 60% at 0% 100%, rgba(13,148,136,0.07) 0%, transparent 60%)",
+          }}
+        />
+        <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-accent">
+              Sesión activa
+            </p>
+            <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">
+              Hola{displayName ? (
+                <span
+                  className="ml-2 text-transparent"
+                  style={{
+                    WebkitBackgroundClip: "text",
+                    backgroundClip: "text",
+                    backgroundImage: "linear-gradient(135deg, #0f766e 0%, #14b8a6 100%)",
+                  }}
+                >
+                  {displayName.split(" ")[0]}
+                </span>
+              ) : ""}
             </h1>
-            <p className="hce-page-lead max-w-2xl">
+            <p className="mt-2 max-w-2xl text-sm leading-7 text-ink-soft">
               {tenant
-                ? `${tenant.full_name} trabaja con ${tenant.specialties.join(", ")} dentro de un entorno privado y sin exponer datos internos.`
+                ? `${tenant.full_name} · ${tenant.specialties.join(", ")}`
                 : "Cargando perfil profesional..."}
             </p>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:w-[28rem]">
-            <Link href="/consultas" className="hce-btn-primary py-3">
+          <div className="grid gap-3 sm:grid-cols-2 lg:w-[26rem]">
+            <Link href="/consultas" className="hce-btn-primary py-3 text-center text-sm">
               Nueva consulta
             </Link>
-            <Link href="/pacientes" className="hce-btn-secondary py-3">
+            <Link href="/pacientes" className="hce-btn-secondary py-3 text-center text-sm">
               Ver pacientes
             </Link>
           </div>
@@ -205,17 +229,30 @@ export default function DashboardView() {
         </div>
       ) : null}
 
-      <article className="hce-surface relative overflow-hidden">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(14,118,110,.12),transparent_42%),radial-gradient(circle_at_bottom_left,rgba(6,182,212,.12),transparent_45%)]" />
-        <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">
-            Resumen del dia
+      {/* ── Today summary ── */}
+      <article
+        className="relative overflow-hidden rounded-3xl border border-border bg-card p-5 shadow-sm"
+        aria-label="Resumen del día"
+      >
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(circle at top right, rgba(14,118,110,.10), transparent 45%)",
+          }}
+        />
+        <div className="relative space-y-1">
+          <p className="text-xs font-semibold uppercase tracking-widest text-accent">
+            Resumen del día
           </p>
-          <h2 className="text-2xl font-semibold capitalize text-[color:var(--ink)]">{todayLabel}</h2>
-          <p className="text-sm text-[color:var(--ink-soft)]">
+          <h2 className="text-xl font-bold capitalize text-ink">{todayLabel}</h2>
+          <p className="text-sm text-ink-soft">
             {metrics.consultationsToday > 0
-              ? `Hoy registraste ${metrics.consultationsToday} consulta${metrics.consultationsToday === 1 ? "" : "s"}.`
-              : "Aun no registras consultas hoy. Puedes iniciar con una accion rapida."}
+              ? `Registraste ${metrics.consultationsToday} consulta${
+                  metrics.consultationsToday === 1 ? "" : "s"
+                } hoy.`
+              : "Aún no registras consultas hoy. Puedes iniciar con una acción rápida."}
           </p>
         </div>
       </article>
@@ -239,4 +276,3 @@ export default function DashboardView() {
     </section>
   );
 }
-

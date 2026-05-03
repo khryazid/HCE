@@ -1,12 +1,9 @@
 "use client";
 
-/**
- * components/dashboard/DashboardCharts.tsx
- *
- * Gráfica de consultas semanales + desglose por especialidad.
- */
-
-import type { WeeklyConsultationPoint, SpecialtyBreakdown } from "@/features/dashboard/components/types";
+import type {
+  WeeklyConsultationPoint,
+  SpecialtyBreakdown,
+} from "@/features/dashboard/components/types";
 
 type Props = {
   weeklyConsultations: WeeklyConsultationPoint[];
@@ -17,27 +14,39 @@ type Props = {
 export function DashboardCharts({ weeklyConsultations, weeklyMax, specialtyBreakdown }: Props) {
   return (
     <div className="grid gap-4 lg:grid-cols-2">
-      {/* Consultas por semana */}
-      <article className="hce-surface p-4">
+
+      {/* ── Consultas por semana ── */}
+      <article className="group relative overflow-hidden rounded-3xl border border-border bg-card p-6 shadow-sm transition hover:shadow-md">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100"
+          style={{
+            background:
+              "radial-gradient(circle at 10% 90%, rgba(15,118,110,0.07) 0%, transparent 60%)",
+          }}
+        />
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-sm font-semibold text-[color:var(--ink)]">Consultas por semana</h2>
-          <span className="text-xs text-[color:var(--ink-soft)]">Ultimos 7 dias</span>
+          <h2 className="text-sm font-bold text-ink">Consultas por semana</h2>
+          <span className="text-xs text-ink-soft">Últimos 7 días</span>
         </div>
-        <div className="mt-4 grid grid-cols-7 gap-2">
+        <div className="mt-5 grid grid-cols-7 gap-2">
           {weeklyConsultations.map((point) => {
-            const barHeight = Math.max(8, Math.round((point.total / weeklyMax) * 120));
+            const barHeight = Math.max(6, Math.round((point.total / weeklyMax) * 96));
+            const isMax = point.total === weeklyMax && weeklyMax > 0;
             return (
-              <div key={point.dayLabel} className="flex flex-col items-center gap-2">
-                <span className="text-[11px] font-semibold text-[color:var(--ink)]">
-                  {point.total}
-                </span>
-                <div className="flex h-32 w-full items-end rounded-lg bg-[color:var(--bg-soft)] px-1">
+              <div key={point.dayLabel} className="flex flex-col items-center gap-1.5">
+                <span className="text-[11px] font-bold text-ink">{point.total || ""}</span>
+                <div className="flex h-24 w-full items-end rounded-lg bg-bg-soft/80 px-1">
                   <div
-                    className="w-full rounded-md bg-gradient-to-t from-teal-600 to-cyan-400"
+                    className={`w-full rounded-md transition-all duration-500 ${
+                      isMax
+                        ? "bg-gradient-to-t from-accent to-teal-400"
+                        : "bg-gradient-to-t from-accent/60 to-teal-300/60"
+                    }`}
                     style={{ height: `${barHeight}px` }}
                   />
                 </div>
-                <span className="text-[10px] uppercase tracking-[0.1em] text-[color:var(--ink-soft)]">
+                <span className="text-[9px] font-semibold uppercase tracking-widest text-ink-soft">
                   {point.dayLabel.replace(".", "")}
                 </span>
               </div>
@@ -46,29 +55,36 @@ export function DashboardCharts({ weeklyConsultations, weeklyMax, specialtyBreak
         </div>
       </article>
 
-      {/* Desglose por especialidad */}
-      <article className="hce-surface p-4">
+      {/* ── Desglose por especialidad ── */}
+      <article className="group relative overflow-hidden rounded-3xl border border-border bg-card p-6 shadow-sm transition hover:shadow-md">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100"
+          style={{
+            background:
+              "radial-gradient(circle at 90% 10%, rgba(15,118,110,0.07) 0%, transparent 60%)",
+          }}
+        />
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-sm font-semibold text-[color:var(--ink)]">Desglose por especialidad</h2>
-          <span className="text-xs text-[color:var(--ink-soft)]">Distribucion actual</span>
+          <h2 className="text-sm font-bold text-ink">Desglose por especialidad</h2>
+          <span className="text-xs text-ink-soft">Distribución actual</span>
         </div>
         {specialtyBreakdown.length === 0 ? (
           <div className="hce-empty mt-4">Sin consultas registradas para graficar.</div>
         ) : (
-          <div className="mt-4 space-y-3">
+          <div className="mt-5 space-y-4">
             {specialtyBreakdown.map((entry) => (
               <div key={entry.specialty}>
-                <div className="mb-1 flex items-center justify-between text-xs">
-                  <span className="font-semibold uppercase tracking-[0.1em] text-[color:var(--ink)]">
-                    {entry.specialty}
-                  </span>
-                  <span className="text-[color:var(--ink-soft)]">
-                    {entry.total} ({entry.percentage}%)
+                <div className="mb-1.5 flex items-center justify-between text-xs">
+                  <span className="font-semibold text-ink">{entry.specialty}</span>
+                  <span className="text-ink-soft">
+                    {entry.total}{" "}
+                    <span className="font-bold text-accent">{entry.percentage}%</span>
                   </span>
                 </div>
-                <div className="h-2.5 overflow-hidden rounded-full bg-[color:var(--bg-soft)]">
+                <div className="h-2 overflow-hidden rounded-full bg-bg-soft">
                   <div
-                    className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-500"
+                    className="h-full rounded-full bg-gradient-to-r from-accent to-teal-400 transition-all duration-700"
                     style={{ width: `${entry.percentage}%` }}
                   />
                 </div>

@@ -12,14 +12,20 @@ export default function DashboardLayout({
     <TenantProvider>
       <ClinicalProvider>
         <div className="flex h-full min-h-screen">
-          {/* Desktop sidebar */}
+          {/* Desktop sidebar — hidden on mobile */}
           <Sidebar />
 
-          {/* Main content area */}
+          {/* Main content column */}
           <div className="flex flex-1 flex-col overflow-x-hidden">
+
+            {/* Mobile top header — sits in normal flow above main */}
+            <MobileHeader />
+
             <DashboardOnboardingGuard />
 
-            <main className="flex-1 p-4 pb-24 pt-14 sm:p-6 sm:pt-6 lg:p-8 lg:pb-8 lg:pt-8">
+            <main
+              className="flex-1 p-4 pb-24 pt-4 sm:p-6 sm:pt-6 lg:p-8 lg:pb-8 lg:pt-8"
+            >
               <div className="mx-auto w-full max-w-6xl">
                 <div className="mb-4 space-y-3">
                   <GlobalSearch />
@@ -29,9 +35,6 @@ export default function DashboardLayout({
               </div>
             </main>
           </div>
-
-          {/* Mobile top header (logo + logout) */}
-          <MobileHeader />
 
           {/* Mobile bottom nav */}
           <BottomNav />
