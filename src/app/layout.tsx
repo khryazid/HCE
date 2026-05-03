@@ -4,6 +4,7 @@ import "./globals.css";
 import { SyncBootstrap } from "@/features/sync/components/sync-bootstrap";
 import { QueryProvider } from "@/lib/query-provider";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Analytics } from "@vercel/analytics/react";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -34,6 +35,7 @@ export default function RootLayout({
           {children}
         </QueryProvider>
         <SpeedInsights />
+        <Analytics />
       </body>
     </html>
   );
