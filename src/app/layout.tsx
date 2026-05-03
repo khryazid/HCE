@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { SyncBootstrap } from "@/features/sync/components/sync-bootstrap";
 import { QueryProvider } from "@/lib/query-provider";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -32,6 +33,7 @@ export default function RootLayout({
           <SyncBootstrap />
           {children}
         </QueryProvider>
+        <SpeedInsights />
       </body>
     </html>
   );
