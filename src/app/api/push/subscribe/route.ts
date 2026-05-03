@@ -18,6 +18,7 @@ export async function POST(req: Request) {
     }
 
     // Upsert the subscription
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error } = await (supabase.from("push_subscriptions") as any)
       .upsert(
         {

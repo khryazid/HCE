@@ -24,6 +24,7 @@ export async function POST(req: Request) {
     const { title, body: message, target_doctor_id, url } = body;
 
     // Fetch subscriptions for the target user
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: subs, error } = await (supabase.from("push_subscriptions") as any)
       .select("*")
       .eq("doctor_id", target_doctor_id || user.id);
@@ -39,6 +40,7 @@ export async function POST(req: Request) {
     });
 
     // Send push to all devices
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const promises = subs.map(async (sub: any) => {
       try {
         await webpush.sendNotification(
@@ -51,9 +53,11 @@ export async function POST(req: Request) {
           },
           payload
         );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (e: any) {
         if (e.statusCode === 410 || e.statusCode === 404) {
           // Subscription expired or is invalid, delete it from DB
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           await (supabase.from("push_subscriptions") as any).delete().eq("id", (sub as any).id);
         } else {
           console.error("Push send error:", e);

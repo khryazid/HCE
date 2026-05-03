@@ -1,10 +1,10 @@
 /// <reference lib="webworker" />
-export default null;
+export default {};
 
-declare let self: ServiceWorkerGlobalScope;
+declare let self: ServiceWorkerGlobalScope & { __WB_DISABLE_DEV_LOGS: boolean };
 
 // To disable all workbox logging during development
-(self as any).__WB_DISABLE_DEV_LOGS = true;
+self.__WB_DISABLE_DEV_LOGS = true;
 
 // Listen for push events
 self.addEventListener("push", (event) => {
