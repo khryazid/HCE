@@ -122,10 +122,10 @@ Duplica el archivo `.env.example` y renómbralo a `.env.local`. Necesitarás lle
 - Llaves de Stripe (Públicas, Secretas y Webhook Secret)
 
 ### 3. Migración de Base de Datos
-Toda la base de datos, funciones, triggers y políticas RLS están concentradas en un script maestro seguro e idempotente.
-1. Abre tu proyecto en Supabase → **SQL Editor**.
-2. Copia y pega el contenido de `src/lib/supabase/000_production_full_schema.sql`.
-3. Ejecútalo. ¡Tu infraestructura backend está lista en 3 segundos!
+Se mantiene un solo SQL como fuente de verdad.
+1. Edita `src/lib/supabase/000_production_full_schema.sql`.
+2. Sincroniza el SQL de migracion con `npm run db:schema:sync`.
+3. Aplica [supabase/migrations/20260503223000_init_schema.sql](supabase/migrations/20260503223000_init_schema.sql) en Supabase → **SQL Editor**.
 
 ### 4. Lanzar Entorno de Desarrollo
 ```bash

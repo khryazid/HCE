@@ -55,7 +55,7 @@ export function useQuickPatientCreate({
       id: crypto.randomUUID(),
       table_name: "patients",
       record_id: patient.id,
-      action: "insert",
+      action: "upsert",
       payload: patient,
       doctor_id: tenant.doctor_id,
       clinic_id: tenant.clinic_id,

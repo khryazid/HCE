@@ -470,7 +470,7 @@ export function AdminPanelClient({ initialUsers, stats, abandonedItems }: Props)
 
       {/* NOTE */}
       <p className="text-xs text-ink-soft text-right mt-4">
-        ⚠️ Panel visible únicamente para <strong>khristian.yazid@gmail.com</strong>.
+        ⚠️ Panel de acceso exclusivo para administradores del sistema.
         No indexado por buscadores.
       </p>
 

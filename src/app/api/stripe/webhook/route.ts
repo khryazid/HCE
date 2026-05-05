@@ -4,9 +4,15 @@ import { createClient } from "@supabase/supabase-js";
 
 export const dynamic = "force-dynamic";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "dummy", {
-  apiVersion: "2026-04-22.dahlia",
-});
+function getStripe() {
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) {
+    throw new Error(
+      "Missing env var: STRIPE_SECRET_KEY is required for Stripe webhooks."
+    );
+  }
+  return new Stripe(key, { apiVersion: "2026-04-22.dahlia" });
+}
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
@@ -21,7 +27,7 @@ export async function POST(req: Request) {
   let event: Stripe.Event;
 
   try {
-    event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+    event = getStripe().webhooks.constructEvent(body, signature, webhookSecret);
   } catch (err) {
     console.error("Webhook signature verification failed:", err);
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
@@ -42,13 +48,18 @@ export async function POST(req: Request) {
         const customerId = subscription.customer as string;
         const status = subscription.status;
 
-        await supabaseAdmin
+        const { error: subUpdateError } = await supabaseAdmin
           .from("profiles")
           .update({
             subscription_status: status,
             stripe_subscription_id: subscription.id,
           })
           .eq("stripe_customer_id", customerId);
+
+        if (subUpdateError) {
+          console.error("[stripe:webhook] Failed to update profile subscription:", subUpdateError);
+          return NextResponse.json({ error: "Database update failed" }, { status: 500 });
+        }
         break;
       }
       case "checkout.session.completed": {
@@ -57,15 +68,20 @@ export async function POST(req: Request) {
           const customerId = session.customer as string;
           const subscriptionId = session.subscription as string;
 
-          const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+          const subscription = await getStripe().subscriptions.retrieve(subscriptionId);
 
-          await supabaseAdmin
+          const { error: sessionUpdateError } = await supabaseAdmin
             .from("profiles")
             .update({
               subscription_status: subscription.status,
               stripe_subscription_id: subscription.id,
             })
             .eq("stripe_customer_id", customerId);
+
+          if (sessionUpdateError) {
+            console.error("[stripe:webhook] Failed to update profile after checkout:", sessionUpdateError);
+            return NextResponse.json({ error: "Database update failed" }, { status: 500 });
+          }
         }
         break;
       }

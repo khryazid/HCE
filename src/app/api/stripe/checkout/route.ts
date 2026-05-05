@@ -5,9 +5,15 @@ import { cookies } from "next/headers";
 
 export const dynamic = "force-dynamic";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "dummy", {
-  apiVersion: "2026-04-22.dahlia",
-});
+function getStripe() {
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) {
+    throw new Error(
+      "Missing env var: STRIPE_SECRET_KEY is required for Stripe checkout."
+    );
+  }
+  return new Stripe(key, { apiVersion: "2026-04-22.dahlia" });
+}
 
 export async function POST(req: Request) {
   try {
@@ -56,7 +62,7 @@ export async function POST(req: Request) {
 
     if (!customerId) {
       // Create a new customer in Stripe
-      const customer = await stripe.customers.create({
+      const customer = await getStripe().customers.create({
         email: user.email,
         metadata: {
           supabase_user_id: user.id,
@@ -73,7 +79,7 @@ export async function POST(req: Request) {
     }
 
     // Create Checkout Session
-    const session = await stripe.checkout.sessions.create({
+    const session = await getStripe().checkout.sessions.create({
       customer: customerId,
       mode: "subscription",
       payment_method_types: ["card"],

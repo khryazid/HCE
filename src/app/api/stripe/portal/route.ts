@@ -5,9 +5,15 @@ import { cookies } from "next/headers";
 
 export const dynamic = "force-dynamic";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "dummy", {
-  apiVersion: "2026-04-22.dahlia",
-});
+function getStripe() {
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) {
+    throw new Error(
+      "Missing env var: STRIPE_SECRET_KEY is required for the Stripe billing portal."
+    );
+  }
+  return new Stripe(key, { apiVersion: "2026-04-22.dahlia" });
+}
 
 export async function POST() {
   try {
@@ -52,7 +58,7 @@ export async function POST() {
       );
     }
 
-    const session = await stripe.billingPortal.sessions.create({
+    const session = await getStripe().billingPortal.sessions.create({
       customer: profile.stripe_customer_id,
       return_url: `${process.env.NEXT_PUBLIC_SITE_URL}/ajustes`,
     });

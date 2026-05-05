@@ -247,6 +247,7 @@ alter table public.specialty_data    enable row level security;
 alter table public.audit_logs        enable row level security;
 alter table public.follow_up_tasks   enable row level security;
 alter table public.api_rate_limits   enable row level security;
+alter table public.push_subscriptions enable row level security;
 
 -- profiles: solo el propio médico puede leer/escribir su perfil
 drop policy if exists "profiles_tenant_select" on public.profiles;
@@ -382,6 +383,39 @@ create policy "followup_tenant_write"
   on public.follow_up_tasks for all to authenticated
   using (doctor_id = auth.uid())
   with check (doctor_id = auth.uid());
+
+-- push_subscriptions
+drop policy if exists "push_subscriptions_tenant_select" on public.push_subscriptions;
+create policy "push_subscriptions_tenant_select"
+  on public.push_subscriptions for select to authenticated
+  using (
+    doctor_id = auth.uid()
+    and exists (
+      select 1 from public.profiles p
+      where p.doctor_id = auth.uid()
+        and p.clinic_id = public.push_subscriptions.clinic_id
+    )
+  );
+
+drop policy if exists "push_subscriptions_tenant_write" on public.push_subscriptions;
+create policy "push_subscriptions_tenant_write"
+  on public.push_subscriptions for all to authenticated
+  using (
+    doctor_id = auth.uid()
+    and exists (
+      select 1 from public.profiles p
+      where p.doctor_id = auth.uid()
+        and p.clinic_id = public.push_subscriptions.clinic_id
+    )
+  )
+  with check (
+    doctor_id = auth.uid()
+    and exists (
+      select 1 from public.profiles p
+      where p.doctor_id = auth.uid()
+        and p.clinic_id = public.push_subscriptions.clinic_id
+    )
+  );
 
 -- ════════════════════════════════════════════════════════════
 -- FUNCIONES Y TRIGGERS

@@ -38,6 +38,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: 🔄 Sync Supabase Schema
+        run: npm run db:schema:sync
+
+      - name: ✅ Verify Schema Sync
+        run: git diff --exit-code supabase/migrations/20260503223000_init_schema.sql
+
       - name: Cache Next.js Build
         uses: actions/cache@v4
         with:

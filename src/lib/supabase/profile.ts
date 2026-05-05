@@ -1,10 +1,11 @@
 import { getSupabaseClient } from "@/lib/supabase/client";
+import type { Database } from "@/types/supabase.types";
 
 export type TenantProfile = {
   doctor_id: string;
   clinic_id: string;
   full_name: string;
-  specialty: string[];
+  /** Array of medical specialties for this doctor (canonical field — maps to `specialty` column in DB). */
   specialties: string[];
   subscription_status?: string | null;
 };
@@ -23,6 +24,10 @@ type TenantMetadata = {
   specialties?: unknown;
 };
 
+// Internal: used to cast the insert payload to work around the Supabase type-gen
+// `never` bug on tables with PostgrestVersion "12" and empty Relationships[].
+type ProfileInsert = Database["public"]["Tables"]["profiles"]["Insert"];
+
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -40,11 +45,10 @@ function withSpecialties(profile: {
   full_name: string;
   specialty: string[];
   subscription_status?: string | null;
-}) {
-  return {
-    ...profile,
-    specialties: profile.specialty,
-  } satisfies TenantProfile;
+}): TenantProfile {
+  // Map the DB column name `specialty` to the canonical `specialties` field.
+  const { specialty, ...rest } = profile;
+  return { ...rest, specialties: specialty };
 }
 
 export function createClinicId() {
@@ -98,6 +102,10 @@ export async function ensureTenantProfile(
 
   const supabase = getSupabaseClient();
 
+  // NOTE: `as any` below is intentional. The Supabase type generator emits
+  // `never` for Insert on tables with PostgrestVersion "12" and empty Relationships[].
+  // This is a known bug in @supabase/supabase-js type output. The shape is safe:
+  // it's validated by the ProfileInsert type defined above.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await (supabase.from("profiles") as any)
     .insert({
@@ -105,7 +113,7 @@ export async function ensureTenantProfile(
       clinic_id: clinicId,
       full_name: fullName,
       specialty: specialties,
-    })
+    } satisfies ProfileInsert)
     .select("doctor_id, clinic_id, full_name, specialty, subscription_status")
     .single();
 

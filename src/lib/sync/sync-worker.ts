@@ -12,9 +12,9 @@ import {
   APP_EVENT_SYNC_ABANDONED,
   emitAppEvent,
 } from "@/lib/observability/app-events";
+import { MAX_RETRY_DELAY_MS, BASE_RETRY_DELAY_MS } from "@/lib/constants/sync";
 
 const MAX_RETRIES = 3;
-const MAX_RETRY_DELAY_MS = 60 * 60 * 1000;
 
 export const SYNC_FINISHED_EVENT = "hce:sync-finished";
 
@@ -29,8 +29,24 @@ export type SyncFlushSummary = {
 
 type TableName = "profiles" | "patients" | "clinical_records" | "specialty_data";
 
-import type { Database } from "@/types/supabase.types";
+import type { Database, Json } from "@/types/supabase.types";
 import type { SupabaseClient } from "@supabase/supabase-js";
+
+type TableInsertMap = {
+  profiles: Database["public"]["Tables"]["profiles"]["Insert"];
+  patients: Database["public"]["Tables"]["patients"]["Insert"];
+  clinical_records: Database["public"]["Tables"]["clinical_records"]["Insert"];
+  specialty_data: Database["public"]["Tables"]["specialty_data"]["Insert"];
+};
+
+type TableInsert<T extends TableName> = TableInsertMap[T];
+type SyncPayloadBase = Record<string, unknown> & {
+  id: string;
+  clinic_id: string;
+  doctor_id: string;
+};
+
+type LogAuditEventArgs = Database["public"]["Functions"]["log_audit_event"]["Args"];
 
 type SyncErrorLike = {
   message: string;
@@ -67,6 +83,37 @@ function getTableClient(supabase: SupabaseClient<Database>, tableName: TableName
     default:
       throw new Error(`Unsupported table: ${tableName}`);
   }
+}
+
+function readOptionalString(value: unknown) {
+  return typeof value === "string" ? value : undefined;
+}
+
+function readNullableString(value: unknown) {
+  return typeof value === "string" ? value : null;
+}
+
+function readRequiredString(value: unknown) {
+  return typeof value === "string" ? value : "";
+}
+
+function readStringArray(value: unknown) {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string")
+    : [];
+}
+
+function readJsonValue(value: unknown): Json {
+  return value as Json;
+}
+
+function logAuditEvent(supabase: SupabaseClient<Database>, args: LogAuditEventArgs) {
+  const rpc = supabase.rpc as unknown as (
+    fn: "log_audit_event",
+    rpcArgs: LogAuditEventArgs,
+  ) => ReturnType<SupabaseClient<Database>["rpc"]>;
+
+  return rpc("log_audit_event", args);
 }
 
 function getTablePriority(tableName: TableName) {
@@ -106,68 +153,81 @@ function buildSyncQueue(items: SyncQueueItem[]) {
 }
 
 function getRetryDelayMs(retryCount: number) {
-  const baseDelayMs = 30_000 * 2 ** Math.max(retryCount - 1, 0);
+  const baseDelayMs = BASE_RETRY_DELAY_MS * 2 ** Math.max(retryCount - 1, 0);
   return Math.min(baseDelayMs, MAX_RETRY_DELAY_MS);
 }
 
-function mapPayloadByTable(tableName: TableName, payload: Record<string, unknown>) {
+function mapPayloadByTable<T extends TableName>(
+  tableName: T,
+  payload: SyncPayloadBase,
+): TableInsert<T> {
   switch (tableName) {
-    case "profiles":
-      return {
-        id: payload.id,
-        clinic_id: payload.clinic_id,
-        doctor_id: payload.doctor_id,
-        full_name: payload.full_name,
-        specialty: payload.specialty,
-        created_at: payload.created_at,
-        updated_at: payload.updated_at,
+    case "profiles": {
+      const mapped: TableInsert<"profiles"> = {
+        id: readOptionalString(payload.id),
+        clinic_id: readRequiredString(payload.clinic_id),
+        doctor_id: readRequiredString(payload.doctor_id),
+        full_name: readRequiredString(payload.full_name),
+        specialty: readStringArray(payload.specialty),
+        created_at: readOptionalString(payload.created_at),
+        updated_at: readOptionalString(payload.updated_at),
       };
-    case "patients":
-      return {
-        id: payload.id,
-        clinic_id: payload.clinic_id,
-        doctor_id: payload.doctor_id,
-        document_number: payload.document_number,
-        full_name: payload.full_name,
-        birth_date: payload.birth_date,
+      return mapped as TableInsert<T>;
+    }
+    case "patients": {
+      const status = readOptionalString(payload.status);
+      const mapped: TableInsert<"patients"> = {
+        id: readOptionalString(payload.id),
+        clinic_id: readRequiredString(payload.clinic_id),
+        doctor_id: readRequiredString(payload.doctor_id),
+        document_number: readRequiredString(payload.document_number),
+        full_name: readRequiredString(payload.full_name),
+        birth_date: readNullableString(payload.birth_date),
         status:
-          typeof payload.status === "string" && payload.status.length > 0
-            ? payload.status
+          status && status.length > 0
+            ? status
             : "activo",
-        created_at: payload.created_at,
-        updated_at: payload.updated_at,
+        created_at: readOptionalString(payload.created_at),
+        updated_at: readOptionalString(payload.updated_at),
       };
-    case "clinical_records":
-      return {
-        id: payload.id,
-        clinic_id: payload.clinic_id,
-        doctor_id: payload.doctor_id,
-        patient_id: payload.patient_id,
-        chief_complaint: payload.chief_complaint,
-        cie_codes: payload.cie_codes,
-        specialty_kind: payload.specialty_kind,
-        specialty_data: payload.specialty_data,
-        created_at: payload.created_at,
-        updated_at: payload.updated_at,
+      return mapped as TableInsert<T>;
+    }
+    case "clinical_records": {
+      const mapped: TableInsert<"clinical_records"> = {
+        id: readOptionalString(payload.id),
+        clinic_id: readRequiredString(payload.clinic_id),
+        doctor_id: readRequiredString(payload.doctor_id),
+        patient_id: readRequiredString(payload.patient_id),
+        chief_complaint: readRequiredString(payload.chief_complaint),
+        cie_codes: readStringArray(payload.cie_codes),
+        specialty_kind: readRequiredString(payload.specialty_kind),
+        specialty_data: readJsonValue(payload.specialty_data),
+        created_at: readOptionalString(payload.created_at),
+        updated_at: readOptionalString(payload.updated_at),
       };
-    case "specialty_data":
-      return {
-        id: payload.id,
-        clinic_id: payload.clinic_id,
-        doctor_id: payload.doctor_id,
-        clinical_record_id: payload.clinical_record_id,
-        specialty_kind: payload.specialty_kind,
-        data: payload.data,
-        created_at: payload.created_at,
-        updated_at: payload.updated_at,
+      return mapped as TableInsert<T>;
+    }
+    case "specialty_data": {
+      const mapped: TableInsert<"specialty_data"> = {
+        id: readOptionalString(payload.id),
+        clinic_id: readRequiredString(payload.clinic_id),
+        doctor_id: readRequiredString(payload.doctor_id),
+        clinical_record_id: readRequiredString(payload.clinical_record_id),
+        specialty_kind: readRequiredString(payload.specialty_kind),
+        data: readJsonValue(payload.data),
+        created_at: readOptionalString(payload.created_at),
+        updated_at: readOptionalString(payload.updated_at),
       };
-    default:
-      return payload;
+      return mapped as TableInsert<T>;
+    }
+    default: {
+      return payload as TableInsert<T>;
+    }
   }
 }
 
 async function syncItem(item: SyncQueueItem): Promise<"synced" | "conflicted"> {
-  const supabase = getSupabaseClient();
+  const supabase = getSupabaseClient() as SupabaseClient<Database>;
   const tableName = item.table_name as TableName;
   const tableClient = getTableClient(supabase, tableName);
 
@@ -199,9 +259,7 @@ async function syncItem(item: SyncQueueItem): Promise<"synced" | "conflicted"> {
       throw error;
     }
     
-    // Log the audit event
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (supabase.rpc as any)("log_audit_event", {
+    await logAuditEvent(supabase, {
       p_clinic_id: item.clinic_id,
       p_doctor_id: item.doctor_id,
       p_event_type: "delete",
@@ -224,11 +282,12 @@ async function syncItem(item: SyncQueueItem): Promise<"synced" | "conflicted"> {
         typeof e === "object" && e !== null && "code" in e;
 
       if (isPgError(error) && error.code === "23505" && tableName === "patients") {
+        const patientPayload = payload as TableInsert<"patients">;
         const { data: existingPatientRaw } = await supabase
           .from("patients")
           .select("id")
           .eq("clinic_id", item.clinic_id)
-          .eq("document_number", payload.document_number as string)
+          .eq("document_number", patientPayload.document_number)
           .maybeSingle();
 
         const existingPatient = existingPatientRaw as { id: string } | null;
@@ -242,15 +301,13 @@ async function syncItem(item: SyncQueueItem): Promise<"synced" | "conflicted"> {
     // Determine event type based on action
     const eventType = item.action === "update" ? "update" : "create";
 
-    // Log the audit event
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (supabase.rpc as any)("log_audit_event", {
+    await logAuditEvent(supabase, {
       p_clinic_id: item.clinic_id,
       p_doctor_id: item.doctor_id,
       p_event_type: eventType,
       p_resource_type: tableName,
       p_resource_id: item.record_id,
-      p_changes: payload,
+      p_changes: payload as Record<string, unknown>,
     });
   }
 
@@ -260,7 +317,7 @@ async function syncItem(item: SyncQueueItem): Promise<"synced" | "conflicted"> {
 
 export async function flushSyncQueue(options?: { forceRetry?: boolean }) {
   const startedAt = Date.now();
-  const supabase = getSupabaseClient();
+  const supabase = getSupabaseClient() as SupabaseClient<Database>;
   const { data: { user }, error: authError } = await supabase.auth.getUser();
 
   // If the session is invalid (e.g. refresh token revoked), skip this flush
@@ -447,8 +504,7 @@ export async function flushSyncQueue(options?: { forceRetry?: boolean }) {
         
         // Try to log abandoned event to Supabase for Admin monitoring
         try {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          await (supabase.rpc as any)("log_audit_event", {
+          await logAuditEvent(supabase, {
             p_clinic_id: item.clinic_id,
             p_doctor_id: item.doctor_id,
             p_event_type: "sync_abandoned",

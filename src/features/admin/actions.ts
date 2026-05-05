@@ -4,8 +4,17 @@ import { createClient } from "@supabase/supabase-js";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 
 // ─── SUPER-ADMIN CONFIG ────────────────────────────────────────────────────────
-// Only this email has access to the /admin panel.
-const ADMIN_EMAIL = "khristian.yazid@gmail.com";
+// The admin email is read from the ADMIN_EMAIL environment variable.
+// Set it in .env.local (development) and in the Vercel/hosting dashboard (production).
+function getAdminEmail(): string {
+  const email = process.env.ADMIN_EMAIL;
+  if (!email) {
+    throw new Error(
+      "Missing env var: ADMIN_EMAIL must be set to grant super-admin access."
+    );
+  }
+  return email;
+}
 
 function getSupabaseAdmin() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -26,7 +35,7 @@ export async function verifySuperAdmin() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user || user.email !== ADMIN_EMAIL) {
+  if (!user || user.email !== getAdminEmail()) {
     throw new Error("Unauthorized");
   }
   return user;

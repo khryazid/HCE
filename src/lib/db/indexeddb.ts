@@ -6,6 +6,7 @@ import type {
   SpecialtyDataRow,
 } from "@/features/consultations/types";
 import { getSupabaseClient } from "@/lib/supabase/client";
+import { MAX_RETRY_DELAY_MS, BASE_RETRY_DELAY_MS } from "@/lib/constants/sync";
 
 /**
  * Opción B de cifrado: sin cifrado local de PHI.
@@ -16,8 +17,7 @@ import { getSupabaseClient } from "@/lib/supabase/client";
 
 const DB_NAME = "hce-offline-db";
 const DB_VERSION = 2; // Bump de versión para migrar de payload cifrado a plano
-const DEFAULT_RETRY_DELAY_MS = 30_000;
-const MAX_RETRY_DELAY_MS = 60 * 60 * 1000;
+const DEFAULT_RETRY_DELAY_MS = BASE_RETRY_DELAY_MS;
 
 interface HceOfflineSchema extends DBSchema {
   profiles: {
@@ -252,43 +252,63 @@ export async function listSyncQueueItems() {
 
 // ─── Patients ─────────────────────────────────────────────────────────────────
 
-export async function listPatientsByTenant(clinicId: string) {
-  const db = await getOfflineDb();
-
-  // Online-first: refresca desde Supabase si hay sesión activa
+/**
+ * Fetches patients from Supabase and writes them into the local IndexedDB cache.
+ *
+ * This is the **remote refresh** step and belongs to the sync/data layer,
+ * NOT to the storage layer. Call it from:
+ *   - The sync worker after a successful sync cycle.
+ *   - A data hook that wants to ensure a fresh seed on first load.
+ *
+ * @returns `true` if remote data was fetched and persisted, `false` if offline or unauthenticated.
+ */
+export async function refreshPatientsFromRemote(clinicId: string): Promise<boolean> {
   try {
     const supabase = getSupabaseClient();
     const { data: { session } } = await supabase.auth.getSession();
 
-    if (session) {
-      const { data: remotePatients, error } = await supabase
-        .from("patients")
-        .select("id, clinic_id, doctor_id, document_number, full_name, birth_date, status, created_at, updated_at")
-        .eq("clinic_id", clinicId);
+    if (!session) return false;
 
-      if (!error && remotePatients && remotePatients.length > 0) {
-        const typedPatients = remotePatients as PatientRecord[];
-        await Promise.all(
-          typedPatients.map((patient) =>
-            db.put("patients", {
-              id: patient.id,
-              clinic_id: patient.clinic_id,
-              doctor_id: patient.doctor_id,
-              document_number: patient.document_number,
-              full_name: patient.full_name,
-              birth_date: patient.birth_date ?? null,
-              status: (patient.status as PatientStatus) ?? "activo",
-              created_at: patient.created_at,
-              updated_at: patient.updated_at,
-            }),
-          ),
-        );
-      }
-    }
+    const { data: remotePatients, error } = await supabase
+      .from("patients")
+      .select("id, clinic_id, doctor_id, document_number, full_name, birth_date, status, created_at, updated_at")
+      .eq("clinic_id", clinicId);
+
+    if (error || !remotePatients || remotePatients.length === 0) return false;
+
+    const db = await getOfflineDb();
+    const typedPatients = remotePatients as PatientRecord[];
+    await Promise.all(
+      typedPatients.map((patient) =>
+        db.put("patients", {
+          id: patient.id,
+          clinic_id: patient.clinic_id,
+          doctor_id: patient.doctor_id,
+          document_number: patient.document_number,
+          full_name: patient.full_name,
+          birth_date: patient.birth_date ?? null,
+          status: (patient.status as PatientStatus) ?? "activo",
+          created_at: patient.created_at,
+          updated_at: patient.updated_at,
+        }),
+      ),
+    );
+    return true;
   } catch {
-    // Offline-first: si el refresco remoto falla, usamos solo la caché local
+    // Network error or IDB write failure — caller falls back to local cache.
+    return false;
   }
+}
 
+/**
+ * Returns all patients for a clinic from the **local IndexedDB cache**.
+ *
+ * This is a pure local read — no network calls.
+ * To ensure fresh data, call `refreshPatientsFromRemote` first (the sync
+ * worker does this automatically after each sync cycle).
+ */
+export async function listPatientsByTenant(clinicId: string) {
+  const db = await getOfflineDb();
   const allPatients = await db.getAll("patients");
   return allPatients
     .filter((p) => p.clinic_id === clinicId)

@@ -5,13 +5,15 @@
   "scripts": {
     "dev": "next dev --webpack",
     "build": "next build --webpack",
+    "_webpack_note": "Turbopack (default in Next 16) has known incompatibilities with next-pwa and the Web Worker bundling used by the sync system. Switch to Turbopack once those are resolved.",
     "start": "next start",
     "lint": "eslint",
     "prepare": "husky install",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "test:e2e:headed": "playwright test --headed"
+    "test:e2e:headed": "playwright test --headed",
+    "db:schema:sync": "node scripts/sync-supabase-schema.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -65,8 +67,7 @@
   },
   "lint-staged": {
     "**/*.{js,jsx,ts,tsx}": [
-      "eslint --fix",
-      "git add"
+      "eslint --fix"
     ]
   }
 }

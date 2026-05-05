@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   listPatientsByTenant,
+  refreshPatientsFromRemote,
   listClinicalRecordsByTenant,
   updatePatientStatusLocal,
   deletePatientLocal,
@@ -25,7 +26,12 @@ export const recordKeys = {
 export function usePatients(tenant: TenantProfile | null) {
   return useQuery({
     queryKey: patientKeys.tenant(tenant?.clinic_id ?? ""),
-    queryFn: () => listPatientsByTenant(tenant!.clinic_id),
+    queryFn: async () => {
+      // Refresh from remote first (no-op if offline or session expired),
+      // then read from local IDB — works in both online and offline mode.
+      await refreshPatientsFromRemote(tenant!.clinic_id);
+      return listPatientsByTenant(tenant!.clinic_id);
+    },
     enabled: !!tenant,
   });
 }

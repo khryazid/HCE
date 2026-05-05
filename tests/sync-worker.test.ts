@@ -11,8 +11,6 @@ const {
   mockDeleteEq,
   mockUpsert,
   mockGetSession,
-  mockEncryptJson,
-  mockDecryptJson,
   mockRpc,
   mockDbPut,
 } = vi.hoisted(() => ({
@@ -25,8 +23,6 @@ const {
   mockDeleteEq: vi.fn(),
   mockUpsert: vi.fn(),
   mockGetSession: vi.fn(),
-  mockEncryptJson: vi.fn(),
-  mockDecryptJson: vi.fn(),
   mockRpc: vi.fn(),
   mockDbPut: vi.fn(),
 }));
@@ -36,11 +32,6 @@ vi.mock("@/lib/db/indexeddb", () => ({
   updateSyncItemStatus: mockUpdateSyncItemStatus,
   deleteSyncQueueItem: mockDeleteSyncQueueItem,
   getOfflineDb: mockGetOfflineDb,
-}));
-
-vi.mock("@/lib/db/crypto", () => ({
-  encryptJson: mockEncryptJson,
-  decryptJson: mockDecryptJson,
 }));
 
 vi.mock("@/lib/supabase/client", () => ({
@@ -75,7 +66,7 @@ function buildSyncItem(retryCount: number): SyncQueueItem {
     id: "sync-1",
     table_name: "patients",
     record_id: "patient-1",
-    action: "insert",
+    action: "upsert",
     payload: {
       full_name: "Paciente Prueba",
       status: "activo",
@@ -140,14 +131,6 @@ describe("sync worker retries", () => {
       error: null,
     });
 
-    mockEncryptJson.mockImplementation(async (value) => ({
-      __encrypted: true,
-      iv: "iv",
-      ciphertext: JSON.stringify(value),
-    }));
-
-    mockDecryptJson.mockImplementation(async (value) => value as unknown);
-
     mockGetOfflineDb.mockResolvedValue({
       getAll: vi.fn(async (store: string) => {
         if (store === "sync_queue") {
@@ -156,7 +139,7 @@ describe("sync worker retries", () => {
               id: "sync-clinical",
               table_name: "clinical_records",
               record_id: "record-1",
-              action: "insert",
+              action: "upsert",
               payload: {
                 patient_id: "patient-1",
                 chief_complaint: "Dolor",

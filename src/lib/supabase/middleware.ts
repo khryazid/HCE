@@ -63,7 +63,9 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/pacientes") ||
     request.nextUrl.pathname.startsWith("/consultas") ||
     request.nextUrl.pathname.startsWith("/tratamientos") ||
-    request.nextUrl.pathname.startsWith("/ajustes");
+    request.nextUrl.pathname.startsWith("/ajustes") ||
+    request.nextUrl.pathname.startsWith("/billing") ||
+    request.nextUrl.pathname.startsWith("/admin");
 
   if (!user && isProtectedRoute) {
     const url = request.nextUrl.clone();
