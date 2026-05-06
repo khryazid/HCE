@@ -4,26 +4,19 @@
  * Migrated from localStorage to Supabase (multi-device, persistent, RLS-protected).
  *
  * Architecture:
- *   - All reads: Supabase (online) with graceful offline fallback via a local IDB cache
- *   - All writes: Supabase directly (the component shows optimistic state via React Query)
+ *   - All reads: Supabase (online) with graceful offline fallback
+ *   - All writes: Supabase directly (React Query handles optimistic state)
  *   - Offline fallback: read-only (writes fail loudly so the user knows to reconnect)
  *
  * Public API is unchanged from the localStorage version so callers don't need updates.
- *
- * NOTE: The `getTable()` helper uses `eslint-disable` because treatment_templates does
- * not yet exist in the generated Supabase types (table was added via migration).
- * Remove the cast and helper after running: npx supabase gen types typescript --local
  */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { getSupabaseClient } from "@/lib/supabase/client";
 
-// Typed wrapper to work around missing treatment_templates in generated Supabase types.
-// Safe: the table schema is enforced by the SQL migration and RLS policies.
 function getTable() {
-  return getSupabaseClient().from("treatment_templates") as any;
+  return getSupabaseClient().from("treatment_templates");
 }
-/* eslint-enable @typescript-eslint/no-explicit-any */
+
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

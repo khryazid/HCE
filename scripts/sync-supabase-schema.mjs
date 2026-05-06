@@ -105,7 +105,7 @@ const { status, body } = await httpsGet(
   `https://api.supabase.com/v1/projects/${projectRef}/types/typescript`,
   {
     Authorization: `Bearer ${accessToken}`,
-    Accept: "text/plain",
+    Accept: "application/json",
   }
 );
 
@@ -115,8 +115,17 @@ if (status !== 200) {
   process.exit(1);
 }
 
+// The API returns { types: "...typescript content..." }
+let typesContent;
+try {
+  const parsed = JSON.parse(body);
+  typesContent = parsed.types ?? body;
+} catch {
+  typesContent = body;
+}
+
 fs.mkdirSync(path.dirname(outPath), { recursive: true });
-fs.writeFileSync(outPath, body, "utf8");
+fs.writeFileSync(outPath, typesContent, "utf8");
 
 console.log(`✅  Tipos generados: ${path.relative(root, outPath)}`);
 console.log(`    Recuerda hacer commit de supabase.types.ts\n`);

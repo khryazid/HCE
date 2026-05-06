@@ -307,7 +307,7 @@ async function syncItem(item: SyncQueueItem): Promise<"synced" | "conflicted"> {
       p_event_type: eventType,
       p_resource_type: tableName,
       p_resource_id: item.record_id,
-      p_changes: payload as Record<string, unknown>,
+      p_changes: payload as unknown as import("@/types/supabase.types").Json,
     });
   }
 
@@ -510,7 +510,7 @@ export async function flushSyncQueue(options?: { forceRetry?: boolean }) {
             p_event_type: "sync_abandoned",
             p_resource_type: item.table_name,
             p_resource_id: item.record_id,
-            p_changes: { error: message, original_payload: item.payload },
+            p_changes: { error: message, original_payload: item.payload } as unknown as import("@/types/supabase.types").Json,
           });
         } catch {
           // If offline, we simply ignore this telemetry
