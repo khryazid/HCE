@@ -104,11 +104,11 @@ export function GlobalSearch() {
       setError(null);
 
       try {
-        const [patients, records] = await Promise.all([
+        const [patients, records, templates] = await Promise.all([
           listPatientsByTenant(tenant.clinic_id),
           listClinicalRecordsByTenant(tenant.doctor_id, tenant.clinic_id),
+          listTreatmentTemplates(tenant.doctor_id, tenant.clinic_id),
         ]);
-        const templates = listTreatmentTemplates(tenant.doctor_id, tenant.clinic_id);
 
         if (!active) {
           return;

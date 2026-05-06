@@ -1,15 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { loadTenantProfile, type TenantProfile } from "@/lib/supabase/profile";
 import {
   deleteTreatmentTemplate,
-  listTreatmentTemplates,
+  migrateLegacyLocalStorageTemplates,
   saveTreatmentTemplate,
   type TreatmentTemplate,
 } from "@/features/consultations/lib/treatments";
+import { useTemplates, templateKeys } from "@/features/consultations/lib/use-consultation-queries";
 
 type TemplateForm = {
   trigger: string;
@@ -25,18 +27,17 @@ const EMPTY_FORM: TemplateForm = {
 
 export default function TreatmentsView() {
   const router = useRouter();
+  const queryClient = useQueryClient();
+
   const [tenant, setTenant] = useState<TenantProfile | null>(null);
-  const [templates, setTemplates] = useState<TreatmentTemplate[]>([]);
   const [form, setForm] = useState<TemplateForm>(EMPTY_FORM);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [bootstrapError, setBootstrapError] = useState<string | null>(null);
+  const [bootstrapping, setBootstrapping] = useState(true);
 
-  const editing = useMemo(
-    () => templates.find((item) => item.id === editingId) ?? null,
-    [editingId, templates],
-  );
-
+  // ── Bootstrap: auth → profile → migrate legacy localStorage data ──────────
   useEffect(() => {
     let active = true;
 
@@ -57,17 +58,21 @@ export default function TreatmentsView() {
           throw new Error("No se encontro tenant activo.");
         }
 
+        // One-time migration from localStorage → Supabase (no-op if already done)
+        await migrateLegacyLocalStorageTemplates(profile.doctor_id, profile.clinic_id);
+
         if (active) {
           setTenant(profile);
-          setTemplates(listTreatmentTemplates(profile.doctor_id, profile.clinic_id));
         }
       } catch (loadError) {
         if (active) {
-          setError(loadError instanceof Error ? loadError.message : "No se pudieron cargar plantillas.");
+          setBootstrapError(
+            loadError instanceof Error ? loadError.message : "No se pudieron cargar plantillas.",
+          );
         }
       } finally {
         if (active) {
-          setLoading(false);
+          setBootstrapping(false);
         }
       }
     };
@@ -79,12 +84,19 @@ export default function TreatmentsView() {
     };
   }, [router]);
 
-  function refresh() {
-    if (!tenant) {
-      return;
-    }
+  // ── Data: Supabase via React Query (updates automatically) ────────────────
+  const { data: templates = [], isLoading: templatesLoading } = useTemplates(tenant);
 
-    setTemplates(listTreatmentTemplates(tenant.doctor_id, tenant.clinic_id));
+  const editing = editingId ? (templates.find((t) => t.id === editingId) ?? null) : null;
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+
+  function invalidate() {
+    if (tenant) {
+      void queryClient.invalidateQueries({
+        queryKey: templateKeys.tenant(tenant.clinic_id),
+      });
+    }
   }
 
   function startEdit(template: TreatmentTemplate) {
@@ -99,50 +111,76 @@ export default function TreatmentsView() {
   function reset() {
     setEditingId(null);
     setForm(EMPTY_FORM);
+    setFormError(null);
   }
 
-  function handleSave(event: React.FormEvent<HTMLFormElement>) {
+  // ── Handlers ──────────────────────────────────────────────────────────────
+
+  async function handleSave(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!tenant) {
-      return;
-    }
+    if (!tenant) return;
 
     if (!form.trigger.trim() || !form.title.trim() || !form.treatment.trim()) {
-      setError("Completa trigger, titulo y tratamiento.");
+      setFormError("Completa trigger, titulo y tratamiento.");
       return;
     }
 
-    saveTreatmentTemplate(
-      {
-        doctor_id: tenant.doctor_id,
-        clinic_id: tenant.clinic_id,
-        trigger: form.trigger,
-        title: form.title,
-        treatment: form.treatment,
-      },
-      editing ?? undefined,
-    );
+    setSaving(true);
+    setFormError(null);
 
-    reset();
-    refresh();
-    setError(null);
-  }
+    try {
+      const result = await saveTreatmentTemplate(
+        {
+          doctor_id: tenant.doctor_id,
+          clinic_id: tenant.clinic_id,
+          trigger: form.trigger,
+          title: form.title,
+          treatment: form.treatment,
+        },
+        editing ?? undefined,
+      );
 
-  function handleDelete(template: TreatmentTemplate) {
-    if (!tenant) {
-      return;
-    }
+      if (!result) {
+        setFormError("No se pudo guardar la plantilla. Verifica tu conexion.");
+        return;
+      }
 
-    deleteTreatmentTemplate(tenant.doctor_id, tenant.clinic_id, template.id);
-    if (editingId === template.id) {
       reset();
+      invalidate();
+    } catch {
+      setFormError("Error inesperado al guardar.");
+    } finally {
+      setSaving(false);
     }
-    refresh();
   }
 
-  if (loading) {
+  async function handleDelete(template: TreatmentTemplate) {
+    if (!tenant) return;
+
+    try {
+      await deleteTreatmentTemplate(tenant.doctor_id, tenant.clinic_id, template.id);
+      if (editingId === template.id) {
+        reset();
+      }
+      invalidate();
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : "No se pudo eliminar la plantilla.");
+    }
+  }
+
+  // ── Render ────────────────────────────────────────────────────────────────
+
+  if (bootstrapping || templatesLoading) {
     return <p className="text-sm text-ink-soft">Cargando tratamientos...</p>;
+  }
+
+  if (bootstrapError) {
+    return (
+      <div className="rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+        {bootstrapError}
+      </div>
+    );
   }
 
   return (
@@ -154,12 +192,14 @@ export default function TreatmentsView() {
         </p>
       </header>
 
-      {error ? (
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>
+      {formError ? (
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          {formError}
+        </div>
       ) : null}
 
       <div className="grid gap-6 lg:grid-cols-[400px_minmax(0,1fr)]">
-        <form onSubmit={handleSave} className="hce-surface space-y-4">
+        <form onSubmit={(e) => void handleSave(e)} className="hce-surface space-y-4">
           <h2 className="hce-section-title">{editing ? "Editar plantilla" : "Nueva plantilla"}</h2>
           <label className="block space-y-2 text-sm font-medium text-ink-soft">
             <span>Enfermedad / sintoma trigger</span>
@@ -189,10 +229,19 @@ export default function TreatmentsView() {
             />
           </label>
           <div className="flex gap-2">
-            <button className="rounded-xl bg-teal-700 px-4 py-2 text-sm font-semibold text-white" type="submit">
-              {editing ? "Actualizar" : "Guardar"}
+            <button
+              className="rounded-xl bg-teal-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+              type="submit"
+              disabled={saving}
+            >
+              {saving ? "Guardando..." : editing ? "Actualizar" : "Guardar"}
             </button>
-            <button className="rounded-xl border border-border px-4 py-2 text-sm font-semibold" type="button" onClick={reset}>
+            <button
+              className="rounded-xl border border-border px-4 py-2 text-sm font-semibold"
+              type="button"
+              onClick={reset}
+              disabled={saving}
+            >
               Limpiar
             </button>
           </div>
@@ -223,7 +272,7 @@ export default function TreatmentsView() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => handleDelete(template)}
+                      onClick={() => void handleDelete(template)}
                       className="rounded-xl border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700"
                     >
                       Eliminar
@@ -238,4 +287,3 @@ export default function TreatmentsView() {
     </section>
   );
 }
-
