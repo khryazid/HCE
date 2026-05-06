@@ -174,6 +174,8 @@ supabase/migrations/000_production_full_schema.sql
 1. Ve a **Supabase → SQL Editor** de tu proyecto.
 2. Pega el contenido de `000_production_full_schema.sql` y ejecuta.
 
+📖 **Guía completa** (añadir tablas, regenerar tipos, checklist): [docs/SUPABASE_MIGRATIONS.md](docs/SUPABASE_MIGRATIONS.md)
+
 Para generar las claves VAPID:
 ```bash
 npx web-push generate-vapid-keys
