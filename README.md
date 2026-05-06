@@ -221,8 +221,7 @@ src/
 │   ├── observability/      # Error logger, app events
 │   ├── supabase/           # Cliente SSR/browser, middleware, profile
 │   └── sync/               # Sync worker con backoff exponencial
-├── middleware.ts            # ⚠️ Punto de entrada del middleware de Next.js
-├── proxy.ts                # Lógica del proxy de Supabase SSR
+├── proxy.ts                # ⚠️ Punto de entrada del proxy de Next.js (antes: middleware.ts)
 └── types/                  # Tipos globales: Supabase DB, SyncQueue
 supabase/
 └── migrations/             # Schema SQL de producción
