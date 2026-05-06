@@ -158,10 +158,21 @@ PUSH_SEND_SECRET=
 
 > **Nota:** `ADMIN_EMAIL` nunca debe quedar en el código fuente. Se lee exclusivamente desde el servidor vía `process.env`.
 
-### 3. Base de Datos — Migraciones
-El schema de producción vive en `supabase/migrations/`. Para aplicarlo:
+### 3. Base de Datos — Schema
+El schema completo vive en **un único archivo SQL** que es la fuente de verdad de toda la base de datos:
+
+```
+supabase/migrations/000_production_full_schema.sql
+```
+
+**Reglas del archivo:**
+- **Un solo archivo** — no se crean migrations separadas. Toda nueva tabla, función o índice se añade aquí.
+- **Idempotente** — se puede ejecutar varias veces sin romper datos (`IF NOT EXISTS`, `CREATE OR REPLACE`, `DROP IF EXISTS` + `CREATE`).
+- **Auto-documentado** — cada tabla y función tiene comentarios explicando su propósito.
+
+**Para aplicar:**
 1. Ve a **Supabase → SQL Editor** de tu proyecto.
-2. Ejecuta `supabase/migrations/000_production_full_schema.sql`.
+2. Pega el contenido de `000_production_full_schema.sql` y ejecuta.
 
 Para generar las claves VAPID:
 ```bash
