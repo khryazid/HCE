@@ -32,8 +32,15 @@ export function PushNotificationToggle() {
       return;
     }
 
-    navigator.serviceWorker.ready
-      .then((reg) => reg.pushManager.getSubscription())
+    // Race navigator.serviceWorker.ready against a 4s timeout.
+    // Without the timeout, if the SW is not yet installed the promise
+    // never resolves and the toggle is stuck in the loading spinner.
+    const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 4000));
+
+    Promise.race([
+      navigator.serviceWorker.ready.then((reg) => reg.pushManager.getSubscription()),
+      timeout,
+    ])
       .then((sub) => setState(sub ? "subscribed" : "not-subscribed"))
       .catch(() => setState("not-subscribed"));
   }, []);

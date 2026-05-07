@@ -116,6 +116,34 @@ function logAuditEvent(supabase: SupabaseClient<Database>, args: LogAuditEventAr
   return rpc("log_audit_event", args);
 }
 
+/**
+ * Normalize any error thrown by the Supabase JS client into a proper Error.
+ *
+ * The @supabase/supabase-js client sometimes throws:
+ *  - A plain object { message, code } from PostgREST
+ *  - A TypeError "Cannot read properties of undefined (reading 'rest')" when
+ *    the HTTP response body is empty (e.g. a 403/network error with no JSON).
+ * We convert all cases to a real Error so the flush loop can extract .message.
+ */
+function normalizeError(err: unknown): Error {
+  if (err instanceof Error) return err;
+
+  if (typeof err === "object" && err !== null) {
+    const obj = err as Record<string, unknown>;
+    const msg =
+      typeof obj.message === "string" && obj.message
+        ? obj.message
+        : typeof obj.hint === "string" && obj.hint
+          ? obj.hint
+          : `Supabase error (code: ${obj.code ?? "unknown"})`;
+    const wrapped = new Error(msg);
+    if (typeof obj.code === "string") (wrapped as Error & { code?: string }).code = obj.code;
+    return wrapped;
+  }
+
+  return new Error(String(err));
+}
+
 function getTablePriority(tableName: TableName) {
   switch (tableName) {
     case "profiles":
@@ -239,7 +267,7 @@ async function syncItem(item: SyncQueueItem): Promise<"synced" | "conflicted"> {
     .maybeSingle();
 
   if (remoteError) {
-    throw remoteError;
+    throw normalizeError(remoteError);
   }
 
   const remoteTime = remote?.updated_at
@@ -295,7 +323,7 @@ async function syncItem(item: SyncQueueItem): Promise<"synced" | "conflicted"> {
           throw new Error(`PATIENT_MERGE_REQUIRED:${existingPatient.id}`);
         }
       }
-      throw error;
+      throw normalizeError(error);
     }
 
     // Determine event type based on action
