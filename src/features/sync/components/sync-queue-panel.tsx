@@ -5,6 +5,7 @@ import {
   deleteSyncQueueItem,
   getSyncQueueStats,
   listSyncQueueItems,
+  purgeAbandonedSyncItems,
   updateSyncItemStatus,
 } from "@/lib/db/indexeddb";
 import {
@@ -197,6 +198,25 @@ export function SyncQueuePanel() {
     }
   }
 
+  // Elimina todos los items abandonados y sus dependientes huérfanos
+  async function handlePurgeAbandoned() {
+    setWorking(true);
+    setError(null);
+
+    try {
+      await purgeAbandonedSyncItems();
+      await refreshQueue();
+    } catch (purgeError) {
+      setError(
+        purgeError instanceof Error
+          ? purgeError.message
+          : buildRetryableErrorMessage("limpiar los elementos abandonados"),
+      );
+    } finally {
+      setWorking(false);
+    }
+  }
+
   const hasErrors = stats.failed > 0 || stats.abandoned > 0 || stats.conflicted > 0;
 
   return (
@@ -232,6 +252,17 @@ export function SyncQueuePanel() {
         </div>
 
         <div className="flex flex-wrap gap-2">
+          {stats.abandoned > 0 && (
+            <button
+              type="button"
+              id="sync-purge-abandoned-btn"
+              onClick={() => void handlePurgeAbandoned()}
+              disabled={working}
+              className="rounded-xl border border-red-400/40 bg-red-500/10 px-3 py-2 text-xs font-semibold uppercase tracking-[0.15em] text-red-600 disabled:opacity-60 hover:bg-red-500/20 transition"
+            >
+              Limpiar abandonados ({stats.abandoned})
+            </button>
+          )}
           <button
             type="button"
             onClick={() => setExpanded((current) => !current)}

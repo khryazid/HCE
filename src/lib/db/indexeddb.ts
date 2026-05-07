@@ -250,6 +250,39 @@ export async function listSyncQueueItems() {
   return allItems.sort((a, b) => b.client_timestamp - a.client_timestamp);
 }
 
+/**
+ * Removes all ABANDONED sync queue items from IndexedDB.
+ *
+ * Also removes any PENDING or FAILED items targeting the same record_id
+ * as an abandoned item — those are orphaned operations that will never
+ * succeed because their parent delete/update already failed permanently.
+ *
+ * @returns number of items removed
+ */
+export async function purgeAbandonedSyncItems(): Promise<number> {
+  const db = await getOfflineDb();
+  const allItems = await db.getAll("sync_queue");
+
+  // Collect record_ids of all abandoned items
+  const abandonedRecordIds = new Set<string>(
+    allItems.filter((i) => i.status === "abandoned").map((i) => i.record_id),
+  );
+
+  const toDelete = allItems.filter(
+    (i) =>
+      i.status === "abandoned" ||
+      // Orphaned pending/failed ops on the same record as an abandoned item
+      ((i.status === "pending" || i.status === "failed") &&
+        abandonedRecordIds.has(i.record_id)),
+  );
+
+  const tx = db.transaction("sync_queue", "readwrite");
+  await Promise.all(toDelete.map((i) => tx.store.delete(i.id)));
+  await tx.done;
+
+  return toDelete.length;
+}
+
 // ─── Patients ─────────────────────────────────────────────────────────────────
 
 /**
