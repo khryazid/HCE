@@ -12,9 +12,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "HCE Multiespecialidad",
+  title: "Glyph — Motor Clínico",
   description:
-    "Plataforma SaaS offline-first para gestion de historias clinicas multiespecialidad con enfoque multi-tenant.",
+    "Historia clínica electrónica multiespecialidad con IA, trabajo offline y sincronización automática. Diseñado para médicos modernos.",
   manifest: "/manifest.json",
   icons: {
     icon: "/icon.svg",

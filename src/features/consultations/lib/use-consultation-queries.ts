@@ -10,8 +10,10 @@ export const templateKeys = {
 export function useTemplates(tenant: TenantProfile | null) {
   return useQuery({
     queryKey: templateKeys.tenant(tenant?.clinic_id ?? ""),
-    // listTreatmentTemplates is now async (Supabase call)
+    // listTreatmentTemplates is async (Supabase call)
     queryFn: () => listTreatmentTemplates(tenant!.doctor_id, tenant!.clinic_id),
     enabled: !!tenant,
+    // Templates change infrequently — cache for 5 min to avoid refetch on every mount
+    staleTime: 5 * 60 * 1000,
   });
 }
