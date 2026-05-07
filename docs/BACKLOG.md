@@ -3,6 +3,69 @@
 
 ---
 
+## 🗓️ Sprint Actual — Próximas Tareas
+
+Esta es la lista ordenada de lo que trabajamos en la próxima sesión, en prioridad descendente.
+
+### 🔴 Prioridad Alta (hacer primero)
+
+- [ ] **BUG-01** — Eliminar `as any` residual en `profile.ts:110`  
+  Verificar si el insert de `profiles` ya pasa TS sin el cast (los tipos ya son v14.5).  
+  _Archivo:_ `src/lib/supabase/profile.ts`
+
+- [ ] **BUG-04** — Eliminar `as any` en `onboarding.ts:124`  
+  El call a `supabase.rpc("log_audit_event", ...)` debería estar tipado ahora que los tipos están regenerados.  
+  _Archivo:_ `src/lib/supabase/onboarding.ts`
+
+- [ ] **M-04** — Validación de variables de entorno al arrancar  
+  Crear `src/lib/env.ts` que valide en build/runtime que todas las vars críticas están presentes.  
+  Sin esto, un error de configuración en Vercel se descubre tarde (cuando un usuario activa una feature).
+
+- [ ] **M-03** — Rate limiting en rutas `/api/stripe/*` y `/api/push/send`  
+  Actualmente solo `/api/cie-suggestions` tiene protección. Las demás rutas pueden ser abusadas.
+
+### 🟡 Prioridad Media (siguiente bloque)
+
+- [ ] **F-02** — PDF con membrete y firma del doctor  
+  Es el producto tangible que el médico entrega al paciente. Datos del `onboarding_profile` ya están guardados en `user_metadata`.  
+  _Archivos afectados:_ generador de PDF en `features/consultations/`
+
+- [ ] **F-04** — Conectar notificaciones push con `follow_up_tasks`  
+  La infraestructura ya existe (VAPID, endpoint, tabla). Solo falta el cron job en Supabase y la UI de activación.  
+  _Ver:_ `docs/SUPABASE_MIGRATIONS.md` para el cron job SQL
+
+- [ ] **F-03** — Panel Admin: gestión completa de suscripciones  
+  Buscar usuarios, cambiar `subscription_status`, extender trial, asignar `lifetime`.  
+  _Ruta:_ `/admin`
+
+- [ ] **BUG-02** — Reemplazar testimonios ficticios en la landing  
+  Reemplazar por reales cuando haya usuarios activos, o remover temporalmente la sección.  
+  _Archivo:_ `src/app/page.tsx:58-71`
+
+### 🟢 Prioridad Baja (cuando haya espacio)
+
+- [ ] **M-01** — Ampliar cobertura de tests E2E con Playwright  
+  Flujo de consulta completo, PDF, plantillas, billing redirect.
+
+- [ ] **F-10** — UI de historial de versiones de plantillas  
+  Modal en `TreatmentsView` para ver y restaurar versiones anteriores. La data ya existe en `versions` JSONB.
+
+- [ ] **F-05** — Búsqueda full-text en Supabase  
+  Escalar `GlobalSearch` de filtro en memoria (IndexedDB) a `tsvector` de Postgres.
+
+- [ ] **F-08** — Soporte dark mode / tema del sistema  
+  Variables CSS en `:root` y `[data-theme="dark"]` con detección `prefers-color-scheme`.
+
+- [ ] **F-01** — Plan Clínica multi-doctor  
+  Nueva tabla `clinic_members`, roles, ajustes de RLS, pricing con seats.
+
+- [ ] **F-06** — Exportación de historia clínica (ZIP portabilidad)  
+- [ ] **F-07** — Recordatorios por email (Resend/SendGrid + cron)  
+- [ ] **F-09** — Internacionalización (i18n)  
+
+---
+
+
 ## ⚡ Estado actual del proyecto
 
 | Check | Estado |
@@ -23,9 +86,9 @@
 
 ### BUG-01 · `as any` en `profile.ts` (residual)
 **Archivo:** `src/lib/supabase/profile.ts:110`  
-**Descripción:** El insert de `profiles` usa un cast `as any` documentado. A diferencia de `treatment_templates`, este cast existía antes de que los tipos fueran generados con PostgrestVersion 14.5. Hay que verificar si ya es removible.  
-**Acción:** Eliminar el cast y probar. Si TS acepta el insert sin el cast → commit. Si sigue fallando → es un bug upstream de Supabase JS.  
-**Prioridad:** 🟡 Media (no afecta producción — el `satisfies ProfileInsert` garantiza la forma)
+**Descripción:** El insert de `profiles` usa un cast `as any` documentado. Los tipos ya son v14.5 — verificar si ya es removible.  
+**Acción:** Eliminar el cast y probar. Si TS acepta → commit. Si sigue fallando → bug upstream de Supabase JS.  
+**Prioridad:** 🔴 Alta
 
 ### BUG-02 · Testimonios en landing son ficticios
 **Archivo:** `src/app/page.tsx:58-71`  
@@ -33,17 +96,14 @@
 **Acción:** Reemplazar con testimonios reales cuando haya usuarios activos. O remover la sección hasta tenerlos.  
 **Prioridad:** 🟡 Media
 
-### BUG-03 · Metadata del layout raíz desactualizada
-**Archivo:** `src/app/layout.tsx:14-23`  
-**Descripción:** El `title` dice `"HCE Multiespecialidad"` pero el producto se llama **Glyph** (como se muestra en `page.tsx`, login, registro). Inconsistencia de branding.  
-**Acción:** Actualizar a `"Glyph — Motor Clínico"` con descripción actualizada.  
-**Prioridad:** 🔴 Alta (afecta SEO — esta es la metadata por defecto de todas las páginas del dashboard)
+### ~~BUG-03 · Metadata del layout raíz desactualizada~~ ✅ Resuelto
+`layout.tsx` actualizado — title: `"Glyph — Motor Clínico"` con descripción SEO correcta.
 
 ### BUG-04 · `supabase.rpc` usa `as any` en `onboarding.ts`
 **Archivo:** `src/lib/supabase/onboarding.ts:124`  
-**Descripción:** La llamada a `log_audit_event` usa `(supabase.rpc as any)`. Con los tipos regenerados, `supabase.rpc("log_audit_event", { ... })` debería estar tipado correctamente ahora.  
-**Acción:** Eliminar el cast y verificar que el call pasa la validación de TS.  
-**Prioridad:** 🟡 Media
+**Descripción:** La llamada a `log_audit_event` usa `(supabase.rpc as any)`. Con los tipos v14.5 regenerados debería estar tipado correctamente.  
+**Acción:** Eliminar el cast y verificar que el call pasa TS.  
+**Prioridad:** 🔴 Alta
 
 ### BUG-05 · Plan "Clínica" en pricing muestra precio fijo sin validar
 **Archivo:** `src/app/page.tsx:457-497`  
@@ -141,19 +201,17 @@
 **Descripción:** Los tests E2E actuales son 3 (con algunos skipped). Necesitan cubrir: flujo de consulta completo, generación de PDF, plantillas de tratamiento, billing redirect.  
 **Prioridad:** 🟡 Media
 
-### M-02 · Stale-While-Revalidate en `useTemplates`
-**Descripción:** El hook `useTemplates` no tiene `staleTime` configurado, lo que causa un refetch en cada mount. Para una lista que cambia poco, un `staleTime: 5 * 60 * 1000` (5 minutos) mejoraría la percepción de velocidad.  
-**Archivo:** `src/features/consultations/lib/use-consultation-queries.ts`  
-**Prioridad:** 🟢 Baja
+### ~~M-02 · Stale-While-Revalidate en `useTemplates`~~ ✅ Resuelto
+**Solución:** `staleTime: 5 * 60 * 1000` añadido en `use-consultation-queries.ts`.
 
 ### M-03 · Rate limiting en más API routes
 **Descripción:** Solo `/api/cie-suggestions` tiene rate limiting con `claim_api_rate_limit`. Las rutas `/api/stripe/*` y `/api/push/*` deberían tener también, especialmente en producción.  
 **Prioridad:** 🟡 Media
 
 ### M-04 · Variables de entorno — validación en startup
-**Descripción:** Si una variable crítica (ej. `SUPABASE_SERVICE_ROLE_KEY`) no está configurada en Vercel, el error ocurre en runtime (cuando un usuario hace una acción). Sería mejor validarlas al arrancar.  
+**Descripción:** Si una variable crítica (ej. `SUPABASE_SERVICE_ROLE_KEY`) no está configurada en Vercel, el error ocurre en runtime. Mejor validarlas al arrancar.  
 **Acción:** Crear `src/lib/env.ts` que valide todas las vars requeridas al importarse.  
-**Prioridad:** 🟡 Media
+**Prioridad:** 🔴 Alta
 
 ### M-05 · `supabase.types.ts` — regenerar tras cada cambio de schema
 **Acción al hacer cambios en BD:** Ver guía completa en `docs/SUPABASE_MIGRATIONS.md`.  
@@ -161,16 +219,17 @@
 
 ---
 
-## 📋 Checklist para el redeploy actual
+
+## 📋 Checklist del deploy actual
 
 - [x] `tsc --noEmit` → 0 errores
 - [x] `vitest run` → 85/85
 - [x] ESLint → limpio
-- [x] Variables de entorno en Vercel verificadas
 - [x] SQL `000_production_full_schema.sql` aplicado en Supabase
-- [x] Tipos TypeScript regenerados (`npm run db:types`)
+- [x] Tipos TypeScript regenerados con `npm run db:types` (PostgrestVersion 14.5)
 - [x] Plantillas de tratamiento migradas de localStorage → Supabase
-- [ ] **BUG-03** · Corregir title del layout raíz ("HCE Multiespecialidad" → "Glyph") ← hacer antes del deploy
-- [ ] Verificar que `PUSH_SEND_SECRET` está en Vercel
-- [ ] Verificar que `ADMIN_EMAIL` está en Vercel
-- [ ] Confirmar que `mv_dashboard_kpis_daily` se refresca correctamente (cron job pg_cron activo)
+- [x] `layout.tsx` metadata → `"Glyph — Motor Clínico"` (BUG-03 resuelto)
+- [x] `useTemplates` con `staleTime: 5min` (M-02 resuelto)
+- [ ] Verificar que `PUSH_SEND_SECRET` está configurado en Vercel
+- [ ] Verificar que `ADMIN_EMAIL` está configurado en Vercel
+- [ ] Confirmar que pg_cron está activo en Supabase (refresca `mv_dashboard_kpis_daily` a las 00:00)
