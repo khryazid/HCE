@@ -752,14 +752,27 @@ select cron.schedule(
   $$select public.send_followup_push_notifications()$$
 );
 
--- ── Instrucciones para configurar las variables de la función ─────────────────
--- Ejecuta estos comandos UNA VEZ en el SQL Editor de Supabase (como superuser):
+-- ════════════════════════════════════════════════════════════
+-- 8. VARIABLES DE CONFIGURACIÓN DE LA BASE DE DATOS
+-- ════════════════════════════════════════════════════════════
 --
---   alter database postgres set app.site_url = 'https://tu-dominio.vercel.app';
---   alter database postgres set app.push_send_secret = 'tu_push_send_secret_aqui';
+-- Estas variables son leídas por send_followup_push_notifications()
+-- para llamar al endpoint de push notifications vía pg_net.
 --
--- Reemplaza los valores con tus datos reales. Estos valores son equivalentes a
--- las variables de entorno NEXT_PUBLIC_SITE_URL y PUSH_SEND_SECRET de Vercel.
--- ─────────────────────────────────────────────────────────────────────────────
+-- ⚠️  ANTES DE EJECUTAR: reemplaza los valores placeholder
+--     con tus datos reales de producción.
+--
+--     app.site_url        → tu URL de Vercel (NEXT_PUBLIC_SITE_URL)
+--     app.push_send_secret → secreto para el cron (PUSH_SEND_SECRET)
+--
+-- Si los valores quedan como placeholder, el cron job simplemente
+-- no enviará notificaciones (emitirá un WARNING en los logs de Supabase).
+
+alter database postgres set app.site_url         = 'REEMPLAZAR_CON_TU_URL_VERCEL';
+alter database postgres set app.push_send_secret = 'REEMPLAZAR_CON_TU_PUSH_SEND_SECRET';
+
+-- Para verificar que se aplicaron correctamente:
+--   select current_setting('app.site_url', true);
+--   select current_setting('app.push_send_secret', true);
 
 commit;
