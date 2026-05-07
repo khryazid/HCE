@@ -5,6 +5,9 @@
  *
  * Toggle de notificaciones push para la página /ajustes.
  * Gestiona el ciclo completo: suscripción, test de confirmación y desuscripción.
+ *
+ * IMPORTANTE: next-pwa desactiva el SW en desarrollo (NODE_ENV=development).
+ * Las notificaciones push solo funcionan en el build de producción (Vercel).
  */
 
 import { useState, useEffect, useCallback } from "react";
@@ -13,11 +16,28 @@ import { Button } from "@/components/ui/button";
 import { Bell, BellOff, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
+const SW_READY_TIMEOUT_MS = 5000;
+
 function urlBase64ToUint8Array(base64String: string) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
   const rawData = atob(base64);
   return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)));
+}
+
+/**
+ * Wrapper around navigator.serviceWorker.ready with a hard timeout.
+ * Without this, if the SW is not installed (dev mode, first load, cleared cache)
+ * the promise never resolves and the UI hangs in the loading state forever.
+ */
+async function getSwRegistration(): Promise<ServiceWorkerRegistration | null> {
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+    return null;
+  }
+  return Promise.race<ServiceWorkerRegistration | null>([
+    navigator.serviceWorker.ready,
+    new Promise<null>((resolve) => setTimeout(() => resolve(null), SW_READY_TIMEOUT_MS)),
+  ]);
 }
 
 type PushState = "unsupported" | "loading" | "not-subscribed" | "subscribed";
@@ -26,21 +46,15 @@ export function PushNotificationToggle() {
   const { tenant } = useTenant();
   const [state, setState] = useState<PushState>("loading");
 
+  // Check SW support and current subscription status on mount
   useEffect(() => {
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
       setState("unsupported");
       return;
     }
 
-    // Race navigator.serviceWorker.ready against a 4s timeout.
-    // Without the timeout, if the SW is not yet installed the promise
-    // never resolves and the toggle is stuck in the loading spinner.
-    const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 4000));
-
-    Promise.race([
-      navigator.serviceWorker.ready.then((reg) => reg.pushManager.getSubscription()),
-      timeout,
-    ])
+    getSwRegistration()
+      .then((reg) => (reg ? reg.pushManager.getSubscription() : null))
       .then((sub) => setState(sub ? "subscribed" : "not-subscribed"))
       .catch(() => setState("not-subscribed"));
   }, []);
@@ -50,6 +64,7 @@ export function PushNotificationToggle() {
     setState("loading");
 
     try {
+      // 1. Ask for notification permission
       const permission = await Notification.requestPermission();
       if (permission !== "granted") {
         setState("not-subscribed");
@@ -57,15 +72,30 @@ export function PushNotificationToggle() {
         return;
       }
 
-      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-      if (!vapidKey) throw new Error("Falta la llave VAPID pública en el entorno.");
+      // 2. Get SW registration (with timeout — prevents infinite hang)
+      const reg = await getSwRegistration();
+      if (!reg) {
+        setState("not-subscribed");
+        toast.error(
+          "El Service Worker no está disponible. Las notificaciones push requieren el build de producción. " +
+          "Si estás en producción, recarga la página e intenta de nuevo.",
+        );
+        return;
+      }
 
-      const reg = await navigator.serviceWorker.ready;
+      // 3. Check VAPID key
+      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+      if (!vapidKey) {
+        throw new Error("Falta la llave VAPID pública (NEXT_PUBLIC_VAPID_PUBLIC_KEY) en el entorno.");
+      }
+
+      // 4. Subscribe to push
       const subscription = await reg.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(vapidKey),
       });
 
+      // 5. Save subscription to Supabase
       const json = subscription.toJSON();
       const res = await fetch("/api/push/subscribe", {
         method: "POST",
@@ -79,14 +109,14 @@ export function PushNotificationToggle() {
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error ?? "Error al guardar la suscripción.");
+        throw new Error((data as { error?: string }).error ?? "Error al guardar la suscripción.");
       }
 
       setState("subscribed");
       toast.success("¡Notificaciones activadas! Recibirás recordatorios de seguimiento.");
 
-      // Enviar notificación de confirmación
-      await fetch("/api/push/send", {
+      // 6. Send a confirmation push (fire-and-forget — don't block on error)
+      fetch("/api/push/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -94,7 +124,7 @@ export function PushNotificationToggle() {
           body: "Recibirás un aviso cuando un seguimiento venza hoy.",
           url: "/pacientes",
         }),
-      });
+      }).catch(() => undefined);
     } catch (err) {
       setState("not-subscribed");
       const message = err instanceof Error ? err.message : "Error desconocido";
@@ -105,16 +135,19 @@ export function PushNotificationToggle() {
   const handleUnsubscribe = useCallback(async () => {
     setState("loading");
     try {
-      const reg = await navigator.serviceWorker.ready;
-      const sub = await reg.pushManager.getSubscription();
-      if (sub) {
-        const endpoint = sub.endpoint;
-        await sub.unsubscribe();
-        await fetch("/api/push/subscribe", {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ endpoint }),
-        });
+      const reg = await getSwRegistration();
+      if (reg) {
+        const sub = await reg.pushManager.getSubscription();
+        if (sub) {
+          const endpoint = sub.endpoint;
+          await sub.unsubscribe();
+          // Remove from Supabase (fire-and-forget — local unsubscribe already done)
+          fetch("/api/push/subscribe", {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ endpoint }),
+          }).catch(() => undefined);
+        }
       }
       setState("not-subscribed");
       toast.success("Notificaciones desactivadas en este dispositivo.");
