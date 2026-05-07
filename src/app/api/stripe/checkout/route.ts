@@ -2,17 +2,12 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { serverEnv } from "@/lib/env";
 
 export const dynamic = "force-dynamic";
 
 function getStripe() {
-  const key = process.env.STRIPE_SECRET_KEY;
-  if (!key) {
-    throw new Error(
-      "Missing env var: STRIPE_SECRET_KEY is required for Stripe checkout."
-    );
-  }
-  return new Stripe(key, { apiVersion: "2026-04-22.dahlia" });
+  return new Stripe(serverEnv.STRIPE_SECRET_KEY, { apiVersion: "2026-04-22.dahlia" });
 }
 
 export async function POST(req: Request) {
@@ -43,6 +38,20 @@ export async function POST(req: Request) {
 
     if (!user) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+
+    // Rate limit: 5 checkout attempts per user per minute
+    const { data: allowed } = await supabase.rpc("claim_api_rate_limit", {
+      p_scope: "stripe-checkout",
+      p_identifier: user.id,
+      p_window_seconds: 60,
+      p_max_requests: 5,
+    });
+    if (!allowed) {
+      return NextResponse.json(
+        { error: "Demasiadas solicitudes. Intenta en un momento." },
+        { status: 429 },
+      );
     }
 
     const { priceId } = await req.json();

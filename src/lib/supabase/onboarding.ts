@@ -120,19 +120,14 @@ export async function saveOnboardingProfile(profile: DoctorOnboardingProfile) {
 
   try {
     if (clinicId && data.user) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase.rpc as any)("log_audit_event", {
+      await supabase.rpc("log_audit_event", {
         p_clinic_id: clinicId,
         p_doctor_id: data.user.id,
         p_event_type: "update",
         p_resource_type: "onboarding",
         p_resource_id: data.user.id,
-        p_changes: {
-          onboarding_profile: normalizedProfile,
-        },
-        p_metadata: {
-          source: "onboarding_form",
-        },
+        p_changes: { onboarding_profile: normalizedProfile } as unknown as import("@/types/supabase.types").Json,
+        p_metadata: { source: "onboarding_form" } as unknown as import("@/types/supabase.types").Json,
       });
     }
   } catch {

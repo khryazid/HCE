@@ -9,20 +9,20 @@ Esta es la lista ordenada de lo que trabajamos en la próxima sesión, en priori
 
 ### 🔴 Prioridad Alta (hacer primero)
 
-- [ ] **BUG-01** — Eliminar `as any` residual en `profile.ts:110`  
-  Verificar si el insert de `profiles` ya pasa TS sin el cast (los tipos ya son v14.5).  
-  _Archivo:_ `src/lib/supabase/profile.ts`
+- [x] **BUG-01** — Eliminar `as any` residual en `profile.ts:110` ✅  
+  Tipos v14.5 aceptan el insert sin cast. `satisfies ProfileInsert` garantiza la forma.
 
-- [ ] **BUG-04** — Eliminar `as any` en `onboarding.ts:124`  
-  El call a `supabase.rpc("log_audit_event", ...)` debería estar tipado ahora que los tipos están regenerados.  
-  _Archivo:_ `src/lib/supabase/onboarding.ts`
+- [x] **BUG-04** — Eliminar `as any` en `onboarding.ts:124` ✅  
+  `supabase.rpc("log_audit_event")` ahora tipado correctamente con los tipos regenerados.  
+  Bonus: también eliminado el `as any` de `cie-rate-limit.ts` (`claim_api_rate_limit`).
 
-- [ ] **M-04** — Validación de variables de entorno al arrancar  
-  Crear `src/lib/env.ts` que valide en build/runtime que todas las vars críticas están presentes.  
-  Sin esto, un error de configuración en Vercel se descubre tarde (cuando un usuario activa una feature).
+- [x] **M-04** — Validación de variables de entorno al arrancar ✅  
+  `src/lib/env.ts` creado con `serverEnv` (getters lazy, errores descriptivos).  
+  Integrado en `stripe/webhook`, `stripe/checkout`, `push/send`.
 
-- [ ] **M-03** — Rate limiting en rutas `/api/stripe/*` y `/api/push/send`  
-  Actualmente solo `/api/cie-suggestions` tiene protección. Las demás rutas pueden ser abusadas.
+- [x] **M-03** — Rate limiting en rutas `/api/stripe/*` y `/api/push/send` ✅  
+  `/api/stripe/checkout`: 5 requests/min por usuario.  
+  `/api/push/send`: 10 requests/min por usuario (cron jobs exentos por `x-push-secret`).
 
 ### 🟡 Prioridad Media (siguiente bloque)
 

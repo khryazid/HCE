@@ -102,12 +102,8 @@ export async function ensureTenantProfile(
 
   const supabase = getSupabaseClient();
 
-  // NOTE: `as any` below is intentional. The Supabase type generator emits
-  // `never` for Insert on tables with PostgrestVersion "12" and empty Relationships[].
-  // This is a known bug in @supabase/supabase-js type output. The shape is safe:
-  // it's validated by the ProfileInsert type defined above.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase.from("profiles") as any)
+  const { data, error } = await supabase
+    .from("profiles")
     .insert({
       doctor_id: input.userId,
       clinic_id: clinicId,

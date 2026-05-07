@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import webpush from "web-push";
 import type { Database } from "@/types/supabase.types";
+import { serverEnv } from "@/lib/env";
 
 type PushSubscriptionRow =
   Database["public"]["Tables"]["push_subscriptions"]["Row"];
@@ -13,31 +14,43 @@ function isWebPushError(err: unknown): err is WebPushError {
   return typeof err === "object" && err !== null && "statusCode" in err;
 }
 
+// Rate limit: 10 push requests per user per minute (abuse protection)
+const PUSH_RATE_LIMIT = 10;
+const PUSH_RATE_WINDOW = 60;
+
 export async function POST(req: Request) {
   try {
-    // Configuration inside handler to prevent build errors in CI
-    const vapidMailto = process.env.VAPID_MAILTO ?? "mailto:admin@hce-app.com";
-    if (!process.env.VAPID_MAILTO) {
-      console.warn("[push:send] VAPID_MAILTO env var not set, using default. Set it in .env.local.");
-    }
     webpush.setVapidDetails(
-      vapidMailto,
+      serverEnv.VAPID_MAILTO,
       process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-      process.env.VAPID_PRIVATE_KEY!
+      serverEnv.VAPID_PRIVATE_KEY,
     );
 
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
     // Auth: Accept EITHER a logged-in user OR a trusted system secret header.
-    // The secret header allows Supabase Webhooks / Cron Jobs to trigger push
-    // notifications without a user session. Set PUSH_SEND_SECRET in .env.local.
-    const pushSecret = process.env.PUSH_SEND_SECRET;
     const incomingSecret = req.headers.get("x-push-secret");
-    const isSystemRequest = pushSecret && incomingSecret === pushSecret;
+    const isSystemRequest = incomingSecret === serverEnv.PUSH_SEND_SECRET;
 
     if (!user && !isSystemRequest) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+
+    // Rate limit per user (skip for cron/system requests — they're already authenticated by secret)
+    if (user && !isSystemRequest) {
+      const { data: allowed } = await supabase.rpc("claim_api_rate_limit", {
+        p_scope: "push-send",
+        p_identifier: user.id,
+        p_window_seconds: PUSH_RATE_WINDOW,
+        p_max_requests: PUSH_RATE_LIMIT,
+      });
+      if (!allowed) {
+        return NextResponse.json(
+          { error: "Demasiadas solicitudes. Intenta en un momento." },
+          { status: 429 },
+        );
+      }
     }
 
     const body = await req.json() as {

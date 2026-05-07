@@ -1,20 +1,15 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
+import { serverEnv } from "@/lib/env";
 
 export const dynamic = "force-dynamic";
 
 function getStripe() {
-  const key = process.env.STRIPE_SECRET_KEY;
-  if (!key) {
-    throw new Error(
-      "Missing env var: STRIPE_SECRET_KEY is required for Stripe webhooks."
-    );
-  }
-  return new Stripe(key, { apiVersion: "2026-04-22.dahlia" });
+  return new Stripe(serverEnv.STRIPE_SECRET_KEY, { apiVersion: "2026-04-22.dahlia" });
 }
 
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
+const getWebhookSecret = () => serverEnv.STRIPE_WEBHOOK_SECRET;
 
 export async function POST(req: Request) {
   const body = await req.text();
@@ -27,7 +22,7 @@ export async function POST(req: Request) {
   let event: Stripe.Event;
 
   try {
-    event = getStripe().webhooks.constructEvent(body, signature, webhookSecret);
+    event = getStripe().webhooks.constructEvent(body, signature, getWebhookSecret());
   } catch (err) {
     console.error("Webhook signature verification failed:", err);
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
@@ -36,7 +31,7 @@ export async function POST(req: Request) {
   // Use service role to bypass RLS and update subscription status
   const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
+    serverEnv.SUPABASE_SERVICE_ROLE_KEY
   );
 
   try {
