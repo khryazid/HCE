@@ -7,7 +7,8 @@ import {
   buildConsultationSuccessMessage,
 } from "@/features/consultations/lib/wizard-payload";
 import { persistConsultationLocally } from "@/features/consultations/lib/consultation-persistence";
-import { loadLetterheadSettings } from "@/features/dashboard/lib/letterhead";
+import { buildLetterheadFromSession } from "@/features/dashboard/lib/letterhead";
+import { getSupabaseClient } from "@/lib/supabase/client";
 import { APP_EVENT_CONSULTATION_SAVED, emitAppEvent } from "@/lib/observability/app-events";
 import { trackUsage } from "@/lib/observability/usage-tracker";
 import type { TenantProfile } from "@/lib/supabase/profile";
@@ -135,7 +136,14 @@ export function useConsultationSave() {
       // --- PDF (opcional) ---
       const shouldGeneratePdf = options.generatePdf ?? false;
       if (shouldGeneratePdf) {
-        const letterhead = loadLetterheadSettings(tenant.doctor_id, tenant.clinic_id);
+        const supabase = getSupabaseClient();
+        const { data: { session } } = await supabase.auth.getSession();
+        const letterhead = buildLetterheadFromSession(
+          tenant.doctor_id,
+          tenant.clinic_id,
+          session?.user?.user_metadata ?? {},
+          tenant.specialties,
+        );
         await generateConsultationPdf(letterhead, buildPdfPreviewData(timestamp));
       }
 

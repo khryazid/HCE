@@ -1,136 +1,159 @@
 "use client";
 
-import { useState, useEffect } from "react";
+/**
+ * push-notification-toggle.tsx
+ *
+ * Toggle de notificaciones push para la página /ajustes.
+ * Gestiona el ciclo completo: suscripción, test de confirmación y desuscripción.
+ */
+
+import { useState, useEffect, useCallback } from "react";
 import { useTenant } from "@/lib/supabase/tenant-context";
 import { Button } from "@/components/ui/button";
-import { Bell, BellOff } from "lucide-react";
+import { Bell, BellOff, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding)
-    .replace(/\-/g, "+")
-    .replace(/_/g, "/");
-
-  const rawData = window.atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
-
-  for (let i = 0; i < rawData.length; ++i) {
-    outputArray[i] = rawData.charCodeAt(i);
-  }
-  return outputArray;
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = atob(base64);
+  return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)));
 }
+
+type PushState = "unsupported" | "loading" | "not-subscribed" | "subscribed";
 
 export function PushNotificationToggle() {
   const { tenant } = useTenant();
-  const [isSubscribed, setIsSubscribed] = useState(false);
-  const [isSupported, setIsSupported] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [state, setState] = useState<PushState>("loading");
 
   useEffect(() => {
-    if ("serviceWorker" in navigator && "PushManager" in window) {
-      setIsSupported(true);
-      navigator.serviceWorker.ready.then((reg) => {
-        reg.pushManager.getSubscription().then((sub) => {
-          if (sub) {
-            setIsSubscribed(true);
-          }
-          setLoading(false);
-        });
-      });
-    } else {
-      setLoading(false);
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+      setState("unsupported");
+      return;
     }
+
+    navigator.serviceWorker.ready
+      .then((reg) => reg.pushManager.getSubscription())
+      .then((sub) => setState(sub ? "subscribed" : "not-subscribed"))
+      .catch(() => setState("not-subscribed"));
   }, []);
 
-  const subscribeToPush = async () => {
+  const handleSubscribe = useCallback(async () => {
     if (!tenant) return;
-    setLoading(true);
+    setState("loading");
+
     try {
-      const reg = await navigator.serviceWorker.ready;
-      
       const permission = await Notification.requestPermission();
       if (permission !== "granted") {
-        toast.error("Permiso de notificaciones denegado.");
-        setLoading(false);
+        setState("not-subscribed");
+        toast.error("Permiso de notificaciones denegado. Habilítalo en la configuración del navegador.");
         return;
       }
 
-      const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-      if (!vapidPublicKey) {
-        throw new Error("Falta la llave VAPID pública en el entorno.");
-      }
+      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+      if (!vapidKey) throw new Error("Falta la llave VAPID pública en el entorno.");
 
-      const convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey);
-
+      const reg = await navigator.serviceWorker.ready;
       const subscription = await reg.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: convertedVapidKey,
+        applicationServerKey: urlBase64ToUint8Array(vapidKey),
       });
 
-      // Send to server
-      const response = await fetch("/api/push/subscribe", {
+      const json = subscription.toJSON();
+      const res = await fetch("/api/push/subscribe", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          endpoint: subscription.endpoint,
-          keys: {
-            p256dh: subscription.toJSON().keys?.p256dh,
-            auth: subscription.toJSON().keys?.auth,
-          },
+          endpoint: json.endpoint,
+          keys: { p256dh: json.keys?.p256dh, auth: json.keys?.auth },
           clinic_id: tenant.clinic_id,
         }),
       });
 
-      if (!response.ok) throw new Error("Error al guardar la suscripción en el servidor");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? "Error al guardar la suscripción.");
+      }
 
-      setIsSubscribed(true);
-      toast.success("¡Notificaciones activadas en este dispositivo!");
+      setState("subscribed");
+      toast.success("¡Notificaciones activadas! Recibirás recordatorios de seguimiento.");
 
-      // Optional: Send a test notification
+      // Enviar notificación de confirmación
       await fetch("/api/push/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          title: "¡Conectado!",
-          body: "Recibirás recordatorios de pacientes aquí.",
-        })
+          title: "Glyph — Notificaciones activas ✓",
+          body: "Recibirás un aviso cuando un seguimiento venza hoy.",
+          url: "/pacientes",
+        }),
       });
-
     } catch (err) {
-      console.error(err);
+      setState("not-subscribed");
       const message = err instanceof Error ? err.message : "Error desconocido";
-      toast.error("No se pudo activar las notificaciones: " + message);
-    } finally {
-      setLoading(false);
+      toast.error("No se pudo activar: " + message);
     }
-  };
+  }, [tenant]);
 
-  if (!isSupported) {
-    return <p className="text-sm text-amber-600">Las notificaciones Push no están soportadas en este navegador o modo incógnito.</p>;
+  const handleUnsubscribe = useCallback(async () => {
+    setState("loading");
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      if (sub) {
+        const endpoint = sub.endpoint;
+        await sub.unsubscribe();
+        await fetch("/api/push/subscribe", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ endpoint }),
+        });
+      }
+      setState("not-subscribed");
+      toast.success("Notificaciones desactivadas en este dispositivo.");
+    } catch {
+      setState("subscribed");
+      toast.error("No se pudo desactivar. Intenta de nuevo.");
+    }
+  }, []);
+
+  if (state === "unsupported") {
+    return (
+      <p className="text-sm text-amber-600">
+        Las notificaciones push no están soportadas en este navegador o modo incógnito.
+      </p>
+    );
   }
 
+  const isLoading = state === "loading";
+  const isSubscribed = state === "subscribed";
+
   return (
-    <div className="flex items-center justify-between p-4 bg-muted/30 rounded-xl border border-border">
+    <div className="flex items-center justify-between gap-4 rounded-xl border border-border bg-muted/30 p-4">
       <div>
         <h4 className="font-medium text-ink">Notificaciones en este dispositivo</h4>
-        <p className="text-sm text-ink-soft">Recibe alertas de turnos y próximos controles directamente en tu pantalla.</p>
+        <p className="text-sm text-ink-soft">
+          Recibe recordatorios de seguimientos vencidos directamente en tu pantalla o dispositivo.
+        </p>
       </div>
-      <Button 
-        variant={isSubscribed ? "secondary" : "default"} 
-        onClick={subscribeToPush}
-        disabled={loading || isSubscribed}
+
+      <Button
+        id="push-toggle-btn"
+        variant={isSubscribed ? "secondary" : "default"}
+        onClick={isSubscribed ? handleUnsubscribe : handleSubscribe}
+        disabled={isLoading}
+        className="shrink-0"
       >
-        {isSubscribed ? (
+        {isLoading ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : isSubscribed ? (
           <>
-            <Bell className="w-4 h-4 mr-2 text-emerald-600" />
-            Activadas
+            <Bell className="mr-2 h-4 w-4 text-emerald-600" />
+            Activadas — Desactivar
           </>
         ) : (
           <>
-            <BellOff className="w-4 h-4 mr-2" />
+            <BellOff className="mr-2 h-4 w-4" />
             Activar Notificaciones
           </>
         )}

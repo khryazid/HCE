@@ -12,7 +12,8 @@ import Link from "next/link";
 import { formatDate, formatDateTime } from "@/lib/ui/format-date";
 import { generateConsultationPdf } from "@/features/consultations/lib/pdf";
 import { trackUsage } from "@/lib/observability/usage-tracker";
-import { loadLetterheadSettings } from "@/features/dashboard/lib/letterhead";
+import { buildLetterheadFromSession } from "@/features/dashboard/lib/letterhead";
+import { getSupabaseClient } from "@/lib/supabase/client";
 import { getNextFollowUpDate, isFollowUpOverdue } from "@/features/consultations/lib/follow-up";
 import {
   EmptyState,
@@ -302,9 +303,13 @@ export function PatientHistoryTimeline({
                         type="button"
                         onClick={async () => {
                           if (!tenant || !selectedPatient) return;
-                          const letterhead = loadLetterheadSettings(
+                          const supabase = getSupabaseClient();
+                          const { data: { session } } = await supabase.auth.getSession();
+                          const letterhead = buildLetterheadFromSession(
                             tenant.doctor_id,
                             tenant.clinic_id,
+                            session?.user?.user_metadata ?? {},
+                            tenant.specialties,
                           );
                           await generateConsultationPdf(letterhead, {
                             patientName: selectedPatient.full_name,

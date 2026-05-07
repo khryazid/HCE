@@ -26,13 +26,16 @@ Esta es la lista ordenada de lo que trabajamos en la próxima sesión, en priori
 
 ### 🟡 Prioridad Media (siguiente bloque)
 
-- [ ] **F-02** — PDF con membrete y firma del doctor  
-  Es el producto tangible que el médico entrega al paciente. Datos del `onboarding_profile` ya están guardados en `user_metadata`.  
-  _Archivos afectados:_ generador de PDF en `features/consultations/`
+- [x] **F-02** — PDF con membrete y firma del doctor ✅  
+  `buildLetterheadFromSession` en `letterhead.ts`: combina localStorage + `onboarding_profile` como fallback.  
+  Conectado en `use-consultation-save.ts` y `PatientHistoryTimeline.tsx`. El PDF ahora se genera correctamente en cualquier dispositivo.
 
-- [ ] **F-04** — Conectar notificaciones push con `follow_up_tasks`  
-  La infraestructura ya existe (VAPID, endpoint, tabla). Solo falta el cron job en Supabase y la UI de activación.  
-  _Ver:_ `docs/SUPABASE_MIGRATIONS.md` para el cron job SQL
+- [x] **F-04** — Conectar notificaciones push con `follow_up_tasks` ✅  
+  - `push-notification-toggle.tsx` reescrito: suscripción + desuscripción + notificación de confirmación.  
+  - `DELETE /api/push/subscribe` implementado para limpiar el endpoint de la BD.  
+  - Cron job SQL `send_followup_push_daily` (8am UTC) en el schema.  
+  - Funciones `send_followup_push_notifications` y `notify_followup_due_today` en Postgres.  
+  - Bonus: eliminado el último `as any` en `push/subscribe`.
 
 - [ ] **F-03** — Panel Admin: gestión completa de suscripciones  
   Buscar usuarios, cambiar `subscription_status`, extender trial, asignar `lifetime`.  

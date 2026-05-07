@@ -39,12 +39,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "clinic_id no autorizado" }, { status: 403 });
     }
 
-    // NOTE: `as any` below is intentional. The Supabase type generator emits
-    // `never` for Insert/Upsert on tables with PostgrestVersion "12" and empty
-    // Relationships[]. This is a known bug in @supabase/supabase-js type output.
-    // The cast is safe: the object shape is validated by PushSubscriptionInsert above.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabase.from("push_subscriptions") as any)
+    const { error } = await supabase
+      .from("push_subscriptions")
       .upsert(
         {
           doctor_id: user.id,
@@ -64,6 +60,40 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error("Subscribe Error:", err);
+    return NextResponse.json({ error: "Error desconocido" }, { status: 500 });
+  }
+}
+
+/** DELETE /api/push/subscribe — Remove a push subscription from the DB. */
+export async function DELETE(req: Request) {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+
+    const body = await req.json();
+    const { endpoint } = body as { endpoint?: string };
+
+    if (!endpoint) {
+      return NextResponse.json({ error: "endpoint requerido" }, { status: 400 });
+    }
+
+    const { error } = await supabase
+      .from("push_subscriptions")
+      .delete()
+      .eq("doctor_id", user.id)
+      .eq("endpoint", endpoint);
+
+    if (error) {
+      return NextResponse.json({ error: "Error al eliminar suscripcion" }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error("Unsubscribe Error:", err);
     return NextResponse.json({ error: "Error desconocido" }, { status: 500 });
   }
 }

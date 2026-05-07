@@ -671,4 +671,95 @@ select cron.schedule(
   $$refresh materialized view public.mv_dashboard_kpis_daily$$
 );
 
+-- ── Notificaciones push de seguimientos vencidos ─────────────────────────────
+-- Dispara a las 8:00am UTC cada día.
+-- Para cada doctor que tenga suscripciones push activas Y tenga al menos un
+-- follow_up_task con due_date = hoy, llama a /api/push/send vía pg_net.
+--
+-- REQUISITO: activar pg_net en Supabase (extensiones) y configurar:
+--   1. PUSH_SEND_SECRET  → debe ser el mismo valor que en las variables de Vercel.
+--   2. La URL del endpoint debe coincidir con NEXT_PUBLIC_SITE_URL.
+--
+-- IMPORTANTE: Este cron job NO expone datos clínicos en el payload push.
+--   Solo envía "Tienes X seguimiento(s) para hoy" — el doctor abre la app para ver el detalle.
+
+create extension if not exists "pg_net" with schema "extensions";
+
+-- Función auxiliar: envía push para un doctor específico si tiene seguimientos hoy
+create or replace function public.notify_followup_due_today(
+  p_doctor_id    uuid,
+  p_due_count    integer,
+  p_site_url     text,
+  p_push_secret  text
+) returns void language plpgsql security definer as $$
+begin
+  perform extensions.http_post(
+    url     := p_site_url || '/api/push/send',
+    body    := jsonb_build_object(
+                 'target_doctor_id', p_doctor_id::text,
+                 'title', 'Glyph — Seguimientos para hoy',
+                 'body',  'Tienes ' || p_due_count || ' seguimiento(s) que vence(n) hoy.',
+                 'url',   '/pacientes'
+               )::text,
+    params  := '{}'::extensions.http_header[],
+    headers := ARRAY[
+      extensions.http_header('Content-Type', 'application/json'),
+      extensions.http_header('x-push-secret', p_push_secret)
+    ]
+  );
+end;
+$$;
+
+-- Wrapper que itera sobre todos los doctores con seguimientos hoy
+create or replace function public.send_followup_push_notifications() returns void
+language plpgsql security definer as $$
+declare
+  v_site_url    text := current_setting('app.site_url', true);
+  v_push_secret text := current_setting('app.push_send_secret', true);
+  r record;
+begin
+  -- Solo ejecutar si las vars están configuradas
+  if v_site_url is null or v_push_secret is null then
+    raise warning '[push_cron] app.site_url o app.push_send_secret no configurados. Saltando notificaciones.';
+    return;
+  end if;
+
+  for r in
+    select
+      ft.doctor_id,
+      count(*) as due_count
+    from public.follow_up_tasks ft
+    -- Solo doctores con al menos una suscripción push activa
+    inner join public.push_subscriptions ps on ps.doctor_id = ft.doctor_id
+    where ft.due_date = current_date
+      and ft.status = 'pending'
+    group by ft.doctor_id
+  loop
+    perform public.notify_followup_due_today(
+      r.doctor_id,
+      r.due_count::integer,
+      v_site_url,
+      v_push_secret
+    );
+  end loop;
+end;
+$$;
+
+-- Programa el cron job a las 8:00am UTC (ajusta la hora según tu zona horaria objetivo)
+select cron.schedule(
+  'send_followup_push_daily',
+  '0 8 * * *',
+  $$select public.send_followup_push_notifications()$$
+);
+
+-- ── Instrucciones para configurar las variables de la función ─────────────────
+-- Ejecuta estos comandos UNA VEZ en el SQL Editor de Supabase (como superuser):
+--
+--   alter database postgres set app.site_url = 'https://tu-dominio.vercel.app';
+--   alter database postgres set app.push_send_secret = 'tu_push_send_secret_aqui';
+--
+-- Reemplaza los valores con tus datos reales. Estos valores son equivalentes a
+-- las variables de entorno NEXT_PUBLIC_SITE_URL y PUSH_SEND_SECRET de Vercel.
+-- ─────────────────────────────────────────────────────────────────────────────
+
 commit;
