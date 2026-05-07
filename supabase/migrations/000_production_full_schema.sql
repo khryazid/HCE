@@ -673,19 +673,18 @@ select cron.schedule(
 
 -- ── Notificaciones push de seguimientos vencidos ─────────────────────────────
 -- Dispara a las 8:00am UTC cada día.
--- Para cada doctor que tenga suscripciones push activas Y tenga al menos un
--- follow_up_task con due_date = hoy, llama a /api/push/send vía pg_net.
+-- Para cada doctor con suscripciones push activas y seguimientos pendientes hoy,
+-- llama a /api/push/send vía pg_net con el secreto almacenado en app_config.
 --
--- REQUISITO: activar pg_net en Supabase (extensiones) y configurar:
---   1. PUSH_SEND_SECRET  → debe ser el mismo valor que en las variables de Vercel.
---   2. La URL del endpoint debe coincidir con NEXT_PUBLIC_SITE_URL.
+-- NO requiere ALTER DATABASE ni permisos de superusuario.
+-- Los valores se guardan en la tabla public.app_config (ver sección 8).
 --
 -- IMPORTANTE: Este cron job NO expone datos clínicos en el payload push.
---   Solo envía "Tienes X seguimiento(s) para hoy" — el doctor abre la app para ver el detalle.
+--   Solo envía "Tienes X seguimiento(s) para hoy" — el doctor abre la app para el detalle.
 
 create extension if not exists "pg_net" with schema "extensions";
 
--- Función auxiliar: envía push para un doctor específico si tiene seguimientos hoy
+-- Función auxiliar: envía push para un doctor específico con sus seguimientos de hoy
 create or replace function public.notify_followup_due_today(
   p_doctor_id    uuid,
   p_due_count    integer,
@@ -710,17 +709,22 @@ begin
 end;
 $$;
 
--- Wrapper que itera sobre todos los doctores con seguimientos hoy
+-- Wrapper que itera sobre todos los doctores con seguimientos hoy.
+-- Lee app.site_url y app.push_send_secret desde public.app_config.
 create or replace function public.send_followup_push_notifications() returns void
 language plpgsql security definer as $$
 declare
-  v_site_url    text := current_setting('app.site_url', true);
-  v_push_secret text := current_setting('app.push_send_secret', true);
+  v_site_url    text;
+  v_push_secret text;
   r record;
 begin
-  -- Solo ejecutar si las vars están configuradas
-  if v_site_url is null or v_push_secret is null then
-    raise warning '[push_cron] app.site_url o app.push_send_secret no configurados. Saltando notificaciones.';
+  -- Leer configuración desde la tabla app_config (no requiere superusuario)
+  select value into v_site_url    from public.app_config where key = 'site_url';
+  select value into v_push_secret from public.app_config where key = 'push_send_secret';
+
+  if v_site_url is null or v_push_secret is null
+     or v_site_url like 'REEMPLAZAR%' or v_push_secret like 'REEMPLAZAR%' then
+    raise warning '[push_cron] app_config no configurada. Ejecuta la sección 8 del SQL con tus valores reales.';
     return;
   end if;
 
@@ -729,10 +733,9 @@ begin
       ft.doctor_id,
       count(*) as due_count
     from public.follow_up_tasks ft
-    -- Solo doctores con al menos una suscripción push activa
     inner join public.push_subscriptions ps on ps.doctor_id = ft.doctor_id
     where ft.due_date = current_date
-      and ft.status = 'pending'
+      and ft.status   = 'pending'
     group by ft.doctor_id
   loop
     perform public.notify_followup_due_today(
@@ -745,7 +748,7 @@ begin
 end;
 $$;
 
--- Programa el cron job a las 8:00am UTC (ajusta la hora según tu zona horaria objetivo)
+-- Programa el cron job a las 8:00am UTC
 select cron.schedule(
   'send_followup_push_daily',
   '0 8 * * *',
@@ -753,26 +756,37 @@ select cron.schedule(
 );
 
 -- ════════════════════════════════════════════════════════════
--- 8. VARIABLES DE CONFIGURACIÓN DE LA BASE DE DATOS
+-- 8. CONFIGURACIÓN DE APP (tabla — sin privilegios especiales)
 -- ════════════════════════════════════════════════════════════
 --
--- Estas variables son leídas por send_followup_push_notifications()
--- para llamar al endpoint de push notifications vía pg_net.
+-- Tabla de configuración leída por las funciones de cron.
+-- No requiere ALTER DATABASE ni superusuario — cualquier rol con
+-- acceso al SQL Editor de Supabase puede hacer INSERT/UPDATE aquí.
 --
--- ⚠️  ANTES DE EJECUTAR: reemplaza los valores placeholder
---     con tus datos reales de producción.
+-- ⚠️  ANTES DE EJECUTAR ESTE BLOQUE:
+--     Reemplaza los dos valores 'REEMPLAZAR_*' con tus datos reales:
 --
---     app.site_url        → tu URL de Vercel (NEXT_PUBLIC_SITE_URL)
---     app.push_send_secret → secreto para el cron (PUSH_SEND_SECRET)
---
--- Si los valores quedan como placeholder, el cron job simplemente
--- no enviará notificaciones (emitirá un WARNING en los logs de Supabase).
+--     site_url         → tu URL de Vercel  (= NEXT_PUBLIC_SITE_URL en .env)
+--     push_send_secret → secreto del cron  (= PUSH_SEND_SECRET en Vercel)
 
-alter database postgres set app.site_url         = 'REEMPLAZAR_CON_TU_URL_VERCEL';
-alter database postgres set app.push_send_secret = 'REEMPLAZAR_CON_TU_PUSH_SEND_SECRET';
+create table if not exists public.app_config (
+  key        text primary key,
+  value      text not null,
+  updated_at timestamptz not null default now()
+);
 
--- Para verificar que se aplicaron correctamente:
---   select current_setting('app.site_url', true);
---   select current_setting('app.push_send_secret', true);
+-- Solo el service role puede leer esta tabla (contiene secretos)
+alter table public.app_config enable row level security;
+-- Sin policies públicas → solo service_role y funciones SECURITY DEFINER acceden
+
+-- Inserta o actualiza los valores de configuración
+insert into public.app_config (key, value) values
+  ('site_url',         'REEMPLAZAR_CON_TU_URL_VERCEL'),
+  ('push_send_secret', 'REEMPLAZAR_CON_TU_PUSH_SEND_SECRET')
+on conflict (key) do update
+  set value = excluded.value, updated_at = now();
+
+-- Para verificar que se guardaron correctamente (ejecutar desde SQL Editor):
+--   select key, value from public.app_config;
 
 commit;
