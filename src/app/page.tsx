@@ -156,7 +156,7 @@ export default function Home() {
           {/* CTAs */}
           <div className="l-hero-actions">
             <Link href="/registro" className="l-btn-hero">
-              Empezar gratis
+              Crear cuenta
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
                 <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
@@ -165,7 +165,7 @@ export default function Home() {
           </div>
 
           {/* Trust note */}
-          <p className="l-hero-note">Sin tarjeta de crédito · Configuración en 2 minutos</p>
+          <p className="l-hero-note">Configuración en 2 minutos · Cancela cuando quieras</p>
 
           {/* Stats bar */}
           <div className="l-hero-stats" role="list" aria-label="Métricas clave">
@@ -258,7 +258,7 @@ export default function Home() {
                 <div className="l-card-icon" aria-hidden>🔐</div>
                 <h3 id="feat-security" className="l-card-title">Seguridad multi-tenant</h3>
                 <p className="l-card-body">
-                  RLS en todas las tablas. PHI cifrado en dispositivo.
+                  RLS en todas las tablas. Datos clínicos aislados por tenant.
                   Logs de auditoría con hash criptográfico encadenado.
                 </p>
               </article>
@@ -381,7 +381,7 @@ export default function Home() {
                 Planes simples,<br /><em>sin sorpresas</em>
               </h2>
               <p className="l-section-body reveal" style={{margin:"12px auto 0", textAlign:"center"}}>
-                Empezá gratis. Escalá cuando lo necesites.
+                Un plan claro. Paga solo lo que usas.
               </p>
             </div>
 
@@ -410,7 +410,7 @@ export default function Home() {
                   className="l-btn-hero"
                   style={{width:"100%", marginTop:"32px", justifyContent:"center"}}
                 >
-                  Comenzar prueba gratis
+                  Comenzar ahora
                 </Link>
               </article>
 
@@ -423,7 +423,6 @@ export default function Home() {
                   {[
                     "Todo lo del plan Profesional",
                     "Múltiples doctores",
-                    "Roles de asistente",
                     "Reportes consolidados",
                     "Soporte prioritario",
                   ].map((f) => (
@@ -451,7 +450,7 @@ export default function Home() {
           <div className="l-cta-box reveal">
             <h2 className="l-cta-title">
               Digitaliza tu consultorio.<br />
-              Empezá <em>hoy</em>, gratis.
+              Empieza <em>hoy</em>.
             </h2>
             <p className="l-cta-body">
               Únete a los médicos que ya reducen el tiempo de documentación
@@ -459,7 +458,7 @@ export default function Home() {
             </p>
             <div className="l-cta-actions">
               <Link href="/registro" className="l-btn-hero">
-                Crear cuenta gratis
+                Crear cuenta
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
                   <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>

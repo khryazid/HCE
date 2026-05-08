@@ -6,16 +6,16 @@ import { AuthRouteShell } from "@/features/auth/components/auth-route-shell";
 export const metadata: Metadata = {
   title: "Crear cuenta — Glyph",
   description:
-    "Crea tu cuenta en Glyph y empieza a gestionar tu historia clínica electrónica. Configuración en 2 minutos, sin tarjeta de crédito.",
+    "Crea tu cuenta en Glyph y empieza a gestionar tu historia clínica electrónica. Configuración en 2 minutos.",
 };
 
 export default function RegisterPage() {
   return (
     <AuthRouteShell
       variant="register"
-      kicker="Glyph · Registro gratuito"
+      kicker="Glyph · Crear cuenta"
       title="Digitaliza tu consultorio en menos de 2 minutos."
-      lead="Define tus especialidades, configura tu perfil y empieza a registrar consultas desde el primer día. Sin tarjeta de crédito."
+      lead="Define tus especialidades, configura tu perfil y empieza a registrar consultas desde el primer día."
       highlights={[
         {
           title: "Perfil por médico",
