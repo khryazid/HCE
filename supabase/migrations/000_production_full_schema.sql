@@ -1,40 +1,40 @@
-﻿-- ============================================================
--- HCE Multiespecialidad â€” Schema Completo de ProducciÃ³n
--- VersiÃ³n: 3.0
+-- ============================================================
+-- HCE Multiespecialidad — Schema Completo de Producción
+-- Versión: 3.0
 -- ============================================================
 --
 -- REGLAS DE ESTE ARCHIVO:
---   1. Un solo archivo. Toda la definiciÃ³n de la BD vive aquÃ­.
---      No se crean archivos de migraciÃ³n separados.
---   2. Idempotente. Puede ejecutarse sobre una BD vacÃ­a o ya
+--   1. Un solo archivo. Toda la definición de la BD vive aquí.
+--      No se crean archivos de migración separados.
+--   2. Idempotente. Puede ejecutarse sobre una BD vacía o ya
 --      existente sin romper datos. Usa IF NOT EXISTS / IF EXISTS
---      en tablas, Ã­ndices y triggers; usa CREATE OR REPLACE en
---      funciones; usa DROP IF EXISTS + CREATE en polÃ­ticas RLS.
---   3. Auto-documentado. Cada secciÃ³n tiene un encabezado y
---      cada tabla explica el propÃ³sito de sus columnas.
---   4. Sin magia implÃ­cita. Toda restricciÃ³n, Ã­ndice, trigger
---      y polÃ­tica debe declararse explÃ­citamente aquÃ­.
+--      en tablas, índices y triggers; usa CREATE OR REPLACE en
+--      funciones; usa DROP IF EXISTS + CREATE en políticas RLS.
+--   3. Auto-documentado. Cada sección tiene un encabezado y
+--      cada tabla explica el propósito de sus columnas.
+--   4. Sin magia implícita. Toda restricción, índice, trigger
+--      y política debe declararse explícitamente aquí.
 --
--- CÃ“MO APLICAR:
---   Supabase â†’ SQL Editor â†’ pegar este archivo â†’ Run.
+-- CÓMO APLICAR:
+--   Supabase → SQL Editor → pegar este archivo → Run.
 --   Es seguro re-ejecutarlo en cualquier momento.
 -- ============================================================
 
 begin;
 
--- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+-- ════════════════════════════════════════════════════════════
 -- 0. EXTENSIONES
--- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+-- ════════════════════════════════════════════════════════════
 
 create extension if not exists "pgcrypto";
 
--- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+-- ════════════════════════════════════════════════════════════
 -- 1. TABLAS
--- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+-- ════════════════════════════════════════════════════════════
 
--- â”€â”€ profiles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
--- Una fila por mÃ©dico. doctor_id = auth.uid().
--- clinic_id agrupa mÃ©dicos dentro de una misma clÃ­nica.
+-- ── profiles ─────────────────────────────────────────────────
+-- Una fila por médico. doctor_id = auth.uid().
+-- clinic_id agrupa médicos dentro de una misma clínica.
 -- subscription_status refleja el estado de Stripe o el valor
 -- especial "lifetime" para acceso sin vencimiento.
 create table if not exists public.profiles (
@@ -42,7 +42,7 @@ create table if not exists public.profiles (
   clinic_id               uuid        not null,
   doctor_id               uuid        not null references auth.users (id) on delete cascade,
   full_name               text        not null,
-  -- Array de especialidades mÃ©dicas del doctor (ej. ['medicina-general', 'pediatria'])
+  -- Array de especialidades médicas del doctor (ej. ['medicina-general', 'pediatria'])
   specialty               text[]      not null default '{}',
   stripe_customer_id      text,
   stripe_subscription_id  text,
@@ -54,15 +54,15 @@ create table if not exists public.profiles (
       'incomplete', 'incomplete_expired', 'trialing', 'active',
       'past_due', 'canceled', 'unpaid', 'paused', 'lifetime'
     )),
-  -- NULL = sin vencimiento (lifetime o plan sin fecha lÃ­mite)
+  -- NULL = sin vencimiento (lifetime o plan sin fecha límite)
   subscription_expires_at timestamptz default null,
   created_at              timestamptz not null default now(),
   updated_at              timestamptz not null default now(),
   unique (clinic_id, doctor_id)
 );
 
--- â”€â”€ patients â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
--- Un paciente por document_number dentro de cada clÃ­nica.
+-- ── patients ─────────────────────────────────────────────────
+-- Un paciente por document_number dentro de cada clínica.
 create table if not exists public.patients (
   id              uuid        primary key default gen_random_uuid(),
   clinic_id       uuid        not null,
@@ -77,9 +77,9 @@ create table if not exists public.patients (
   unique (clinic_id, document_number)
 );
 
--- â”€â”€ clinical_records â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- ── clinical_records ─────────────────────────────────────────
 -- Una fila por consulta/seguimiento.
--- specialty_data es JSONB libre para datos especÃ­ficos de cada especialidad.
+-- specialty_data es JSONB libre para datos específicos de cada especialidad.
 create table if not exists public.clinical_records (
   id              uuid        primary key default gen_random_uuid(),
   clinic_id       uuid        not null,
@@ -93,7 +93,7 @@ create table if not exists public.clinical_records (
   updated_at      timestamptz not null default now()
 );
 
--- â”€â”€ specialty_data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- ── specialty_data ───────────────────────────────────────────
 -- Tabla hermana de clinical_records para datos extendidos por especialidad.
 -- Permite queries de reportes sin tener que parsear el JSONB de clinical_records.
 create table if not exists public.specialty_data (
@@ -107,9 +107,9 @@ create table if not exists public.specialty_data (
   updated_at          timestamptz not null default now()
 );
 
--- â”€â”€ audit_logs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- ── audit_logs ───────────────────────────────────────────────
 -- Log inmutable con hashing encadenado (estilo blockchain).
--- RLS bloquea UPDATE y DELETE a nivel de servidor (ver secciÃ³n RLS).
+-- RLS bloquea UPDATE y DELETE a nivel de servidor (ver sección RLS).
 create table if not exists public.audit_logs (
   id            bigint generated always as identity primary key,
   clinic_id     uuid        not null,
@@ -125,7 +125,7 @@ create table if not exists public.audit_logs (
   created_at    timestamptz not null default now()
 );
 
--- â”€â”€ follow_up_tasks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- ── follow_up_tasks ──────────────────────────────────────────
 -- Citas de seguimiento programadas desde el wizard de consulta.
 create table if not exists public.follow_up_tasks (
   id                  uuid        primary key default gen_random_uuid(),
@@ -141,7 +141,7 @@ create table if not exists public.follow_up_tasks (
   updated_at          timestamptz not null default now()
 );
 
--- â”€â”€ api_rate_limits â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- ── api_rate_limits ──────────────────────────────────────────
 -- Contador de rate-limiting por scope+usuario dentro de una ventana de tiempo.
 -- Usado por claim_api_rate_limit() para proteger el endpoint de CIE-AI.
 create table if not exists public.api_rate_limits (
@@ -153,9 +153,9 @@ create table if not exists public.api_rate_limits (
   primary key (scope, identifier)
 );
 
--- â”€â”€ push_subscriptions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- ── push_subscriptions ───────────────────────────────────────
 -- Suscripciones de dispositivos para Web Push Notifications.
--- endpoint es Ãºnico para evitar duplicados por dispositivo.
+-- endpoint es único para evitar duplicados por dispositivo.
 create table if not exists public.push_subscriptions (
   id          uuid        primary key default gen_random_uuid(),
   clinic_id   uuid        not null,
@@ -166,15 +166,15 @@ create table if not exists public.push_subscriptions (
   created_at  timestamptz not null default now()
 );
 
--- â”€â”€ treatment_templates â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
--- Plantillas de tratamiento reutilizables por mÃ©dico.
+-- ── treatment_templates ──────────────────────────────────────
+-- Plantillas de tratamiento reutilizables por médico.
 -- Migradas de localStorage a Supabase para soporte multi-dispositivo.
 -- versions es un array JSONB de snapshots { version, notes, updated_at }.
 create table if not exists public.treatment_templates (
   id              uuid        primary key default gen_random_uuid(),
   doctor_id       uuid        not null references auth.users (id) on delete cascade,
   clinic_id       uuid        not null,
-  trigger         text        not null,  -- sÃ­ntoma/diagnÃ³stico que activa la plantilla
+  trigger         text        not null,  -- síntoma/diagnóstico que activa la plantilla
   title           text        not null,  -- nombre legible de la plantilla
   treatment       text        not null,  -- texto del tratamiento recomendado
   current_version integer     not null default 1,
@@ -183,10 +183,10 @@ create table if not exists public.treatment_templates (
   updated_at      timestamptz not null default now()
 );
 
--- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
--- 2. COMPATIBILIDAD (columnas aÃ±adidas en versiones anteriores)
---    Estas lÃ­neas son no-ops en una instalaciÃ³n nueva.
--- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+-- ════════════════════════════════════════════════════════════
+-- 2. COMPATIBILIDAD (columnas añadidas en versiones anteriores)
+--    Estas líneas son no-ops en una instalación nueva.
+-- ════════════════════════════════════════════════════════════
 
 alter table public.profiles
   add column if not exists subscription_expires_at timestamptz default null;
@@ -217,7 +217,7 @@ alter table public.audit_logs
   add constraint audit_logs_doctor_id_fkey
   foreign key (doctor_id) references auth.users (id) on delete set null;
 
--- MigraciÃ³n de specialty TEXT â†’ TEXT[] (no-op si ya es TEXT[])
+-- Migración de specialty TEXT → TEXT[] (no-op si ya es TEXT[])
 do $$
 begin
   if exists (
@@ -233,9 +233,9 @@ begin
   end if;
 end $$;
 
--- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
--- 3. ÃNDICES
--- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+-- ════════════════════════════════════════════════════════════
+-- 3. ÍNDICES
+-- ════════════════════════════════════════════════════════════
 
 create index if not exists idx_patients_tenant
   on public.patients (clinic_id, doctor_id);
@@ -258,23 +258,23 @@ create index if not exists idx_follow_up_tasks_tenant
 create index if not exists idx_api_rate_limits_scope_updated_at
   on public.api_rate_limits (scope, updated_at desc);
 
--- Ãšnico para Stripe: evita duplicados de customer_id
+-- Único para Stripe: evita duplicados de customer_id
 create unique index if not exists idx_profiles_stripe_customer
   on public.profiles (stripe_customer_id)
   where stripe_customer_id is not null;
 
--- Para queries de expiraciÃ³n de suscripciÃ³n (admin panel / cron)
+-- Para queries de expiración de suscripción (admin panel / cron)
 create index if not exists idx_profiles_subscription_expires_at
   on public.profiles (subscription_expires_at)
   where subscription_expires_at is not null;
 
--- Para bÃºsquedas rÃ¡pidas de plantillas por clÃ­nica/doctor
+-- Para búsquedas rápidas de plantillas por clínica/doctor
 create index if not exists idx_treatment_templates_tenant
   on public.treatment_templates (clinic_id, doctor_id);
 
--- â”€â”€ Full-Text Search (FTS) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- ── Full-Text Search (FTS) ─────────────────────────────────────
 -- GIN indexes on tsvector columns for fast full-text search.
--- spanish config handles stemming (medicina â†’ medic, etc.).
+-- spanish config handles stemming (medicina → medic, etc.).
 
 create index if not exists idx_patients_fts
   on public.patients
@@ -285,9 +285,9 @@ create index if not exists idx_clinical_records_fts
   using gin (to_tsvector('spanish', coalesce(chief_complaint, '')));
 
 
--- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+-- ════════════════════════════════════════════════════════════
 -- 4. ROW LEVEL SECURITY (RLS)
--- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+-- ════════════════════════════════════════════════════════════
 
 alter table public.profiles             enable row level security;
 alter table public.patients             enable row level security;
@@ -299,8 +299,8 @@ alter table public.api_rate_limits      enable row level security;
 alter table public.push_subscriptions   enable row level security;
 alter table public.treatment_templates  enable row level security;
 
--- â”€â”€ profiles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
--- Solo el propio mÃ©dico puede leer/escribir su perfil.
+-- ── profiles ─────────────────────────────────────────────────
+-- Solo el propio médico puede leer/escribir su perfil.
 drop policy if exists "profiles_tenant_select" on public.profiles;
 create policy "profiles_tenant_select"
   on public.profiles for select to authenticated
@@ -312,9 +312,9 @@ create policy "profiles_tenant_write"
   using (doctor_id = auth.uid())
   with check (doctor_id = auth.uid());
 
--- â”€â”€ patients â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
--- Acceso por clinic_id del perfil del mÃ©dico autenticado.
--- Cualquier mÃ©dico de la misma clÃ­nica puede ver y escribir pacientes.
+-- ── patients ─────────────────────────────────────────────────
+-- Acceso por clinic_id del perfil del médico autenticado.
+-- Cualquier médico de la misma clínica puede ver y escribir pacientes.
 drop policy if exists "patients_tenant_select" on public.patients;
 create policy "patients_tenant_select"
   on public.patients for select to authenticated
@@ -344,7 +344,7 @@ create policy "patients_tenant_write"
     )
   );
 
--- â”€â”€ clinical_records â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- ── clinical_records ─────────────────────────────────────────
 drop policy if exists "records_tenant_select" on public.clinical_records;
 create policy "records_tenant_select"
   on public.clinical_records for select to authenticated
@@ -374,7 +374,7 @@ create policy "records_tenant_write"
     )
   );
 
--- â”€â”€ specialty_data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- ── specialty_data ───────────────────────────────────────────
 drop policy if exists "specialty_tenant_select" on public.specialty_data;
 create policy "specialty_tenant_select"
   on public.specialty_data for select to authenticated
@@ -404,7 +404,7 @@ create policy "specialty_tenant_write"
     )
   );
 
--- â”€â”€ audit_logs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- ── audit_logs ───────────────────────────────────────────────
 -- INSERT propio + SELECT propio. UPDATE y DELETE bloqueados permanentemente.
 drop policy if exists "audit_tenant_insert" on public.audit_logs;
 create policy "audit_tenant_insert"
@@ -426,8 +426,8 @@ create policy "audit_no_delete"
   on public.audit_logs as restrictive for delete to authenticated
   using (false);
 
--- â”€â”€ follow_up_tasks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
--- Cada mÃ©dico solo ve y escribe sus propias tareas de seguimiento.
+-- ── follow_up_tasks ──────────────────────────────────────────
+-- Cada médico solo ve y escribe sus propias tareas de seguimiento.
 drop policy if exists "followup_tenant_select" on public.follow_up_tasks;
 create policy "followup_tenant_select"
   on public.follow_up_tasks for select to authenticated
@@ -439,8 +439,8 @@ create policy "followup_tenant_write"
   using (doctor_id = auth.uid())
   with check (doctor_id = auth.uid());
 
--- â”€â”€ push_subscriptions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
--- El mÃ©dico solo ve y gestiona sus propias suscripciones push.
+-- ── push_subscriptions ───────────────────────────────────────
+-- El médico solo ve y gestiona sus propias suscripciones push.
 drop policy if exists "push_subscriptions_tenant_select" on public.push_subscriptions;
 create policy "push_subscriptions_tenant_select"
   on public.push_subscriptions for select to authenticated
@@ -473,8 +473,8 @@ create policy "push_subscriptions_tenant_write"
     )
   );
 
--- â”€â”€ treatment_templates â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
--- Cada mÃ©dico solo puede ver, crear, editar y borrar sus propias plantillas.
+-- ── treatment_templates ──────────────────────────────────────
+-- Cada médico solo puede ver, crear, editar y borrar sus propias plantillas.
 drop policy if exists "treatment_templates_select" on public.treatment_templates;
 create policy "treatment_templates_select"
   on public.treatment_templates for select to authenticated
@@ -486,12 +486,12 @@ create policy "treatment_templates_write"
   using (doctor_id = auth.uid())
   with check (doctor_id = auth.uid());
 
--- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+-- ════════════════════════════════════════════════════════════
 -- 5. FUNCIONES Y TRIGGERS
--- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+-- ════════════════════════════════════════════════════════════
 
--- â”€â”€ bump_updated_at â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
--- Trigger helper: actualiza updated_at automÃ¡ticamente en cualquier UPDATE.
+-- ── bump_updated_at ──────────────────────────────────────────
+-- Trigger helper: actualiza updated_at automáticamente en cualquier UPDATE.
 -- Compartida por todas las tablas que tienen la columna updated_at.
 create or replace function public.bump_updated_at()
 returns trigger language plpgsql as $$
@@ -531,10 +531,10 @@ create trigger trg_treatment_templates_updated_at
   before update on public.treatment_templates
   for each row execute function public.bump_updated_at();
 
--- â”€â”€ log_audit_event â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- ── log_audit_event ──────────────────────────────────────────
 -- Inserta en audit_logs con hash encadenado (estilo blockchain).
 -- Llamar desde la app o desde otros triggers. security definer
--- permite que cualquier mÃ©dico autenticado inserte sin acceso directo a la tabla.
+-- permite que cualquier médico autenticado inserte sin acceso directo a la tabla.
 create or replace function public.log_audit_event(
   p_clinic_id     uuid,
   p_doctor_id     uuid,
@@ -589,9 +589,9 @@ begin
 end;
 $$;
 
--- â”€â”€ claim_api_rate_limit â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
--- Rate-limiting atÃ³mico por ventana de tiempo.
--- Retorna TRUE si el llamador superÃ³ el lÃ­mite, FALSE si estÃ¡ dentro.
+-- ── claim_api_rate_limit ─────────────────────────────────────
+-- Rate-limiting atómico por ventana de tiempo.
+-- Retorna TRUE si el llamador superó el límite, FALSE si está dentro.
 create or replace function public.claim_api_rate_limit(
   p_scope           text,
   p_identifier      uuid,
@@ -645,7 +645,7 @@ $$;
 grant execute on function public.claim_api_rate_limit(text, uuid, integer, integer)
   to authenticated;
 
--- â”€â”€ search_global â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- ── search_global ─────────────────────────────────────────────
 -- Full-text search across patients and clinical_records for the
 -- caller's clinic. Uses websearch_to_tsquery so plain phrases
 -- like "garcia diabetes" work without special syntax.
@@ -677,7 +677,7 @@ as $$
       'patient'::text                              as kind,
       pat.id                                       as id,
       pat.full_name                                as title,
-      'Doc: ' || coalesce(pat.document_number,'â€”') as subtitle,
+      'Doc: ' || coalesce(pat.document_number,'—') as subtitle,
       pat.id                                       as patient_id,
       pat.updated_at                               as updated_at,
       ts_rank(
@@ -700,7 +700,7 @@ as $$
       'consultation'::text                                               as kind,
       cr.id                                                              as id,
       coalesce(cr.chief_complaint, '(sin motivo)')                       as title,
-      cr.specialty_kind || ' â€” ' || to_char(cr.created_at, 'DD Mon YYYY') as subtitle,
+      cr.specialty_kind || ' — ' || to_char(cr.created_at, 'DD Mon YYYY') as subtitle,
       cr.patient_id                                                      as patient_id,
       cr.updated_at                                                      as updated_at,
       ts_rank(
@@ -722,12 +722,12 @@ $$;
 grant execute on function public.search_global(text, uuid)
   to authenticated;
 
--- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+-- ════════════════════════════════════════════════════════════
 -- 6. VISTAS MATERIALIZADAS
--- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+-- ════════════════════════════════════════════════════════════
 
--- KPIs diarios del dashboard (consultas y pacientes creados por dÃ­a).
--- Refrescar automÃ¡ticamente con el cron job definido en la secciÃ³n 7.
+-- KPIs diarios del dashboard (consultas y pacientes creados por día).
+-- Refrescar automáticamente con el cron job definido en la sección 7.
 drop materialized view if exists public.mv_dashboard_kpis_daily;
 create materialized view public.mv_dashboard_kpis_daily as
 select
@@ -746,14 +746,14 @@ group by clinic_id, doctor_id, date_trunc('day', created_at)::date;
 create index if not exists idx_mv_dashboard_kpis_daily
   on public.mv_dashboard_kpis_daily (clinic_id, doctor_id, report_date desc);
 
--- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+-- ════════════════════════════════════════════════════════════
 -- 7. CRON JOBS (requiere pg_cron activada en Supabase)
--- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+-- ════════════════════════════════════════════════════════════
 
--- Activar pg_cron (no-op si ya estÃ¡ activa)
+-- Activar pg_cron (no-op si ya está activa)
 create extension if not exists "pg_cron" with schema "extensions";
 
--- Refresca los KPIs a medianoche cada dÃ­a.
+-- Refresca los KPIs a medianoche cada día.
 -- cron.schedule actualiza el job si ya existe con ese nombre.
 select cron.schedule(
   'refresh_mv_kpis_daily',
@@ -761,20 +761,20 @@ select cron.schedule(
   $$refresh materialized view public.mv_dashboard_kpis_daily$$
 );
 
--- â”€â”€ Notificaciones push de seguimientos vencidos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
--- Dispara a las 8:00am UTC cada dÃ­a.
+-- ── Notificaciones push de seguimientos vencidos ─────────────────────────────
+-- Dispara a las 8:00am UTC cada día.
 -- Para cada doctor con suscripciones push activas y seguimientos pendientes hoy,
--- llama a /api/push/send vÃ­a pg_net con el secreto almacenado en app_config.
+-- llama a /api/push/send vía pg_net con el secreto almacenado en app_config.
 --
 -- NO requiere ALTER DATABASE ni permisos de superusuario.
--- Los valores se guardan en la tabla public.app_config (ver secciÃ³n 8).
+-- Los valores se guardan en la tabla public.app_config (ver sección 8).
 --
--- IMPORTANTE: Este cron job NO expone datos clÃ­nicos en el payload push.
---   Solo envÃ­a "Tienes X seguimiento(s) para hoy" â€” el doctor abre la app para el detalle.
+-- IMPORTANTE: Este cron job NO expone datos clínicos en el payload push.
+--   Solo envía "Tienes X seguimiento(s) para hoy" — el doctor abre la app para el detalle.
 
 create extension if not exists "pg_net" with schema "extensions";
 
--- FunciÃ³n auxiliar: envÃ­a push para un doctor especÃ­fico con sus seguimientos de hoy
+-- Función auxiliar: envía push para un doctor específico con sus seguimientos de hoy
 create or replace function public.notify_followup_due_today(
   p_doctor_id    uuid,
   p_due_count    integer,
@@ -786,7 +786,7 @@ begin
     url     := p_site_url || '/api/push/send',
     body    := jsonb_build_object(
                  'target_doctor_id', p_doctor_id::text,
-                 'title', 'Glyph â€” Seguimientos para hoy',
+                 'title', 'Glyph — Seguimientos para hoy',
                  'body',  'Tienes ' || p_due_count || ' seguimiento(s) que vence(n) hoy.',
                  'url',   '/pacientes'
                )::text,
@@ -808,13 +808,13 @@ declare
   v_push_secret text;
   r record;
 begin
-  -- Leer configuraciÃ³n desde la tabla app_config (no requiere superusuario)
+  -- Leer configuración desde la tabla app_config (no requiere superusuario)
   select value into v_site_url    from public.app_config where key = 'site_url';
   select value into v_push_secret from public.app_config where key = 'push_send_secret';
 
   if v_site_url is null or v_push_secret is null
      or v_site_url like 'REEMPLAZAR%' or v_push_secret like 'REEMPLAZAR%' then
-    raise warning '[push_cron] app_config no configurada. Ejecuta la secciÃ³n 8 del SQL con tus valores reales.';
+    raise warning '[push_cron] app_config no configurada. Ejecuta la sección 8 del SQL con tus valores reales.';
     return;
   end if;
 
@@ -845,19 +845,19 @@ select cron.schedule(
   $$select public.send_followup_push_notifications()$$
 );
 
--- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
--- 8. CONFIGURACIÃ“N DE APP (tabla â€” sin privilegios especiales)
--- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+-- ════════════════════════════════════════════════════════════
+-- 8. CONFIGURACIÓN DE APP (tabla — sin privilegios especiales)
+-- ════════════════════════════════════════════════════════════
 --
--- Tabla de configuraciÃ³n leÃ­da por las funciones de cron.
--- No requiere ALTER DATABASE ni superusuario â€” cualquier rol con
--- acceso al SQL Editor de Supabase puede hacer INSERT/UPDATE aquÃ­.
+-- Tabla de configuración leída por las funciones de cron.
+-- No requiere ALTER DATABASE ni superusuario — cualquier rol con
+-- acceso al SQL Editor de Supabase puede hacer INSERT/UPDATE aquí.
 --
--- âš ï¸  ANTES DE EJECUTAR ESTE BLOQUE:
+-- ⚠️  ANTES DE EJECUTAR ESTE BLOQUE:
 --     Reemplaza los dos valores 'REEMPLAZAR_*' con tus datos reales:
 --
---     site_url         â†’ tu URL de Vercel  (= NEXT_PUBLIC_SITE_URL en .env)
---     push_send_secret â†’ secreto del cron  (= PUSH_SEND_SECRET en Vercel)
+--     site_url         → tu URL de Vercel  (= NEXT_PUBLIC_SITE_URL en .env)
+--     push_send_secret → secreto del cron  (= PUSH_SEND_SECRET en Vercel)
 
 create table if not exists public.app_config (
   key        text primary key,
@@ -867,9 +867,9 @@ create table if not exists public.app_config (
 
 -- Solo el service role puede leer esta tabla (contiene secretos)
 alter table public.app_config enable row level security;
--- Sin policies pÃºblicas â†’ solo service_role y funciones SECURITY DEFINER acceden
+-- Sin policies públicas → solo service_role y funciones SECURITY DEFINER acceden
 
--- Inserta o actualiza los valores de configuraciÃ³n
+-- Inserta o actualiza los valores de configuración
 insert into public.app_config (key, value) values
   ('site_url',         'REEMPLAZAR_CON_TU_URL_VERCEL'),
   ('push_send_secret', 'REEMPLAZAR_CON_TU_PUSH_SEND_SECRET')
@@ -879,7 +879,12 @@ on conflict (key) do update
 -- Para verificar que se guardaron correctamente (ejecutar desde SQL Editor):
 --   select key, value from public.app_config;
 
--- ── send_followup_emails ─────────────────────────────────────────────────────
+-- â”€â”€ send_followup_emails â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- Envia recordatorios por email a doctores con seguimientos hoy.
+-- Llama a POST /api/email/followup con doctor_id, email y nombre.
+-- Lee site_url y resend_email_secret desde public.app_config.
+-- Corre a las 7:00am UTC (1 hora antes del push de las 8am).
+
 create or replace function public.send_followup_emails() returns void
 language plpgsql security definer as $$
 declare
@@ -889,33 +894,54 @@ declare
 begin
   select value into v_site_url      from public.app_config where key = 'site_url';
   select value into v_email_secret  from public.app_config where key = 'resend_email_secret';
+
   if v_site_url is null or v_email_secret is null
      or v_site_url like 'REEMPLAZAR%' or v_email_secret like 'REEMPLAZAR%' then
-    raise warning '[email_cron] app_config no configurada.';
+    raise warning '[email_cron] app_config no configurada. Agrega site_url y resend_email_secret.';
     return;
   end if;
+
   for r in
-    select ft.doctor_id, u.email as doctor_email, p.full_name as doctor_name, count(*) as due_count
+    select
+      ft.doctor_id,
+      u.email                                     as doctor_email,
+      p.full_name                                  as doctor_name,
+      count(*)                                     as due_count
     from public.follow_up_tasks ft
-    inner join auth.users u on u.id = ft.doctor_id
-    inner join public.profiles p on p.doctor_id = ft.doctor_id
-    where ft.due_date = current_date and ft.status = 'pending'
+    inner join auth.users    u on u.id           = ft.doctor_id
+    inner join public.profiles p on p.doctor_id  = ft.doctor_id
+    where ft.due_date = current_date
+      and ft.status   = 'pending'
     group by ft.doctor_id, u.email, p.full_name
     having u.email is not null
   loop
     perform net.http_post(
       url     := v_site_url || '/api/email/followup',
-      headers := jsonb_build_object('Content-Type','application/json','x-email-secret',v_email_secret),
-      body    := jsonb_build_object('target_doctor_id',r.doctor_id,'doctor_email',r.doctor_email,'doctor_name',r.doctor_name,'due_count',r.due_count)
+      headers := jsonb_build_object(
+        'Content-Type',   'application/json',
+        'x-email-secret', v_email_secret
+      ),
+      body    := jsonb_build_object(
+        'target_doctor_id', r.doctor_id,
+        'doctor_email',     r.doctor_email,
+        'doctor_name',      r.doctor_name,
+        'due_count',        r.due_count
+      )
     );
   end loop;
 end;
 $$;
 
-select cron.schedule('send_followup_emails_daily','0 7 * * *',$$select public.send_followup_emails()$$);
+-- Cron a las 7:00am UTC (1h antes del push de las 8am)
+select cron.schedule(
+  'send_followup_emails_daily',
+  '0 7 * * *',
+  $$select public.send_followup_emails()$$
+);
 
+-- Agrega el secreto de email a app_config
 insert into public.app_config (key, value) values
-  ('resend_email_secret','REEMPLAZAR_CON_TU_RESEND_EMAIL_SECRET')
-on conflict (key) do update set value = excluded.value, updated_at = now();
-
+  ('resend_email_secret', 'REEMPLAZAR_CON_TU_RESEND_EMAIL_SECRET')
+on conflict (key) do update
+  set value = excluded.value, updated_at = now();
 commit;
