@@ -669,47 +669,54 @@ language sql
 security invoker
 stable
 as $$
-  -- Patients: search full_name + document_number
-  select
-    'patient'::text                              as kind,
-    pat.id                                       as id,
-    pat.full_name                                as title,
-    'Doc: ' || coalesce(pat.document_number,'—') as subtitle,
-    pat.id                                       as patient_id,
-    pat.updated_at                               as updated_at,
-    ts_rank(
-      to_tsvector('spanish', coalesce(pat.full_name,'') || ' ' || coalesce(pat.document_number,'')),
-      websearch_to_tsquery('spanish', p_query)
-    )                                            as rank
-  from public.patients pat
-  where
-    pat.clinic_id = p_clinic_id
-    and to_tsvector('spanish', coalesce(pat.full_name,'') || ' ' || coalesce(pat.document_number,''))
-        @@ websearch_to_tsquery('spanish', p_query)
-  order by rank desc
-  limit 20
+  -- Each branch wrapped in a subquery so ORDER BY + LIMIT are valid
+  -- before the UNION ALL. PostgreSQL requires this when combining
+  -- sorted/limited sets.
+  select * from (
+    select
+      'patient'::text                              as kind,
+      pat.id                                       as id,
+      pat.full_name                                as title,
+      'Doc: ' || coalesce(pat.document_number,'—') as subtitle,
+      pat.id                                       as patient_id,
+      pat.updated_at                               as updated_at,
+      ts_rank(
+        to_tsvector('spanish', coalesce(pat.full_name,'') || ' ' || coalesce(pat.document_number,'')),
+        websearch_to_tsquery('spanish', p_query)
+      )                                            as rank
+    from public.patients pat
+    where
+      pat.clinic_id = p_clinic_id
+      and to_tsvector('spanish', coalesce(pat.full_name,'') || ' ' || coalesce(pat.document_number,''))
+          @@ websearch_to_tsquery('spanish', p_query)
+    order by rank desc
+    limit 20
+  ) patients_results
 
   union all
 
-  -- Clinical records: search chief_complaint
-  select
-    'consultation'::text                                          as kind,
-    cr.id                                                         as id,
-    coalesce(cr.chief_complaint, '(sin motivo)')                  as title,
-    cr.specialty_kind || ' — ' || to_char(cr.created_at, 'DD Mon YYYY') as subtitle,
-    cr.patient_id                                                 as patient_id,
-    cr.updated_at                                                 as updated_at,
-    ts_rank(
-      to_tsvector('spanish', coalesce(cr.chief_complaint,'')),
-      websearch_to_tsquery('spanish', p_query)
-    )                                                             as rank
-  from public.clinical_records cr
-  where
-    cr.clinic_id = p_clinic_id
-    and to_tsvector('spanish', coalesce(cr.chief_complaint,''))
-        @@ websearch_to_tsquery('spanish', p_query)
+  select * from (
+    select
+      'consultation'::text                                               as kind,
+      cr.id                                                              as id,
+      coalesce(cr.chief_complaint, '(sin motivo)')                       as title,
+      cr.specialty_kind || ' — ' || to_char(cr.created_at, 'DD Mon YYYY') as subtitle,
+      cr.patient_id                                                      as patient_id,
+      cr.updated_at                                                      as updated_at,
+      ts_rank(
+        to_tsvector('spanish', coalesce(cr.chief_complaint,'')),
+        websearch_to_tsquery('spanish', p_query)
+      )                                                                  as rank
+    from public.clinical_records cr
+    where
+      cr.clinic_id = p_clinic_id
+      and to_tsvector('spanish', coalesce(cr.chief_complaint,''))
+          @@ websearch_to_tsquery('spanish', p_query)
+    order by rank desc
+    limit 20
+  ) consultation_results
+
   order by rank desc
-  limit 20
 $$;
 
 grant execute on function public.search_global(text, uuid)
