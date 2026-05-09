@@ -70,7 +70,9 @@ Esta es la lista ordenada de lo que trabajamos en la próxima sesión, en priori
   Nueva tabla `clinic_members`, roles, ajustes de RLS, pricing con seats.
 
 - [ ] **F-06** — Exportación de historia clínica (ZIP portabilidad)  
-- [ ] **F-07** — Recordatorios por email (Resend/SendGrid + cron)  
+- [x] **F-07** — Recordatorios por email (Resend) ✅  
+  `POST /api/email/followup` con auth por header. Template HTML branded. Función SQL  
+  `send_followup_emails()` + cron 7am UTC. Clave `resend_email_secret` en `app_config`.
 - [ ] **F-09** — Internacionalización (i18n)  
 
 ---
@@ -239,4 +241,6 @@ Sección reemplazada con estado honesto de lanzamiento temprano. Copy completo a
 - [x] `useTemplates` con `staleTime: 5min` (M-02 resuelto)
 - [ ] Verificar que `PUSH_SEND_SECRET` está configurado en Vercel
 - [ ] Verificar que `ADMIN_EMAIL` está configurado en Vercel
-- [ ] Confirmar que pg_cron está activo en Supabase (refresca `mv_dashboard_kpis_daily` a las 00:00)
+- [ ] Configurar `RESEND_API_KEY`, `RESEND_EMAIL_SECRET` y `RESEND_FROM_EMAIL` en Vercel
+- [ ] Agregar `resend_email_secret` a `app_config` en Supabase SQL Editor
+- [ ] Confirmar que pg_cron está activo en Supabase (cron jobs 7am y 8am UTC)
