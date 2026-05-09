@@ -231,16 +231,34 @@ Sección reemplazada con estado honesto de lanzamiento temprano. Copy completo a
 
 ## 📋 Checklist del deploy actual
 
+### ✅ Listo (código)
 - [x] `tsc --noEmit` → 0 errores
 - [x] `vitest run` → 85/85
 - [x] ESLint → limpio
-- [x] SQL `000_production_full_schema.sql` aplicado en Supabase
 - [x] Tipos TypeScript regenerados con `npm run db:types` (PostgrestVersion 14.5)
-- [x] Plantillas de tratamiento migradas de localStorage → Supabase
-- [x] `layout.tsx` metadata → `"Glyph — Motor Clínico"` (BUG-03 resuelto)
-- [x] `useTemplates` con `staleTime: 5min` (M-02 resuelto)
-- [ ] Verificar que `PUSH_SEND_SECRET` está configurado en Vercel
-- [ ] Verificar que `ADMIN_EMAIL` está configurado en Vercel
-- [ ] Configurar `RESEND_API_KEY`, `RESEND_EMAIL_SECRET` y `RESEND_FROM_EMAIL` en Vercel
-- [ ] Agregar `resend_email_secret` a `app_config` en Supabase SQL Editor
-- [ ] Confirmar que pg_cron está activo en Supabase (cron jobs 7am y 8am UTC)
+- [x] `layout.tsx` metadata → `"Glyph — Motor Clínico"`
+- [x] `useTemplates` con `staleTime: 5min`
+
+### ⏳ Pendiente tuyo — Supabase (SQL Editor)
+- [ ] **Ejecutar** `supabase/migrations/000_production_full_schema.sql` completo  
+  _(incluye índices FTS, `search_global()`, `send_followup_emails()`, crons)_
+- [ ] **Actualizar** `app_config` con valores reales:
+  ```sql
+  insert into public.app_config (key, value) values
+    ('site_url',           'https://TU-APP.vercel.app'),
+    ('push_send_secret',   'EL_MISMO_QUE_EN_VERCEL'),
+    ('resend_email_secret','EL_MISMO_QUE_EN_VERCEL')
+  on conflict (key) do update set value = excluded.value, updated_at = now();
+  ```
+- [ ] **Activar extensión** `pg_cron` en Supabase → Database → Extensions
+
+### ⏳ Pendiente tuyo — Vercel (Environment Variables)
+- [ ] `PUSH_SEND_SECRET` → secreto para el cron de push
+- [ ] `ADMIN_EMAIL` → tu email de administrador
+- [ ] `RESEND_API_KEY` → key de [resend.com](https://resend.com)
+- [ ] `RESEND_EMAIL_SECRET` → mismo valor que `resend_email_secret` en `app_config`
+- [ ] `RESEND_FROM_EMAIL` → ej. `Glyph <no-reply@tudominio.com>`
+
+### ⏳ Pendiente tuyo — Resend
+- [ ] Crear cuenta en [resend.com](https://resend.com) y obtener API Key
+- [ ] (Recomendado) Verificar tu dominio para enviar desde `@tudominio.com`
