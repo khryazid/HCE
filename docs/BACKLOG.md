@@ -61,8 +61,10 @@ Esta es la lista ordenada de lo que trabajamos en la próxima sesión, en priori
   con `websearch_to_tsquery` + `ts_rank`. Nueva API route `GET /api/search?q=`. GlobalSearch migrado  
   de carga masiva IndexedDB a debounce de 280ms contra Postgres. Tratamientos mantienen filtro local.
 
-- [ ] **F-08** — Soporte dark mode / tema del sistema  
-  Variables CSS en `:root` y `[data-theme="dark"]` con detección `prefers-color-scheme`.
+- [x] **F-08** — Dark mode / tema del sistema ✅  
+  `[data-theme="dark/light"]` en `<html>` con override manual. Script anti-flash inline en `layout.tsx`  
+  (sin FOUC). Hook `useTheme` con persistencia en `localStorage('hce:theme')`. Componente `ThemeToggle`  
+  con 3 opciones (Claro / Oscuro / Sistema) integrado en `/ajustes`.
 
 - [ ] **F-01** — Plan Clínica multi-doctor  
   Nueva tabla `clinic_members`, roles, ajustes de RLS, pricing con seats.

@@ -61,6 +61,18 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es-ES" className={`${inter.variable} ${jakarta.variable} ${dmSans.variable} h-full antialiased`}>
+      {/*
+        Anti-flash theme script: runs synchronously before React hydrates.
+        Reads localStorage('hce:theme') and sets data-theme on <html>.
+        'system' (or missing) → no attribute → CSS media query takes over.
+      */}
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('hce:theme');if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}})();`,
+          }}
+        />
+      </head>
       <body className="min-h-full flex flex-col bg-bg text-ink font-sans">
         <QueryProvider>
           <SyncBootstrap />

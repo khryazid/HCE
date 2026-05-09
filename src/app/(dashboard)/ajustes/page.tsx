@@ -3,6 +3,7 @@ import { SyncQueuePanel } from "@/features/sync/components/sync-queue-panel";
 import { ErrorLogPanel } from "@/components/ui/error-log-panel";
 import { BillingPortalPanel } from "@/features/billing/components/billing-portal-panel";
 import { PushNotificationToggle } from "@/features/dashboard/components/push-notification-toggle";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 export default function AjustesPage() {
   return (
@@ -17,11 +18,14 @@ export default function AjustesPage() {
         <h2 className="text-lg font-semibold text-ink">Facturación</h2>
         <BillingPortalPanel />
       </section>
-      <section className="hce-surface space-y-4">
+      <section className="hce-surface space-y-6">
         <h2 className="text-lg font-semibold text-ink">Estado del Sistema y Dispositivos</h2>
-        <PushNotificationToggle />
-        <ErrorLogPanel />
-        <SyncQueuePanel />
+        <ThemeToggle />
+        <div className="border-t border-border pt-4 space-y-4">
+          <PushNotificationToggle />
+          <ErrorLogPanel />
+          <SyncQueuePanel />
+        </div>
       </section>
     </div>
   );

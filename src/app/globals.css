@@ -24,7 +24,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #071217;
     --bg-elevated: #0f1b22;
     --bg-soft: #13232c;
@@ -39,6 +39,40 @@
     --surface-glow: rgba(45, 212, 191, 0.08);
     color-scheme: dark;
   }
+}
+
+/* Manual dark mode override (beats media query) */
+[data-theme="dark"] {
+  --bg: #071217;
+  --bg-elevated: #0f1b22;
+  --bg-soft: #13232c;
+  --ink: #e6eef2;
+  --ink-soft: #9eb0bb;
+  --card: #0f1b22;
+  --card-contrast: #13232c;
+  --border: #22323c;
+  --field: #13232c;
+  --field-border: #2d404b;
+  --shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+  --surface-glow: rgba(45, 212, 191, 0.08);
+  color-scheme: dark;
+}
+
+/* Manual light override (useful when system is dark) */
+[data-theme="light"] {
+  --bg: #f6f8f6;
+  --bg-elevated: #ffffff;
+  --bg-soft: #eef2f0;
+  --ink: #15212b;
+  --ink-soft: #51606d;
+  --card: #ffffff;
+  --card-contrast: #ffffff;
+  --border: #d8e0dd;
+  --field: #ffffff;
+  --field-border: #c5d1cb;
+  --shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+  --surface-glow: rgba(14, 118, 110, 0.08);
+  color-scheme: light;
 }
 
 @theme inline {
