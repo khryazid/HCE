@@ -272,6 +272,19 @@ create index if not exists idx_profiles_subscription_expires_at
 create index if not exists idx_treatment_templates_tenant
   on public.treatment_templates (clinic_id, doctor_id);
 
+-- ── Full-Text Search (FTS) ─────────────────────────────────────
+-- GIN indexes on tsvector columns for fast full-text search.
+-- spanish config handles stemming (medicina → medic, etc.).
+
+create index if not exists idx_patients_fts
+  on public.patients
+  using gin (to_tsvector('spanish', coalesce(full_name, '') || ' ' || coalesce(document_number, '')));
+
+create index if not exists idx_clinical_records_fts
+  on public.clinical_records
+  using gin (to_tsvector('spanish', coalesce(chief_complaint, '')));
+
+
 -- ════════════════════════════════════════════════════════════
 -- 4. ROW LEVEL SECURITY (RLS)
 -- ════════════════════════════════════════════════════════════
@@ -630,6 +643,76 @@ end;
 $$;
 
 grant execute on function public.claim_api_rate_limit(text, uuid, integer, integer)
+  to authenticated;
+
+-- ── search_global ─────────────────────────────────────────────
+-- Full-text search across patients and clinical_records for the
+-- caller's clinic. Uses websearch_to_tsquery so plain phrases
+-- like "garcia diabetes" work without special syntax.
+-- Returns results ranked by ts_rank, limited to 20 per kind.
+-- Runs as SECURITY INVOKER so RLS policies are fully respected.
+
+create or replace function public.search_global(
+  p_query     text,
+  p_clinic_id uuid
+)
+returns table (
+  kind        text,
+  id          uuid,
+  title       text,
+  subtitle    text,
+  patient_id  uuid,
+  updated_at  timestamptz,
+  rank        real
+)
+language sql
+security invoker
+stable
+as $$
+  -- Patients: search full_name + document_number
+  select
+    'patient'::text                              as kind,
+    pat.id                                       as id,
+    pat.full_name                                as title,
+    'Doc: ' || coalesce(pat.document_number,'—') as subtitle,
+    pat.id                                       as patient_id,
+    pat.updated_at                               as updated_at,
+    ts_rank(
+      to_tsvector('spanish', coalesce(pat.full_name,'') || ' ' || coalesce(pat.document_number,'')),
+      websearch_to_tsquery('spanish', p_query)
+    )                                            as rank
+  from public.patients pat
+  where
+    pat.clinic_id = p_clinic_id
+    and to_tsvector('spanish', coalesce(pat.full_name,'') || ' ' || coalesce(pat.document_number,''))
+        @@ websearch_to_tsquery('spanish', p_query)
+  order by rank desc
+  limit 20
+
+  union all
+
+  -- Clinical records: search chief_complaint
+  select
+    'consultation'::text                                          as kind,
+    cr.id                                                         as id,
+    coalesce(cr.chief_complaint, '(sin motivo)')                  as title,
+    cr.specialty_kind || ' — ' || to_char(cr.created_at, 'DD Mon YYYY') as subtitle,
+    cr.patient_id                                                 as patient_id,
+    cr.updated_at                                                 as updated_at,
+    ts_rank(
+      to_tsvector('spanish', coalesce(cr.chief_complaint,'')),
+      websearch_to_tsquery('spanish', p_query)
+    )                                                             as rank
+  from public.clinical_records cr
+  where
+    cr.clinic_id = p_clinic_id
+    and to_tsvector('spanish', coalesce(cr.chief_complaint,''))
+        @@ websearch_to_tsquery('spanish', p_query)
+  order by rank desc
+  limit 20
+$$;
+
+grant execute on function public.search_global(text, uuid)
   to authenticated;
 
 -- ════════════════════════════════════════════════════════════

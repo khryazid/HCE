@@ -56,8 +56,10 @@ Esta es la lista ordenada de lo que trabajamos en la próxima sesión, en priori
   y botón "Restaurar" que carga el contenido en el formulario para revisar antes de guardar.  
   El botón "Historial (N)" solo aparece cuando hay más de una versión.
 
-- [ ] **F-05** — Búsqueda full-text en Supabase  
-  Escalar `GlobalSearch` de filtro en memoria (IndexedDB) a `tsvector` de Postgres.
+- [x] **F-05** — Búsqueda full-text en Supabase ✅  
+  Índices GIN (`tsvector` spanish) en `patients` y `clinical_records`. Función RPC `search_global()`  
+  con `websearch_to_tsquery` + `ts_rank`. Nueva API route `GET /api/search?q=`. GlobalSearch migrado  
+  de carga masiva IndexedDB a debounce de 280ms contra Postgres. Tratamientos mantienen filtro local.
 
 - [ ] **F-08** — Soporte dark mode / tema del sistema  
   Variables CSS en `:root` y `[data-theme="dark"]` con detección `prefers-color-scheme`.
