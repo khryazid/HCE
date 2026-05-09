@@ -37,9 +37,10 @@ Esta es la lista ordenada de lo que trabajamos en la próxima sesión, en priori
   - Funciones `send_followup_push_notifications` y `notify_followup_due_today` en Postgres.  
   - Bonus: eliminado el último `as any` en `push/subscribe`.
 
-- [ ] **F-03** — Panel Admin: gestión completa de suscripciones  
-  Buscar usuarios, cambiar `subscription_status`, extender trial, asignar `lifetime`.  
-  _Ruta:_ `/admin`
+- [x] **F-03** — Panel Admin completo ✅  
+  Filtros por estado (pills + stat cards clickables), StatusBadge para todos los estados Stripe  
+  (trialing, past_due, paused, incomplete, unpaid), badge "Nuevo" + borde azul para usuarios  
+  de las últimas 48h, botón copiar email/ID al portapapeles, contador en tabla sync abandonada.
 
 - [x] **BUG-02** — Testimonios ficticios reemplazados ✅  
   Sección convertida a "lanzamiento temprano" con especialidades. Sin nombres inventados.  

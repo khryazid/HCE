@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useTransition } from "react";
+import { useState, useMemo, useTransition, useCallback } from "react";
 import { toast } from "sonner";
 import type { AdminUserRecord, AdminStats } from "@/features/admin/actions";
 import { setSubscriptionStatus, deleteUserAccount } from "@/features/admin/actions";
@@ -25,19 +25,28 @@ type Props = {
 
 type PlanDraft = {
   status: "active" | "lifetime" | "canceled";
-  days?: number; // only relevant for "active"
+  days?: number;
 };
+
+type StatusFilter = "all" | "active" | "lifetime" | "trialing" | "incomplete" | "canceled" | "none";
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 
+const STATUS_CONFIG: Record<string, { bg: string; text: string; label: string }> = {
+  active:             { bg: "bg-emerald-100 dark:bg-emerald-900/40", text: "text-emerald-800 dark:text-emerald-300", label: "Activo" },
+  lifetime:           { bg: "bg-purple-100 dark:bg-purple-900/40",   text: "text-purple-800 dark:text-purple-300",  label: "Lifetime ∞" },
+  trialing:           { bg: "bg-sky-100 dark:bg-sky-900/40",         text: "text-sky-800 dark:text-sky-300",        label: "Trial" },
+  canceled:           { bg: "bg-red-100 dark:bg-red-900/40",         text: "text-red-800 dark:text-red-300",        label: "Cancelado" },
+  past_due:           { bg: "bg-orange-100 dark:bg-orange-900/40",   text: "text-orange-800 dark:text-orange-300",  label: "Vencido" },
+  paused:             { bg: "bg-yellow-100 dark:bg-yellow-900/40",   text: "text-yellow-800 dark:text-yellow-300",  label: "Pausado" },
+  incomplete:         { bg: "bg-slate-100 dark:bg-slate-700",        text: "text-slate-600 dark:text-slate-300",    label: "Incompleto" },
+  incomplete_expired: { bg: "bg-slate-100 dark:bg-slate-700",        text: "text-slate-500 dark:text-slate-400",    label: "Expirado" },
+  unpaid:             { bg: "bg-orange-100 dark:bg-orange-900/40",   text: "text-orange-700 dark:text-orange-300",  label: "Sin pagar" },
+  none:               { bg: "bg-slate-100 dark:bg-slate-700",        text: "text-slate-600 dark:text-slate-300",    label: "Sin plan" },
+};
+
 function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, { bg: string; text: string; label: string }> = {
-    active:   { bg: "bg-emerald-100 dark:bg-emerald-900/40", text: "text-emerald-800 dark:text-emerald-300", label: "Activo" },
-    lifetime: { bg: "bg-purple-100 dark:bg-purple-900/40",  text: "text-purple-800 dark:text-purple-300",  label: "Lifetime" },
-    canceled: { bg: "bg-red-100 dark:bg-red-900/40",        text: "text-red-800 dark:text-red-300",        label: "Inactivo" },
-    none:     { bg: "bg-slate-100 dark:bg-slate-700",        text: "text-slate-600 dark:text-slate-300",    label: "Sin plan" },
-  };
-  const cfg = map[status] ?? map["none"];
+  const cfg = STATUS_CONFIG[status] ?? STATUS_CONFIG["none"];
   return (
     <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${cfg.bg} ${cfg.text}`}>
       {cfg.label}
@@ -45,23 +54,53 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-function StatCard({ label, value, color }: { label: string; value: number; color: string }) {
+function StatCard({
+  label, value, color, active, onClick,
+}: {
+  label: string; value: number; color: string;
+  active?: boolean; onClick?: () => void;
+}) {
   return (
-    <div className="hce-surface rounded-xl p-4 flex flex-col gap-1">
+    <button
+      onClick={onClick}
+      className={`hce-surface rounded-xl p-4 flex flex-col gap-1 text-left transition-all ${
+        onClick ? "cursor-pointer hover:border-accent/50" : "cursor-default"
+      } ${active ? "ring-2 ring-accent border-accent" : ""}`}
+    >
       <p className="text-xs text-ink-soft">{label}</p>
       <p className={`text-3xl font-bold ${color}`}>{value}</p>
-    </div>
+    </button>
+  );
+}
+
+function isRecentUser(created_at: string): boolean {
+  const diff = Date.now() - new Date(created_at).getTime();
+  return diff < 48 * 60 * 60 * 1000; // 48 hours
+}
+
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = useCallback(() => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  }, [text]);
+  return (
+    <button
+      onClick={handleCopy}
+      title="Copiar"
+      className="ml-1 opacity-40 hover:opacity-100 transition-opacity text-xs"
+    >
+      {copied ? "✓" : "⎘"}
+    </button>
   );
 }
 
 // ─── CONFIRM DIALOG ───────────────────────────────────────────────────────────
 
 function ConfirmDialog({
-  user,
-  plan,
-  onConfirm,
-  onCancel,
-  loading,
+  user, plan, onConfirm, onCancel, loading,
 }: {
   user: AdminUserRecord;
   plan: PlanDraft;
@@ -70,9 +109,9 @@ function ConfirmDialog({
   loading: boolean;
 }) {
   const planLabel = {
-    active: plan.days ? `Activo por ${plan.days} día(s)` : "Activo",
+    active:   plan.days ? `Activo por ${plan.days} día(s)` : "Activo",
     lifetime: "Lifetime (sin expiración)",
-    canceled: "Inactivo",
+    canceled: "Cancelado / Inactivo",
   }[plan.status];
 
   return (
@@ -111,10 +150,7 @@ function ConfirmDialog({
 // ─── DELETE CONFIRM ───────────────────────────────────────────────────────────
 
 function DeleteDialog({
-  user,
-  onConfirm,
-  onCancel,
-  loading,
+  user, onConfirm, onCancel, loading,
 }: {
   user: AdminUserRecord;
   onConfirm: () => void;
@@ -163,10 +199,7 @@ function DeleteDialog({
 // ─── PLAN EDITOR ──────────────────────────────────────────────────────────────
 
 function PlanEditor({
-  user,
-  onApply,
-  loadingId,
-  setDeleteTarget,
+  user, onApply, loadingId, setDeleteTarget,
 }: {
   user: AdminUserRecord;
   onApply: (user: AdminUserRecord, plan: PlanDraft) => void;
@@ -179,20 +212,16 @@ function PlanEditor({
 
   return (
     <div className="flex flex-wrap items-center gap-2 justify-end">
-      {/* Plan type */}
       <select
         className="hce-input text-xs py-1 px-2 w-auto"
         value={selectedStatus}
-        onChange={(e) =>
-          setSelectedStatus(e.target.value as PlanDraft["status"])
-        }
+        onChange={(e) => setSelectedStatus(e.target.value as PlanDraft["status"])}
       >
         <option value="active">Activo</option>
         <option value="lifetime">Lifetime ∞</option>
-        <option value="canceled">Inactivo</option>
+        <option value="canceled">Cancelar</option>
       </select>
 
-      {/* Days selector (only for "active") */}
       {selectedStatus === "active" && (
         <select
           className="hce-input text-xs py-1 px-2 w-auto"
@@ -232,11 +261,24 @@ function PlanEditor({
   );
 }
 
+// ─── STATUS FILTER PILLS ──────────────────────────────────────────────────────
+
+const FILTER_OPTIONS: { value: StatusFilter; label: string }[] = [
+  { value: "all",        label: "Todos" },
+  { value: "active",     label: "Activos" },
+  { value: "lifetime",   label: "Lifetime" },
+  { value: "trialing",   label: "Trial" },
+  { value: "incomplete", label: "Incompletos" },
+  { value: "canceled",   label: "Cancelados" },
+  { value: "none",       label: "Sin plan" },
+];
+
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 
 export function AdminPanelClient({ initialUsers, stats, abandonedItems }: Props) {
   const [users, setUsers] = useState<AdminUserRecord[]>(initialUsers);
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [confirmTarget, setConfirmTarget] = useState<{
     user: AdminUserRecord;
@@ -245,17 +287,31 @@ export function AdminPanelClient({ initialUsers, stats, abandonedItems }: Props)
   const [deleteTarget, setDeleteTarget] = useState<AdminUserRecord | null>(null);
   const [isPending, startTransition] = useTransition();
 
+  // Derived: how many new in last 48h
+  const recentCount = useMemo(
+    () => users.filter((u) => isRecentUser(u.created_at)).length,
+    [users],
+  );
+
   // Filtered users
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
-    if (!q) return users;
-    return users.filter(
-      (u) =>
+    return users.filter((u) => {
+      const matchSearch =
+        !q ||
         u.full_name.toLowerCase().includes(q) ||
         (u.email ?? "").toLowerCase().includes(q) ||
-        u.specialty.toLowerCase().includes(q)
-    );
-  }, [users, search]);
+        u.specialty.toLowerCase().includes(q);
+
+      const matchStatus =
+        statusFilter === "all" ||
+        (statusFilter === "none"
+          ? u.subscription_status === "none" || !u.subscription_status
+          : u.subscription_status === statusFilter);
+
+      return matchSearch && matchStatus;
+    });
+  }, [users, search, statusFilter]);
 
   const handleApply = (user: AdminUserRecord, plan: PlanDraft) => {
     setConfirmTarget({ user, plan });
@@ -268,11 +324,7 @@ export function AdminPanelClient({ initialUsers, stats, abandonedItems }: Props)
     startTransition(async () => {
       setLoadingId(user.id);
       try {
-        const result = await setSubscriptionStatus(
-          user.id,
-          plan.status,
-          plan.days
-        );
+        const result = await setSubscriptionStatus(user.id, plan.status, plan.days);
         setUsers((prev) =>
           prev.map((u) =>
             u.id === user.id
@@ -281,14 +333,12 @@ export function AdminPanelClient({ initialUsers, stats, abandonedItems }: Props)
                   subscription_status: plan.status,
                   subscription_expires_at: result.expires_at ?? null,
                 }
-              : u
-          )
+              : u,
+          ),
         );
         toast.success("Suscripción actualizada ✓");
       } catch (err) {
-        toast.error(
-          err instanceof Error ? err.message : "Error al actualizar"
-        );
+        toast.error(err instanceof Error ? err.message : "Error al actualizar");
       } finally {
         setLoadingId(null);
         setConfirmTarget(null);
@@ -307,9 +357,7 @@ export function AdminPanelClient({ initialUsers, stats, abandonedItems }: Props)
         setUsers((prev) => prev.filter((u) => u.id !== target.id));
         toast.success("Cuenta eliminada correctamente");
       } catch (err) {
-        toast.error(
-          err instanceof Error ? err.message : "Error al eliminar cuenta"
-        );
+        toast.error(err instanceof Error ? err.message : "Error al eliminar cuenta");
       } finally {
         setLoadingId(null);
         setDeleteTarget(null);
@@ -319,37 +367,86 @@ export function AdminPanelClient({ initialUsers, stats, abandonedItems }: Props)
 
   return (
     <>
-      {/* STAT CARDS */}
+      {/* ── STAT CARDS (clickables como filtros) ── */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-        <StatCard label="Total Usuarios" value={stats.total}    color="text-ink" />
-        <StatCard label="Activos"        value={stats.active}   color="text-emerald-500" />
-        <StatCard label="Lifetime"       value={stats.lifetime} color="text-purple-500" />
-        <StatCard label="Inactivos"      value={stats.inactive} color="text-red-400" />
-        <StatCard label="Sin Plan"       value={stats.none}     color="text-slate-400" />
-      </div>
-
-      {/* SEARCH */}
-      <div className="flex items-center gap-3">
-        <input
-          className="hce-input flex-1"
-          placeholder="Buscar por nombre, email o especialidad…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
+        <StatCard
+          label="Total Usuarios" value={stats.total} color="text-ink"
+          active={statusFilter === "all"}
+          onClick={() => setStatusFilter("all")}
         />
-        {search && (
-          <button
-            onClick={() => setSearch("")}
-            className="text-xs text-ink-soft hover:text-ink"
-          >
-            Limpiar
-          </button>
-        )}
-        <p className="text-xs text-ink-soft whitespace-nowrap">
-          {filtered.length} / {users.length} usuarios
-        </p>
+        <StatCard
+          label="Activos" value={stats.active} color="text-emerald-500"
+          active={statusFilter === "active"}
+          onClick={() => setStatusFilter("active")}
+        />
+        <StatCard
+          label="Lifetime" value={stats.lifetime} color="text-purple-500"
+          active={statusFilter === "lifetime"}
+          onClick={() => setStatusFilter("lifetime")}
+        />
+        <StatCard
+          label="Inactivos" value={stats.inactive} color="text-red-400"
+          active={statusFilter === "canceled"}
+          onClick={() => setStatusFilter("canceled")}
+        />
+        <StatCard
+          label="Sin Plan" value={stats.none} color="text-slate-400"
+          active={statusFilter === "none"}
+          onClick={() => setStatusFilter("none")}
+        />
       </div>
 
-      {/* TABLE */}
+      {/* ── RECENT USERS NOTICE ── */}
+      {recentCount > 0 && (
+        <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-sky-500/10 border border-sky-500/30 text-sky-600 dark:text-sky-400 text-sm">
+          <span className="inline-block w-2 h-2 rounded-full bg-sky-500 animate-pulse" />
+          <span>
+            <strong>{recentCount}</strong> usuario{recentCount !== 1 ? "s" : ""} nuevo{recentCount !== 1 ? "s" : ""} en las últimas 48h
+          </span>
+        </div>
+      )}
+
+      {/* ── SEARCH + FILTER PILLS ── */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-3">
+          <input
+            className="hce-input flex-1"
+            placeholder="Buscar por nombre, email o especialidad…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          {search && (
+            <button
+              onClick={() => setSearch("")}
+              className="text-xs text-ink-soft hover:text-ink"
+            >
+              Limpiar
+            </button>
+          )}
+          <p className="text-xs text-ink-soft whitespace-nowrap">
+            {filtered.length} / {users.length} usuarios
+          </p>
+        </div>
+
+        {/* Status filter pills */}
+        <div className="flex flex-wrap gap-2">
+          {FILTER_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => setStatusFilter(opt.value)}
+              className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+                statusFilter === opt.value
+                  ? "bg-accent text-bg border-accent"
+                  : "border-border text-ink-soft hover:border-accent/50 hover:text-ink"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ── USERS TABLE ── */}
       <div className="hce-surface rounded-xl overflow-hidden border border-border">
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
@@ -366,15 +463,34 @@ export function AdminPanelClient({ initialUsers, stats, abandonedItems }: Props)
             </thead>
             <tbody className="divide-y divide-border">
               {filtered.map((user) => (
-                <tr key={user.id} className="hover:bg-bg-soft/50 transition-colors">
+                <tr
+                  key={user.id}
+                  className={`hover:bg-bg-soft/50 transition-colors ${
+                    isRecentUser(user.created_at) ? "border-l-2 border-l-sky-500" : ""
+                  }`}
+                >
                   <td className="px-5 py-4 font-medium text-ink whitespace-nowrap">
-                    {user.full_name}
+                    <div className="flex items-center gap-2">
+                      {user.full_name}
+                      {isRecentUser(user.created_at) && (
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-sky-500/15 text-sky-600 dark:text-sky-400">
+                          Nuevo
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-[10px] font-mono text-ink-soft mt-0.5 flex items-center">
+                      {user.id.slice(0, 8)}…
+                      <CopyButton text={user.id} />
+                    </div>
                   </td>
                   <td className="px-5 py-4 text-ink-soft">
-                    {user.email ?? "—"}
+                    <div className="flex items-center gap-1">
+                      {user.email ?? "—"}
+                      {user.email && <CopyButton text={user.email} />}
+                    </div>
                   </td>
                   <td className="px-5 py-4 text-ink-soft text-xs">
-                    {user.specialty}
+                    {user.specialty || "—"}
                   </td>
                   <td className="px-5 py-4">
                     <StatusBadge status={user.subscription_status} />
@@ -401,10 +517,7 @@ export function AdminPanelClient({ initialUsers, stats, abandonedItems }: Props)
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td
-                    colSpan={7}
-                    className="px-6 py-10 text-center text-ink-soft"
-                  >
+                  <td colSpan={7} className="px-6 py-10 text-center text-ink-soft">
                     No se encontraron usuarios con esa búsqueda.
                   </td>
                 </tr>
@@ -414,13 +527,20 @@ export function AdminPanelClient({ initialUsers, stats, abandonedItems }: Props)
         </div>
       </div>
 
-      {/* ABANDONED SYNC ITEMS PANEL */}
+      {/* ── ABANDONED SYNC ITEMS ── */}
       <div className="mt-12 hce-surface rounded-xl overflow-hidden border border-border">
-        <div className="px-5 py-4 border-b border-border bg-bg-soft">
-          <h2 className="text-lg font-bold text-ink">Registros de Sincronización Abandonados</h2>
-          <p className="text-sm text-ink-soft mt-1">
-            Logs de ítems que fallaron más de 3 veces intentando sincronizar al servidor.
-          </p>
+        <div className="px-5 py-4 border-b border-border bg-bg-soft flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-bold text-ink">Sincronización Abandonada</h2>
+            <p className="text-sm text-ink-soft mt-1">
+              Ítems que fallaron más de 3 veces al sincronizar con el servidor.
+            </p>
+          </div>
+          {abandonedItems.length > 0 && (
+            <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400">
+              {abandonedItems.length}
+            </span>
+          )}
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
@@ -436,7 +556,7 @@ export function AdminPanelClient({ initialUsers, stats, abandonedItems }: Props)
               {abandonedItems.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="px-6 py-8 text-center text-ink-soft">
-                    No hay registros de sincronización abandonados recientes. ¡Excelente!
+                    ✓ Sin registros abandonados. ¡Todo sincronizado!
                   </td>
                 </tr>
               ) : (
@@ -453,10 +573,14 @@ export function AdminPanelClient({ initialUsers, stats, abandonedItems }: Props)
                       <td className="px-5 py-4 font-medium text-amber-600">
                         {item.resource_type}
                       </td>
-                      <td className="px-5 py-4 text-xs font-mono text-ink-soft">
-                        {item.resource_id}
+                      <td className="px-5 py-4 text-xs font-mono text-ink-soft flex items-center gap-1">
+                        {item.resource_id.slice(0, 12)}…
+                        <CopyButton text={item.resource_id} />
                       </td>
-                      <td className="px-5 py-4 text-xs text-red-500 max-w-md truncate" title={errorMsg}>
+                      <td
+                        className="px-5 py-4 text-xs text-red-500 max-w-md truncate"
+                        title={errorMsg}
+                      >
                         {errorMsg}
                       </td>
                     </tr>
@@ -468,13 +592,11 @@ export function AdminPanelClient({ initialUsers, stats, abandonedItems }: Props)
         </div>
       </div>
 
-      {/* NOTE */}
       <p className="text-xs text-ink-soft text-right mt-4">
-        ⚠️ Panel de acceso exclusivo para administradores del sistema.
-        No indexado por buscadores.
+        ⚠️ Panel de acceso exclusivo para administradores del sistema. No indexado por buscadores.
       </p>
 
-      {/* CONFIRM MODAL */}
+      {/* ── CONFIRM MODAL ── */}
       {confirmTarget && (
         <ConfirmDialog
           user={confirmTarget.user}
@@ -485,7 +607,7 @@ export function AdminPanelClient({ initialUsers, stats, abandonedItems }: Props)
         />
       )}
 
-      {/* DELETE MODAL */}
+      {/* ── DELETE MODAL ── */}
       {deleteTarget && (
         <DeleteDialog
           user={deleteTarget}
