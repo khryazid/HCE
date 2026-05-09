@@ -51,8 +51,10 @@ Esta es la lista ordenada de lo que trabajamos en la próxima sesión, en priori
 - [ ] **M-01** — Ampliar cobertura de tests E2E con Playwright  
   Flujo de consulta completo, PDF, plantillas, billing redirect.
 
-- [ ] **F-10** — UI de historial de versiones de plantillas  
-  Modal en `TreatmentsView` para ver y restaurar versiones anteriores. La data ya existe en `versions` JSONB.
+- [x] **F-10** — UI historial de versiones de plantillas ✅  
+  Modal con versiones ordenadas (más nueva primero), badge de versión actual, preview del contenido  
+  y botón "Restaurar" que carga el contenido en el formulario para revisar antes de guardar.  
+  El botón "Historial (N)" solo aparece cuando hay más de una versión.
 
 - [ ] **F-05** — Búsqueda full-text en Supabase  
   Escalar `GlobalSearch` de filtro en memoria (IndexedDB) a `tsvector` de Postgres.

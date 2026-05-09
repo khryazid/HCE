@@ -25,6 +25,115 @@ const EMPTY_FORM: TemplateForm = {
   treatment: "",
 };
 
+// ─── VERSION HISTORY MODAL ────────────────────────────────────────────────────
+
+type VersionHistoryModalProps = {
+  template: TreatmentTemplate;
+  onRestore: (notes: string) => void;
+  onClose: () => void;
+};
+
+function VersionHistoryModal({ template, onRestore, onClose }: VersionHistoryModalProps) {
+  // Show newest first
+  const sorted = [...template.versions].sort((a, b) => b.version - a.version);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+          <div>
+            <h2 className="text-base font-bold text-ink">Historial de versiones</h2>
+            <p className="text-xs text-ink-soft mt-0.5">
+              <span className="font-semibold text-ink">{template.title}</span>
+              {" — "}
+              {sorted.length} versión{sorted.length !== 1 ? "es" : ""}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="rounded-lg p-1.5 hover:bg-bg-soft text-ink-soft hover:text-ink transition-colors"
+            aria-label="Cerrar"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M3 3l10 10M13 3L3 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
+          </button>
+        </div>
+
+        {/* Version list */}
+        <div className="overflow-y-auto flex-1 px-6 py-4 space-y-3">
+          {sorted.map((v) => {
+            const isCurrent = v.version === template.current_version;
+            return (
+              <div
+                key={v.version}
+                className={`rounded-xl border p-4 space-y-2 transition-colors ${
+                  isCurrent
+                    ? "border-accent/40 bg-accent/5"
+                    : "border-border hover:border-border/80"
+                }`}
+              >
+                {/* Version header */}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                      isCurrent
+                        ? "bg-accent/15 text-accent"
+                        : "bg-bg-soft text-ink-soft"
+                    }`}>
+                      v{v.version}
+                    </span>
+                    {isCurrent && (
+                      <span className="text-xs text-accent font-medium">Versión actual</span>
+                    )}
+                  </div>
+                  <span className="text-xs text-ink-soft">
+                    {new Date(v.updated_at).toLocaleString("es-ES", {
+                      day: "2-digit", month: "short", year: "numeric",
+                      hour: "2-digit", minute: "2-digit",
+                    })}
+                  </span>
+                </div>
+
+                {/* Content preview */}
+                <p className="text-sm text-ink-soft whitespace-pre-wrap leading-relaxed line-clamp-4">
+                  {v.notes}
+                </p>
+
+                {/* Restore button (only for older versions) */}
+                {!isCurrent && (
+                  <button
+                    onClick={() => {
+                      onRestore(v.notes);
+                      onClose();
+                    }}
+                    className="mt-1 text-xs font-semibold px-3 py-1.5 rounded-lg border border-accent/30 text-accent hover:bg-accent/10 transition-colors"
+                  >
+                    ↩ Restaurar esta versión
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="px-6 py-4 border-t border-border">
+          <p className="text-xs text-ink-soft">
+            Restaurar carga el contenido en el formulario para revisarlo antes de guardar.
+            La plantilla actual no se modifica hasta que presiones <strong>Actualizar</strong>.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
+
 export default function TreatmentsView() {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -36,6 +145,7 @@ export default function TreatmentsView() {
   const [saving, setSaving] = useState(false);
   const [bootstrapError, setBootstrapError] = useState<string | null>(null);
   const [bootstrapping, setBootstrapping] = useState(true);
+  const [historyTemplate, setHistoryTemplate] = useState<TreatmentTemplate | null>(null);
 
   // ── Bootstrap: auth → profile → migrate legacy localStorage data ──────────
   useEffect(() => {
@@ -84,9 +194,8 @@ export default function TreatmentsView() {
     };
   }, [router]);
 
-  // ── Data: Supabase via React Query (updates automatically) ────────────────
+  // ── Data: Supabase via React Query ────────────────────────────────────────
   const { data: templates = [], isLoading: templatesLoading } = useTemplates(tenant);
-
   const editing = editingId ? (templates.find((t) => t.id === editingId) ?? null) : null;
 
   // ── Helpers ───────────────────────────────────────────────────────────────
@@ -106,12 +215,20 @@ export default function TreatmentsView() {
       title: template.title,
       treatment: template.treatment,
     });
+    setFormError(null);
+    // Scroll form into view on mobile
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function reset() {
     setEditingId(null);
     setForm(EMPTY_FORM);
     setFormError(null);
+  }
+
+  // Restore a version: loads the content into the form for review before saving
+  function handleRestoreVersion(notes: string) {
+    setForm((current) => ({ ...current, treatment: notes }));
   }
 
   // ── Handlers ──────────────────────────────────────────────────────────────
@@ -199,8 +316,17 @@ export default function TreatmentsView() {
       ) : null}
 
       <div className="grid gap-6 lg:grid-cols-[400px_minmax(0,1fr)]">
+        {/* ── FORM ── */}
         <form onSubmit={(e) => void handleSave(e)} className="hce-surface space-y-4">
           <h2 className="hce-section-title">{editing ? "Editar plantilla" : "Nueva plantilla"}</h2>
+
+          {editing && (
+            <div className="flex items-center gap-2 rounded-lg bg-accent/10 border border-accent/20 px-3 py-2">
+              <span className="text-xs font-semibold text-accent">Editando v{editing.current_version}</span>
+              <span className="text-xs text-ink-soft">— Guardar creará la versión {editing.current_version + 1}</span>
+            </div>
+          )}
+
           <label className="block space-y-2 text-sm font-medium text-ink-soft">
             <span>Enfermedad / sintoma trigger</span>
             <input
@@ -247,6 +373,7 @@ export default function TreatmentsView() {
           </div>
         </form>
 
+        {/* ── TEMPLATE LIST ── */}
         <div className="hce-surface">
           <h2 className="hce-section-title">Listado de plantillas</h2>
           <div className="mt-4 space-y-3">
@@ -257,23 +384,41 @@ export default function TreatmentsView() {
                 <article key={template.id} className="rounded-2xl border border-border p-4 space-y-2">
                   <div className="flex items-center justify-between gap-2">
                     <h3 className="font-semibold text-ink">{template.title}</h3>
-                    <span className="text-xs font-semibold text-ink-soft">v{template.current_version}</span>
+                    <span className="text-xs font-semibold text-ink-soft bg-bg-soft px-2 py-0.5 rounded-full">
+                      v{template.current_version}
+                    </span>
                   </div>
                   <p className="text-xs uppercase tracking-[0.15em] text-ink-soft">{template.trigger}</p>
-                  <p className="text-sm text-ink-soft whitespace-pre-wrap">{template.treatment}</p>
-                  <p className="text-xs text-ink-soft">Historial: {template.versions.length} versiones</p>
-                  <div className="flex gap-2">
+                  <p className="text-sm text-ink-soft whitespace-pre-wrap line-clamp-3">{template.treatment}</p>
+
+                  <div className="flex gap-2 flex-wrap">
                     <button
                       type="button"
                       onClick={() => startEdit(template)}
-                      className="rounded-xl border border-border px-3 py-1.5 text-xs font-semibold"
+                      className="rounded-xl border border-border px-3 py-1.5 text-xs font-semibold hover:bg-bg-soft transition-colors"
                     >
                       Editar
                     </button>
+
+                    {/* Version history button — only shown when there are multiple versions */}
+                    {template.versions.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => setHistoryTemplate(template)}
+                        className="rounded-xl border border-accent/30 text-accent px-3 py-1.5 text-xs font-semibold hover:bg-accent/10 transition-colors flex items-center gap-1.5"
+                      >
+                        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden>
+                          <path d="M8 1v7l4 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                          <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.5"/>
+                        </svg>
+                        Historial ({template.versions.length})
+                      </button>
+                    )}
+
                     <button
                       type="button"
                       onClick={() => void handleDelete(template)}
-                      className="rounded-xl border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700"
+                      className="rounded-xl border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 transition-colors"
                     >
                       Eliminar
                     </button>
@@ -284,6 +429,19 @@ export default function TreatmentsView() {
           </div>
         </div>
       </div>
+
+      {/* ── VERSION HISTORY MODAL ── */}
+      {historyTemplate && (
+        <VersionHistoryModal
+          template={historyTemplate}
+          onRestore={(notes) => {
+            // Load into form and start editing
+            startEdit(historyTemplate);
+            handleRestoreVersion(notes);
+          }}
+          onClose={() => setHistoryTemplate(null)}
+        />
+      )}
     </section>
   );
 }
