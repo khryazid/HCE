@@ -1,5 +1,5 @@
 # HCE · Backlog de Producción
-> Última revisión: 2026-05-07 | Estado del build: ✅ TS 0 errores · 85/85 tests · ESLint limpio
+> Última revisión: 2026-05-09 | Estado del build: ✅ TS 0 errores · 85/85 tests · ESLint limpio
 
 ---
 
@@ -41,9 +41,9 @@ Esta es la lista ordenada de lo que trabajamos en la próxima sesión, en priori
   Buscar usuarios, cambiar `subscription_status`, extender trial, asignar `lifetime`.  
   _Ruta:_ `/admin`
 
-- [ ] **BUG-02** — Reemplazar testimonios ficticios en la landing  
-  Reemplazar por reales cuando haya usuarios activos, o remover temporalmente la sección.  
-  _Archivo:_ `src/app/page.tsx:58-71`
+- [x] **BUG-02** — Testimonios ficticios reemplazados ✅  
+  Sección convertida a "lanzamiento temprano" con especialidades. Sin nombres inventados.  
+  Bonus: auditoría completa de copy — 5 afirmaciones falsas corregidas (free tier, PHI cifrado, tarjeta de crédito, roles de asistente, prueba gratis).
 
 ### 🟢 Prioridad Baja (cuando haya espacio)
 
@@ -93,11 +93,8 @@ Esta es la lista ordenada de lo que trabajamos en la próxima sesión, en priori
 **Acción:** Eliminar el cast y probar. Si TS acepta → commit. Si sigue fallando → bug upstream de Supabase JS.  
 **Prioridad:** 🔴 Alta
 
-### BUG-02 · Testimonios en landing son ficticios
-**Archivo:** `src/app/page.tsx:58-71`  
-**Descripción:** Los testimonios "Dr. Alejandro M." y "Dra. Carolina V." son placeholders. En producción esto puede afectar la credibilidad.  
-**Acción:** Reemplazar con testimonios reales cuando haya usuarios activos. O remover la sección hasta tenerlos.  
-**Prioridad:** 🟡 Media
+### ~~BUG-02 · Testimonios en landing eran ficticios~~ ✅ Resuelto
+Sección reemplazada con estado honesto de lanzamiento temprano. Copy completo auditado y corregido.
 
 ### ~~BUG-03 · Metadata del layout raíz desactualizada~~ ✅ Resuelto
 `layout.tsx` actualizado — title: `"Glyph — Motor Clínico"` con descripción SEO correcta.
