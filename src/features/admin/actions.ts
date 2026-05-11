@@ -50,6 +50,7 @@ export type AdminUserRecord = {
   specialty: string;
   subscription_status: string;
   subscription_expires_at: string | null;
+  plan: string;
 };
 
 export type AdminStats = {
@@ -91,7 +92,7 @@ export async function getAllUsersWithProfiles(): Promise<{
 
   const { data: profiles, error: profError } = await admin
     .from("profiles")
-    .select("doctor_id, full_name, specialty, subscription_status, subscription_expires_at");
+    .select("doctor_id, full_name, specialty, subscription_status, subscription_expires_at, plan");
   if (profError) throw profError;
 
   const users: AdminUserRecord[] = authData.users
@@ -105,6 +106,7 @@ export async function getAllUsersWithProfiles(): Promise<{
         specialty: Array.isArray(profile?.specialty) ? profile.specialty.join(", ") : (profile?.specialty ?? "—"),
         subscription_status: profile?.subscription_status ?? "none",
         subscription_expires_at: profile?.subscription_expires_at ?? null,
+        plan: profile?.plan ?? "basic",
       };
     })
     .sort(
@@ -129,11 +131,13 @@ export async function getAllUsersWithProfiles(): Promise<{
  * @param userId        Supabase auth user ID
  * @param status        "active" | "lifetime" | "canceled"
  * @param durationDays  Optional. If set, computes expiry = now + N days. Ignored for "lifetime".
+ * @param plan          "basic" | "clinic"
  */
 export async function setSubscriptionStatus(
   userId: string,
   status: string,
-  durationDays?: number
+  durationDays?: number,
+  plan?: string
 ) {
   await verifySuperAdmin();
   const admin = getSupabaseAdmin();
@@ -151,12 +155,18 @@ export async function setSubscriptionStatus(
     expires_at = null;
   }
 
+  const updatePayload: { subscription_status: string; subscription_expires_at: string | null; plan?: string } = {
+    subscription_status: status,
+    subscription_expires_at: expires_at,
+  };
+
+  if (plan) {
+    updatePayload.plan = plan;
+  }
+
   const { error } = await admin
     .from("profiles")
-    .update({
-      subscription_status: status,
-      subscription_expires_at: expires_at,
-    })
+    .update(updatePayload)
     .eq("doctor_id", userId);
 
   if (error) throw error;

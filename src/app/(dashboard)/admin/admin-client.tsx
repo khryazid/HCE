@@ -26,6 +26,7 @@ type Props = {
 type PlanDraft = {
   status: "active" | "lifetime" | "canceled";
   days?: number;
+  plan: "basic" | "clinic";
 };
 
 type StatusFilter = "all" | "active" | "lifetime" | "trialing" | "incomplete" | "canceled" | "none";
@@ -124,6 +125,7 @@ function ConfirmDialog({
         </p>
         <div className="rounded-lg bg-bg-soft border border-border px-4 py-3">
           <p className="font-semibold text-ink">{planLabel}</p>
+          <p className="text-sm text-ink-soft">Tipo: {plan.plan === "clinic" ? "Plan Clínica" : "Plan Básico"}</p>
         </div>
         <p className="text-xs text-ink-soft">Esta acción se aplica inmediatamente.</p>
         <div className="flex justify-end gap-3 pt-2">
@@ -208,10 +210,20 @@ function PlanEditor({
 }) {
   const [selectedStatus, setSelectedStatus] = useState<PlanDraft["status"]>("active");
   const [days, setDays] = useState<number>(30);
+  const [selectedPlan, setSelectedPlan] = useState<PlanDraft["plan"]>((user.plan as "basic" | "clinic") || "basic");
   const isLoading = loadingId === user.id;
 
   return (
     <div className="flex flex-wrap items-center gap-2 justify-end">
+      <select
+        className="hce-input text-xs py-1 px-2 w-auto"
+        value={selectedPlan}
+        onChange={(e) => setSelectedPlan(e.target.value as PlanDraft["plan"])}
+      >
+        <option value="basic">Básico</option>
+        <option value="clinic">Clínica</option>
+      </select>
+
       <select
         className="hce-input text-xs py-1 px-2 w-auto"
         value={selectedStatus}
@@ -244,6 +256,7 @@ function PlanEditor({
           onApply(user, {
             status: selectedStatus,
             days: selectedStatus === "active" ? days : undefined,
+            plan: selectedPlan,
           })
         }
         className="px-3 py-1 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold transition-colors disabled:opacity-50"
@@ -324,7 +337,7 @@ export function AdminPanelClient({ initialUsers, stats, abandonedItems }: Props)
     startTransition(async () => {
       setLoadingId(user.id);
       try {
-        const result = await setSubscriptionStatus(user.id, plan.status, plan.days);
+        const result = await setSubscriptionStatus(user.id, plan.status, plan.days, plan.plan);
         setUsers((prev) =>
           prev.map((u) =>
             u.id === user.id
@@ -332,6 +345,7 @@ export function AdminPanelClient({ initialUsers, stats, abandonedItems }: Props)
                   ...u,
                   subscription_status: plan.status,
                   subscription_expires_at: result.expires_at ?? null,
+                  plan: plan.plan,
                 }
               : u,
           ),
@@ -455,7 +469,8 @@ export function AdminPanelClient({ initialUsers, stats, abandonedItems }: Props)
                 <th className="px-5 py-3">Doctor</th>
                 <th className="px-5 py-3">Email</th>
                 <th className="px-5 py-3">Especialidad</th>
-                <th className="px-5 py-3">Plan Actual</th>
+                <th className="px-5 py-3">Tipo Plan</th>
+                <th className="px-5 py-3">Estado</th>
                 <th className="px-5 py-3">Expira</th>
                 <th className="px-5 py-3">Registro</th>
                 <th className="px-5 py-3 text-right">Acciones</th>
@@ -491,6 +506,9 @@ export function AdminPanelClient({ initialUsers, stats, abandonedItems }: Props)
                   </td>
                   <td className="px-5 py-4 text-ink-soft text-xs">
                     {user.specialty || "—"}
+                  </td>
+                  <td className="px-5 py-4 text-xs font-semibold text-ink">
+                    {user.plan === "clinic" ? "Clínica" : "Básico"}
                   </td>
                   <td className="px-5 py-4">
                     <StatusBadge status={user.subscription_status} />
