@@ -90,7 +90,7 @@ function readOptionalString(value: unknown) {
 }
 
 function readNullableString(value: unknown) {
-  return typeof value === "string" ? value : null;
+  return typeof value === "string" && value.trim() !== "" ? value : null;
 }
 
 function readRequiredString(value: unknown) {
@@ -108,12 +108,7 @@ function readJsonValue(value: unknown): Json {
 }
 
 function logAuditEvent(supabase: SupabaseClient<Database>, args: LogAuditEventArgs) {
-  const rpc = supabase.rpc as unknown as (
-    fn: "log_audit_event",
-    rpcArgs: LogAuditEventArgs,
-  ) => ReturnType<SupabaseClient<Database>["rpc"]>;
-
-  return rpc("log_audit_event", args);
+  return supabase.rpc("log_audit_event", args);
 }
 
 /**
@@ -428,8 +423,8 @@ export async function flushSyncQueue(options?: { forceRetry?: boolean }) {
       const payload = item.payload as Record<string, unknown>;
       const patientId = typeof payload.patient_id === "string" ? payload.patient_id : undefined;
       if (patientId && failedPatientIds.has(patientId)) {
-        // Deja el ítem como pending, se reintentará en el próximo flush
-        // cuando el paciente ya esté en Supabase.
+        // Propagate failure to protect specialty_data
+        failedRecordIds.add(item.record_id);
         continue;
       }
     }
