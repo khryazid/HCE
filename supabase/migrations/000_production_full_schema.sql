@@ -62,6 +62,20 @@ create table if not exists public.profiles (
   unique (clinic_id, doctor_id)
 );
 
+-- Parche para migraciones: agregar columna plan si no existe
+do $$
+begin
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public'
+      and table_name   = 'profiles'
+      and column_name  = 'plan'
+  ) then
+    alter table public.profiles
+      add column plan text not null default 'basic' check (plan in ('basic', 'clinic'));
+  end if;
+end $$;
+
 -- ── patients ─────────────────────────────────────────────────
 -- Un paciente por document_number dentro de cada clínica.
 create table if not exists public.patients (
@@ -196,6 +210,13 @@ create table if not exists public.clinic_members (
   created_at      timestamptz not null default now(),
   unique (clinic_id, doctor_id)
 );
+
+-- Parche para migraciones: actualizar constraint de roles
+do $$
+begin
+  alter table public.clinic_members drop constraint if exists clinic_members_role_check;
+  alter table public.clinic_members add constraint clinic_members_role_check check (role in ('admin', 'doctor', 'assistant'));
+end $$;
 
 -- ════════════════════════════════════════════════════════════
 -- 2. COMPATIBILIDAD (columnas añadidas en versiones anteriores)
