@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useTransition, useCallback } from "react";
+import { useState, useMemo, useTransition, useCallback, useEffect } from "react";
 import { toast } from "sonner";
 import type { AdminUserRecord, AdminStats } from "@/features/admin/actions";
 import { setSubscriptionStatus, deleteUserAccount } from "@/features/admin/actions";
@@ -299,6 +299,11 @@ export function AdminPanelClient({ initialUsers, stats, abandonedItems }: Props)
   } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AdminUserRecord | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Derived: how many new in last 48h
   const recentCount = useMemo(
@@ -411,7 +416,7 @@ export function AdminPanelClient({ initialUsers, stats, abandonedItems }: Props)
       </div>
 
       {/* ── RECENT USERS NOTICE ── */}
-      {recentCount > 0 && (
+      {isMounted && recentCount > 0 && (
         <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-sky-500/10 border border-sky-500/30 text-sky-600 dark:text-sky-400 text-sm">
           <span className="inline-block w-2 h-2 rounded-full bg-sky-500 animate-pulse" />
           <span>
@@ -481,13 +486,13 @@ export function AdminPanelClient({ initialUsers, stats, abandonedItems }: Props)
                 <tr
                   key={user.id}
                   className={`hover:bg-bg-soft/50 transition-colors ${
-                    isRecentUser(user.created_at) ? "border-l-2 border-l-sky-500" : ""
+                    isMounted && isRecentUser(user.created_at) ? "border-l-2 border-l-sky-500" : ""
                   }`}
                 >
                   <td className="px-5 py-4 font-medium text-ink whitespace-nowrap">
                     <div className="flex items-center gap-2">
                       {user.full_name}
-                      {isRecentUser(user.created_at) && (
+                      {isMounted && isRecentUser(user.created_at) && (
                         <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-sky-500/15 text-sky-600 dark:text-sky-400">
                           Nuevo
                         </span>
@@ -513,14 +518,14 @@ export function AdminPanelClient({ initialUsers, stats, abandonedItems }: Props)
                   <td className="px-5 py-4">
                     <StatusBadge status={user.subscription_status} />
                   </td>
-                  <td className="px-5 py-4 text-xs text-ink-soft">
+                  <td suppressHydrationWarning className="px-5 py-4 text-xs text-ink-soft">
                     {user.subscription_expires_at
                       ? new Date(user.subscription_expires_at).toLocaleDateString("es-ES")
                       : user.subscription_status === "lifetime"
                         ? "∞ Nunca"
                         : "—"}
                   </td>
-                  <td className="px-5 py-4 text-xs text-ink-soft whitespace-nowrap">
+                  <td suppressHydrationWarning className="px-5 py-4 text-xs text-ink-soft whitespace-nowrap">
                     {new Date(user.created_at).toLocaleDateString("es-ES")}
                   </td>
                   <td className="px-5 py-4">
@@ -585,7 +590,7 @@ export function AdminPanelClient({ initialUsers, stats, abandonedItems }: Props)
                       : "Error desconocido";
                   return (
                     <tr key={item.id} className="hover:bg-bg-soft/50 transition-colors">
-                      <td className="px-5 py-4 text-xs text-ink-soft whitespace-nowrap">
+                      <td suppressHydrationWarning className="px-5 py-4 text-xs text-ink-soft whitespace-nowrap">
                         {new Date(item.created_at).toLocaleString("es-ES")}
                       </td>
                       <td className="px-5 py-4 font-medium text-amber-600">
