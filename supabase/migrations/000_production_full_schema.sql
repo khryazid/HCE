@@ -359,11 +359,7 @@ create policy "patients_tenant_select"
       select 1 from public.profiles p
       where p.doctor_id = auth.uid()
         and p.clinic_id = public.patients.clinic_id
-    ) or exists (
-      select 1 from public.clinic_members cm
-      where cm.doctor_id = auth.uid()
-        and cm.clinic_id = public.patients.clinic_id
-    )
+    ) or public.is_clinic_member(public.patients.clinic_id)
   );
 
 drop policy if exists "patients_tenant_write" on public.patients;
@@ -374,22 +370,14 @@ create policy "patients_tenant_write"
       select 1 from public.profiles p
       where p.doctor_id = auth.uid()
         and p.clinic_id = public.patients.clinic_id
-    ) or exists (
-      select 1 from public.clinic_members cm
-      where cm.doctor_id = auth.uid()
-        and cm.clinic_id = public.patients.clinic_id
-    )
+    ) or public.is_clinic_member(public.patients.clinic_id)
   )
   with check (
     exists (
       select 1 from public.profiles p
       where p.doctor_id = auth.uid()
         and p.clinic_id = public.patients.clinic_id
-    ) or exists (
-      select 1 from public.clinic_members cm
-      where cm.doctor_id = auth.uid()
-        and cm.clinic_id = public.patients.clinic_id
-    )
+    ) or public.is_clinic_member(public.patients.clinic_id)
   );
 
 -- ── clinical_records ─────────────────────────────────────────
@@ -401,11 +389,7 @@ create policy "records_tenant_select"
       select 1 from public.profiles p
       where p.doctor_id = auth.uid()
         and p.clinic_id = public.clinical_records.clinic_id
-    ) or exists (
-      select 1 from public.clinic_members cm
-      where cm.doctor_id = auth.uid()
-        and cm.clinic_id = public.clinical_records.clinic_id
-    )
+    ) or public.is_clinic_member(public.clinical_records.clinic_id)
   );
 
 drop policy if exists "records_tenant_write" on public.clinical_records;
@@ -416,22 +400,14 @@ create policy "records_tenant_write"
       select 1 from public.profiles p
       where p.doctor_id = auth.uid()
         and p.clinic_id = public.clinical_records.clinic_id
-    ) or exists (
-      select 1 from public.clinic_members cm
-      where cm.doctor_id = auth.uid()
-        and cm.clinic_id = public.clinical_records.clinic_id
-    )
+    ) or public.is_clinic_member(public.clinical_records.clinic_id)
   )
   with check (
     exists (
       select 1 from public.profiles p
       where p.doctor_id = auth.uid()
         and p.clinic_id = public.clinical_records.clinic_id
-    ) or exists (
-      select 1 from public.clinic_members cm
-      where cm.doctor_id = auth.uid()
-        and cm.clinic_id = public.clinical_records.clinic_id
-    )
+    ) or public.is_clinic_member(public.clinical_records.clinic_id)
   );
 
 -- ── specialty_data ───────────────────────────────────────────
@@ -443,11 +419,7 @@ create policy "specialty_tenant_select"
       select 1 from public.profiles p
       where p.doctor_id = auth.uid()
         and p.clinic_id = public.specialty_data.clinic_id
-    ) or exists (
-      select 1 from public.clinic_members cm
-      where cm.doctor_id = auth.uid()
-        and cm.clinic_id = public.specialty_data.clinic_id
-    )
+    ) or public.is_clinic_member(public.specialty_data.clinic_id)
   );
 
 drop policy if exists "specialty_tenant_write" on public.specialty_data;
@@ -458,22 +430,14 @@ create policy "specialty_tenant_write"
       select 1 from public.profiles p
       where p.doctor_id = auth.uid()
         and p.clinic_id = public.specialty_data.clinic_id
-    ) or exists (
-      select 1 from public.clinic_members cm
-      where cm.doctor_id = auth.uid()
-        and cm.clinic_id = public.specialty_data.clinic_id
-    )
+    ) or public.is_clinic_member(public.specialty_data.clinic_id)
   )
   with check (
     exists (
       select 1 from public.profiles p
       where p.doctor_id = auth.uid()
         and p.clinic_id = public.specialty_data.clinic_id
-    ) or exists (
-      select 1 from public.clinic_members cm
-      where cm.doctor_id = auth.uid()
-        and cm.clinic_id = public.specialty_data.clinic_id
-    )
+    ) or public.is_clinic_member(public.specialty_data.clinic_id)
   );
 
 -- ── audit_logs ───────────────────────────────────────────────
@@ -522,11 +486,7 @@ create policy "push_subscriptions_tenant_select"
       select 1 from public.profiles p
       where p.doctor_id = auth.uid()
         and p.clinic_id = public.push_subscriptions.clinic_id
-    ) or exists (
-      select 1 from public.clinic_members cm
-      where cm.doctor_id = auth.uid()
-        and cm.clinic_id = public.push_subscriptions.clinic_id
-    )
+    ) or public.is_clinic_member(public.push_subscriptions.clinic_id)
   );
 
 drop policy if exists "push_subscriptions_tenant_write" on public.push_subscriptions;
@@ -538,11 +498,7 @@ create policy "push_subscriptions_tenant_write"
       select 1 from public.profiles p
       where p.doctor_id = auth.uid()
         and p.clinic_id = public.push_subscriptions.clinic_id
-    ) or exists (
-      select 1 from public.clinic_members cm
-      where cm.doctor_id = auth.uid()
-        and cm.clinic_id = public.push_subscriptions.clinic_id
-    )
+    ) or public.is_clinic_member(public.push_subscriptions.clinic_id)
   )
   with check (
     doctor_id = auth.uid()
@@ -550,11 +506,7 @@ create policy "push_subscriptions_tenant_write"
       select 1 from public.profiles p
       where p.doctor_id = auth.uid()
         and p.clinic_id = public.push_subscriptions.clinic_id
-    ) or exists (
-      select 1 from public.clinic_members cm
-      where cm.doctor_id = auth.uid()
-        and cm.clinic_id = public.push_subscriptions.clinic_id
-    )
+    ) or public.is_clinic_member(public.push_subscriptions.clinic_id)
   );
 
 -- ── treatment_templates ──────────────────────────────────────
@@ -579,11 +531,7 @@ create policy "clinic_members_select"
       select 1 from public.profiles p
       where p.doctor_id = auth.uid()
         and p.clinic_id = public.clinic_members.clinic_id
-    ) or exists (
-      select 1 from public.clinic_members cm
-      where cm.doctor_id = auth.uid()
-        and cm.clinic_id = public.clinic_members.clinic_id
-    )
+    ) or public.is_clinic_member(public.clinic_members.clinic_id)
   );
 
 drop policy if exists "clinic_members_write" on public.clinic_members;
@@ -594,24 +542,14 @@ create policy "clinic_members_write"
       select 1 from public.profiles p
       where p.doctor_id = auth.uid()
         and p.clinic_id = public.clinic_members.clinic_id
-    ) or exists (
-      select 1 from public.clinic_members cm
-      where cm.doctor_id = auth.uid()
-        and cm.clinic_id = public.clinic_members.clinic_id
-        and cm.role = 'admin'
-    )
+    ) or public.is_clinic_admin(public.clinic_members.clinic_id)
   )
   with check (
     exists (
       select 1 from public.profiles p
       where p.doctor_id = auth.uid()
         and p.clinic_id = public.clinic_members.clinic_id
-    ) or exists (
-      select 1 from public.clinic_members cm
-      where cm.doctor_id = auth.uid()
-        and cm.clinic_id = public.clinic_members.clinic_id
-        and cm.role = 'admin'
-    )
+    ) or public.is_clinic_admin(public.clinic_members.clinic_id)
   );
 
 -- ════════════════════════════════════════════════════════════
