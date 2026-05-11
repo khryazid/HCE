@@ -158,7 +158,7 @@ export function TeamPanel() {
             >
               <option value="doctor">Doctor</option>
               <option value="admin">Admin</option>
-              <option value="viewer">Viewer</option>
+              <option value="assistant">Asistente</option>
             </select>
           </div>
           <button
@@ -214,7 +214,7 @@ export function TeamPanel() {
                     >
                       <option value="admin">Admin</option>
                       <option value="doctor">Doctor</option>
-                      <option value="viewer">Viewer</option>
+                      <option value="assistant">Asistente</option>
                     </select>
                   ) : (
                     <span className="capitalize text-muted-foreground">{member.role}</span>

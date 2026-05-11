@@ -40,7 +40,7 @@ export async function PATCH(
     const { id } = await params;
     const { role } = await req.json();
 
-    if (!role || !['admin', 'doctor', 'viewer'].includes(role)) {
+    if (!role || !['admin', 'doctor', 'assistant'].includes(role)) {
       return NextResponse.json({ error: "Rol inválido" }, { status: 400 });
     }
 

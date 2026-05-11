@@ -59,7 +59,7 @@ Con arquitectura multi-tenant de grado empresarial, Glyph automatiza la facturac
 
 ### Próxima feature mayor
 
-**F-01 — Plan Clínica multi-doctor**: nueva tabla `clinic_members`, roles (admin/doctor/viewer), ajustes de RLS, pricing con seats. Ver `docs/BACKLOG.md` para el detalle completo.
+**F-01 — Plan Clínica multi-doctor**: nueva tabla `clinic_members`, roles (admin/doctor/assistant), ajustes de RLS, pricing con seats. Ver `docs/BACKLOG.md` para el detalle completo.
 
 ---
 

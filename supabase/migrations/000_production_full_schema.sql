@@ -56,6 +56,7 @@ create table if not exists public.profiles (
     )),
   -- NULL = sin vencimiento (lifetime o plan sin fecha límite)
   subscription_expires_at timestamptz default null,
+  plan                    text        not null default 'basic' check (plan in ('basic', 'clinic')),
   created_at              timestamptz not null default now(),
   updated_at              timestamptz not null default now(),
   unique (clinic_id, doctor_id)
@@ -189,7 +190,7 @@ create table if not exists public.clinic_members (
   id              uuid        primary key default gen_random_uuid(),
   clinic_id       uuid        not null,
   doctor_id       uuid        not null references auth.users (id) on delete cascade,
-  role            text        not null check (role in ('admin', 'doctor', 'viewer')),
+  role            text        not null check (role in ('admin', 'doctor', 'assistant')),
   invited_by      uuid        references auth.users (id) on delete set null,
   joined_at       timestamptz not null default now(),
   created_at      timestamptz not null default now(),
@@ -977,8 +978,8 @@ alter table public.app_config enable row level security;
 
 -- Inserta o actualiza los valores de configuración
 insert into public.app_config (key, value) values
-  ('site_url',         'REEMPLAZAR_CON_TU_URL_VERCEL'),
-  ('push_send_secret', 'REEMPLAZAR_CON_TU_PUSH_SEND_SECRET')
+  ('site_url',         'https://glyphce.vercel.app/'),
+  ('push_send_secret', '6e0300c35f48bd830ace18216ec96e0f0c0ac23afa774c56470c9f18ce5171bc')
 on conflict (key) do update
   set value = excluded.value, updated_at = now();
 
@@ -1047,7 +1048,7 @@ select cron.schedule(
 
 -- Agrega el secreto de email a app_config
 insert into public.app_config (key, value) values
-  ('resend_email_secret', 'REEMPLAZAR_CON_TU_RESEND_EMAIL_SECRET')
+  ('resend_email_secret', '183492765')
 on conflict (key) do update
   set value = excluded.value, updated_at = now();
 commit;

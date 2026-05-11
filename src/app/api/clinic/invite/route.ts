@@ -45,6 +45,40 @@ export async function POST(req: Request) {
       );
     }
 
+    // Check Plan Limits
+    const { data: ownerProfile } = await supabase
+      .from("profiles")
+      .select("plan")
+      .eq("clinic_id", clinic_id)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .single();
+      
+    const plan = ownerProfile?.plan || "basic";
+
+    if (plan === "basic") {
+      if (role === "doctor") {
+        return NextResponse.json(
+          { error: "Tu plan Básico no permite agregar otros doctores. Mejora al Plan Clínica." },
+          { status: 403 }
+        );
+      }
+      if (role === "assistant") {
+        const { count } = await supabase
+          .from("clinic_members")
+          .select("*", { count: "exact", head: true })
+          .eq("clinic_id", clinic_id)
+          .eq("role", "assistant");
+          
+        if ((count || 0) >= 2) {
+          return NextResponse.json(
+            { error: "Has alcanzado el límite de 2 asistentes de tu Plan Básico." },
+            { status: 403 }
+          );
+        }
+      }
+    }
+
     const adminClient = createAdminClient();
 
     // Invite the user or get their ID if they already exist

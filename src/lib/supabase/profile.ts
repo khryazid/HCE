@@ -5,10 +5,10 @@ export type TenantProfile = {
   doctor_id: string;
   clinic_id: string;
   full_name: string;
-  /** Array of medical specialties for this doctor (canonical field — maps to `specialty` column in DB). */
   specialties: string[];
   subscription_status?: string | null;
-  role: "admin" | "doctor" | "viewer";
+  plan: "basic" | "clinic";
+  role: "admin" | "doctor" | "assistant";
 };
 
 type EnsureTenantProfileInput = {
@@ -16,6 +16,7 @@ type EnsureTenantProfileInput = {
   clinicId: string;
   fullName: string;
   specialties: string[];
+  plan?: "basic" | "clinic";
 };
 
 type TenantMetadata = {
@@ -45,8 +46,9 @@ function withSpecialties(profile: {
   clinic_id: string;
   full_name: string;
   specialty: string[];
+  plan: "basic" | "clinic";
   subscription_status?: string | null;
-  role?: "admin" | "doctor" | "viewer";
+  role?: "admin" | "doctor" | "assistant";
 }): TenantProfile {
   // Map the DB column name `specialty` to the canonical `specialties` field.
   const { specialty, role, ...rest } = profile;
@@ -61,7 +63,7 @@ export async function loadTenantProfile(userId: string): Promise<TenantProfile |
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from("profiles")
-    .select("doctor_id, clinic_id, full_name, specialty, subscription_status")
+    .select("doctor_id, clinic_id, full_name, specialty, subscription_status, plan")
     .eq("doctor_id", userId)
     .maybeSingle();
 
@@ -83,7 +85,8 @@ export async function loadTenantProfile(userId: string): Promise<TenantProfile |
 
   return withSpecialties({
     ...data,
-    role: (memberData?.role as "admin" | "doctor" | "viewer") || "admin",
+    plan: data.plan as "basic" | "clinic",
+    role: (memberData?.role as "admin" | "doctor" | "assistant") || "admin",
   });
 }
 
@@ -122,8 +125,9 @@ export async function ensureTenantProfile(
       clinic_id: clinicId,
       full_name: fullName,
       specialty: specialties,
+      plan: input.plan || "basic",
     } satisfies ProfileInsert)
-    .select("doctor_id, clinic_id, full_name, specialty, subscription_status")
+    .select("doctor_id, clinic_id, full_name, specialty, subscription_status, plan")
     .single();
 
   if (error) {
@@ -144,7 +148,10 @@ export async function ensureTenantProfile(
     throw new Error("No se pudo materializar el perfil tenant despues del registro.");
   }
 
-  return withSpecialties(data);
+  return withSpecialties({
+    ...data,
+    plan: data.plan as "basic" | "clinic",
+  });
 }
 
 export async function bootstrapTenantProfileFromMetadata(

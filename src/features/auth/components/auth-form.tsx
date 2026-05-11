@@ -33,6 +33,7 @@ const loginSchema = z.object({
 const registerSchema = loginSchema.extend({
   fullName: z.string().min(1, "El nombre completo es obligatorio."),
   specialties: z.array(z.string()).min(1, "Selecciona al menos una especialidad."),
+  plan: z.enum(["basic", "clinic"]).default("basic"),
 });
 
 type AuthFormData = z.infer<typeof registerSchema>;
@@ -63,6 +64,7 @@ export function AuthForm({ mode }: AuthFormProps) {
       password: "",
       fullName: "",
       specialties: [],
+      plan: "basic",
     },
   });
 
@@ -136,6 +138,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                 full_name: data.fullName?.trim(),
                 specialties: data.specialties,
                 clinic_id: normalizedClinicId,
+                plan: data.plan,
               },
             },
           })
@@ -152,6 +155,7 @@ export function AuthForm({ mode }: AuthFormProps) {
             clinicId: normalizedClinicId,
             fullName: data.fullName?.trim() || "",
             specialties: data.specialties || [],
+            plan: data.plan as "basic" | "clinic",
           });
           router.replace("/dashboard");
           return;
@@ -321,8 +325,48 @@ export function AuthForm({ mode }: AuthFormProps) {
               ) : null}
             </fieldset>
 
+            <fieldset className="space-y-3">
+              <legend className="text-sm font-medium text-ink-soft">Selecciona tu Plan</legend>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <label
+                  className={`relative flex cursor-pointer rounded-xl border p-4 shadow-sm transition-colors focus:outline-none ${
+                    watch("plan") === "basic"
+                      ? "border-accent bg-accent/5 ring-1 ring-accent"
+                      : "border-border bg-card hover:bg-bg-soft"
+                  }`}
+                >
+                  <input type="radio" value="basic" {...register("plan")} className="sr-only" />
+                  <div className="flex w-full flex-col">
+                    <span className="flex items-center justify-between">
+                      <span className="text-sm font-semibold text-ink">Básico</span>
+                    </span>
+                    <span className="mt-1 flex items-center text-xs text-ink-soft">
+                      Hasta 2 Asistentes.
+                    </span>
+                  </div>
+                </label>
+                <label
+                  className={`relative flex cursor-pointer rounded-xl border p-4 shadow-sm transition-colors focus:outline-none ${
+                    watch("plan") === "clinic"
+                      ? "border-accent bg-accent/5 ring-1 ring-accent"
+                      : "border-border bg-card hover:bg-bg-soft"
+                  }`}
+                >
+                  <input type="radio" value="clinic" {...register("plan")} className="sr-only" />
+                  <div className="flex w-full flex-col">
+                    <span className="flex items-center justify-between">
+                      <span className="text-sm font-semibold text-ink">Clínica</span>
+                    </span>
+                    <span className="mt-1 flex items-center text-xs text-ink-soft">
+                      Múltiples Doctores.
+                    </span>
+                  </div>
+                </label>
+              </div>
+            </fieldset>
+
             <p className="rounded-xl border border-border bg-bg-soft px-3 py-2 text-xs text-ink-soft">
-              El espacio de clinica se crea automaticamente para ti durante el registro.
+              El espacio de clínica se crea automáticamente para ti durante el registro.
             </p>
           </>
         ) : null}
