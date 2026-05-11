@@ -81,8 +81,8 @@ export default function PatientsView() {
 
   // ─── Filtrado de pacientes ────────────────────────────────────────────────────
   const filteredPatients = useMemo(() => {
-    const normalizeString = (str: string | null | undefined) =>
-      (str || "").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const normalizeString = (str: unknown) =>
+      String(str || "").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
     const normalizedSearch = normalizeString(search);
     
@@ -91,7 +91,14 @@ export default function PatientsView() {
     return patients.filter((p) => {
       const name = normalizeString(p.full_name);
       const doc = normalizeString(p.document_number);
-      return name.includes(normalizedSearch) || doc.includes(normalizedSearch);
+      
+      // Búsqueda flexible de cédula/documento: ignoramos guiones, puntos y espacios
+      const cleanDoc = String(p.document_number || "").replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
+      const cleanSearch = normalizedSearch.replace(/[^a-zA-Z0-9]/g, "");
+      
+      return name.includes(normalizedSearch) || 
+             doc.includes(normalizedSearch) || 
+             (cleanSearch.length > 0 && cleanDoc.includes(cleanSearch));
     });
   }, [patients, search]);
 
