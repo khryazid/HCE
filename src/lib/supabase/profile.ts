@@ -8,6 +8,7 @@ export type TenantProfile = {
   /** Array of medical specialties for this doctor (canonical field — maps to `specialty` column in DB). */
   specialties: string[];
   subscription_status?: string | null;
+  role: "admin" | "doctor" | "viewer";
 };
 
 type EnsureTenantProfileInput = {
@@ -45,10 +46,11 @@ function withSpecialties(profile: {
   full_name: string;
   specialty: string[];
   subscription_status?: string | null;
+  role?: "admin" | "doctor" | "viewer";
 }): TenantProfile {
   // Map the DB column name `specialty` to the canonical `specialties` field.
-  const { specialty, ...rest } = profile;
-  return { ...rest, specialties: specialty };
+  const { specialty, role, ...rest } = profile;
+  return { ...rest, specialties: specialty, role: role || "admin" };
 }
 
 export function createClinicId() {
@@ -71,7 +73,18 @@ export async function loadTenantProfile(userId: string): Promise<TenantProfile |
     return null;
   }
 
-  return withSpecialties(data);
+  // Cargar rol de clinic_members
+  const { data: memberData } = await supabase
+    .from("clinic_members")
+    .select("role")
+    .eq("clinic_id", data.clinic_id)
+    .eq("doctor_id", userId)
+    .maybeSingle();
+
+  return withSpecialties({
+    ...data,
+    role: (memberData?.role as "admin" | "doctor" | "viewer") || "admin",
+  });
 }
 
 export async function ensureTenantProfile(

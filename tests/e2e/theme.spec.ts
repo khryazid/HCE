@@ -48,7 +48,7 @@ test.describe("Flujo E2E: Dark Mode / Theme Toggle", () => {
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   });
 
-  test("el toggle 'Sistema' elimina data-theme y delega al media query", async ({ page, context }) => {
+  test("el toggle 'Sistema' elimina data-theme y delega al media query", async ({ page }) => {
     // Arrancar con dark guardado
     await page.addInitScript(() => {
       localStorage.setItem("hce:theme", "dark");

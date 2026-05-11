@@ -1,5 +1,5 @@
 # HCE · Backlog de Producción
-> Última revisión: 2026-05-09 | Estado del build: ✅ TS 0 errores · 85/85 tests · ESLint limpio
+> Última revisión: 2026-05-11 | Estado del build: ✅ TS 0 errores · 85/85 tests · ESLint limpio
 
 ---
 
@@ -70,8 +70,8 @@ Esta es la lista ordenada de lo que trabajamos en la próxima sesión, en priori
   (sin FOUC). Hook `useTheme` con persistencia en `localStorage('hce:theme')`. Componente `ThemeToggle`  
   con 3 opciones (Claro / Oscuro / Sistema) integrado en `/ajustes`.
 
-- [ ] **F-01** — Plan Clínica multi-doctor  
-  Nueva tabla `clinic_members`, roles, ajustes de RLS, pricing con seats.
+- [x] **F-01** — Plan Clínica multi-doctor ✅
+  Nueva tabla `clinic_members`, roles, ajustes de RLS, UI TeamPanel, invitar y remover miembros.
 
 - [x] **F-06** — Exportación ZIP de historia clínica ✅  
   100% client-side (sin API route): `exportPatientZip()` genera un JSZip con  

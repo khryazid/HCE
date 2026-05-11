@@ -38,6 +38,39 @@ export type Database = {
         }
         Relationships: []
       }
+      clinic_members: {
+        Row: {
+          clinic_id: string
+          created_at: string
+          doctor_id: string
+          id: string
+          invited_by: string | null
+          joined_at: string
+          role: string
+          updated_at: string
+        }
+        Insert: {
+          clinic_id: string
+          created_at?: string
+          doctor_id: string
+          id?: string
+          invited_by?: string | null
+          joined_at?: string
+          role: string
+          updated_at?: string
+        }
+        Update: {
+          clinic_id?: string
+          created_at?: string
+          doctor_id?: string
+          id?: string
+          invited_by?: string | null
+          joined_at?: string
+          role?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       audit_logs: {
         Row: {
           changes: Json

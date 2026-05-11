@@ -183,6 +183,19 @@ create table if not exists public.treatment_templates (
   updated_at      timestamptz not null default now()
 );
 
+-- ── clinic_members ───────────────────────────────────────────
+-- Miembros de una clínica para acceso compartido (multi-doctor).
+create table if not exists public.clinic_members (
+  id              uuid        primary key default gen_random_uuid(),
+  clinic_id       uuid        not null,
+  doctor_id       uuid        not null references auth.users (id) on delete cascade,
+  role            text        not null check (role in ('admin', 'doctor', 'viewer')),
+  invited_by      uuid        references auth.users (id) on delete set null,
+  joined_at       timestamptz not null default now(),
+  created_at      timestamptz not null default now(),
+  unique (clinic_id, doctor_id)
+);
+
 -- ════════════════════════════════════════════════════════════
 -- 2. COMPATIBILIDAD (columnas añadidas en versiones anteriores)
 --    Estas líneas son no-ops en una instalación nueva.
@@ -298,6 +311,7 @@ alter table public.follow_up_tasks      enable row level security;
 alter table public.api_rate_limits      enable row level security;
 alter table public.push_subscriptions   enable row level security;
 alter table public.treatment_templates  enable row level security;
+alter table public.clinic_members       enable row level security;
 
 -- ── profiles ─────────────────────────────────────────────────
 -- Solo el propio médico puede leer/escribir su perfil.
@@ -323,6 +337,10 @@ create policy "patients_tenant_select"
       select 1 from public.profiles p
       where p.doctor_id = auth.uid()
         and p.clinic_id = public.patients.clinic_id
+    ) or exists (
+      select 1 from public.clinic_members cm
+      where cm.doctor_id = auth.uid()
+        and cm.clinic_id = public.patients.clinic_id
     )
   );
 
@@ -334,6 +352,10 @@ create policy "patients_tenant_write"
       select 1 from public.profiles p
       where p.doctor_id = auth.uid()
         and p.clinic_id = public.patients.clinic_id
+    ) or exists (
+      select 1 from public.clinic_members cm
+      where cm.doctor_id = auth.uid()
+        and cm.clinic_id = public.patients.clinic_id
     )
   )
   with check (
@@ -341,6 +363,10 @@ create policy "patients_tenant_write"
       select 1 from public.profiles p
       where p.doctor_id = auth.uid()
         and p.clinic_id = public.patients.clinic_id
+    ) or exists (
+      select 1 from public.clinic_members cm
+      where cm.doctor_id = auth.uid()
+        and cm.clinic_id = public.patients.clinic_id
     )
   );
 
@@ -353,6 +379,10 @@ create policy "records_tenant_select"
       select 1 from public.profiles p
       where p.doctor_id = auth.uid()
         and p.clinic_id = public.clinical_records.clinic_id
+    ) or exists (
+      select 1 from public.clinic_members cm
+      where cm.doctor_id = auth.uid()
+        and cm.clinic_id = public.clinical_records.clinic_id
     )
   );
 
@@ -364,6 +394,10 @@ create policy "records_tenant_write"
       select 1 from public.profiles p
       where p.doctor_id = auth.uid()
         and p.clinic_id = public.clinical_records.clinic_id
+    ) or exists (
+      select 1 from public.clinic_members cm
+      where cm.doctor_id = auth.uid()
+        and cm.clinic_id = public.clinical_records.clinic_id
     )
   )
   with check (
@@ -371,6 +405,10 @@ create policy "records_tenant_write"
       select 1 from public.profiles p
       where p.doctor_id = auth.uid()
         and p.clinic_id = public.clinical_records.clinic_id
+    ) or exists (
+      select 1 from public.clinic_members cm
+      where cm.doctor_id = auth.uid()
+        and cm.clinic_id = public.clinical_records.clinic_id
     )
   );
 
@@ -383,6 +421,10 @@ create policy "specialty_tenant_select"
       select 1 from public.profiles p
       where p.doctor_id = auth.uid()
         and p.clinic_id = public.specialty_data.clinic_id
+    ) or exists (
+      select 1 from public.clinic_members cm
+      where cm.doctor_id = auth.uid()
+        and cm.clinic_id = public.specialty_data.clinic_id
     )
   );
 
@@ -394,6 +436,10 @@ create policy "specialty_tenant_write"
       select 1 from public.profiles p
       where p.doctor_id = auth.uid()
         and p.clinic_id = public.specialty_data.clinic_id
+    ) or exists (
+      select 1 from public.clinic_members cm
+      where cm.doctor_id = auth.uid()
+        and cm.clinic_id = public.specialty_data.clinic_id
     )
   )
   with check (
@@ -401,6 +447,10 @@ create policy "specialty_tenant_write"
       select 1 from public.profiles p
       where p.doctor_id = auth.uid()
         and p.clinic_id = public.specialty_data.clinic_id
+    ) or exists (
+      select 1 from public.clinic_members cm
+      where cm.doctor_id = auth.uid()
+        and cm.clinic_id = public.specialty_data.clinic_id
     )
   );
 
@@ -450,6 +500,10 @@ create policy "push_subscriptions_tenant_select"
       select 1 from public.profiles p
       where p.doctor_id = auth.uid()
         and p.clinic_id = public.push_subscriptions.clinic_id
+    ) or exists (
+      select 1 from public.clinic_members cm
+      where cm.doctor_id = auth.uid()
+        and cm.clinic_id = public.push_subscriptions.clinic_id
     )
   );
 
@@ -462,6 +516,10 @@ create policy "push_subscriptions_tenant_write"
       select 1 from public.profiles p
       where p.doctor_id = auth.uid()
         and p.clinic_id = public.push_subscriptions.clinic_id
+    ) or exists (
+      select 1 from public.clinic_members cm
+      where cm.doctor_id = auth.uid()
+        and cm.clinic_id = public.push_subscriptions.clinic_id
     )
   )
   with check (
@@ -470,6 +528,10 @@ create policy "push_subscriptions_tenant_write"
       select 1 from public.profiles p
       where p.doctor_id = auth.uid()
         and p.clinic_id = public.push_subscriptions.clinic_id
+    ) or exists (
+      select 1 from public.clinic_members cm
+      where cm.doctor_id = auth.uid()
+        and cm.clinic_id = public.push_subscriptions.clinic_id
     )
   );
 
@@ -485,6 +547,50 @@ create policy "treatment_templates_write"
   on public.treatment_templates for all to authenticated
   using (doctor_id = auth.uid())
   with check (doctor_id = auth.uid());
+
+-- ── clinic_members ───────────────────────────────────────────
+drop policy if exists "clinic_members_select" on public.clinic_members;
+create policy "clinic_members_select"
+  on public.clinic_members for select to authenticated
+  using (
+    exists (
+      select 1 from public.profiles p
+      where p.doctor_id = auth.uid()
+        and p.clinic_id = public.clinic_members.clinic_id
+    ) or exists (
+      select 1 from public.clinic_members cm
+      where cm.doctor_id = auth.uid()
+        and cm.clinic_id = public.clinic_members.clinic_id
+    )
+  );
+
+drop policy if exists "clinic_members_write" on public.clinic_members;
+create policy "clinic_members_write"
+  on public.clinic_members for all to authenticated
+  using (
+    exists (
+      select 1 from public.profiles p
+      where p.doctor_id = auth.uid()
+        and p.clinic_id = public.clinic_members.clinic_id
+    ) or exists (
+      select 1 from public.clinic_members cm
+      where cm.doctor_id = auth.uid()
+        and cm.clinic_id = public.clinic_members.clinic_id
+        and cm.role = 'admin'
+    )
+  )
+  with check (
+    exists (
+      select 1 from public.profiles p
+      where p.doctor_id = auth.uid()
+        and p.clinic_id = public.clinic_members.clinic_id
+    ) or exists (
+      select 1 from public.clinic_members cm
+      where cm.doctor_id = auth.uid()
+        and cm.clinic_id = public.clinic_members.clinic_id
+        and cm.role = 'admin'
+    )
+  );
 
 -- ════════════════════════════════════════════════════════════
 -- 5. FUNCIONES Y TRIGGERS
