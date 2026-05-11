@@ -81,13 +81,18 @@ export default function PatientsView() {
 
   // ─── Filtrado de pacientes ────────────────────────────────────────────────────
   const filteredPatients = useMemo(() => {
-    const normalized = search.trim().toLowerCase();
-    if (!normalized) return patients;
-    return patients.filter(
-      (p) =>
-        p.full_name.toLowerCase().includes(normalized) ||
-        p.document_number.toLowerCase().includes(normalized),
-    );
+    const normalizeString = (str: string | null | undefined) =>
+      (str || "").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+    const normalizedSearch = normalizeString(search);
+    
+    if (!normalizedSearch) return patients;
+    
+    return patients.filter((p) => {
+      const name = normalizeString(p.full_name);
+      const doc = normalizeString(p.document_number);
+      return name.includes(normalizedSearch) || doc.includes(normalizedSearch);
+    });
   }, [patients, search]);
 
   useEffect(() => {
