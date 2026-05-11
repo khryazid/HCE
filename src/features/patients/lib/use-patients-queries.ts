@@ -7,6 +7,8 @@ import {
   deletePatientLocal,
   deleteClinicalRecordLocal,
   enqueueSyncItem,
+  refreshClinicalRecordsFromRemote,
+  refreshSpecialtyDataFromRemote,
 } from "@/lib/db/indexeddb";
 import type { PatientRecord, PatientStatus } from "@/features/patients/types";
 import type { ClinicalRecordRecord } from "@/features/consultations/types";
@@ -39,7 +41,13 @@ export function usePatients(tenant: TenantProfile | null) {
 export function useClinicalRecords(tenant: TenantProfile | null) {
   return useQuery({
     queryKey: recordKeys.tenant(tenant?.clinic_id ?? ""),
-    queryFn: () => listClinicalRecordsByTenant(tenant!.doctor_id, tenant!.clinic_id),
+    queryFn: async () => {
+      // First refresh data from remote
+      await refreshClinicalRecordsFromRemote(tenant!.clinic_id, tenant!.doctor_id);
+      await refreshSpecialtyDataFromRemote(tenant!.clinic_id, tenant!.doctor_id);
+      // Then return from local IDB
+      return listClinicalRecordsByTenant(tenant!.doctor_id, tenant!.clinic_id);
+    },
     enabled: !!tenant,
   });
 }

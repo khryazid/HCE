@@ -286,15 +286,21 @@ export async function purgeAbandonedSyncItems(): Promise<number> {
 // ─── Patients ─────────────────────────────────────────────────────────────────
 
 /**
- * Fetches patients from Supabase and writes them into the local IndexedDB cache.
- *
- * This is the **remote refresh** step and belongs to the sync/data layer,
- * NOT to the storage layer. Call it from:
- *   - The sync worker after a successful sync cycle.
- *   - A data hook that wants to ensure a fresh seed on first load.
- *
- * @returns `true` if remote data was fetched and persisted, `false` if offline or unauthenticated.
+ * Helper to prevent remote refresh from overwriting local un-synced changes
+ * or resurrecting locally deleted items.
  */
+async function getPendingRecordIds(tableName: string): Promise<Set<string>> {
+  const db = await getOfflineDb();
+  const allItems = await db.getAll("sync_queue");
+  const pendingIds = new Set<string>();
+  for (const item of allItems) {
+    if (item.table_name === tableName && (item.status === "pending" || item.status === "failed")) {
+      pendingIds.add(item.record_id);
+    }
+  }
+  return pendingIds;
+}
+
 export async function refreshPatientsFromRemote(clinicId: string): Promise<boolean> {
   try {
     const supabase = getSupabaseClient();
@@ -309,8 +315,11 @@ export async function refreshPatientsFromRemote(clinicId: string): Promise<boole
 
     if (error || !remotePatients || remotePatients.length === 0) return false;
 
+    const pendingIds = await getPendingRecordIds("patients");
     const db = await getOfflineDb();
-    const typedPatients = remotePatients as PatientRecord[];
+    
+    const typedPatients = (remotePatients as PatientRecord[]).filter((p) => !pendingIds.has(p.id));
+    
     await Promise.all(
       typedPatients.map((patient) =>
         db.put("patients", {
@@ -391,6 +400,34 @@ export async function updatePatientStatusLocal(id: string, status: PatientStatus
 
 // ─── Clinical Records ─────────────────────────────────────────────────────────
 
+export async function refreshClinicalRecordsFromRemote(clinicId: string, doctorId: string): Promise<boolean> {
+  try {
+    const supabase = getSupabaseClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return false;
+
+    const { data: remoteRecords, error } = await supabase
+      .from("clinical_records")
+      .select("*")
+      .eq("clinic_id", clinicId)
+      .eq("doctor_id", doctorId);
+
+    if (error || !remoteRecords || remoteRecords.length === 0) return false;
+
+    const pendingIds = await getPendingRecordIds("clinical_records");
+    const db = await getOfflineDb();
+    
+    const typedRecords = (remoteRecords as ClinicalRecordRecord[]).filter((r) => !pendingIds.has(r.id));
+    
+    await Promise.all(
+      typedRecords.map((r) => db.put("clinical_records", r))
+    );
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function listClinicalRecordsByTenant(doctorId: string, clinicId: string) {
   const db = await getOfflineDb();
   const allRecords = await db.getAll("clinical_records");
@@ -427,6 +464,34 @@ export async function deleteClinicalRecordLocal(id: string) {
 }
 
 // ─── Specialty Data ───────────────────────────────────────────────────────────
+
+export async function refreshSpecialtyDataFromRemote(clinicId: string, doctorId: string): Promise<boolean> {
+  try {
+    const supabase = getSupabaseClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return false;
+
+    const { data: remoteData, error } = await supabase
+      .from("specialty_data")
+      .select("*")
+      .eq("clinic_id", clinicId)
+      .eq("doctor_id", doctorId);
+
+    if (error || !remoteData || remoteData.length === 0) return false;
+
+    const pendingIds = await getPendingRecordIds("specialty_data");
+    const db = await getOfflineDb();
+    
+    const typedData = (remoteData as SpecialtyDataRow[]).filter((d) => !pendingIds.has(d.id));
+    
+    await Promise.all(
+      typedData.map((d) => db.put("specialty_data", d))
+    );
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 export async function saveSpecialtyDataLocal(row: SpecialtyDataRow) {
   const db = await getOfflineDb();
