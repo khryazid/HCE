@@ -11,7 +11,7 @@ export function TeamPanel() {
   const supabase = getSupabaseClient();
   
   const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteRole, setInviteRole] = useState("doctor");
+  const [inviteRole, setInviteRole] = useState("assistant");
   const [inviteError, setInviteError] = useState("");
 
   const { data: members, isLoading } = useQuery({
@@ -152,14 +152,18 @@ export function TeamPanel() {
           <div className="w-full sm:w-40 space-y-1">
             <label className="text-xs font-medium text-muted-foreground">Rol</label>
             <select
-              value={inviteRole}
+              value={tenant?.plan === "basic" ? "assistant" : inviteRole}
               onChange={(e) => setInviteRole(e.target.value)}
-              className="w-full h-10 px-3 rounded-md border border-input bg-background focus:outline-none focus:ring-2 focus:ring-ring text-sm"
+              disabled={tenant?.plan === "basic"}
+              className="w-full h-10 px-3 rounded-md border border-input bg-bg text-ink focus:outline-none focus:ring-2 focus:ring-accent text-sm disabled:opacity-50"
             >
-              <option value="doctor">Doctor</option>
-              <option value="admin">Admin</option>
-              <option value="assistant">Asistente</option>
+              {tenant?.plan === "clinic" && <option className="bg-bg text-ink" value="doctor">Doctor</option>}
+              {tenant?.plan === "clinic" && <option className="bg-bg text-ink" value="admin">Admin</option>}
+              <option className="bg-bg text-ink" value="assistant">Asistente</option>
             </select>
+            {tenant?.plan === "basic" && (
+              <p className="text-[10px] text-ink-soft leading-tight mt-1">El plan básico solo permite asistentes.</p>
+            )}
           </div>
           <button
             type="submit"
@@ -209,12 +213,12 @@ export function TeamPanel() {
                     <select
                       value={member.role}
                       onChange={(e) => updateRoleMutation.mutate({ id: member.id, role: e.target.value })}
-                      disabled={updateRoleMutation.isPending}
-                      className="h-8 px-2 rounded border border-border bg-background text-xs focus:ring-2 focus:ring-ring"
+                      disabled={updateRoleMutation.isPending || tenant?.plan === "basic"}
+                      className="h-8 px-2 rounded border border-border bg-bg text-ink text-xs focus:ring-2 focus:ring-accent disabled:opacity-50"
                     >
-                      <option value="admin">Admin</option>
-                      <option value="doctor">Doctor</option>
-                      <option value="assistant">Asistente</option>
+                      {tenant?.plan === "clinic" && <option className="bg-bg text-ink" value="admin">Admin</option>}
+                      {tenant?.plan === "clinic" && <option className="bg-bg text-ink" value="doctor">Doctor</option>}
+                      <option className="bg-bg text-ink" value="assistant">Asistente</option>
                     </select>
                   ) : (
                     <span className="capitalize text-muted-foreground">{member.role}</span>
