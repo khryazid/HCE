@@ -48,8 +48,12 @@ Esta es la lista ordenada de lo que trabajamos en la próxima sesión, en priori
 
 ### 🟢 Prioridad Baja (cuando haya espacio)
 
-- [ ] **M-01** — Ampliar cobertura de tests E2E con Playwright  
-  Flujo de consulta completo, PDF, plantillas, billing redirect.
+- [x] **M-01** — E2E tests con Playwright ✅  
+  Helper compartido `tests/e2e/helpers/login.ts` elimina duplicación. 5 specs nuevas:  
+  `treatments.spec.ts` (CRUD + historial de versiones), `search.spec.ts` (Ctrl+K, debounce,  
+  navegación con flechas), `patients.spec.ts` (crear, buscar, filtro estado, contexto clínico),  
+  `theme.spec.ts` (anti-flash, toggle dark/light/sistema, localStorage), `settings.spec.ts`  
+  (perfil, billing, push toggle). Specs existentes refactorizados para usar el helper.
 
 - [x] **F-10** — UI historial de versiones de plantillas ✅  
   Modal con versiones ordenadas (más nueva primero), badge de versión actual, preview del contenido  

@@ -1,18 +1,12 @@
 import { expect, test } from "@playwright/test";
-
-const E2E_EMAIL = process.env.E2E_EMAIL;
-const E2E_PASSWORD = process.env.E2E_PASSWORD;
+import { login, E2E_EMAIL, E2E_PASSWORD } from "./helpers/login";
 
 test.describe("Flujo E2E: Offline Sync", () => {
   test.skip(!E2E_EMAIL || !E2E_PASSWORD, "Define E2E_EMAIL y E2E_PASSWORD para ejecutar el flujo E2E real.");
 
   test("deberia encolar pacientes offline y sincronizarlos al volver online", async ({ page, context }) => {
     // 1. Iniciar sesion estando ONLINE
-    await page.goto("/");
-    await page.getByLabel("Correo").fill(E2E_EMAIL ?? "");
-    await page.getByLabel("Contraseña").fill(E2E_PASSWORD ?? "");
-    await page.getByRole("button", { name: "Entrar" }).click();
-    await expect(page).toHaveURL(/\/(dashboard|consultas|ajustes|pacientes)$/);
+    await login(page);
 
     // Navegar a pacientes y asegurar que carga
     await page.goto("/pacientes");

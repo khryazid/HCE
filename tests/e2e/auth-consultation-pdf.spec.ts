@@ -1,32 +1,11 @@
 import { expect, test } from "@playwright/test";
-
-const E2E_EMAIL = process.env.E2E_EMAIL;
-const E2E_PASSWORD = process.env.E2E_PASSWORD;
+import { login, E2E_EMAIL, E2E_PASSWORD } from "./helpers/login";
 
 test.describe("Flujo E2E: login -> consulta -> PDF", () => {
   test.skip(!E2E_EMAIL || !E2E_PASSWORD, "Define E2E_EMAIL y E2E_PASSWORD para ejecutar el flujo E2E real.");
 
   test("inicia sesion, crea consulta y genera PDF", async ({ page }) => {
-    await page.goto("/");
-
-    await page.getByLabel("Correo").fill(E2E_EMAIL ?? "");
-    await page.getByLabel("Contraseña").fill(E2E_PASSWORD ?? "");
-    await page.getByRole("button", { name: "Entrar" }).click();
-
-    await expect(page).toHaveURL(/\/(dashboard|consultas|ajustes)$/);
-
-    if (page.url().includes("/ajustes")) {
-      await page.getByLabel("Titulo profesional").fill("Dr. E2E");
-      await page.getByLabel("Numero de licencia profesional").fill(`E2E-${Date.now()}`);
-      await page.getByLabel("Anos de experiencia").fill("5");
-      await page.getByLabel("Telefono principal").fill("0999999999");
-      await page.getByLabel("Direccion profesional").fill("Direccion E2E 123");
-      await page.getByLabel("Nombre para firma y membrete").fill("Dr. E2E");
-      await page.getByLabel("Especialidades para membrete PDF").fill("Medicina general");
-      await page.getByRole("button", { name: "Guardar cambios" }).click();
-      await expect(page.getByText("Perfil actualizado correctamente", { exact: false })).toBeVisible();
-    }
-
+    await login(page);
     await page.goto("/consultas");
     await expect(page.getByRole("heading", { name: "Flujo de consulta" })).toBeVisible();
 

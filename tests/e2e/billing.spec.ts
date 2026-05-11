@@ -1,18 +1,11 @@
 import { expect, test } from "@playwright/test";
-
-const E2E_EMAIL = process.env.E2E_EMAIL;
-const E2E_PASSWORD = process.env.E2E_PASSWORD;
+import { login, E2E_EMAIL, E2E_PASSWORD } from "./helpers/login";
 
 test.describe("Flujo E2E: Billing y Stripe", () => {
   test.skip(!E2E_EMAIL || !E2E_PASSWORD, "Define E2E_EMAIL y E2E_PASSWORD para ejecutar el flujo E2E real.");
 
   test("deberia redirigir al portal de Stripe al clickear el boton de Suscripcion", async ({ page }) => {
-    // 1. Iniciar sesion
-    await page.goto("/");
-    await page.getByLabel("Correo").fill(E2E_EMAIL ?? "");
-    await page.getByLabel("Contraseña").fill(E2E_PASSWORD ?? "");
-    await page.getByRole("button", { name: "Entrar" }).click();
-
+    await login(page);
     // 2. Ir a ajustes
     await page.goto("/ajustes");
     await expect(page.getByRole("heading", { name: "Ajustes y Cuenta" })).toBeVisible();
