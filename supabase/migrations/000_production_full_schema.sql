@@ -777,16 +777,16 @@ as $$
       'Doc: ' || coalesce(pat.document_number,'—') as subtitle,
       pat.id                                       as patient_id,
       pat.updated_at                               as updated_at,
-      ts_rank(
-        to_tsvector('spanish', coalesce(pat.full_name,'') || ' ' || coalesce(pat.document_number,'')),
-        websearch_to_tsquery('spanish', p_query)
-      )                                            as rank
+      1.0::real                                    as rank
     from public.patients pat
     where
       pat.clinic_id = p_clinic_id
-      and to_tsvector('spanish', coalesce(pat.full_name,'') || ' ' || coalesce(pat.document_number,''))
-          @@ websearch_to_tsquery('spanish', p_query)
-    order by rank desc
+      and (
+        pat.full_name ilike '%' || p_query || '%'
+        or replace(pat.document_number, '-', '') ilike '%' || replace(p_query, '-', '') || '%'
+        or replace(pat.document_number, '.', '') ilike '%' || replace(p_query, '.', '') || '%'
+      )
+    order by pat.updated_at desc
     limit 20
   ) patients_results
 
@@ -800,20 +800,16 @@ as $$
       cr.specialty_kind || ' — ' || to_char(cr.created_at, 'DD Mon YYYY') as subtitle,
       cr.patient_id                                                      as patient_id,
       cr.updated_at                                                      as updated_at,
-      ts_rank(
-        to_tsvector('spanish', coalesce(cr.chief_complaint,'')),
-        websearch_to_tsquery('spanish', p_query)
-      )                                                                  as rank
+      0.5::real                                                          as rank
     from public.clinical_records cr
     where
       cr.clinic_id = p_clinic_id
-      and to_tsvector('spanish', coalesce(cr.chief_complaint,''))
-          @@ websearch_to_tsquery('spanish', p_query)
-    order by rank desc
+      and cr.chief_complaint ilike '%' || p_query || '%'
+    order by cr.updated_at desc
     limit 20
   ) consultation_results
 
-  order by rank desc
+  order by rank desc, updated_at desc
 $$;
 
 grant execute on function public.search_global(text, uuid)
