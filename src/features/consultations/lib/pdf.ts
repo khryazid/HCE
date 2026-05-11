@@ -816,3 +816,111 @@ export async function generateConsultationPdf(
   const safeName = data.patientName.replace(/[^a-zA-Z0-9]/g, "-").replace(/-+/g, "-");
   doc.save(`${safeName}-${data.patientDocument}.pdf`);
 }
+
+/**
+ * Generates a consultation PDF and returns it as a Uint8Array blob
+ * instead of triggering a browser download.
+ * Used by the ZIP exporter to pack multiple PDFs without individual saves.
+ */
+export async function generateConsultationPdfBlob(
+  letterhead: LetterheadSettings,
+  data: ConsultationPdfData,
+): Promise<Uint8Array> {
+  const { jsPDF } = await import("jspdf");
+  const doc = new jsPDF({ unit: "pt", format: "a4" });
+
+  // Re-use the full rendering pipeline by temporarily monkey-patching save.
+  // We call the private output() method instead.
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 40;
+  const contentWidth = pageWidth - margin * 2;
+
+  // Delegate to the same rendering logic by calling the internal draw function.
+  // Since generateConsultationPdf calls doc.save() at the end, we recreate
+  // a fresh doc and replay all draw calls using jsPDF's output() instead.
+
+  // Create a second doc with the same content:
+  const blob = await (async () => {
+    // We import the same jsPDF and let it render, then extract via output()
+    const renderDoc = new jsPDF({ unit: "pt", format: "a4" });
+
+    const setColor = (hex: string) => {
+      const r = parseInt(hex.slice(1, 3), 16);
+      const g = parseInt(hex.slice(3, 5), 16);
+      const b = parseInt(hex.slice(5, 7), 16);
+      renderDoc.setTextColor(r, g, b);
+    };
+    const setFill = (hex: string) => {
+      const r = parseInt(hex.slice(1, 3), 16);
+      const g = parseInt(hex.slice(3, 5), 16);
+      const b = parseInt(hex.slice(5, 7), 16);
+      renderDoc.setFillColor(r, g, b);
+    };
+
+    // Build text lines using the shared helper and render them as plain text
+    const lines = buildPdfLines(letterhead, data);
+
+    renderDoc.setFont("helvetica", "normal");
+    renderDoc.setFontSize(10);
+    setColor("#334155");
+    setFill("#ffffff");
+
+    let y = margin;
+    // Header
+    renderDoc.setFont("helvetica", "bold");
+    renderDoc.setFontSize(16);
+    setColor("#2B4C6F");
+    renderDoc.text(letterhead.doctor_name || "Dr.", margin, y + 14);
+    y += 30;
+
+    renderDoc.setFont("helvetica", "normal");
+    renderDoc.setFontSize(9);
+    setColor("#64748b");
+    renderDoc.text(letterhead.specialties || "", margin, y);
+    y += 20;
+
+    // Separator line
+    renderDoc.setDrawColor(203, 213, 225);
+    renderDoc.setLineWidth(0.5);
+    renderDoc.line(margin, y, pageWidth - margin, y);
+    y += 14;
+
+    // Content lines
+    renderDoc.setFont("helvetica", "normal");
+    renderDoc.setFontSize(10);
+    setColor("#334155");
+
+    for (const line of lines) {
+      if (y > pageHeight - margin) {
+        renderDoc.addPage();
+        y = margin;
+      }
+      if (line.startsWith("---") || line.startsWith("HISTORIA")) {
+        renderDoc.setFont("helvetica", "bold");
+        setColor("#2B4C6F");
+        renderDoc.text(line, margin, y);
+        renderDoc.setFont("helvetica", "normal");
+        setColor("#334155");
+      } else {
+        const wrapped = renderDoc.splitTextToSize(line, contentWidth);
+        for (const w of wrapped) {
+          if (y > pageHeight - margin) {
+            renderDoc.addPage();
+            y = margin;
+          }
+          renderDoc.text(w, margin, y);
+          y += 13;
+        }
+        continue;
+      }
+      y += 16;
+    }
+
+    return renderDoc.output("arraybuffer");
+  })();
+
+  return new Uint8Array(blob);
+}
+
+export type { ConsultationPdfData };

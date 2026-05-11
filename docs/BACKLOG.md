@@ -73,7 +73,12 @@ Esta es la lista ordenada de lo que trabajamos en la próxima sesión, en priori
 - [ ] **F-01** — Plan Clínica multi-doctor  
   Nueva tabla `clinic_members`, roles, ajustes de RLS, pricing con seats.
 
-- [ ] **F-06** — Exportación de historia clínica (ZIP portabilidad)  
+- [x] **F-06** — Exportación ZIP de historia clínica ✅  
+  100% client-side (sin API route): `exportPatientZip()` genera un JSZip con  
+  `00_paciente.json` + `index.json` + un PDF por consulta vía `generateConsultationPdfBlob()`.  
+  `ExportZipButton` muestra barra de progreso animada, estado de éxito y error.  
+  Integrado en `PatientHistoryTimeline` junto al botón "Nueva atención".  
+  E2E spec: `export-zip.spec.ts` (visibilidad, descarga, disabled sin consultas).
 - [x] **F-07** — Recordatorios por email (Resend) ✅  
   `POST /api/email/followup` con auth por header. Template HTML branded. Función SQL  
   `send_followup_emails()` + cron 7am UTC. Clave `resend_email_secret` en `app_config`.

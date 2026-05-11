@@ -19,6 +19,7 @@ import {
   EmptyState,
   EmptyStateIconConsultations,
 } from "@/components/ui/empty-state";
+import { ExportZipButton } from "@/features/patients/components/ExportZipButton";
 import type { ClinicalRecordRecord } from "@/features/consultations/types";
 import type { TenantProfile } from "@/lib/supabase/profile";
 import type { PatientRecord } from "@/features/patients/types";
@@ -134,12 +135,19 @@ export function PatientHistoryTimeline({
             Todas las atenciones ordenadas de la mas reciente a la mas antigua.
           </p>
         </div>
-        <Link
-          href={`/consultas?mode=consulta&patientId=${selectedPatientId}`}
-          className="hce-btn-secondary"
-        >
-          Nueva atencion
-        </Link>
+        <div className="flex items-center gap-2">
+          <ExportZipButton
+            patient={selectedPatient!}
+            records={records}
+            tenant={tenant}
+          />
+          <Link
+            href={`/consultas?mode=consulta&patientId=${selectedPatientId}`}
+            className="hce-btn-secondary"
+          >
+            Nueva atencion
+          </Link>
+        </div>
       </div>
 
       <div className="mt-6 space-y-4" role="list" aria-label="Historial de consultas">
