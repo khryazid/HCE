@@ -965,7 +965,9 @@ alter table public.app_config enable row level security;
 -- Inserta o actualiza los valores de configuración
 insert into public.app_config (key, value) values
   ('site_url',         'https://glyphce.vercel.app/'),
-  ('push_send_secret', '6e0300c35f48bd830ace18216ec96e0f0c0ac23afa774c56470c9f18ce5171bc')
+  ('push_send_secret', '6e0300c35f48bd830ace18216ec96e0f0c0ac23afa774c56470c9f18ce5171bc'),
+  ('plan_pro_price',   '29'),
+  ('plan_clinic_price','99')
 on conflict (key) do update
   set value = excluded.value, updated_at = now();
 
