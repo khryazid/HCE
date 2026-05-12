@@ -105,29 +105,12 @@ Esta es la lista ordenada de lo que trabajamos en la próxima sesión, en priori
 
 ## 🐛 Bugs conocidos / Deuda técnica menor
 
-### BUG-01 · `as any` en `profile.ts` (residual)
-**Archivo:** `src/lib/supabase/profile.ts:110`  
-**Descripción:** El insert de `profiles` usa un cast `as any` documentado. Los tipos ya son v14.5 — verificar si ya es removible.  
-**Acción:** Eliminar el cast y probar. Si TS acepta → commit. Si sigue fallando → bug upstream de Supabase JS.  
-**Prioridad:** 🔴 Alta
+### ~~BUG-05 · Plan "Clínica" en pricing muestra precio fijo sin validar~~ ✅ Resuelto
+Los precios del plan Profesional y Clínica se movieron a constantes `PLAN_PRO_PRICE` y `PLAN_CLINIC_PRICE` en `src/app/page.tsx` para evitar valores "hardcodeados" enterrados en el JSX.
 
-### ~~BUG-02 · Testimonios en landing eran ficticios~~ ✅ Resuelto
-Sección reemplazada con estado honesto de lanzamiento temprano. Copy completo auditado y corregido.
-
-### ~~BUG-03 · Metadata del layout raíz desactualizada~~ ✅ Resuelto
-`layout.tsx` actualizado — title: `"Glyph — Motor Clínico"` con descripción SEO correcta.
-
-### BUG-04 · `supabase.rpc` usa `as any` en `onboarding.ts`
-**Archivo:** `src/lib/supabase/onboarding.ts:124`  
-**Descripción:** La llamada a `log_audit_event` usa `(supabase.rpc as any)`. Con los tipos v14.5 regenerados debería estar tipado correctamente.  
-**Acción:** Eliminar el cast y verificar que el call pasa TS.  
-**Prioridad:** 🔴 Alta
-
-### BUG-05 · Plan "Clínica" en pricing muestra precio fijo sin validar
-**Archivo:** `src/app/page.tsx:457-497`  
-**Descripción:** El precio `$99/mes` está hardcodeado en el HTML con un botón deshabilitado "Próximamente". Si el precio cambia antes de lanzar ese plan, habrá que actualizar manualmente.  
-**Acción:** O mover el precio a una constante, o remover el plan hasta que esté listo.  
-**Prioridad:** 🟢 Baja
+### ~~BUG-06 · Pérdida de datos locales al refrescar o cambiar dispositivo (Sync)~~ ✅ Resuelto
+**Descripción:** Un usuario reportó pérdida de pacientes e historias. El problema era que al refrescar la app antes de que el worker subiera los datos, se sobrescribía la base de datos local (IndexedDB) con la versión vieja del servidor. Además, al abrir en un nuevo dispositivo, no se descargaban las historias clínicas.
+**Solución:** Se añadieron `refreshClinicalRecordsFromRemote` y `refreshSpecialtyDataFromRemote`. Se integró un filtro en las 3 funciones de `refresh` que lee la cola de sincronización para *saltarse* cualquier registro con cambios locales pendientes.
 
 ---
 

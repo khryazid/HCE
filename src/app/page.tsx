@@ -7,6 +7,9 @@ import "./landing.css";
 /* ─── Fonts via next/font would conflict with "use client",
        so we load them in layout.tsx — see note below ── */
 
+const PLAN_PRO_PRICE = 29;
+const PLAN_CLINIC_PRICE = 99;
+
 export default function Home() {
   const navRef = useRef<HTMLElement>(null);
   const blobRef = useRef<HTMLDivElement>(null);
@@ -391,7 +394,7 @@ export default function Home() {
               <article className="l-pricing-card featured reveal" aria-labelledby="plan-pro">
                 <h3 id="plan-pro" className="l-plan-name">Profesional Independiente</h3>
                 <p className="l-plan-desc">Para médicos con consultorio propio.</p>
-                <div className="l-plan-price">$29 <span>/mes</span></div>
+                <div className="l-plan-price">${PLAN_PRO_PRICE} <span>/mes</span></div>
                 <ul className="l-plan-features" aria-label="Características del plan Pro">
                   {[
                     "Pacientes y consultas ilimitados",
@@ -418,7 +421,7 @@ export default function Home() {
               <article className="l-pricing-card reveal" aria-labelledby="plan-clinica" style={{opacity:.7}}>
                 <h3 id="plan-clinica" className="l-plan-name">Clínica</h3>
                 <p className="l-plan-desc">Para centros con múltiples doctores.</p>
-                <div className="l-plan-price">$99 <span>/mes</span></div>
+                <div className="l-plan-price">${PLAN_CLINIC_PRICE} <span>/mes</span></div>
                 <ul className="l-plan-features" aria-label="Características del plan Clínica">
                   {[
                     "Todo lo del plan Profesional",
