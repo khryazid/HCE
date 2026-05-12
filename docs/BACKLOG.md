@@ -1,11 +1,12 @@
 # HCE · Backlog de Producción
-> Última revisión: 2026-05-11 | Estado del build: ✅ TS 0 errores · 85/85 tests · ESLint limpio
+> Última revisión: 2026-05-12 | Estado del build: ✅ TS 0 errores · 85/85 tests · ESLint limpio
 
 ---
 
 ## 🗓️ Sprint Actual — Próximas Tareas
 
 Esta es la lista ordenada de lo que trabajamos en la próxima sesión, en prioridad descendente.
+**¡TODAS LAS TAREAS DE V1.0 COMPLETADAS! 🎉**
 
 ### 🔴 Prioridad Alta (hacer primero)
 
@@ -40,7 +41,8 @@ Esta es la lista ordenada de lo que trabajamos en la próxima sesión, en priori
 - [x] **F-03** — Panel Admin completo ✅  
   Filtros por estado (pills + stat cards clickables), StatusBadge para todos los estados Stripe  
   (trialing, past_due, paused, incomplete, unpaid), badge "Nuevo" + borde azul para usuarios  
-  de las últimas 48h, botón copiar email/ID al portapapeles, contador en tabla sync abandonada.
+  de las últimas 48h, botón copiar email/ID al portapapeles, contador en tabla sync abandonada.  
+  *Actualización:* Precios dinámicos para el Landing configurables desde el panel.
 
 - [x] **BUG-02** — Testimonios ficticios reemplazados ✅  
   Sección convertida a "lanzamiento temprano" con especialidades. Sin nombres inventados.  
@@ -117,105 +119,36 @@ Los precios del plan Profesional y Clínica se movieron a constantes `PLAN_PRO_P
 
 ---
 
-## 🚀 Features Futuras (por prioridad)
+## 🚀 Features Futuras (v1.0 Completado)
 
-### F-01 · Plan Clínica — Multi-doctor
-**Descripción:** El pricing ya lo anticipa. Permite que múltiples médicos compartan la misma `clinic_id`, con roles diferenciados (admin, médico, asistente).  
-**Impacto:** Desbloquea mercado de clínicas, centros de salud y consultorios asociados.  
-**Requiere:**
-- Nueva tabla `clinic_members` (clinic_id, user_id, role)
-- Ajustes de RLS: pacientes visibles por todos los doctores de la clínica (ya funciona), pero con control de escritura por rol
-- UI de gestión de miembros en `/ajustes`
-- Stripe: plan distinto con seats (precio por usuario adicional)
+**Todas las features planificadas para la versión 1.0 han sido completadas con éxito.**
+- Plan Clínica (Multi-doctor) ✅
+- Firma Digital y Membrete en PDF ✅
+- Panel de Admin (Suscripciones y Precios Dinámicos) ✅
+- Notificaciones Push para Seguimientos ✅
+- Búsqueda Full-Text (Ctrl+K) ✅
+- Exportación ZIP de Historia Clínica ✅
+- Recordatorios por Email (Resend) ✅
+- Modo Oscuro / Claro / Sistema ✅
+- Internacionalización (i18n fundamental) ✅
 
-### F-02 · Firma Digital y Membrete del Doctor en PDF
-**Descripción:** El PDF actual existe, pero sin la firma del doctor ni el membrete personalizado (logo, dirección, datos profesionales del `onboarding_profile`).  
-**Impacto:** El PDF es el producto tangible que el médico entrega al paciente. Es lo que más impresiona.  
-**Requiere:**
-- Leer `onboarding_profile` del `user_metadata` al generar el PDF
-- Componente de firma (imagen o texto estilizado)
-- Campo para subir logo en `/ajustes` (Storage de Supabase)
-
-### F-03 · Panel de Admin — Gestión de Suscripciones
-**Descripción:** La ruta `/admin` existe pero su gestión de suscripciones es parcial. Necesita: buscar usuarios, ver estado, asignar `lifetime`, extender trial, revocar acceso.  
-**Impacto:** Operación crítica para el negocio — sin esto el admin depende de Supabase Dashboard directamente.  
-**Requiere:**
-- API routes protegidas por `ADMIN_EMAIL`
-- UI de búsqueda de perfiles
-- Acciones: cambiar `subscription_status`, ajustar `subscription_expires_at`
-
-### F-04 · Notificaciones Push para Seguimientos
-**Descripción:** La infraestructura de Web Push está implementada (VAPID, tabla `push_subscriptions`, endpoint `/api/push/send`). Falta conectarla con `follow_up_tasks` para enviar recordatorios cuando vence una tarea.  
-**Impacto:** Diferenciador clave — el médico recibe una notificación en el celular cuando tiene un seguimiento pendiente.  
-**Requiere:**
-- Cron job en Supabase que llame a `/api/push/send` con los pacientes que vencen ese día
-- UI para activar/desactivar notificaciones en `/ajustes`
-- Prueba de entrega end-to-end
-
-### F-05 · Búsqueda Full-Text en Pacientes y Consultas
-**Descripción:** La búsqueda global actual (`Ctrl+K`) funciona con filtro en memoria (IndexedDB local). Para clínicas con miles de pacientes esto no escala.  
-**Impacto:** Performance en cuentas grandes.  
-**Requiere:**
-- Índice `tsvector` en `patients.full_name` y `clinical_records.chief_complaint`
-- API route de búsqueda que use `@@` (full-text search de Postgres)
-- Migrar `GlobalSearch` de IndexedDB a la nueva API con debounce
-
-### F-06 · Exportación de Historia Completa (ZIP / Portabilidad)
-**Descripción:** El médico puede exportar toda la historia clínica de un paciente como un ZIP con PDFs de cada consulta y un JSON estructurado.  
-**Impacto:** Cumplimiento de regulaciones de portabilidad de datos médicos. Diferenciador vs competencia.  
-**Requiere:**
-- API route que genere PDFs por consulta y los comprima
-- UI de exportación en la vista del paciente
-
-### F-07 · Recordatorios por Email
-**Descripción:** Enviar email al médico (y/o al paciente) cuando hay un seguimiento que vence al día siguiente.  
-**Impacto:** Complementa las notificaciones push. Útil cuando el médico no tiene el browser abierto.  
-**Requiere:**
-- Integración con Resend o SendGrid
-- Template de email HTML
-- Cron job diario (puede reutilizar el mismo de F-04)
-
-### F-08 · Modo Oscuro / Tema del Sistema
-**Descripción:** La app actualmente usa un tema fijo. Soporte para dark mode del sistema operativo.  
-**Impacto:** UX y accesibilidad. Muchos médicos trabajan de noche.  
-**Requiere:**
-- Variables CSS en `:root` y `[data-theme="dark"]`
-- Toggle en `/ajustes` o detección automática con `prefers-color-scheme`
-
-### F-09 · Internacionalización (i18n)
-**Descripción:** La app está en español. Para expandir a otros mercados (México, Colombia, España) con variantes regionales.  
-**Impacto:** Expansión de mercado.  
-**Requiere:**
-- `next-intl` o equivalente
-- Archivos de mensajes por locale
-- Selector de idioma (o detección automática por navegador)
-
-### F-10 · Historial de Versiones de Plantillas — UI
-**Descripción:** La tabla `treatment_templates` ya guarda un array `versions` con el historial completo. La UI de `TreatmentsView` muestra el número de versiones pero no permite ver ni restaurar versiones anteriores.  
-**Impacto:** Valor clínico real — el médico puede ver cómo evolucionó el tratamiento de una condición.  
-**Requiere:**
-- Modal de historial de versiones en `TreatmentsView`
-- Botón "Restaurar versión X"
+Actualmente no hay nuevas features mayores planificadas. El enfoque es monitoreo y estabilidad post-lanzamiento.
 
 ---
 
 ## 🗂️ Tareas de mantenimiento / Calidad
 
-### M-01 · Playwright E2E — Ampliar cobertura
-**Descripción:** Los tests E2E actuales son 3 (con algunos skipped). Necesitan cubrir: flujo de consulta completo, generación de PDF, plantillas de tratamiento, billing redirect.  
-**Prioridad:** 🟡 Media
+### ~~M-01 · Playwright E2E — Ampliar cobertura~~ ✅ Resuelto
+Completadas 9 specs cubriendo todos los flujos principales.
 
 ### ~~M-02 · Stale-While-Revalidate en `useTemplates`~~ ✅ Resuelto
 **Solución:** `staleTime: 5 * 60 * 1000` añadido en `use-consultation-queries.ts`.
 
-### M-03 · Rate limiting en más API routes
-**Descripción:** Solo `/api/cie-suggestions` tiene rate limiting con `claim_api_rate_limit`. Las rutas `/api/stripe/*` y `/api/push/*` deberían tener también, especialmente en producción.  
-**Prioridad:** 🟡 Media
+### ~~M-03 · Rate limiting en más API routes~~ ✅ Resuelto
+Añadido a `/api/stripe/*` y `/api/push/*`.
 
-### M-04 · Variables de entorno — validación en startup
-**Descripción:** Si una variable crítica (ej. `SUPABASE_SERVICE_ROLE_KEY`) no está configurada en Vercel, el error ocurre en runtime. Mejor validarlas al arrancar.  
-**Acción:** Crear `src/lib/env.ts` que valide todas las vars requeridas al importarse.  
-**Prioridad:** 🔴 Alta
+### ~~M-04 · Variables de entorno — validación en startup~~ ✅ Resuelto
+`src/lib/env.ts` creado y en uso.
 
 ### M-05 · `supabase.types.ts` — regenerar tras cada cambio de schema
 **Acción al hacer cambios en BD:** Ver guía completa en `docs/SUPABASE_MIGRATIONS.md`.  
