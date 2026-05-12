@@ -211,13 +211,12 @@ export function WizardStepTreatment({
             Cada medicamento obtiene su tarjeta de posología. El texto final se imprime en la hoja del paciente.
           </p>
           <MedicationInstructionsBuilder
-            medications={form.currentMedications}
+            treatmentPlanText={form.treatmentPlan}
             value={form.medicationInstructionsStructured}
             onChange={(instructions: MedInstruction[]) =>
               setForm((c) => ({
                 ...c,
                 medicationInstructionsStructured: instructions,
-                // Keep the plain text field in sync for PDF compatibility
                 medicationInstructions: assembleInstructionText(instructions),
               }))
             }

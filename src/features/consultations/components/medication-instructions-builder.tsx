@@ -1,45 +1,43 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import type { CurrentMedication } from "@/features/consultations/lib/use-consultation-wizard";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 export type MedInstruction = {
-  /** matches CurrentMedication.id */
   medId: string;
   medName: string;
   medDose: string;
-  frequencyPreset: string; // e.g. "cada-8h" | "cada-12h" | "1-vez-dia" | "custom"
-  frequencyCustom: string; // free text when preset = "custom"
-  durationPreset: string;  // e.g. "5-dias" | "7-dias" | "cronico" | "custom"
+  frequencyPreset: string;
+  frequencyCustom: string;
+  durationPreset: string;
   durationCustom: string;
-  contextChips: string[];  // e.g. ["Con alimentos"]
-  contextNote: string;     // extra free text
+  contextChips: string[];
+  contextNote: string;
 };
 
 // ── Catalogs ───────────────────────────────────────────────────────────────────
 
 const FREQUENCY_OPTIONS = [
-  { value: "1-vez-dia",   label: "1 vez al día" },
-  { value: "cada-12h",   label: "Cada 12 h  (2×/día)" },
-  { value: "cada-8h",    label: "Cada 8 h   (3×/día)" },
-  { value: "cada-6h",    label: "Cada 6 h   (4×/día)" },
-  { value: "cada-4h",    label: "Cada 4 h   (6×/día)" },
-  { value: "al-dormir",  label: "Al acostarse" },
-  { value: "custom",     label: "Personalizado…" },
+  { value: "1-vez-dia", label: "1 vez al día" },
+  { value: "cada-12h",  label: "Cada 12 h  (2×/día)" },
+  { value: "cada-8h",   label: "Cada 8 h   (3×/día)" },
+  { value: "cada-6h",   label: "Cada 6 h   (4×/día)" },
+  { value: "cada-4h",   label: "Cada 4 h   (6×/día)" },
+  { value: "al-dormir", label: "Al acostarse" },
+  { value: "custom",    label: "Personalizado…" },
 ];
 
 const DURATION_OPTIONS = [
-  { value: "3-dias",    label: "3 días" },
-  { value: "5-dias",    label: "5 días" },
-  { value: "7-dias",    label: "7 días" },
-  { value: "10-dias",   label: "10 días" },
-  { value: "14-dias",   label: "14 días" },
-  { value: "1-mes",     label: "1 mes" },
-  { value: "cronico",   label: "Uso crónico (sin fin)" },
-  { value: "s-n",       label: "Según necesidad" },
-  { value: "custom",    label: "Personalizado…" },
+  { value: "3-dias",  label: "3 días" },
+  { value: "5-dias",  label: "5 días" },
+  { value: "7-dias",  label: "7 días" },
+  { value: "10-dias", label: "10 días" },
+  { value: "14-dias", label: "14 días" },
+  { value: "1-mes",   label: "1 mes" },
+  { value: "cronico", label: "Uso crónico (sin fin)" },
+  { value: "s-n",     label: "Según necesidad" },
+  { value: "custom",  label: "Personalizado…" },
 ];
 
 const CONTEXT_CHIPS = [
@@ -74,38 +72,42 @@ export function assembleInstructionText(instructions: MedInstruction[]): string 
       const dur = resolveDuration(inst);
       const chips = inst.contextChips.join(", ");
       const note = inst.contextNote.trim();
-
       const parts: string[] = [];
       if (freq) parts.push(freq);
-      if (dur && inst.durationPreset !== "s-n" && inst.durationPreset !== "cronico") parts.push(dur);
-      else if (dur) parts.push(dur);
+      if (dur) parts.push(dur);
       if (chips) parts.push(chips);
       if (note) parts.push(note);
-
       const nameLabel = [inst.medName, inst.medDose].filter(Boolean).join(" ");
       return `• ${nameLabel}: ${parts.join(", ")}.`;
     })
     .join("\n");
 }
 
-function buildDefault(med: CurrentMedication): MedInstruction {
-  // Try to pre-fill from the medication's existing frequency text
-  let preset = "cada-8h";
-  const f = (med.frequency || "").toLowerCase();
-  if (f.includes("12")) preset = "cada-12h";
-  else if (f.includes("8"))  preset = "cada-8h";
-  else if (f.includes("6"))  preset = "cada-6h";
-  else if (f.includes("4"))  preset = "cada-4h";
-  else if (f.includes("1 vez") || f.includes("una vez") || f.includes("qd")) preset = "1-vez-dia";
-  else if (f.includes("dormir") || f.includes("noche") || f.includes("acosta")) preset = "al-dormir";
-  else if (f.trim()) preset = "custom";
+/**
+ * Parse bullet lines from treatmentPlan text.
+ * Returns [{name, dose}] for each non-empty bullet line.
+ */
+function parseTreatmentPlan(text: string): { name: string; dose: string }[] {
+  if (!text.trim()) return [];
+  return text
+    .split("\n")
+    .map((line) => line.replace(/^[•\-\*]\s*/, "").trim())
+    .filter(Boolean)
+    .map((line) => {
+      // Try to split "Acetaminofén 500mg" → name="Acetaminofén" dose="500mg"
+      const match = line.match(/^(.+?)\s+(\d[\d.,]*\s*(?:mg|g|ml|mcg|UI|un|tab|cap|amp)[\w/]*)$/i);
+      if (match) return { name: match[1].trim(), dose: match[2].trim() };
+      return { name: line, dose: "" };
+    });
+}
 
+function makeInstruction(id: string, name: string, dose: string): MedInstruction {
   return {
-    medId: med.id,
-    medName: med.name,
-    medDose: med.dose,
-    frequencyPreset: preset,
-    frequencyCustom: preset === "custom" ? med.frequency : "",
+    medId: id,
+    medName: name,
+    medDose: dose,
+    frequencyPreset: "cada-8h",
+    frequencyCustom: "",
     durationPreset: "7-dias",
     durationCustom: "",
     contextChips: [],
@@ -116,44 +118,52 @@ function buildDefault(med: CurrentMedication): MedInstruction {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 type Props = {
-  medications: CurrentMedication[];
-  /** Structured instructions — persisted in specialty_data */
+  /** Free-text prescription plan — parsed automatically to generate cards */
+  treatmentPlanText: string;
+  /** Structured instructions state */
   value: MedInstruction[];
   onChange: (instructions: MedInstruction[]) => void;
 };
 
-export function MedicationInstructionsBuilder({ medications, value, onChange }: Props) {
-  // Sync: when medications change, add missing entries / remove stale ones
+export function MedicationInstructionsBuilder({ treatmentPlanText, value, onChange }: Props) {
+  const [newName, setNewName] = useState("");
+  const [newDose, setNewDose] = useState("");
+
+  // Sync from treatmentPlan text whenever it changes
   useEffect(() => {
-    if (medications.length === 0) return;
+    const parsed = parseTreatmentPlan(treatmentPlanText);
+    if (parsed.length === 0) return;
 
-    const next = medications
-      .filter((m) => m.name.trim()) // ignore empty rows
-      .map((med) => {
-        const existing = value.find((i) => i.medId === med.id);
-        if (existing) {
-          // Keep existing but refresh name/dose in case they changed
-          return { ...existing, medName: med.name, medDose: med.dose };
-        }
-        return buildDefault(med);
+    const next: MedInstruction[] = parsed.map(({ name, dose }) => {
+      // Match by normalised name so edits to dose don't reset the instruction settings
+      const existing = value.find(
+        (i) => i.medName.toLowerCase().trim() === name.toLowerCase().trim(),
+      );
+      if (existing) return { ...existing, medName: name, medDose: dose || existing.medDose };
+      return makeInstruction(crypto.randomUUID(), name, dose);
+    });
+
+    // Only push if something changed to avoid loops
+    const same =
+      next.length === value.length &&
+      next.every((n, i) => {
+        const v = value[i];
+        return v && n.medName === v.medName && n.medDose === v.medDose;
       });
 
-    // Only update if something actually changed (avoid render loops)
-    const changed =
-      next.length !== value.length ||
-      next.some((n, idx) => {
-        const v = value[idx];
-        return !v || n.medId !== v.medId || n.medName !== v.medName || n.medDose !== v.medDose;
-      });
-
-    if (changed) onChange(next);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [medications]);
+    if (!same) onChange(next);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [treatmentPlanText]);
 
   const updateInstruction = useCallback(
     (medId: string, patch: Partial<MedInstruction>) => {
       onChange(value.map((i) => (i.medId === medId ? { ...i, ...patch } : i)));
     },
+    [value, onChange],
+  );
+
+  const removeInstruction = useCallback(
+    (medId: string) => onChange(value.filter((i) => i.medId !== medId)),
     [value, onChange],
   );
 
@@ -163,114 +173,108 @@ export function MedicationInstructionsBuilder({ medications, value, onChange }: 
       if (!inst) return;
       const has = inst.contextChips.includes(chip);
       updateInstruction(medId, {
-        contextChips: has
-          ? inst.contextChips.filter((c) => c !== chip)
-          : [...inst.contextChips, chip],
+        contextChips: has ? inst.contextChips.filter((c) => c !== chip) : [...inst.contextChips, chip],
       });
     },
     [value, updateInstruction],
   );
 
-  if (medications.filter((m) => m.name.trim()).length === 0) {
-    return (
-      <div className="rounded-xl border border-dashed border-border bg-bg-soft px-4 py-6 text-center">
-        <p className="text-sm text-ink-soft">
-          Agrega medicamentos en la tabla de arriba y aquí aparecerán las instrucciones de posología.
-        </p>
-      </div>
-    );
+  function addManual() {
+    const name = newName.trim();
+    if (!name) return;
+    const already = value.some((i) => i.medName.toLowerCase() === name.toLowerCase());
+    if (!already) {
+      onChange([...value, makeInstruction(crypto.randomUUID(), name, newDose.trim())]);
+    }
+    setNewName("");
+    setNewDose("");
   }
+
+  const visibleCards = value.filter((i) => i.medName.trim());
 
   return (
     <div className="space-y-4">
-      {value.filter((inst) => inst.medName.trim()).map((inst) => {
-        const preview = assembleInstructionText([inst]);
+      {/* Empty state + hint */}
+      {visibleCards.length === 0 && (
+        <div className="rounded-xl border border-dashed border-border bg-bg-soft px-4 py-5 text-center">
+          <p className="text-sm text-ink-soft">
+            Las tarjetas se generan automáticamente desde la receta de arriba.
+            <br />
+            También puedes agregar un medicamento manualmente abajo.
+          </p>
+        </div>
+      )}
 
+      {/* Instruction cards */}
+      {visibleCards.map((inst) => {
+        const preview = assembleInstructionText([inst]);
         return (
-          <div
-            key={inst.medId}
-            className="rounded-2xl border border-border bg-bg-soft/50 overflow-hidden"
-          >
-            {/* Card header */}
-            <div className="flex items-center gap-3 bg-bg-soft px-4 py-3 border-b border-border">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-accent font-bold text-sm">
-                Rx
+          <div key={inst.medId} className="rounded-2xl border border-border bg-bg-soft/50 overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between gap-3 bg-bg-soft px-4 py-3 border-b border-border">
+              <div className="flex items-center gap-3">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-accent font-bold text-sm">
+                  Rx
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-ink">
+                    {inst.medName}
+                    {inst.medDose && (
+                      <span className="ml-2 text-xs font-semibold text-ink-soft">{inst.medDose}</span>
+                    )}
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-bold text-ink">
-                  {inst.medName}
-                  {inst.medDose && (
-                    <span className="ml-2 text-xs font-semibold text-ink-soft">{inst.medDose}</span>
-                  )}
-                </p>
-              </div>
+              <button
+                type="button"
+                onClick={() => removeInstruction(inst.medId)}
+                className="rounded-lg p-1.5 text-ink-soft hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                title="Eliminar"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                  <path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                </svg>
+              </button>
             </div>
 
-            {/* Card body */}
+            {/* Body */}
             <div className="p-4 space-y-4">
-              {/* Frequency */}
+              {/* Frequency + Duration */}
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-ink-soft">
-                    Frecuencia
-                  </label>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-ink-soft">Frecuencia</label>
                   <select
                     className="hce-input text-sm"
                     value={inst.frequencyPreset}
-                    onChange={(e) =>
-                      updateInstruction(inst.medId, {
-                        frequencyPreset: e.target.value,
-                        frequencyCustom: "",
-                      })
-                    }
+                    onChange={(e) => updateInstruction(inst.medId, { frequencyPreset: e.target.value, frequencyCustom: "" })}
                   >
-                    {FREQUENCY_OPTIONS.map((o) => (
-                      <option key={o.value} value={o.value}>
-                        {o.label}
-                      </option>
-                    ))}
+                    {FREQUENCY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
                   {inst.frequencyPreset === "custom" && (
                     <input
                       className="hce-input text-sm mt-1"
                       placeholder="Ej: Cada 48 horas"
                       value={inst.frequencyCustom}
-                      onChange={(e) =>
-                        updateInstruction(inst.medId, { frequencyCustom: e.target.value })
-                      }
+                      onChange={(e) => updateInstruction(inst.medId, { frequencyCustom: e.target.value })}
                     />
                   )}
                 </div>
-
-                {/* Duration */}
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-ink-soft">
-                    Duración
-                  </label>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-ink-soft">Duración</label>
                   <select
                     className="hce-input text-sm"
                     value={inst.durationPreset}
-                    onChange={(e) =>
-                      updateInstruction(inst.medId, {
-                        durationPreset: e.target.value,
-                        durationCustom: "",
-                      })
-                    }
+                    onChange={(e) => updateInstruction(inst.medId, { durationPreset: e.target.value, durationCustom: "" })}
                   >
-                    {DURATION_OPTIONS.map((o) => (
-                      <option key={o.value} value={o.value}>
-                        {o.label}
-                      </option>
-                    ))}
+                    {DURATION_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
                   {inst.durationPreset === "custom" && (
                     <input
                       className="hce-input text-sm mt-1"
                       placeholder="Ej: 3 semanas"
                       value={inst.durationCustom}
-                      onChange={(e) =>
-                        updateInstruction(inst.medId, { durationCustom: e.target.value })
-                      }
+                      onChange={(e) => updateInstruction(inst.medId, { durationCustom: e.target.value })}
                     />
                   )}
                 </div>
@@ -278,9 +282,7 @@ export function MedicationInstructionsBuilder({ medications, value, onChange }: 
 
               {/* Context chips */}
               <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-ink-soft">
-                  ¿Cuándo tomarlo?
-                </label>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-ink-soft">¿Cuándo tomarlo?</label>
                 <div className="flex flex-wrap gap-1.5">
                   {CONTEXT_CHIPS.map((chip) => {
                     const active = inst.contextChips.includes(chip);
@@ -304,25 +306,55 @@ export function MedicationInstructionsBuilder({ medications, value, onChange }: 
                   className="hce-input text-sm"
                   placeholder="Nota adicional (opcional)…"
                   value={inst.contextNote}
-                  onChange={(e) =>
-                    updateInstruction(inst.medId, { contextNote: e.target.value })
-                  }
+                  onChange={(e) => updateInstruction(inst.medId, { contextNote: e.target.value })}
                 />
               </div>
 
-              {/* Preview */}
+              {/* Live preview */}
               <div className="rounded-xl border border-teal-500/20 bg-teal-500/5 px-3 py-2">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-teal-700 dark:text-teal-400 mb-1">
                   Vista previa
                 </p>
-                <p className="text-xs text-ink leading-relaxed">
-                  {preview || <span className="text-ink-soft italic">Completa los campos para ver la instrucción</span>}
+                <p className="text-xs text-ink leading-relaxed whitespace-pre-line">
+                  {preview || <span className="text-ink-soft italic">Completa los campos</span>}
                 </p>
               </div>
             </div>
           </div>
         );
       })}
+
+      {/* Manual add row */}
+      <div className="flex flex-col sm:flex-row gap-2 items-end">
+        <div className="flex-1 space-y-1">
+          <label className="text-[10px] font-bold uppercase tracking-wider text-ink-soft">Agregar medicamento manualmente</label>
+          <input
+            className="hce-input text-sm"
+            placeholder="Nombre del medicamento"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addManual(); } }}
+          />
+        </div>
+        <div className="w-full sm:w-36 space-y-1">
+          <label className="text-[10px] font-bold uppercase tracking-wider text-ink-soft sm:opacity-0 select-none">Dosis</label>
+          <input
+            className="hce-input text-sm"
+            placeholder="Dosis (opcional)"
+            value={newDose}
+            onChange={(e) => setNewDose(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addManual(); } }}
+          />
+        </div>
+        <button
+          type="button"
+          onClick={addManual}
+          disabled={!newName.trim()}
+          className="hce-btn-secondary text-sm shrink-0 disabled:opacity-40"
+        >
+          + Agregar
+        </button>
+      </div>
     </div>
   );
 }
