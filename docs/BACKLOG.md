@@ -82,7 +82,10 @@ Esta es la lista ordenada de lo que trabajamos en la próxima sesión, en priori
 - [x] **F-07** — Recordatorios por email (Resend) ✅  
   `POST /api/email/followup` con auth por header. Template HTML branded. Función SQL  
   `send_followup_emails()` + cron 7am UTC. Clave `resend_email_secret` en `app_config`.
-- [ ] **F-09** — Internacionalización (i18n)  
+- [x] **F-09** — Internacionalización (i18n) ✅
+  Setup fundamental de `next-intl` completado sin alterar las rutas (usa cookies).  
+  Archivos `messages/es.json` y `messages/en.json` creados.  
+  El Hero del landing page ya está traducido. Selector de idioma temporal agregado en el footer.
 
 ---
 
