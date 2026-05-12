@@ -74,11 +74,8 @@ export function Sidebar() {
         position: "sticky",
         top: 0,
         height: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        flexShrink: 0,
       }}
-      className="hidden lg:flex"
+      className="hidden shrink-0 flex-col lg:flex"
     >
       {/* Brand */}
       <div
@@ -241,16 +238,12 @@ export function MobileHeader() {
   return (
     <header
       style={{
-        display: "flex",
         height: 56,
-        flexShrink: 0,
-        alignItems: "center",
-        justifyContent: "space-between",
         borderBottom: "1px solid var(--border)",
         background: "var(--card)",
         padding: "0 16px",
       }}
-      className="lg:hidden"
+      className="flex shrink-0 items-center justify-between lg:hidden"
     >
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         <GlyphMark size={30} />
