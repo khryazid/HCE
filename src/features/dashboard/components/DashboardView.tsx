@@ -10,6 +10,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { isSameDay, parseISO } from "date-fns";
 import { useTenant } from "@/lib/supabase/tenant-context";
 import { DashboardSkeleton } from "@/components/ui/skeletons";
 import {
@@ -30,7 +31,9 @@ import {
 import { DashboardMetricsBar } from "@/features/dashboard/components/DashboardMetricsBar";
 import { DashboardActivityFeed } from "@/features/dashboard/components/DashboardActivityFeed";
 import { DashboardFollowUpPanel } from "@/features/dashboard/components/DashboardFollowUpPanel";
+import { DashboardAgendaPanel } from "@/features/dashboard/components/DashboardAgendaPanel";
 import { DashboardCharts } from "@/features/dashboard/components/DashboardCharts";
+import { useAgenda } from "@/features/agenda/lib/use-agenda";
 import {
   calculateMetrics,
   buildActivityFeed,
@@ -42,6 +45,7 @@ import {
 
 export default function DashboardView() {
   const { tenant, session, loading: tenantLoading, error: tenantError } = useTenant();
+  const { appointments } = useAgenda();
   const [metrics, setMetrics] = useState<DashboardMetrics>(EMPTY_METRICS);
   const [activity, setActivity] = useState<ActivityItem[]>([]);
   const [patientsData, setPatientsData] = useState<PatientRecord[]>([]);
@@ -171,6 +175,11 @@ export default function DashboardView() {
     [],
   );
 
+  const todayAppointmentsCount = useMemo(() => {
+    const today = new Date();
+    return appointments.filter((a) => isSameDay(parseISO(a.start_time), today)).length;
+  }, [appointments]);
+
   if (tenantLoading || loading) return <DashboardSkeleton />;
 
   return (
@@ -208,9 +217,12 @@ export default function DashboardView() {
                 : "Cargando perfil profesional..."}
             </p>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:w-[26rem]">
+          <div className="grid gap-3 sm:grid-cols-3 lg:w-[38rem]">
             <Link href="/consultas" className="hce-btn-primary py-3 text-center text-sm">
               Nueva consulta
+            </Link>
+            <Link href="/agenda" className="hce-btn-secondary py-3 text-center text-sm border-teal-500/30 text-teal-800 dark:text-teal-200 bg-teal-50/50 dark:bg-teal-900/20 hover:bg-teal-100 dark:hover:bg-teal-900/40">
+              Mi Agenda
             </Link>
             <Link href="/pacientes" className="hce-btn-secondary py-3 text-center text-sm">
               Ver pacientes
@@ -249,6 +261,7 @@ export default function DashboardView() {
                   metrics.consultationsToday === 1 ? "" : "s"
                 } hoy.`
               : "Aún no registras consultas hoy. Puedes iniciar con una acción rápida."}
+            {todayAppointmentsCount > 0 && ` Tienes ${todayAppointmentsCount} cita${todayAppointmentsCount === 1 ? "" : "s"} programada${todayAppointmentsCount === 1 ? "" : "s"} para hoy en tu agenda.`}
           </p>
         </div>
       </article>
@@ -260,8 +273,9 @@ export default function DashboardView() {
         specialtyBreakdown={specialtyBreakdown}
       />
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4 lg:grid-cols-3">
         <DashboardActivityFeed activity={activity} />
+        <DashboardAgendaPanel appointments={appointments} />
         <DashboardFollowUpPanel
           items={filteredFollowUpItems}
           counts={followUpCounts}
