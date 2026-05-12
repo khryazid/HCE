@@ -1,5 +1,5 @@
 "use client";
-
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useEffect, useRef } from "react";
 import "./landing.css";
@@ -13,6 +13,7 @@ const PLAN_CLINIC_PRICE = 99;
 export default function Home() {
   const navRef = useRef<HTMLElement>(null);
   const blobRef = useRef<HTMLDivElement>(null);
+  const t = useTranslations("Landing");
 
   useEffect(() => {
     /* Nav scroll effect */
@@ -145,15 +146,13 @@ export default function Home() {
 
           {/* Headline */}
           <h1 className="l-hero-title">
-            <span className="line"><span>El motor clínico para</span></span>
-            <span className="line"><span><em>médicos modernos</em></span></span>
+            <span className="line"><span>{t("heroTitleLine1")}</span></span>
+            <span className="line"><span><em>{t("heroTitleLine2")}</em></span></span>
           </h1>
 
           {/* Sub */}
           <p className="l-hero-sub">
-            Historia clínica multiespecialidad, sincronización offline-first y
-            sugerencias CIE-10 con IA. Documentá cada consulta en menos de 3
-            minutos — desde cualquier lugar.
+            {t("heroSub")}
           </p>
 
           {/* CTAs */}
@@ -474,21 +473,39 @@ export default function Home() {
         </div>
 
         {/* ── FOOTER ──────────────────────────────────────────── */}
-        <footer className="l-footer">
-          <div className="l-footer-logo">
-            <div className="l-nav-dot" aria-hidden />
-            Glyph<span style={{color:"var(--accent)", marginLeft:2}}>·</span>
-          </div>
-          <nav className="l-footer-links" aria-label="Links del pie de página">
-            <Link href="/login">Iniciar sesión</Link>
-            <Link href="/registro">Registro</Link>
-            <a href="#pricing">Precios</a>
-            <a href="#features">Funciones</a>
-          </nav>
-          <p className="l-footer-copy">
-            © {new Date().getFullYear()} Glyph. Todos los derechos reservados.
-          </p>
-        </footer>
+      <footer className="l-footer">
+        <div className="l-footer-logo">
+          <div className="l-nav-dot" aria-hidden />
+          Glyph<span style={{color:"var(--accent)", marginLeft:2}}>·</span>
+        </div>
+        <nav className="l-footer-links" aria-label="Links del pie de página">
+          <Link href="/login">Iniciar sesión</Link>
+          <Link href="/registro">Registro</Link>
+          <a href="#pricing">Precios</a>
+          <a href="#features">Funciones</a>
+        </nav>
+        <div className="flex items-center gap-4 mt-8 justify-center text-sm">
+          <button 
+            onClick={() => {
+              fetch('/api/locale', { method: 'POST', body: JSON.stringify({ locale: 'es' }) }).then(() => window.location.reload());
+            }}
+            className="text-ink-soft hover:text-ink transition-colors"
+          >
+            🇪🇸 Español
+          </button>
+          <button 
+            onClick={() => {
+              fetch('/api/locale', { method: 'POST', body: JSON.stringify({ locale: 'en' }) }).then(() => window.location.reload());
+            }}
+            className="text-ink-soft hover:text-ink transition-colors"
+          >
+            🇺🇸 English
+          </button>
+        </div>
+        <p className="l-footer-copy">
+          © {new Date().getFullYear()} Glyph. Todos los derechos reservados.
+        </p>
+      </footer>
 
       </main>
     </div>

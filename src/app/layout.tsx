@@ -55,13 +55,19 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+import { NextIntlClientProvider } from 'next-intl';
+import { getMessages, getLocale } from 'next-intl/server';
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = await getLocale();
+  const messages = await getMessages();
+
   return (
-    <html lang="es-ES" className={`${inter.variable} ${jakarta.variable} ${dmSans.variable} h-full antialiased`}>
+    <html lang={locale} className={`${inter.variable} ${jakarta.variable} ${dmSans.variable} h-full antialiased`}>
       {/*
         Anti-flash theme script: runs synchronously before React hydrates.
         Reads localStorage('hce:theme') and sets data-theme on <html>.
@@ -75,10 +81,12 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full flex flex-col bg-bg text-ink font-sans">
-        <QueryProvider>
-          <SyncBootstrap />
-          {children}
-        </QueryProvider>
+        <NextIntlClientProvider messages={messages}>
+          <QueryProvider>
+            <SyncBootstrap />
+            {children}
+          </QueryProvider>
+        </NextIntlClientProvider>
         <SpeedInsights />
         <Analytics />
       </body>
