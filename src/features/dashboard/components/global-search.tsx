@@ -241,10 +241,11 @@ export function GlobalSearch() {
         onClick={() => setOpen(true)}
         className="flex w-full items-center justify-between rounded-2xl border border-[color:var(--border)] bg-[color:var(--card)] px-4 py-2.5 text-left shadow-sm transition hover:border-teal-300 hover:bg-[color:var(--bg-soft)]"
       >
-        <span className="text-sm text-[color:var(--ink-soft)]">
-          Buscar pacientes, consultas o tratamientos...
+        <span className="text-sm text-[color:var(--ink-soft)] truncate">
+          <span className="hidden sm:inline">Buscar pacientes, consultas o tratamientos...</span>
+          <span className="sm:hidden">Buscar...</span>
         </span>
-        <span className="rounded-lg border border-[color:var(--border)] bg-[color:var(--bg-soft)] px-2 py-1 text-[11px] font-semibold text-[color:var(--ink-soft)]">
+        <span className="hidden sm:inline-block rounded-lg border border-[color:var(--border)] bg-[color:var(--bg-soft)] px-2 py-1 text-[11px] font-semibold text-[color:var(--ink-soft)]">
           Ctrl/Cmd + K
         </span>
       </button>
