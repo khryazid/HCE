@@ -13,9 +13,11 @@ interface MonthViewProps {
   selectedDate: Date;
   onSelectDate: (date: Date) => void;
   onEventClick: (event: CalendarEvent) => void;
+  /** Called when user explicitly taps "+" to add an appointment for the selected day */
+  onNewAppointment?: (date: Date) => void;
 }
 
-export function MonthView({ monthDays, events, selectedDate, onSelectDate, onEventClick }: MonthViewProps) {
+export function MonthView({ monthDays, events, selectedDate, onSelectDate, onEventClick, onNewAppointment }: MonthViewProps) {
   const weekDaysHeader = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
   // Obtener eventos del día seleccionado para la "Agenda" en móvil
@@ -94,10 +96,20 @@ export function MonthView({ monthDays, events, selectedDate, onSelectDate, onEve
       {/* --- AGENDA MÓVIL --- */}
       {/* Se muestra en móvil debajo del grid del mes con las citas del selectedDate */}
       <div className="sm:hidden flex flex-col border-t border-border bg-card shadow-[0_-10px_30px_rgba(0,0,0,0.03)] h-64 overflow-y-auto">
-        <div className="sticky top-0 bg-card/95 backdrop-blur z-10 px-4 py-3 border-b border-border">
+        <div className="sticky top-0 bg-card/95 backdrop-blur z-10 px-4 py-3 border-b border-border flex items-center justify-between">
           <h3 className="text-sm font-bold capitalize text-ink">
             {format(selectedDate, "EEEE, d 'de' MMMM", { locale: es })}
           </h3>
+          {onNewAppointment && (
+            <button
+              type="button"
+              onClick={() => onNewAppointment(selectedDate)}
+              className="flex items-center gap-1.5 rounded-xl bg-accent/10 border border-accent/20 px-3 py-1.5 text-xs font-bold text-accent hover:bg-accent/20 transition-colors"
+            >
+              <span className="text-base leading-none">+</span>
+              Nueva cita
+            </button>
+          )}
         </div>
         <div className="flex flex-col p-4 gap-2">
           {selectedDateEvents.length === 0 ? (

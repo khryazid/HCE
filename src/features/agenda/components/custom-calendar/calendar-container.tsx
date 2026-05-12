@@ -109,9 +109,10 @@ export function CalendarContainer({ events, onEventClick, onSlotClick, defaultVi
             selectedDate={selectedDate}
             onSelectDate={(d) => {
               handleDateSelect(d);
-              if (onSlotClick) onSlotClick(d);
+              // Do NOT auto-open slot modal here — user sees the day preview first
             }}
             onEventClick={onEventClick}
+            onNewAppointment={onSlotClick}
           />
         )}
         {viewMode === 'week' && (
