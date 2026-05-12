@@ -9,7 +9,7 @@ export interface CalendarEvent {
   payment_status?: string;
   status?: string;
   /** "walk-in" = cita por orden de llegada, sin hora fija */
-  consultation_type?: string;
+  consultation_type?: string | null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
 }

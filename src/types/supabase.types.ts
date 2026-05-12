@@ -60,6 +60,7 @@ export type Database = {
         Row: {
           amount: number | null
           clinic_id: string
+          consultation_type: string | null
           created_at: string
           doctor_id: string
           end_time: string
@@ -77,6 +78,7 @@ export type Database = {
         Insert: {
           amount?: number | null
           clinic_id: string
+          consultation_type?: string | null
           created_at?: string
           doctor_id: string
           end_time: string
@@ -94,6 +96,7 @@ export type Database = {
         Update: {
           amount?: number | null
           clinic_id?: string
+          consultation_type?: string | null
           created_at?: string
           doctor_id?: string
           end_time?: string
