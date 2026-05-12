@@ -151,7 +151,7 @@ export default function ConsultationsView() {
                         ? "bg-teal-600 text-white"
                         : "bg-border text-ink-soft"
                     }`}>{num}</span>
-                    <span className="hidden sm:inline">{label}</span>
+                    <span className="whitespace-nowrap">{label}</span>
                   </div>
                   {i < STEPS.length - 1 && (
                     <span aria-hidden className="text-border text-xs">›</span>
