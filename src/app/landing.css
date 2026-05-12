@@ -506,9 +506,12 @@
 
 /* ── Responsive */
 @media (max-width: 960px) {
-  .l-nav { padding: 16px 24px; }
-  .l-nav.scrolled { padding: 12px 24px; }
+  .l-nav { padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; }
+  .l-nav.scrolled { padding: 12px 20px; }
   .l-nav-links { display: none; }
+  .l-nav-cta { gap: 8px; }
+  .l-btn-ghost { padding: 8px 12px; font-size: .8rem; }
+  .l-btn-primary { padding: 8px 12px; font-size: .8rem; }
   .l-hero { padding: 120px 24px 60px; }
   .l-hero-stats { flex-direction: column; }
   .l-hero-stat { border-right: none; border-bottom: 1px solid var(--line2); }
