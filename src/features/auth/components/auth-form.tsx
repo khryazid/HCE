@@ -26,14 +26,14 @@ type AuthFormProps = {
 const loginSchema = z.object({
   email: z.string().min(1, "El correo es obligatorio.").email("Ingresa un correo valido."),
   password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres."),
-  fullName: z.string().optional(),
-  specialties: z.array(z.string()).optional(),
+  fullName: z.string(),
+  specialties: z.array(z.string()),
+  plan: z.enum(["basic", "clinic"]),
 });
 
 const registerSchema = loginSchema.extend({
   fullName: z.string().min(1, "El nombre completo es obligatorio."),
   specialties: z.array(z.string()).min(1, "Selecciona al menos una especialidad."),
-  plan: z.enum(["basic", "clinic"]).default("basic"),
 });
 
 type AuthFormData = z.infer<typeof registerSchema>;
@@ -57,8 +57,7 @@ export function AuthForm({ mode }: AuthFormProps) {
     watch,
     formState: { errors, isSubmitting },
   } = useForm<AuthFormData>({
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    resolver: zodResolver(isSignUp ? registerSchema : loginSchema) as any,
+    resolver: zodResolver(isSignUp ? registerSchema : loginSchema),
     defaultValues: {
       email: "",
       password: "",
