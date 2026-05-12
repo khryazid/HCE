@@ -3,6 +3,8 @@ import { Suspense } from "react";
 import { verifySuperAdmin, getAllUsersWithProfiles, getAbandonedSyncItems } from "@/features/admin/actions";
 import { AdminPanelClient } from "./admin-client";
 
+import { getPublicPricing } from "@/lib/config";
+
 export const metadata = {
   title: "Admin Panel | HCE",
   robots: { index: false, follow: false },
@@ -43,9 +45,10 @@ export default async function AdminPage() {
 }
 
 async function AdminDataLayer() {
-  const [{ users, stats }, abandonedItems] = await Promise.all([
+  const [{ users, stats }, abandonedItems, pricing] = await Promise.all([
     getAllUsersWithProfiles(),
     getAbandonedSyncItems(),
+    getPublicPricing()
   ]);
-  return <AdminPanelClient initialUsers={users} stats={stats} abandonedItems={abandonedItems} />;
+  return <AdminPanelClient initialUsers={users} stats={stats} abandonedItems={abandonedItems} pricing={pricing} />;
 }

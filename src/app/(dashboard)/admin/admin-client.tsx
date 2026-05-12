@@ -21,6 +21,7 @@ type Props = {
   initialUsers: AdminUserRecord[];
   stats: AdminStats;
   abandonedItems: AbandonedItem[];
+  pricing: { proPrice: number; clinicPrice: number };
 };
 
 type PlanDraft = {
@@ -288,7 +289,7 @@ const FILTER_OPTIONS: { value: StatusFilter; label: string }[] = [
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 
-export function AdminPanelClient({ initialUsers, stats, abandonedItems }: Props) {
+export function AdminPanelClient({ initialUsers, stats, abandonedItems, pricing }: Props) {
   const [users, setUsers] = useState<AdminUserRecord[]>(initialUsers);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -298,6 +299,25 @@ export function AdminPanelClient({ initialUsers, stats, abandonedItems }: Props)
     plan: PlanDraft;
   } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AdminUserRecord | null>(null);
+
+  // Pricing state
+  const [proPrice, setProPrice] = useState(pricing?.proPrice ?? 29);
+  const [clinicPrice, setClinicPrice] = useState(pricing?.clinicPrice ?? 99);
+  const [isSavingPricing, setIsSavingPricing] = useState(false);
+
+  const handleSavePricing = async () => {
+    setIsSavingPricing(true);
+    try {
+      const { updatePricing } = await import("@/features/admin/actions");
+      await updatePricing(proPrice, clinicPrice);
+      toast.success("Precios actualizados en la base de datos.");
+    } catch (e) {
+      toast.error("Error al actualizar precios: " + (e instanceof Error ? e.message : String(e)));
+    } finally {
+      setIsSavingPricing(false);
+    }
+  };
+
   const [isPending, startTransition] = useTransition();
   const [isMounted, setIsMounted] = useState(false);
 
@@ -413,6 +433,41 @@ export function AdminPanelClient({ initialUsers, stats, abandonedItems }: Props)
           active={statusFilter === "none"}
           onClick={() => setStatusFilter("none")}
         />
+      </div>
+
+      {/* ── CONFIGURACIÓN DE PRECIOS ── */}
+      <div className="hce-surface rounded-xl overflow-hidden border border-border p-5 mt-4">
+        <h2 className="text-lg font-bold text-ink mb-1">Configuración Pública (Landing)</h2>
+        <p className="text-sm text-ink-soft mb-4">
+          Modifica los precios mostrados en el Landing Page en tiempo real.
+        </p>
+        <div className="flex flex-wrap gap-4 items-end">
+          <div>
+            <label className="block text-xs font-medium text-ink-soft mb-1">Plan Profesional ($)</label>
+            <input
+              type="number"
+              value={proPrice}
+              onChange={(e) => setProPrice(Number(e.target.value))}
+              className="hce-input w-32"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-ink-soft mb-1">Plan Clínica ($)</label>
+            <input
+              type="number"
+              value={clinicPrice}
+              onChange={(e) => setClinicPrice(Number(e.target.value))}
+              className="hce-input w-32"
+            />
+          </div>
+          <button
+            onClick={handleSavePricing}
+            disabled={isSavingPricing}
+            className="px-4 py-2 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold transition-colors disabled:opacity-50"
+          >
+            {isSavingPricing ? "Guardando..." : "Guardar Precios"}
+          </button>
+        </div>
       </div>
 
       {/* ── RECENT USERS NOTICE ── */}

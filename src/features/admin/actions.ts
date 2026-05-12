@@ -194,3 +194,29 @@ export async function deleteUserAccount(userId: string) {
 
   return { success: true };
 }
+
+/**
+ * Update public pricing in app_config
+ */
+export async function updatePricing(proPrice: number, clinicPrice: number) {
+  await verifySuperAdmin();
+  const admin = getSupabaseAdmin();
+
+  // Upsert both prices
+  const { error: err1 } = await admin.from("app_config").upsert({
+    key: "plan_pro_price",
+    value: proPrice.toString(),
+    updated_at: new Date().toISOString()
+  });
+  if (err1) throw err1;
+
+  const { error: err2 } = await admin.from("app_config").upsert({
+    key: "plan_clinic_price",
+    value: clinicPrice.toString(),
+    updated_at: new Date().toISOString()
+  });
+  if (err2) throw err2;
+
+  return { success: true };
+}
+
