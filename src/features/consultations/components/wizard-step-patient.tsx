@@ -479,47 +479,29 @@ export function WizardStepPatient({
               </p>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-ink">Nombres</label>
-                  <input
-                    className="hce-input"
-                    placeholder="Ej: María"
-                    value={quickPatient.firstName}
-                    onChange={(event) =>
-                      setQuickPatient((current) => ({
-                        ...current,
-                        firstName: event.target.value,
-                      }))
-                    }
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-ink">Apellidos</label>
-                  <input
-                    className="hce-input"
-                    placeholder="Ej: Gomez"
-                    value={quickPatient.lastName}
-                    onChange={(event) =>
-                      setQuickPatient((current) => ({
-                        ...current,
-                        lastName: event.target.value,
-                      }))
-                    }
-                  />
-                </div>
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-ink">DNI / Cédula</label>
                   <input
                     className="hce-input"
                     placeholder="Número de documento"
                     value={quickPatient.documentNumber}
-                    onChange={(event) =>
-                      setQuickPatient((current) => ({
-                        ...current,
-                        documentNumber: event.target.value,
-                      }))
-                    }
+                    onChange={(event) => {
+                      const val = event.target.value;
+                      const existing = patients.find(p => p.document_number === val.trim());
+                      if (existing) {
+                        setForm((current) => ({
+                          ...current,
+                          patientId: existing.id,
+                          linkedRecordId: "",
+                          patientStatus: existing.status ?? "activo",
+                        }));
+                        setQuickPatient({ documentNumber: "", firstName: "", lastName: "", birthDate: "" });
+                      } else {
+                        setQuickPatient((current) => ({
+                          ...current,
+                          documentNumber: val,
+                        }));
+                      }
+                    }}
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -558,6 +540,36 @@ export function WizardStepPatient({
                         setQuickPatient((current) => ({ ...current, birthDate: formatted }));
                       }
                     }}
+                  />
+                </div>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-ink">Nombres</label>
+                  <input
+                    className="hce-input"
+                    placeholder="Ej: María"
+                    value={quickPatient.firstName}
+                    onChange={(event) =>
+                      setQuickPatient((current) => ({
+                        ...current,
+                        firstName: event.target.value,
+                      }))
+                    }
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-ink">Apellidos</label>
+                  <input
+                    className="hce-input"
+                    placeholder="Ej: Gomez"
+                    value={quickPatient.lastName}
+                    onChange={(event) =>
+                      setQuickPatient((current) => ({
+                        ...current,
+                        lastName: event.target.value,
+                      }))
+                    }
                   />
                 </div>
               </div>
