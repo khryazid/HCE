@@ -5,8 +5,8 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { CalendarDays, User, Phone, Stethoscope, CreditCard, DollarSign, Check, Trash2 } from "lucide-react";
-import { format, formatISO } from "date-fns";
+import { CalendarDays, User, Phone, CreditCard, DollarSign, Check, Trash2, Users } from "lucide-react";
+import { format, formatISO, startOfDay, endOfDay } from "date-fns";
 import { useRouter } from "next/navigation";
 
 const appointmentSchema = z.object({
@@ -65,6 +65,9 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
     },
   });
 
+  // Walk-in mode = cita por orden de llegada
+  const [isWalkIn, setIsWalkIn] = useState(false);
+
   // Inicializar formulario cuando cambian los props
   const paymentStatus = form.watch("payment_status");
   const isHonorary = paymentStatus === "honorary";
@@ -95,6 +98,9 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
         // Modo Edición
         const startD = new Date(initialData.start_time);
         const endD = new Date(initialData.end_time);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const wasWalkIn = (initialData as any).consultation_type === 'walk-in';
+        setIsWalkIn(wasWalkIn);
         form.reset({
           patient_name: initialData.patient_name,
           patient_phone: initialData.patient_phone || "",
@@ -105,12 +111,13 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
           payment_status: (initialData.payment_status as AppointmentFormValues["payment_status"]) || "pending",
           payment_method: initialData.payment_method || "",
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          consultation_type: (initialData as any).consultation_type || "",
+          consultation_type: wasWalkIn ? 'walk-in' : ((initialData as any).consultation_type || ""),
           amount: initialData.amount?.toString() || "",
           notes: initialData.notes || "",
         });
       } else if (selectedSlot) {
         // Modo Creación desde Calendario
+        setIsWalkIn(false);
         form.reset({
           patient_name: "",
           patient_phone: "",
@@ -131,9 +138,20 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
   async function onSubmit(values: AppointmentFormValues) {
     setIsSubmitting(true);
     try {
-      // Combinar fecha y hora para ISO
-      const startDateTime = new Date(`${values.start_date}T${values.start_time}:00`);
-      const endDateTime = new Date(`${values.start_date}T${values.end_time}:00`);
+      const isWalkInMode = isWalkIn || values.consultation_type === 'walk-in';
+
+      let startDateTime: Date;
+      let endDateTime: Date;
+
+      if (isWalkInMode) {
+        // Walk-in: use start of day so it shows in the all-day strip
+        const dateBase = new Date(`${values.start_date}T00:00:00`);
+        startDateTime = startOfDay(dateBase);
+        endDateTime = endOfDay(dateBase);
+      } else {
+        startDateTime = new Date(`${values.start_date}T${values.start_time}:00`);
+        endDateTime = new Date(`${values.start_date}T${values.end_time}:00`);
+      }
 
       const payload = {
         clinic_id: tenantInfo.clinic_id,
@@ -145,7 +163,7 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
         status: values.status,
         payment_status: values.payment_status,
         payment_method: isHonorary ? null : (values.payment_method || null),
-        consultation_type: values.consultation_type || null,
+        consultation_type: isWalkInMode ? 'walk-in' : (values.consultation_type || null),
         amount: isHonorary ? 0 : (values.amount ? parseFloat(values.amount) : null),
         notes: values.notes,
       };
@@ -229,23 +247,62 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
 
           <hr className="border-border/50" />
 
-          {/* Fecha y Hora */}
+          {/* Fecha, Hora y modo Walk-in */}
           <div className="space-y-4">
-            <h3 className="text-xs font-bold uppercase tracking-widest text-ink-soft">Fecha y Hora</h3>
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="space-y-1.5">
-                <label className="text-sm font-semibold text-ink">Fecha</label>
-                <input type="date" {...form.register("start_date")} className="hce-input" />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-sm font-semibold text-ink">Inicio</label>
-                <input type="time" {...form.register("start_time")} className="hce-input" />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-sm font-semibold text-ink">Fin</label>
-                <input type="time" {...form.register("end_time")} className="hce-input" />
-              </div>
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-bold uppercase tracking-widest text-ink-soft">Fecha y Hora</h3>
+              {/* Walk-in toggle */}
+              <button
+                type="button"
+                onClick={() => {
+                  const next = !isWalkIn;
+                  setIsWalkIn(next);
+                  if (next) {
+                    form.setValue('consultation_type', 'walk-in');
+                  } else {
+                    form.setValue('consultation_type', '');
+                  }
+                }}
+                className={`flex items-center gap-2 rounded-xl border px-3 py-1.5 text-xs font-bold transition-all ${
+                  isWalkIn
+                    ? 'border-amber-400 bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'
+                    : 'border-border bg-card text-ink-soft hover:bg-bg-soft'
+                }`}
+              >
+                <Users className="h-3.5 w-3.5" />
+                Por orden de llegada
+              </button>
             </div>
+
+            {isWalkIn ? (
+              <div className="rounded-xl border border-amber-200 bg-amber-50/60 dark:border-amber-800 dark:bg-amber-900/10 p-4">
+                <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">
+                  🚶 Cita por orden de llegada
+                </p>
+                <p className="mt-1 text-xs text-amber-700/80 dark:text-amber-400/70">
+                  Esta cita aparecerá en la franja superior de la agenda del día seleccionado, sin hora fija. Solo necesitas indicar la fecha.
+                </p>
+                <div className="mt-3 space-y-1.5">
+                  <label className="text-sm font-semibold text-ink">Fecha</label>
+                  <input type="date" {...form.register("start_date")} className="hce-input" />
+                </div>
+              </div>
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-semibold text-ink">Fecha</label>
+                  <input type="date" {...form.register("start_date")} className="hce-input" />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-semibold text-ink">Inicio</label>
+                  <input type="time" {...form.register("start_time")} className="hce-input" />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-semibold text-ink">Fin</label>
+                  <input type="time" {...form.register("end_time")} className="hce-input" />
+                </div>
+              </div>
+            )}
           </div>
 
           <hr className="border-border/50" />
@@ -327,8 +384,7 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
 
             <div className="grid gap-4 sm:grid-cols-2 mt-4">
               <div className="space-y-1.5">
-                <label className="text-sm font-semibold text-ink flex items-center gap-1.5">
-                  <Stethoscope className="h-4 w-4 text-teal-600" />
+                <label className="text-sm font-semibold text-ink">
                   Tipo de Consulta
                 </label>
                 <select {...form.register("consultation_type")} className="hce-input">
@@ -365,7 +421,7 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
                   className="hce-btn-secondary border-teal-500/30 text-teal-600 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-950/20 gap-2"
                   disabled={isSubmitting}
                 >
-                  <Stethoscope className="h-4 w-4" />
+                  <Check className="h-4 w-4" />
                   Iniciar Consulta
                 </button>
               )}
