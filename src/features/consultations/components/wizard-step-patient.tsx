@@ -119,17 +119,21 @@ export function WizardStepPatient({
             <h4 className="text-sm font-semibold text-ink">Datos complementarios para la consulta</h4>
             <div className="grid gap-4 sm:grid-cols-3">
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-ink">Género</label>
+                <label className="text-xs font-semibold text-ink">
+                  Sexo Biológico <span className="text-red-500">*</span>
+                </label>
                 <select
                   className="hce-input"
                   value={form.gender}
-                  onChange={(e) => setForm(c => ({ ...c, gender: e.target.value }))}
+                  onChange={(e) => setForm(c => ({ ...c, gender: e.target.value as "Hombre" | "Mujer" | "" }))}
                 >
                   <option value="">Seleccionar...</option>
-                  <option value="Masculino">Masculino</option>
-                  <option value="Femenino">Femenino</option>
-                  <option value="Otro">Otro</option>
+                  <option value="Hombre">Hombre</option>
+                  <option value="Mujer">Mujer</option>
                 </select>
+                <p className="text-[10px] text-ink-soft">
+                  Dato médico-legal obligatorio para valores de referencia de laboratorio.
+                </p>
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-ink">Ocupación</label>
@@ -149,6 +153,140 @@ export function WizardStepPatient({
                   onChange={(e) => setForm(c => ({ ...c, insurance: e.target.value }))}
                 />
               </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-ink">Tipo de Sangre</label>
+                <select
+                  className="hce-input"
+                  value={form.blood_type}
+                  onChange={(e) => setForm(c => ({ ...c, blood_type: e.target.value as typeof form.blood_type }))}
+                >
+                  <option value="">Desconocido</option>
+                  <option value="A+">A+</option>
+                  <option value="A-">A-</option>
+                  <option value="B+">B+</option>
+                  <option value="B-">B-</option>
+                  <option value="AB+">AB+</option>
+                  <option value="AB-">AB-</option>
+                  <option value="O+">O+</option>
+                  <option value="O-">O-</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Contacto de Emergencia */}
+          <div className="hce-card space-y-4">
+            <h4 className="text-sm font-semibold text-ink">Contacto de Emergencia</h4>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-ink">Nombre</label>
+                <input
+                  className="hce-input"
+                  placeholder="Ej: Ana Gómez"
+                  value={form.emergency_contact.name}
+                  onChange={(e) => setForm(c => ({ ...c, emergency_contact: { ...c.emergency_contact, name: e.target.value } }))}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-ink">Parentesco</label>
+                <input
+                  className="hce-input"
+                  placeholder="Ej: Madre, Esposo, Amigo"
+                  value={form.emergency_contact.relationship}
+                  onChange={(e) => setForm(c => ({ ...c, emergency_contact: { ...c.emergency_contact, relationship: e.target.value } }))}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-ink">Teléfono</label>
+                <input
+                  className="hce-input"
+                  type="tel"
+                  placeholder="Ej: +593 99 000 0000"
+                  value={form.emergency_contact.phone}
+                  onChange={(e) => setForm(c => ({ ...c, emergency_contact: { ...c.emergency_contact, phone: e.target.value } }))}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="hce-card space-y-4">
+            <h4 className="text-sm font-semibold text-ink">Datos de Ingreso</h4>
+
+            {/* A. Tipo de consulta */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-ink">Tipo de Consulta</label>
+              <div className="flex flex-wrap gap-2">
+                {([
+                  { value: "primera-vez", label: "Primera vez" },
+                  { value: "control", label: "Control / Seguimiento" },
+                  { value: "urgencia", label: "Urgencia" },
+                  { value: "interconsulta", label: "Interconsulta" },
+                ] as const).map(({ value, label }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setForm(c => ({ ...c, consultationType: value }))}
+                    className={`hce-chip ${
+                      form.consultationType === value
+                        ? "border-teal-500/50 bg-teal-500/10 text-teal-900 dark:text-teal-100"
+                        : "border-border bg-card text-ink hover:bg-bg-soft"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* B. Fuente de información */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-ink">Fuente de Información</label>
+              <select
+                className="hce-input"
+                value={form.informantSource}
+                onChange={(e) => setForm(c => ({ ...c, informantSource: e.target.value as typeof form.informantSource }))}
+              >
+                <option value="paciente">Paciente (directo)</option>
+                <option value="familiar">Familiar / Acompañante</option>
+                <option value="expediente">Expediente / Historia previa</option>
+                <option value="otro">Otro</option>
+              </select>
+            </div>
+
+            {/* C. Confiabilidad del informante */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-ink">Confiabilidad del Informante</label>
+              <div className="flex flex-wrap gap-2">
+                {([
+                  { value: "confiable", label: "Confiable" },
+                  { value: "parcialmente-confiable", label: "Parcialmente confiable" },
+                  { value: "no-confiable", label: "No confiable" },
+                ] as const).map(({ value, label }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setForm(c => ({ ...c, informantReliability: value }))}
+                    className={`hce-chip ${
+                      form.informantReliability === value
+                        ? "border-teal-500/50 bg-teal-500/10 text-teal-900 dark:text-teal-100"
+                        : "border-border bg-card text-ink hover:bg-bg-soft"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* D. Médico que remite */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-ink">Médico que Remite <span className="font-normal text-ink-soft">(opcional)</span></label>
+              <input
+                className="hce-input"
+                placeholder="Dr. García — Cardiología"
+                value={form.referringDoctor}
+                onChange={(e) => setForm(c => ({ ...c, referringDoctor: e.target.value }))}
+              />
             </div>
           </div>
 

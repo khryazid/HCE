@@ -1,26 +1,21 @@
 import type { Metadata } from "next";
-import { Inter, Plus_Jakarta_Sans, DM_Sans } from "next/font/google";
 import "./globals.css";
 import { SyncBootstrap } from "@/features/sync/components/sync-bootstrap";
 import { QueryProvider } from "@/lib/query-provider";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/react";
+import { Space_Grotesk, Outfit } from "next/font/google";
 
-const inter = Inter({
-  variable: "--font-inter",
+const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
+  variable: "--font-display",
+  display: "swap",
 });
 
-const jakarta = Plus_Jakarta_Sans({
-  variable: "--font-cormorant",
+const outfit = Outfit({
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700", "800"],
-});
-
-const dmSans = DM_Sans({
-  variable: "--font-dm-sans",
-  subsets: ["latin"],
-  weight: ["300", "400", "500"],
+  variable: "--font-ui",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -67,20 +62,29 @@ export default async function RootLayout({
   const messages = await getMessages();
 
   return (
-    <html lang={locale} className={`${inter.variable} ${jakarta.variable} ${dmSans.variable} h-full antialiased`}>
+    <html lang={locale} className="h-full antialiased" suppressHydrationWarning>
+
       {/*
         Anti-flash theme script: runs synchronously before React hydrates.
         Reads localStorage('hce:theme') and sets data-theme on <html>.
         'system' (or missing) → no attribute → CSS media query takes over.
       */}
       <head>
+        {/* Font variable injection for legacy variables */}
+        <style>{`
+          :root {
+            --font-sentient: var(--font-display, 'Space Grotesk', system-ui, sans-serif);
+            --font-switzer:  var(--font-ui, 'Outfit', system-ui, sans-serif);
+          }
+        `}</style>
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var t=localStorage.getItem('hce:theme');if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}})();`,
           }}
         />
       </head>
-      <body className="min-h-full flex flex-col bg-bg text-ink font-sans">
+
+      <body className={`${spaceGrotesk.variable} ${outfit.variable} min-h-full flex flex-col bg-bg text-ink font-sans`}>
         <NextIntlClientProvider messages={messages}>
           <QueryProvider>
             <SyncBootstrap />

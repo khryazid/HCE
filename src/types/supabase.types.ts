@@ -38,38 +38,85 @@ export type Database = {
         }
         Relationships: []
       }
-      clinic_members: {
+      app_config: {
         Row: {
+          key: string
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value: string
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: string
+        }
+        Relationships: []
+      }
+      appointments: {
+        Row: {
+          amount: number | null
           clinic_id: string
           created_at: string
           doctor_id: string
+          end_time: string
           id: string
-          invited_by: string | null
-          joined_at: string
-          role: string
+          notes: string | null
+          patient_id: string | null
+          patient_name: string
+          patient_phone: string | null
+          payment_method: string | null
+          payment_status: string
+          start_time: string
+          status: string
           updated_at: string
         }
         Insert: {
+          amount?: number | null
           clinic_id: string
           created_at?: string
           doctor_id: string
+          end_time: string
           id?: string
-          invited_by?: string | null
-          joined_at?: string
-          role: string
+          notes?: string | null
+          patient_id?: string | null
+          patient_name: string
+          patient_phone?: string | null
+          payment_method?: string | null
+          payment_status?: string
+          start_time: string
+          status?: string
           updated_at?: string
         }
         Update: {
+          amount?: number | null
           clinic_id?: string
           created_at?: string
           doctor_id?: string
+          end_time?: string
           id?: string
-          invited_by?: string | null
-          joined_at?: string
-          role?: string
+          notes?: string | null
+          patient_id?: string | null
+          patient_name?: string
+          patient_phone?: string | null
+          payment_method?: string | null
+          payment_status?: string
+          start_time?: string
+          status?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "appointments_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       audit_logs: {
         Row: {
@@ -113,6 +160,36 @@ export type Database = {
           resource_id?: string
           resource_type?: string
           sequence_no?: number
+        }
+        Relationships: []
+      }
+      clinic_members: {
+        Row: {
+          clinic_id: string
+          created_at: string
+          doctor_id: string
+          id: string
+          invited_by: string | null
+          joined_at: string
+          role: string
+        }
+        Insert: {
+          clinic_id: string
+          created_at?: string
+          doctor_id: string
+          id?: string
+          invited_by?: string | null
+          joined_at?: string
+          role: string
+        }
+        Update: {
+          clinic_id?: string
+          created_at?: string
+          doctor_id?: string
+          id?: string
+          invited_by?: string | null
+          joined_at?: string
+          role?: string
         }
         Relationships: []
       }
@@ -260,12 +337,13 @@ export type Database = {
           doctor_id: string
           full_name: string
           id: string
+          payment_config: Json
+          plan: string
           specialty: string[]
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
           subscription_expires_at: string | null
           subscription_status: string | null
-          plan: string
           updated_at: string
         }
         Insert: {
@@ -274,12 +352,13 @@ export type Database = {
           doctor_id: string
           full_name: string
           id?: string
+          payment_config?: Json
+          plan?: string
           specialty: string[]
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_expires_at?: string | null
           subscription_status?: string | null
-          plan?: string
           updated_at?: string
         }
         Update: {
@@ -288,12 +367,13 @@ export type Database = {
           doctor_id?: string
           full_name?: string
           id?: string
+          payment_config?: Json
+          plan?: string
           specialty?: string[]
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_expires_at?: string | null
           subscription_status?: string | null
-          plan?: string
           updated_at?: string
         }
         Relationships: []
@@ -431,6 +511,8 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_clinic_admin: { Args: { check_clinic_id: string }; Returns: boolean }
+      is_clinic_member: { Args: { check_clinic_id: string }; Returns: boolean }
       log_audit_event: {
         Args: {
           p_changes: Json
@@ -443,6 +525,29 @@ export type Database = {
         }
         Returns: number
       }
+      notify_followup_due_today: {
+        Args: {
+          p_doctor_id: string
+          p_due_count: number
+          p_push_secret: string
+          p_site_url: string
+        }
+        Returns: undefined
+      }
+      search_global: {
+        Args: { p_clinic_id: string; p_query: string }
+        Returns: {
+          id: string
+          kind: string
+          patient_id: string
+          rank: number
+          subtitle: string
+          title: string
+          updated_at: string
+        }[]
+      }
+      send_followup_emails: { Args: never; Returns: undefined }
+      send_followup_push_notifications: { Args: never; Returns: undefined }
     }
     Enums: {
       [_ in never]: never

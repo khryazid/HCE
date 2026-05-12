@@ -31,6 +31,16 @@ import { logApiError } from "@/lib/observability/error-logger";
 import { usePatients, useClinicalRecords, patientKeys } from "@/features/patients/lib/use-patients-queries";
 import { useTemplates } from "@/features/consultations/lib/use-consultation-queries";
 
+export type CurrentMedication = {
+  id: string;
+  name: string;
+  dose: string;
+  frequency: string;
+  since: string;
+};
+
+export type ReviewOfSystemEntry = { present: boolean; notes: string };
+
 export type WizardForm = {
   entryMode: "consulta" | "seguimiento";
   patientId: string;
@@ -38,10 +48,25 @@ export type WizardForm = {
   specialtyKind: string;
   patientStatus: "activo" | "inactivo" | "en-seguimiento" | "alta";
 
-  // Identificación extendida (Snapshots)
-  gender: string;
+  // Identificación extendida (Snapshots) — Tarea 2
+  /** Sexo biológico. Clínicamente binario; requerido para valores de referencia de laboratorio. */
+  gender: "Hombre" | "Mujer" | "";
   occupation: string;
   insurance: string;
+  /** Tipo de sangre (ABO + Rh). */
+  blood_type: "A+" | "A-" | "B+" | "B-" | "AB+" | "AB-" | "O+" | "O-" | "";
+  /** Contacto de emergencia. */
+  emergency_contact: {
+    name: string;
+    relationship: string;
+    phone: string;
+  };
+
+  // --- Datos de Ingreso ---
+  consultationType: "primera-vez" | "control" | "urgencia" | "interconsulta";
+  informantSource: "paciente" | "familiar" | "expediente" | "otro";
+  informantReliability: "confiable" | "parcialmente-confiable" | "no-confiable";
+  referringDoctor: string;
 
   // Registro clínico
   chiefComplaint: string;
@@ -57,6 +82,22 @@ export type WizardForm = {
     toxic: string;
     gynecoObstetric: string;
   };
+
+  // --- Revisión por Sistemas ---
+  reviewOfSystems: {
+    cardiovascular: ReviewOfSystemEntry;
+    respiratory: ReviewOfSystemEntry;
+    gastrointestinal: ReviewOfSystemEntry;
+    genitourinary: ReviewOfSystemEntry;
+    neurological: ReviewOfSystemEntry;
+    musculoskeletal: ReviewOfSystemEntry;
+    dermatological: ReviewOfSystemEntry;
+    endocrine: ReviewOfSystemEntry;
+    psychiatric: ReviewOfSystemEntry;
+    hematological: ReviewOfSystemEntry;
+  };
+
+  // --- Examen Físico (Paso 4) ---
   vitalSigns: {
     bloodPressure: string;
     heartRate: string;
@@ -65,15 +106,25 @@ export type WizardForm = {
     oxygenSaturation: string;
     weight: string;
     height: string;
+    /** PAM calculada automáticamente: (sistólica + 2*diastólica) / 3. Solo lectura. */
+    mean_arterial_pressure: string;
   };
   physicalExam: { system: string; content: string }[];
+  generalCondition: string;
+  painScale: number | null;
 
-  // Diagnóstico
+  // --- Diagnóstico (Paso 5) ---
   diagnosis: string;
   cieCodes: string;
   clinicalAnalysis: string;
 
-  // Plan de Manejo
+  // --- Plan de Manejo (Paso 6) ---
+  /** Órdenes Intrahospitalarias / Medidas Generales — Tarea 5. */
+  medical_orders: {
+    diet_type: string;
+    general_measures: string;
+    nursing_cares: string;
+  };
   treatmentTemplateId: string;
   treatmentPlan: string;
   /** Instrucciones de uso para el paciente (no para la farmacia). Se imprime en la hoja del paciente. */
@@ -85,8 +136,28 @@ export type WizardForm = {
   /** Estudios de imagen solicitados (Rx, TAC, RM, etc.). */
   imagingOrders: string[];
 
+  // --- Medicamentos estructurados ---
+  currentMedications: CurrentMedication[];
+
   evolutionStatus: string;
   nextFollowUpDate: string;
+
+  // --- SOAP para seguimientos ---
+  soapSubjective: string;
+  soapObjective: string;
+  soapAssessment: string;
+  soapPlan: string;
+
+  // --- Pronóstico ---
+  prognosisVital: "bueno" | "reservado" | "malo" | "";
+  prognosisFunctional: "bueno" | "reservado" | "malo" | "";
+
+  // --- Datos pediátricos ---
+  pediatricData: {
+    headCircumference: string;
+    developmentStage: string;
+    vaccineStatus: string;
+  };
 };
 
 const EMPTY_FORM: WizardForm = {
@@ -98,6 +169,12 @@ const EMPTY_FORM: WizardForm = {
   gender: "",
   occupation: "",
   insurance: "",
+  blood_type: "",
+  emergency_contact: { name: "", relationship: "", phone: "" },
+  consultationType: "primera-vez",
+  informantSource: "paciente",
+  informantReliability: "confiable",
+  referringDoctor: "",
   chiefComplaint: "",
   anamnesis: "",
   symptoms: "",
@@ -111,6 +188,18 @@ const EMPTY_FORM: WizardForm = {
     toxic: "",
     gynecoObstetric: "",
   },
+  reviewOfSystems: {
+    cardiovascular: { present: false, notes: "" },
+    respiratory: { present: false, notes: "" },
+    gastrointestinal: { present: false, notes: "" },
+    genitourinary: { present: false, notes: "" },
+    neurological: { present: false, notes: "" },
+    musculoskeletal: { present: false, notes: "" },
+    dermatological: { present: false, notes: "" },
+    endocrine: { present: false, notes: "" },
+    psychiatric: { present: false, notes: "" },
+    hematological: { present: false, notes: "" },
+  },
   vitalSigns: {
     bloodPressure: "",
     heartRate: "",
@@ -119,11 +208,15 @@ const EMPTY_FORM: WizardForm = {
     oxygenSaturation: "",
     weight: "",
     height: "",
+    mean_arterial_pressure: "",
   },
   physicalExam: [],
+  generalCondition: "",
+  painScale: null,
   diagnosis: "",
   cieCodes: "",
   clinicalAnalysis: "",
+  medical_orders: { diet_type: "", general_measures: "", nursing_cares: "" },
   treatmentTemplateId: "",
   treatmentPlan: "",
   medicationInstructions: "",
@@ -131,8 +224,20 @@ const EMPTY_FORM: WizardForm = {
   warningSigns: "",
   labOrders: [],
   imagingOrders: [],
+  currentMedications: [],
   evolutionStatus: "",
   nextFollowUpDate: "",
+  soapSubjective: "",
+  soapObjective: "",
+  soapAssessment: "",
+  soapPlan: "",
+  prognosisVital: "",
+  prognosisFunctional: "",
+  pediatricData: {
+    headCircumference: "",
+    developmentStage: "",
+    vaccineStatus: "",
+  },
 };
 
 const EMPTY_QUICK_PATIENT = {

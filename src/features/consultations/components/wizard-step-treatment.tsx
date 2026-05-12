@@ -103,7 +103,7 @@ export function WizardStepTreatment({
       ) : null}
 
       <div className="space-y-4">
-        <h4 className="text-sm font-semibold text-teal-900 dark:text-teal-400 border-b border-teal-100 dark:border-teal-500/30 pb-2">D. Plan de Manejo</h4>
+        <h4 className="text-sm font-semibold text-teal-900 dark:text-teal-400 border-b border-teal-100 dark:border-teal-500/30 pb-2">C. Plantilla de Prescripción</h4>
 
         <div className="space-y-1.5">
           <label className="text-xs font-semibold text-ink">Plantilla de Prescripción Rápida</label>
@@ -120,9 +120,69 @@ export function WizardStepTreatment({
             ))}
           </select>
         </div>
+      </div>
+
+      {/* ÓRDENES INTRAHOSPITALARIAS (Tarea 5) */}
+      <div className="space-y-4">
+        <h4 className="text-sm font-semibold text-teal-900 dark:text-teal-400 border-b border-teal-100 dark:border-teal-500/30 pb-2">
+          D. Órdenes Intrahospitalarias / Medidas Generales
+        </h4>
+        <p className="text-[11px] text-ink-soft">
+          Para pacientes en observación, emergencia u hospitalización. Completa si aplica.
+        </p>
+
+        <div className="rounded-2xl border border-border bg-bg-soft p-4 space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-ink">Tipo de Dieta</label>
+            <select
+              className="hce-input"
+              value={form.medical_orders.diet_type}
+              onChange={(e) => setForm((c) => ({ ...c, medical_orders: { ...c.medical_orders, diet_type: e.target.value } }))}
+            >
+              <option value="">No aplica / No especificada</option>
+              <option value="absoluta">Absoluta (NPO)</option>
+              <option value="liquida">Líquida clara</option>
+              <option value="blanda">Blanda / Papilla</option>
+              <option value="completa">Completa</option>
+              <option value="hiposodica">Hipósodica</option>
+              <option value="diabetica">Diabética</option>
+              <option value="hipocalorica">Hipocalórica</option>
+              <option value="renal">Renal</option>
+            </select>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-ink">Medidas Generales</label>
+            <textarea
+              className="hce-input min-h-20"
+              placeholder={`Ej:\n• Cabecera a 30°\n• Oxigenoterapia 2L/min por cánula nasal\n• Reposo absoluto en cama`}
+              value={form.medical_orders.general_measures}
+              onChange={(e) => setForm((c) => ({ ...c, medical_orders: { ...c.medical_orders, general_measures: e.target.value } }))}
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-ink">Cuidados de Enfermería</label>
+            <textarea
+              className="hce-input min-h-20"
+              placeholder={`Ej:\n• Control de signos vitales cada 4h\n• Balance de líquidos\n• Avisar eventualidad al médico de guardia`}
+              value={form.medical_orders.nursing_cares}
+              onChange={(e) => setForm((c) => ({ ...c, medical_orders: { ...c.medical_orders, nursing_cares: e.target.value } }))}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* PRESCRIPCIÓN MÉDICA */}
+      <div className="space-y-4">
+        <h4 className="text-sm font-semibold text-teal-900 dark:text-teal-400 border-b border-teal-100 dark:border-teal-500/30 pb-2">
+          E. Prescripción Médica (Receta)
+        </h4>
 
         <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-ink">Prescripción Médica (Receta) <span className="text-red-500">*</span></label>
+          <label className="text-xs font-semibold text-ink">
+            Prescripción Médica (Receta) <span className="text-red-500">*</span>
+          </label>
           <textarea
             id="field-treatmentPlan"
             className="hce-input min-h-32"
@@ -221,7 +281,7 @@ export function WizardStepTreatment({
 
       {form.entryMode === "seguimiento" ? (
         <div className="space-y-4">
-          <h4 className="text-sm font-semibold text-teal-900 dark:text-teal-400 border-b border-teal-100 dark:border-teal-500/30 pb-2">E. Evolución Clínica</h4>
+          <h4 className="text-sm font-semibold text-teal-900 dark:text-teal-400 border-b border-teal-100 dark:border-teal-500/30 pb-2">E. Evolución Clínica (SOAP)</h4>
 
           <div className="space-y-1.5">
             {latestPatientRecord ? (
@@ -234,35 +294,49 @@ export function WizardStepTreatment({
               </div>
             ) : null}
 
-            <div className="mb-2 flex flex-wrap gap-2">
-              {["Mejoría clínica evidente", "Estacionario / Sin cambios", "Empeoramiento de síntomas", "Adecuada tolerancia al tratamiento", "Efectos adversos presentes", "Alta médica"].map((chip) => (
-                <button
-                  key={chip}
-                  type="button"
-                  onClick={() => {
-                    const currentText = form.evolutionStatus.trim();
-                    const prefix = currentText ? `${currentText}\n` : "";
-                    setForm(c => ({ ...c, evolutionStatus: prefix + `[${chip}] ` }));
-                  }}
-                  className="rounded-md border border-border bg-bg-soft px-2.5 py-1 text-[11px] font-semibold text-ink transition-colors hover:bg-teal-500/10 hover:border-teal-500/50"
-                >
-                  + {chip}
-                </button>
+            <div className="space-y-3">
+              {([
+                { key: "soapSubjective" as const, letter: "S", label: "Subjetivo", color: "blue", placeholder: "El paciente refiere mejoría del 60% del dolor. Sigue con las pautas de reposo. Duerme mejor..." },
+                { key: "soapObjective" as const, letter: "O", label: "Objetivo", color: "green", placeholder: "TA 120/80, FC 78 lpm. Abdomen blando, RHA+. Herida quirúrgica en buenas condiciones..." },
+                { key: "soapAssessment" as const, letter: "A", label: "Assessment", color: "orange", placeholder: "Evolución favorable post-apendicectomía. Sin signos de complicación. Tolerando dieta blanda..." },
+                { key: "soapPlan" as const, letter: "P", label: "Plan", color: "teal", placeholder: "Continuar con antibioticoterapia oral 3 días más. Alta hospitalaria en 24h si evolución favorable..." },
+              ]).map(({ key, letter, label, color, placeholder }) => (
+                <div key={key} className="flex gap-3 items-start">
+                  <div className={`flex-shrink-0 flex h-8 w-8 items-center justify-center rounded-lg text-sm font-extrabold ${
+                    color === "blue" ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300" :
+                    color === "green" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300" :
+                    color === "orange" ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300" :
+                    "bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300"
+                  }`}>{letter}</div>
+                  <div className="flex-1 space-y-1">
+                    <label className="text-xs font-semibold text-ink">{letter} — {label}</label>
+                    <textarea
+                      id={key === "soapSubjective" ? "field-evolutionStatus" : undefined}
+                      className="hce-input min-h-16 text-sm"
+                      placeholder={placeholder}
+                      value={form[key]}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setForm((c) => {
+                          const next = { ...c, [key]: val };
+                          const s = key === "soapSubjective" ? val : c.soapSubjective;
+                          const o = key === "soapObjective" ? val : c.soapObjective;
+                          const a = key === "soapAssessment" ? val : c.soapAssessment;
+                          const p = key === "soapPlan" ? val : c.soapPlan;
+                          next.evolutionStatus = [
+                            s && `S: ${s}`,
+                            o && `O: ${o}`,
+                            a && `A: ${a}`,
+                            p && `P: ${p}`,
+                          ].filter(Boolean).join("\n\n");
+                          return next;
+                        });
+                      }}
+                    />
+                  </div>
+                </div>
               ))}
             </div>
-
-            <textarea
-              id="field-evolutionStatus"
-              className="hce-input min-h-20"
-              placeholder="¿Cómo se encuentra el paciente hoy respecto al tratamiento instaurado?"
-              value={form.evolutionStatus}
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  evolutionStatus: event.target.value,
-                }))
-              }
-            />
             {validationErrors.evolutionStatus ? (
               <p className="text-sm font-medium text-red-600">{validationErrors.evolutionStatus}</p>
             ) : null}
@@ -320,6 +394,47 @@ export function WizardStepTreatment({
                 }
               }}
             />
+          </div>
+        </div>
+      </div>
+
+      {/* PRONÓSTICO */}
+      <div className="space-y-4">
+        <h4 className="text-sm font-semibold text-teal-900 dark:text-teal-400 border-b border-teal-100 dark:border-teal-500/30 pb-2">
+          {form.entryMode === "seguimiento" ? "G. Pronóstico" : "F. Pronóstico"}
+        </h4>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <label className="text-xs font-semibold text-ink">Pronóstico Vital</label>
+            <div className="flex gap-2">
+              {(["bueno", "reservado", "malo"] as const).map((p) => (
+                <button key={p} type="button"
+                  onClick={() => setForm(c => ({ ...c, prognosisVital: p }))}
+                  className={`flex-1 py-2 rounded-xl border text-xs font-semibold capitalize transition ${
+                    form.prognosisVital === p
+                      ? p === "bueno" ? "border-emerald-500 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300"
+                      : p === "reservado" ? "border-amber-500 bg-amber-500/10 text-amber-800 dark:text-amber-300"
+                      : "border-red-500 bg-red-500/10 text-red-800 dark:text-red-300"
+                      : "border-border bg-card text-ink-soft hover:bg-bg-soft"
+                  }`}>{p}</button>
+              ))}
+            </div>
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs font-semibold text-ink">Pronóstico Funcional</label>
+            <div className="flex gap-2">
+              {(["bueno", "reservado", "malo"] as const).map((p) => (
+                <button key={p} type="button"
+                  onClick={() => setForm(c => ({ ...c, prognosisFunctional: p }))}
+                  className={`flex-1 py-2 rounded-xl border text-xs font-semibold capitalize transition ${
+                    form.prognosisFunctional === p
+                      ? p === "bueno" ? "border-emerald-500 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300"
+                      : p === "reservado" ? "border-amber-500 bg-amber-500/10 text-amber-800 dark:text-amber-300"
+                      : "border-red-500 bg-red-500/10 text-red-800 dark:text-red-300"
+                      : "border-border bg-card text-ink-soft hover:bg-bg-soft"
+                  }`}>{p}</button>
+              ))}
+            </div>
           </div>
         </div>
       </div>

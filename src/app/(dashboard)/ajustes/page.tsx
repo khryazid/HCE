@@ -5,6 +5,7 @@ import { BillingPortalPanel } from "@/features/billing/components/billing-portal
 import { PushNotificationToggle } from "@/features/dashboard/components/push-notification-toggle";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { TeamPanel } from "@/features/dashboard/components/team-panel";
+import { PaymentSettingsPanel } from "@/features/dashboard/components/payment-settings-panel";
 
 export default function AjustesPage() {
   return (
@@ -25,6 +26,13 @@ export default function AjustesPage() {
           <p className="text-sm text-muted-foreground">Gestiona el acceso de doctores y asistentes a tu clínica.</p>
         </div>
         <TeamPanel />
+      </section>
+      <section className="hce-surface space-y-4">
+        <div>
+          <h2 className="text-lg font-semibold text-ink">Métodos de Cobro</h2>
+          <p className="text-sm text-muted-foreground">Configura tus datos bancarios y Zelle para recibir pagos de tus pacientes.</p>
+        </div>
+        <PaymentSettingsPanel />
       </section>
       <section className="hce-surface space-y-6">
         <h2 className="text-lg font-semibold text-ink">Estado del Sistema y Dispositivos</h2>

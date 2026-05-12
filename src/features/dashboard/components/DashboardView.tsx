@@ -184,7 +184,7 @@ export default function DashboardView() {
           className="pointer-events-none absolute inset-0 -z-0"
           style={{
             background:
-              "radial-gradient(ellipse 70% 80% at 100% 0%, rgba(15,118,110,0.10) 0%, transparent 60%), radial-gradient(ellipse 40% 60% at 0% 100%, rgba(13,148,136,0.07) 0%, transparent 60%)",
+              "radial-gradient(ellipse 70% 80% at 100% 0%, rgba(196,96,42,0.08) 0%, transparent 60%), radial-gradient(ellipse 40% 60% at 0% 100%, rgba(196,96,42,0.05) 0%, transparent 60%)",
           }}
         />
         <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
@@ -192,15 +192,11 @@ export default function DashboardView() {
             <p className="text-xs font-semibold uppercase tracking-widest text-accent">
               Sesión activa
             </p>
-            <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">
+            <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-ink sm:text-4xl" style={{ fontFamily: "var(--font-display)", letterSpacing: "-.04em" }}>
               Hola{displayName ? (
                 <span
-                  className="ml-2 text-transparent"
-                  style={{
-                    WebkitBackgroundClip: "text",
-                    backgroundClip: "text",
-                    backgroundImage: "linear-gradient(135deg, #0f766e 0%, #14b8a6 100%)",
-                  }}
+                  className="ml-2"
+                  style={{ color: "var(--accent)" }}
                 >
                   {displayName.split(" ")[0]}
                 </span>
@@ -239,7 +235,7 @@ export default function DashboardView() {
           className="pointer-events-none absolute inset-0"
           style={{
             background:
-              "radial-gradient(circle at top right, rgba(14,118,110,.10), transparent 45%)",
+              "radial-gradient(circle at top right, rgba(196,96,42,.07), transparent 45%)",
           }}
         />
         <div className="relative space-y-1">

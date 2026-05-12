@@ -1,0 +1,183 @@
+"use client";
+
+import { memo, useCallback } from "react";
+import type { WizardForm, ReviewOfSystemEntry } from "@/features/consultations/lib/use-consultation-wizard";
+
+type SystemKey = keyof WizardForm["reviewOfSystems"];
+
+const SYSTEMS: {
+  key: SystemKey;
+  label: string;
+  placeholder: string;
+}[] = [
+  {
+    key: "cardiovascular",
+    label: "Cardiovascular",
+    placeholder: "Palpitaciones, disnea de esfuerzo, ortopnea, edemas, dolor precordial...",
+  },
+  {
+    key: "respiratory",
+    label: "Respiratorio",
+    placeholder: "Tos, expectoración, hemoptisis, disnea, sibilancias, dolor pleurítico...",
+  },
+  {
+    key: "gastrointestinal",
+    label: "Gastrointestinal",
+    placeholder: "Náuseas, vómitos, disfagia, pirosis, dolor abdominal, cambios de hábito...",
+  },
+  {
+    key: "genitourinary",
+    label: "Genitourinario",
+    placeholder: "Disuria, polaquiuria, hematuria, incontinencia, secreciones...",
+  },
+  {
+    key: "neurological",
+    label: "Neurológico",
+    placeholder: "Cefalea, mareos, síncope, convulsiones, déficit motor o sensitivo...",
+  },
+  {
+    key: "musculoskeletal",
+    label: "Musculoesquelético",
+    placeholder: "Dolor articular, rigidez matutina, limitación funcional, edema articular...",
+  },
+  {
+    key: "dermatological",
+    label: "Dermatológico",
+    placeholder: "Lesiones cutáneas, prurito, cambios de coloración, alopecia...",
+  },
+  {
+    key: "endocrine",
+    label: "Endocrinológico",
+    placeholder: "Polidipsia, poliuria, cambios de peso, intolerancia al frío/calor...",
+  },
+  {
+    key: "psychiatric",
+    label: "Psiquiátrico",
+    placeholder: "Cambios de humor, ansiedad, insomnio, alucinaciones, ideas suicidas...",
+  },
+  {
+    key: "hematological",
+    label: "Hematológico",
+    placeholder: "Sangrados fáciles, equimosis, petequias, adenopatías, palidez...",
+  },
+];
+
+type Props = {
+  form: WizardForm;
+  setForm: React.Dispatch<React.SetStateAction<WizardForm>>;
+};
+
+type SystemRowProps = {
+  systemKey: SystemKey;
+  label: string;
+  placeholder: string;
+  entry: ReviewOfSystemEntry;
+  onToggle: (key: SystemKey) => void;
+  onNotesChange: (key: SystemKey, notes: string) => void;
+};
+
+const SystemRow = memo(function SystemRow({
+  systemKey,
+  label,
+  placeholder,
+  entry,
+  onToggle,
+  onNotesChange,
+}: SystemRowProps) {
+  return (
+    <div className="rounded-xl border border-border bg-bg-soft overflow-hidden transition-colors">
+      <button
+        type="button"
+        aria-pressed={entry.present}
+        onClick={() => onToggle(systemKey)}
+        className={`w-full flex items-center justify-between gap-3 px-4 py-3 text-left transition-colors ${
+          entry.present
+            ? "border-amber-400/50 bg-amber-50/70 dark:bg-amber-900/20"
+            : "hover:bg-card"
+        }`}
+      >
+        <span className={`text-sm font-medium ${entry.present ? "text-amber-900 dark:text-amber-200" : "text-ink"}`}>
+          {label}
+        </span>
+        <span
+          className={`flex-shrink-0 inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold transition-colors ${
+            entry.present
+              ? "bg-amber-400/20 border border-amber-400/60 text-amber-800 dark:text-amber-300"
+              : "bg-bg-soft border border-border text-ink-soft"
+          }`}
+        >
+          {entry.present ? "!" : "—"}
+        </span>
+      </button>
+
+      {entry.present && (
+        <div className="px-4 pb-3 pt-1 bg-amber-50/50 dark:bg-amber-900/10 border-t border-amber-200/60 dark:border-amber-700/30">
+          <textarea
+            className="hce-input min-h-16 text-sm border-amber-300/50 bg-white/80 focus:border-amber-500 focus:ring-amber-400 dark:bg-card"
+            placeholder={placeholder}
+            value={entry.notes}
+            onChange={(e) => onNotesChange(systemKey, e.target.value)}
+          />
+        </div>
+      )}
+    </div>
+  );
+});
+
+export const WizardStepReviewOfSystems = memo(function WizardStepReviewOfSystems({ form, setForm }: Props) {
+  const ros = form.reviewOfSystems;
+  const activeCount = Object.values(ros).filter((s) => s.present).length;
+
+  const handleToggle = useCallback((key: SystemKey) => {
+    setForm((c) => ({
+      ...c,
+      reviewOfSystems: {
+        ...c.reviewOfSystems,
+        [key]: { ...c.reviewOfSystems[key], present: !c.reviewOfSystems[key].present },
+      },
+    }));
+  }, [setForm]);
+
+  const handleNotesChange = useCallback((key: SystemKey, notes: string) => {
+    setForm((c) => ({
+      ...c,
+      reviewOfSystems: {
+        ...c.reviewOfSystems,
+        [key]: { ...c.reviewOfSystems[key], notes },
+      },
+    }));
+  }, [setForm]);
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <div className="flex items-center gap-2 mb-1">
+          <h4 className="text-sm font-semibold text-teal-900 dark:text-teal-400">
+            Revisión por Sistemas
+          </h4>
+          <span className="text-xs text-ink-soft bg-bg-soft px-2 py-0.5 rounded-full border border-border">
+            {activeCount} sistema{activeCount !== 1 ? "s" : ""} con hallazgos
+          </span>
+        </div>
+        <p className="text-xs text-ink-soft">
+          Activa los sistemas que presentan síntomas o hallazgos relevantes.
+          Los sistemas no activados se registrarán como &quot;sin alteraciones aparentes&quot;.
+        </p>
+      </div>
+
+      <div className="grid gap-2 sm:grid-cols-2">
+        {SYSTEMS.map(({ key, label, placeholder }) => (
+          <SystemRow
+            key={key}
+            systemKey={key}
+            label={label}
+            placeholder={placeholder}
+            entry={ros[key]}
+            onToggle={handleToggle}
+            onNotesChange={handleNotesChange}
+          />
+        ))}
+      </div>
+    </div>
+  );
+});

@@ -57,6 +57,7 @@ create table if not exists public.profiles (
   -- NULL = sin vencimiento (lifetime o plan sin fecha límite)
   subscription_expires_at timestamptz default null,
   plan                    text        not null default 'basic' check (plan in ('basic', 'clinic')),
+  payment_config          jsonb       not null default '{}'::jsonb,
   created_at              timestamptz not null default now(),
   updated_at              timestamptz not null default now(),
   unique (clinic_id, doctor_id)
@@ -156,6 +157,29 @@ create table if not exists public.follow_up_tasks (
   updated_at          timestamptz not null default now()
 );
 
+-- ── appointments ─────────────────────────────────────────────
+-- Citas médicas (Agenda) y control de cobros.
+create table if not exists public.appointments (
+  id              uuid        primary key default gen_random_uuid(),
+  clinic_id       uuid        not null,
+  doctor_id       uuid        not null references auth.users (id) on delete cascade,
+  patient_id      uuid        references public.patients (id) on delete set null,
+  patient_name    text        not null,
+  patient_phone   text,
+  start_time      timestamptz not null,
+  end_time        timestamptz not null,
+  status          text        not null default 'scheduled'
+    check (status in ('scheduled', 'completed', 'cancelled', 'no_show')),
+  payment_status  text        not null default 'pending'
+    check (payment_status in ('pending', 'paid', 'partial', 'honorary')),
+  payment_method  text,
+  consultation_type text,
+  amount          numeric(10,2),
+  notes           text,
+  created_at      timestamptz not null default now(),
+  updated_at      timestamptz not null default now()
+);
+
 -- ── api_rate_limits ──────────────────────────────────────────
 -- Contador de rate-limiting por scope+usuario dentro de una ventana de tiempo.
 -- Usado por claim_api_rate_limit() para proteger el endpoint de CIE-AI.
@@ -224,6 +248,9 @@ end $$;
 -- ════════════════════════════════════════════════════════════
 
 alter table public.profiles
+  add column if not exists payment_config jsonb not null default '{}'::jsonb;
+
+alter table public.profiles
   add column if not exists subscription_expires_at timestamptz default null;
 
 -- Garantiza que el CHECK de subscription_status incluye 'lifetime'
@@ -289,6 +316,9 @@ create index if not exists idx_audit_tenant_time
 
 create index if not exists idx_follow_up_tasks_tenant
   on public.follow_up_tasks (clinic_id, doctor_id, due_date);
+
+create index if not exists idx_appointments_tenant_time
+  on public.appointments (clinic_id, doctor_id, start_time);
 
 create index if not exists idx_api_rate_limits_scope_updated_at
   on public.api_rate_limits (scope, updated_at desc);
@@ -365,6 +395,7 @@ alter table public.api_rate_limits      enable row level security;
 alter table public.push_subscriptions   enable row level security;
 alter table public.treatment_templates  enable row level security;
 alter table public.clinic_members       enable row level security;
+alter table public.appointments         enable row level security;
 
 -- ── profiles ─────────────────────────────────────────────────
 -- Solo el propio médico puede leer/escribir su perfil.
@@ -506,6 +537,37 @@ create policy "followup_tenant_write"
   using (doctor_id = auth.uid())
   with check (doctor_id = auth.uid());
 
+-- ── appointments ─────────────────────────────────────────────
+-- Cada médico de la clínica puede ver y escribir en la agenda compartida de su clínica
+drop policy if exists "appointments_tenant_select" on public.appointments;
+create policy "appointments_tenant_select"
+  on public.appointments for select to authenticated
+  using (
+    exists (
+      select 1 from public.profiles p
+      where p.doctor_id = auth.uid()
+        and p.clinic_id = public.appointments.clinic_id
+    ) or public.is_clinic_member(public.appointments.clinic_id)
+  );
+
+drop policy if exists "appointments_tenant_write" on public.appointments;
+create policy "appointments_tenant_write"
+  on public.appointments for all to authenticated
+  using (
+    exists (
+      select 1 from public.profiles p
+      where p.doctor_id = auth.uid()
+        and p.clinic_id = public.appointments.clinic_id
+    ) or public.is_clinic_member(public.appointments.clinic_id)
+  )
+  with check (
+    exists (
+      select 1 from public.profiles p
+      where p.doctor_id = auth.uid()
+        and p.clinic_id = public.appointments.clinic_id
+    ) or public.is_clinic_member(public.appointments.clinic_id)
+  );
+
 -- ── push_subscriptions ───────────────────────────────────────
 -- El médico solo ve y gestiona sus propias suscripciones push.
 drop policy if exists "push_subscriptions_tenant_select" on public.push_subscriptions;
@@ -621,6 +683,11 @@ create trigger trg_specialty_updated_at
 drop trigger if exists trg_followups_updated_at         on public.follow_up_tasks;
 create trigger trg_followups_updated_at
   before update on public.follow_up_tasks
+  for each row execute function public.bump_updated_at();
+
+drop trigger if exists trg_appointments_updated_at      on public.appointments;
+create trigger trg_appointments_updated_at
+  before update on public.appointments
   for each row execute function public.bump_updated_at();
 
 drop trigger if exists trg_treatment_templates_updated_at on public.treatment_templates;

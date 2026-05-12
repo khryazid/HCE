@@ -144,7 +144,7 @@ export default function LandingClient({ proPrice, clinicPrice }: { proPrice: num
           {/* Headline */}
           <h1 className="l-hero-title">
             <span className="line"><span>{t("heroTitleLine1")}</span></span>
-            <span className="line"><span><em>{t("heroTitleLine2")}</em></span></span>
+            <span className="line"><span style={{ color: "var(--accent)", fontWeight: 800 }}>{t("heroTitleLine2")}</span></span>
           </h1>
 
           {/* Sub */}
@@ -407,14 +407,14 @@ export default function LandingClient({ proPrice, clinicPrice }: { proPrice: num
                 <Link
                   href="/registro?plan=pro"
                   className="l-btn-hero"
-                  style={{width:"100%", marginTop:"32px", justifyContent:"center"}}
+                  style={{width:"100%", marginTop:"auto", paddingTop:"14px", paddingBottom:"14px", justifyContent:"center"}}
                 >
                   Comenzar ahora
                 </Link>
               </article>
 
               {/* Plan Clínica */}
-              <article className="l-pricing-card reveal" aria-labelledby="plan-clinica" style={{opacity:.7}}>
+              <article className="l-pricing-card reveal" aria-labelledby="plan-clinica">
                 <h3 id="plan-clinica" className="l-plan-name">Clínica</h3>
                 <p className="l-plan-desc">Para centros con múltiples doctores.</p>
                 <div className="l-plan-price">${clinicPrice} <span>/mes</span></div>
@@ -428,14 +428,13 @@ export default function LandingClient({ proPrice, clinicPrice }: { proPrice: num
                     <li key={f} className="l-plan-feature">{f}</li>
                   ))}
                 </ul>
-                <button
-                  disabled
-                  aria-disabled="true"
+                <Link
+                  href="/registro?plan=clinica"
                   className="l-btn-hero-ghost"
-                  style={{width:"100%", marginTop:"32px", justifyContent:"center", cursor:"not-allowed", opacity:.5}}
+                  style={{width:"100%", marginTop:"auto", paddingTop:"14px", paddingBottom:"14px", justifyContent:"center"}}
                 >
-                  Próximamente
-                </button>
+                  Comenzar ahora
+                </Link>
               </article>
 
             </div>

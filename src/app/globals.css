@@ -1,109 +1,168 @@
 @import "tailwindcss";
 
+/* ═══════════════════════════════════════════════════════════════
+   FERRIC MERIDIAN — Design System v2.0
+   Modo claro: blanco puro + tipografía oscura + acento cobre
+   Modo oscuro: zinc-950 elegante + acento cobre luminoso
+   Tipografía: Sentient (display) + Switzer (UI)
+═══════════════════════════════════════════════════════════════ */
+
 :root {
-  --bg: #f6f8f6;
-  --bg-elevated: #ffffff;
-  --bg-soft: #eef2f0;
-  --ink: #15212b;
-  --ink-soft: #51606d;
-  --card: #ffffff;
-  --card-contrast: #ffffff;
-  --border: #d8e0dd;
-  --field: #ffffff;
-  --field-border: #c5d1cb;
-  --shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
-  --surface-glow: rgba(14, 118, 110, 0.08);
-  --accent: #0f766e;
-  --warning: #c05621;
-  /* Z-index scale — fuente unica de verdad para capas del UI */
-  --z-negative: -10;  /* fondos decorativos */
-  --z-sticky: 10;     /* barras de accion sticky */
-  --z-overlay: 50;    /* sidepanels, drawers */
-  --z-modal: 100;     /* dialogos de confirmacion, alertas */
+  /* ── Superficies (modo claro — blanco puro elegante) */
+  --bg:           #FFFFFF;   /* blanco puro */
+  --bg-elevated:  #FFFFFF;   /* blanco puro elevado */
+  --bg-soft:      #F4F4F6;   /* zinc-100 muy sutil */
+
+  /* ── Tipografía */
+  --ink:          #0D0D0D;   /* casi negro — más suave que #000 */
+  --ink-soft:     #6B6B80;   /* zinc-500 con toque azulado */
+  --ink-faint:    #A1A1B0;   /* zinc-400 — hints, placeholders */
+
+  /* ── Superficies de componentes */
+  --card:         #FFFFFF;
+  --card-contrast:#F8F8FA;
+  --border:       #E4E4E8;   /* zinc-200 — muy sutil */
+  --field:        #FFFFFF;
+  --field-border: #D1D1D8;   /* zinc-300 */
+
+  /* ── Acento — cobre oxidado (mantiene identidad de marca) */
+  --accent:       #C4602A;
+  --accent-dim:   rgba(196, 96, 42, 0.08);
+  --accent-glow:  rgba(196, 96, 42, 0.18);
+  --accent-hover: #A84F22;
+
+  /* ── Estado clínico */
+  --state-ok:     #16803C;   /* verde sobrio */
+  --state-warn:   #B45309;   /* ámbar profundo */
+  --state-alert:  #B91C1C;   /* rojo oscuro */
+  --state-info:   #1D4ED8;   /* azul profundo */
+
+  /* ── Sombras — crisp y limpias sobre blanco */
+  --shadow-sm:    0 1px 2px rgba(0,0,0,0.05);
+  --shadow:       0 4px 16px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.05);
+  --shadow-lg:    0 20px 60px rgba(0,0,0,0.10), 0 4px 16px rgba(0,0,0,0.06);
+
+  /* ── Geometría */
+  --radius-sm:    6px;
+  --radius:       10px;
+  --radius-lg:    16px;
+  --radius-xl:    22px;
+
+  /* ── Z-index */
+  --z-negative:  -10;
+  --z-sticky:     10;
+  --z-overlay:    50;
+  --z-modal:     100;
+
   color-scheme: light;
 }
 
+/* ── Modo oscuro elegante — zinc-950 profundo */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #071217;
-    --bg-elevated: #0f1b22;
-    --bg-soft: #13232c;
-    --ink: #e6eef2;
-    --ink-soft: #9eb0bb;
-    --card: #0f1b22;
-    --card-contrast: #13232c;
-    --border: #22323c;
-    --field: #13232c;
-    --field-border: #2d404b;
-    --shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
-    --surface-glow: rgba(45, 212, 191, 0.08);
+    --bg:           #09090B;   /* zinc-950 — negro elegante, no plano */
+    --bg-elevated:  #111113;   /* zinc-900 muy oscuro */
+    --bg-soft:      #18181B;   /* zinc-900 */
+    --ink:          #FAFAFA;   /* zinc-50 — blanco suave */
+    --ink-soft:     #A1A1AA;   /* zinc-400 */
+    --ink-faint:    #52525B;   /* zinc-600 */
+    --card:         #111113;
+    --card-contrast:#18181B;
+    --border:       #27272A;   /* zinc-800 */
+    --field:        #18181B;
+    --field-border: #3F3F46;   /* zinc-700 */
+    --accent:       #D4763A;   /* cobre más luminoso en oscuro */
+    --accent-dim:   rgba(212,118,58,0.12);
+    --accent-glow:  rgba(212,118,58,0.22);
+    --shadow-sm:    0 1px 3px rgba(0,0,0,0.40);
+    --shadow:       0 4px 20px rgba(0,0,0,0.50);
+    --shadow-lg:    0 20px 60px rgba(0,0,0,0.60);
     color-scheme: dark;
   }
 }
 
-/* Manual dark mode override (beats media query) */
 [data-theme="dark"] {
-  --bg: #071217;
-  --bg-elevated: #0f1b22;
-  --bg-soft: #13232c;
-  --ink: #e6eef2;
-  --ink-soft: #9eb0bb;
-  --card: #0f1b22;
-  --card-contrast: #13232c;
-  --border: #22323c;
-  --field: #13232c;
-  --field-border: #2d404b;
-  --shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
-  --surface-glow: rgba(45, 212, 191, 0.08);
+  --bg:           #09090B;
+  --bg-elevated:  #111113;
+  --bg-soft:      #18181B;
+  --ink:          #FAFAFA;
+  --ink-soft:     #A1A1AA;
+  --ink-faint:    #52525B;
+  --card:         #111113;
+  --card-contrast:#18181B;
+  --border:       #27272A;
+  --field:        #18181B;
+  --field-border: #3F3F46;
+  --accent:       #D4763A;
+  --accent-dim:   rgba(212,118,58,0.12);
+  --accent-glow:  rgba(212,118,58,0.22);
+  --shadow-sm:    0 1px 3px rgba(0,0,0,0.40);
+  --shadow:       0 4px 20px rgba(0,0,0,0.50);
+  --shadow-lg:    0 20px 60px rgba(0,0,0,0.60);
   color-scheme: dark;
 }
 
-/* Manual light override (useful when system is dark) */
 [data-theme="light"] {
-  --bg: #f6f8f6;
-  --bg-elevated: #ffffff;
-  --bg-soft: #eef2f0;
-  --ink: #15212b;
-  --ink-soft: #51606d;
-  --card: #ffffff;
-  --card-contrast: #ffffff;
-  --border: #d8e0dd;
-  --field: #ffffff;
-  --field-border: #c5d1cb;
-  --shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
-  --surface-glow: rgba(14, 118, 110, 0.08);
+  --bg:           #FFFFFF;
+  --bg-elevated:  #FFFFFF;
+  --bg-soft:      #F4F4F6;
+  --ink:          #0D0D0D;
+  --ink-soft:     #6B6B80;
+  --ink-faint:    #A1A1B0;
+  --card:         #FFFFFF;
+  --card-contrast:#F8F8FA;
+  --border:       #E4E4E8;
+  --field:        #FFFFFF;
+  --field-border: #D1D1D8;
+  --accent:       #C4602A;
+  --accent-dim:   rgba(196,96,42,0.08);
+  --accent-glow:  rgba(196,96,42,0.18);
+  --shadow-sm:    0 1px 2px rgba(0,0,0,0.05);
+  --shadow:       0 4px 16px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.05);
+  --shadow-lg:    0 20px 60px rgba(0,0,0,0.10), 0 4px 16px rgba(0,0,0,0.06);
   color-scheme: light;
 }
 
+
+/* ── Mapeo a Tailwind */
 @theme inline {
-  --color-bg: var(--bg);
-  --color-bg-elevated: var(--bg-elevated);
-  --color-bg-soft: var(--bg-soft);
-  --color-ink: var(--ink);
-  --color-ink-soft: var(--ink-soft);
-  --color-card: var(--card);
-  --color-card-contrast: var(--card-contrast);
-  --color-border: var(--border);
-  --color-field: var(--field);
+  --color-bg:           var(--bg);
+  --color-bg-elevated:  var(--bg-elevated);
+  --color-bg-soft:      var(--bg-soft);
+  --color-ink:          var(--ink);
+  --color-ink-soft:     var(--ink-soft);
+  --color-ink-faint:    var(--ink-faint);
+  --color-card:         var(--card);
+  --color-card-contrast:var(--card-contrast);
+  --color-border:       var(--border);
+  --color-field:        var(--field);
   --color-field-border: var(--field-border);
-  --color-accent: var(--accent);
-  --color-warning: var(--warning);
-  --color-surface-glow: var(--surface-glow);
-  --font-sans: var(--font-inter);
-  --font-mono: var(--font-geist-mono);
+  --color-accent:       var(--accent);
+  --color-accent-dim:   var(--accent-dim);
+  --color-state-ok:     var(--state-ok);
+  --color-state-warn:   var(--state-warn);
+  --color-state-alert:  var(--state-alert);
+  --color-state-info:   var(--state-info);
+  --font-sans:          var(--font-ui);
+  --font-display:       var(--font-display);
+  --font-mono:          var(--font-geist-mono);
 }
 
+/* ── Base styles */
 body {
   background: var(--bg);
   color: var(--ink);
-  font-family: var(--font-geist-sans), "Segoe UI", sans-serif;
+  font-family: 'Outfit', 'Segoe UI', system-ui, sans-serif;
   line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 html {
   color-scheme: light dark;
 }
 
+/* ── Focus ring — acento cobre, no azul */
 @layer base {
   a,
   button,
@@ -128,50 +187,55 @@ html {
   }
 }
 
+/* ══════════════════════════════════════════════════════
+   UTILIDADES HCE — Ferric Meridian
+══════════════════════════════════════════════════════ */
+
+/* Superficies */
 @utility hce-card {
-  @apply rounded-2xl border p-4;
+  @apply border p-4;
+  border-radius: var(--radius-lg);
   background: var(--card);
   border-color: var(--border);
   box-shadow: var(--shadow);
 }
 
 @utility hce-surface {
-  @apply rounded-3xl border p-5;
+  @apply border p-5;
+  border-radius: var(--radius-xl);
   background: var(--card);
   border-color: var(--border);
   box-shadow: var(--shadow);
 }
 
 @utility hce-surface-soft {
-  @apply rounded-2xl border p-4;
+  @apply border p-4;
+  border-radius: var(--radius-lg);
   background: var(--bg-soft);
   border-color: var(--border);
 }
 
-@utility hce-text {
-  color: var(--ink);
-}
+/* Texto */
+@utility hce-text       { color: var(--ink); }
+@utility hce-text-muted { color: var(--ink-soft); }
+@utility hce-text-faint { color: var(--ink-faint); }
 
-@utility hce-text-muted {
-  color: var(--ink-soft);
-}
+/* Layout páginas */
+@utility hce-page        { @apply space-y-6; }
+@utility hce-page-header { @apply space-y-2; }
 
-@utility hce-page {
-  @apply space-y-6;
-}
-
-@utility hce-page-header {
-  @apply space-y-2;
-}
-
+/* Tipografía de página */
 @utility hce-kicker {
   @apply text-xs font-semibold uppercase tracking-[0.18em];
-  color: var(--ink-soft);
+  color: var(--accent);
+  font-family: 'Outfit', sans-serif;
 }
 
 @utility hce-page-title {
   @apply text-2xl font-semibold leading-tight sm:text-3xl;
+  font-family: 'Space Grotesk', system-ui, sans-serif;
   color: var(--ink);
+  letter-spacing: -0.03em;
 }
 
 @utility hce-page-lead {
@@ -181,46 +245,63 @@ html {
 
 @utility hce-section-title {
   @apply text-lg font-semibold;
+  font-family: 'Space Grotesk', system-ui, sans-serif;
   color: var(--ink);
+  letter-spacing: -0.02em;
 }
 
 @utility hce-card-soft {
-  @apply rounded-2xl border p-4;
+  @apply border p-4;
+  border-radius: var(--radius-lg);
   background: var(--bg-soft);
   border-color: var(--border);
 }
 
 @utility hce-empty {
-  @apply rounded-xl border px-3 py-3 text-sm;
+  @apply border px-3 py-3 text-sm;
+  border-radius: var(--radius);
   background: var(--bg-soft);
   border-color: var(--border);
   color: var(--ink-soft);
+  border-style: dashed;
 }
 
+/* ── Inputs */
 @utility hce-input {
-  @apply w-full rounded-xl border px-3 py-2 text-[16px] outline-none transition focus:ring-2 focus:ring-accent focus:border-accent sm:text-sm;
+  @apply w-full border px-3 py-2 text-[16px] outline-none transition sm:text-sm;
+  border-radius: var(--radius);
   background: var(--field);
   border-color: var(--field-border);
   color: var(--ink);
+  font-family: 'Outfit', sans-serif;
 }
-/* Focus styles using variables */
 .hce-input:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--surface-glow);
+  box-shadow: 0 0 0 3px var(--accent-dim);
+  outline: none;
 }
-/* Placeholder using pseudo-element */
 .hce-input::placeholder {
-  color: var(--ink-soft);
-  opacity: 0.7;
+  color: var(--ink-faint);
 }
 
+/* ── Botones */
 @utility hce-btn {
-  @apply inline-flex min-h-11 items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60;
+  @apply inline-flex min-h-10 items-center justify-center px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50;
+  border-radius: var(--radius);
+  font-family: 'Outfit', sans-serif;
+  letter-spacing: 0.01em;
 }
 
 @utility hce-btn-primary {
-  @apply hce-btn text-white hover:opacity-95;
+  @apply hce-btn text-white;
   background: var(--accent);
+  border: 1px solid transparent;
+  transition: background 0.18s, transform 0.12s, box-shadow 0.18s;
+}
+.hce-btn-primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+  box-shadow: 0 4px 16px var(--accent-glow);
+  transform: translateY(-1px);
 }
 
 @utility hce-btn-secondary {
@@ -229,65 +310,133 @@ html {
   border-color: var(--border);
   color: var(--ink);
 }
-.hce-btn-secondary:hover {
+.hce-btn-secondary:hover:not(:disabled) {
   background: var(--bg-soft);
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 @utility hce-btn-danger {
-  @apply hce-btn bg-red-600 text-white hover:bg-red-700;
+  @apply hce-btn text-white;
+  background: var(--state-alert);
+  border: 1px solid transparent;
+}
+.hce-btn-danger:hover:not(:disabled) {
+  background: #6D2B2B;
+  box-shadow: 0 4px 12px rgba(139, 58, 58, 0.3);
 }
 
+/* ── Chips / badges */
 @utility hce-chip {
-  @apply rounded-full border px-3 py-1.5 text-xs font-semibold transition;
+  @apply border px-3 py-1.5 text-xs font-semibold transition;
+  border-radius: 100px;
+  font-family: var(--font-switzer), sans-serif;
+  letter-spacing: 0.03em;
 }
 
+/* ── Alertas — sistema de color clínico (no semáforo) */
 @utility hce-alert {
-  @apply rounded-2xl border p-4 text-sm;
+  @apply border p-4 text-sm;
+  border-radius: var(--radius-lg);
+  font-family: var(--font-switzer), sans-serif;
 }
 
 @utility hce-alert-success {
   @apply hce-alert;
-  border-color: color-mix(in srgb, #10b981 30%, var(--border));
-  color: color-mix(in srgb, #10b981 90%, var(--ink));
-  background: color-mix(in srgb, #10b981 10%, var(--card));
+  border-color: color-mix(in srgb, var(--state-ok) 35%, var(--border));
+  color: color-mix(in srgb, var(--state-ok) 85%, var(--ink));
+  background: color-mix(in srgb, var(--state-ok) 8%, var(--card));
 }
 
 @utility hce-alert-error {
   @apply hce-alert;
-  border-color: color-mix(in srgb, #ef4444 30%, var(--border));
-  color: color-mix(in srgb, #ef4444 90%, var(--ink));
-  background: color-mix(in srgb, #ef4444 10%, var(--card));
+  border-color: color-mix(in srgb, var(--state-alert) 40%, var(--border));
+  color: color-mix(in srgb, var(--state-alert) 90%, var(--ink));
+  background: color-mix(in srgb, var(--state-alert) 8%, var(--card));
 }
 
 @utility hce-alert-warning {
   @apply hce-alert;
-  border-color: color-mix(in srgb, #f59e0b 30%, var(--border));
-  color: color-mix(in srgb, #f59e0b 90%, var(--ink));
-  background: color-mix(in srgb, #f59e0b 10%, var(--card));
+  border-color: color-mix(in srgb, var(--state-warn) 40%, var(--border));
+  color: color-mix(in srgb, var(--state-warn) 90%, var(--ink));
+  background: color-mix(in srgb, var(--state-warn) 8%, var(--card));
 }
 
 @utility hce-alert-info {
   @apply hce-alert;
-  border-color: color-mix(in srgb, #06b6d4 30%, var(--border));
-  color: color-mix(in srgb, #06b6d4 90%, var(--ink));
-  background: color-mix(in srgb, #06b6d4 10%, var(--card));
+  border-color: color-mix(in srgb, var(--state-info) 35%, var(--border));
+  color: color-mix(in srgb, var(--state-info) 85%, var(--ink));
+  background: color-mix(in srgb, var(--state-info) 8%, var(--card));
 }
 
-/**
- * Overlay de modal — usa la variable CSS en vez del valor arbitrario.
- * Aplica en el backdrop de ConfirmModal y futuros dialogos.
- */
+/* ── Modal */
 @utility hce-modal-backdrop {
   @apply fixed inset-0 flex items-center justify-center backdrop-blur-sm;
-  background: rgba(0, 0, 0, 0.42);
+  background: rgba(28, 18, 11, 0.55);
   z-index: var(--z-modal);
 }
 
-/**
- * Panel sticky de acciones dentro del wizard.
- * Reemplaza z-10 hardcoded.
- */
+/* ── Sticky action bar */
 @utility hce-sticky-action-bar {
-  @apply sticky bottom-4 rounded-2xl border border-border bg-card/95 backdrop-blur-sm p-4 shadow-xl;
+  @apply sticky bottom-4 border p-4;
+  border-radius: var(--radius-xl);
+  background: color-mix(in srgb, var(--card) 96%, transparent);
+  border-color: var(--border);
+  backdrop-filter: blur(12px);
+  box-shadow: var(--shadow-lg);
   z-index: var(--z-sticky);
 }
+
+/* ══════════════════════════════════════════════════════
+   FERRIC MERIDIAN — Teal compatibility layer
+   Remaps Tailwind teal-* classes to copper accent tokens
+   Avoids mass find/replace in clinical components.
+══════════════════════════════════════════════════════ */
+
+/* Text */
+.text-teal-600, .text-teal-700, .text-teal-800, .text-teal-900 { color: var(--accent); }
+.text-teal-300, .text-teal-400, .text-teal-500 { color: color-mix(in srgb, var(--accent) 75%, var(--ink-faint)); }
+.text-teal-100, .text-teal-200 { color: color-mix(in srgb, var(--accent) 50%, var(--ink-faint)); }
+
+/* Backgrounds */
+.bg-teal-50   { background-color: var(--accent-dim); }
+.bg-teal-100  { background-color: color-mix(in srgb, var(--accent) 12%, var(--bg)); }
+.bg-teal-500  { background-color: var(--accent); }
+
+/* Borders */
+.border-teal-100, .border-teal-200  { border-color: rgba(196,96,42,.20); }
+.border-teal-300, .border-teal-400  { border-color: rgba(196,96,42,.35); }
+.border-teal-500, .border-teal-600  { border-color: var(--accent); }
+
+/* Hover */
+.hover\:bg-teal-50:hover   { background-color: var(--accent-dim); }
+.hover\:bg-teal-100:hover  { background-color: color-mix(in srgb, var(--accent) 14%, var(--bg)); }
+.hover\:border-teal-300:hover,
+.hover\:border-teal-400:hover { border-color: var(--accent); }
+.hover\:text-teal-700:hover { color: var(--accent); }
+
+/* Opacity variants */
+.bg-teal-500\/10  { background-color: var(--accent-dim); }
+.bg-teal-500\/20  { background-color: rgba(196,96,42,.18); }
+.hover\:bg-teal-500\/20:hover { background-color: rgba(196,96,42,.18); }
+.border-teal-500\/30  { border-color: rgba(196,96,42,.30); }
+.border-teal-500\/50  { border-color: rgba(196,96,42,.50); }
+.border-teal-700\/40  { border-color: rgba(196,96,42,.35); }
+.border-teal-900\/50  { border-color: rgba(196,96,42,.25); }
+.dark\:border-teal-500\/30 { border-color: rgba(196,96,42,.28); }
+.dark\:bg-teal-900\/30 { background-color: rgba(196,96,42,.12); }
+.dark\:bg-teal-950\/20 { background-color: rgba(196,96,42,.08); }
+.dark\:border-teal-900\/50 { border-color: rgba(196,96,42,.2); }
+.dark\:text-teal-400 { color: color-mix(in srgb, var(--accent) 80%, var(--ink)); }
+.dark\:text-teal-300 { color: color-mix(in srgb, var(--accent) 85%, var(--ink)); }
+
+/* Focus ring */
+.focus-visible\:ring-teal-500:focus-visible { --tw-ring-color: var(--accent); }
+
+/* Gradient stops */
+.from-teal-300, .from-teal-400 { --tw-gradient-from: color-mix(in srgb, var(--accent) 70%, #FBF6F0); }
+.to-teal-300, .to-teal-400 { --tw-gradient-to: color-mix(in srgb, var(--accent) 70%, #FBF6F0); }
+
+/* Misc */
+.accent-teal-600 { accent-color: var(--accent); }
+.shadow-teal-500\/20 { --tw-shadow-color: rgba(196,96,42,.20); }

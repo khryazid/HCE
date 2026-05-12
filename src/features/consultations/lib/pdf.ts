@@ -1,4 +1,4 @@
-import type { LetterheadSettings } from "@/features/dashboard/lib/letterhead";
+﻿import type { LetterheadSettings } from "@/features/dashboard/lib/letterhead";
 
 function resolveImageFormat(dataUrl: string) {
   if (dataUrl.startsWith("data:image/jpeg") || dataUrl.startsWith("data:image/jpg")) {
@@ -55,9 +55,39 @@ type ConsultationPdfData = {
   specialtyKind: string;
   evolutionStatus?: string;
   followUpDate?: string;
+  // --- NUEVOS ---
+  generalCondition?: string;
+  painScale?: number | null;
+  reviewOfSystems?: Record<string, { present: boolean; notes: string }>;
+  soapSubjective?: string;
+  soapObjective?: string;
+  soapAssessment?: string;
+  soapPlan?: string;
+  prognosisVital?: string;
+  prognosisFunctional?: string;
 };
 
 export function buildPdfLines(letterhead: LetterheadSettings, data: ConsultationPdfData) {
+  const rosLines: string[] = [];
+  if (data.reviewOfSystems) {
+    const activeRos = Object.entries(data.reviewOfSystems).filter(([, v]) => v.present);
+    if (activeRos.length > 0) {
+      rosLines.push("", "--- REVISION POR SISTEMAS ---");
+      for (const [key, val] of activeRos) {
+        rosLines.push(`${key.toUpperCase()}: ${val.notes || "Hallazgo positivo sin descripcion"}`);
+      }
+    }
+  }
+
+  const soapLines: string[] = [];
+  if (data.soapSubjective || data.soapObjective || data.soapAssessment || data.soapPlan) {
+    soapLines.push("", "--- EVOLUCION CLINICA (SOAP) ---");
+    if (data.soapSubjective) soapLines.push(`S (Subjetivo): ${data.soapSubjective}`);
+    if (data.soapObjective) soapLines.push(`O (Objetivo): ${data.soapObjective}`);
+    if (data.soapAssessment) soapLines.push(`A (Assessment): ${data.soapAssessment}`);
+    if (data.soapPlan) soapLines.push(`P (Plan): ${data.soapPlan}`);
+  }
+
   return [
     `${letterhead.professional_title} ${letterhead.doctor_name}`.trim(),
     letterhead.specialties,
@@ -70,30 +100,36 @@ export function buildPdfLines(letterhead: LetterheadSettings, data: Consultation
     `Paciente: ${data.patientName} (${data.patientDocument})`,
     `Especialidad: ${data.specialtyKind}`,
     data.birthDate ? `Fecha Nac.: ${data.birthDate}` : "",
-    data.gender ? `Género: ${data.gender}` : "",
+    data.gender ? `Genero: ${data.gender}` : "",
     "",
     "--- 1. MOTIVO DE CONSULTA Y ANTECEDENTES ---",
     `Motivo: ${data.chiefComplaint}`,
     `Anamnesis: ${data.anamnesis}`,
     data.medicalHistory ? `Historial: ${data.medicalHistory}` : "",
+    ...rosLines,
     "",
     "--- 2. SIGNOS VITALES Y EXAMEN FISICO ---",
-    data.vitalSigns?.bloodPressure ? `Presión arterial: ${data.vitalSigns.bloodPressure}` : "",
-    data.vitalSigns?.heartRate ? `Frecuencia cardíaca: ${data.vitalSigns.heartRate}` : "",
+    data.generalCondition ? `Estado General: ${data.generalCondition}` : "",
+    data.vitalSigns?.bloodPressure ? `Presion arterial: ${data.vitalSigns.bloodPressure}` : "",
+    data.vitalSigns?.heartRate ? `Frecuencia cardiaca: ${data.vitalSigns.heartRate}` : "",
     data.vitalSigns?.weight ? `Peso: ${data.vitalSigns.weight}` : "",
-    data.physicalExam ? `Examen físico: ${data.physicalExam}` : "",
+    data.painScale !== null && data.painScale !== undefined ? `Escala EVA: ${data.painScale}/10` : "",
+    data.physicalExam ? `Examen fisico: ${data.physicalExam}` : "",
     "",
     "--- 3. DIAGNOSTICO Y PLAN ---",
     `Diagnostico: ${data.diagnosis}`,
     `Codigos CIE: ${data.cieCodes.join(", ") || "Sin codigos"}`,
-    data.clinicalAnalysis ? `Análisis Clínico: ${data.clinicalAnalysis}` : "",
+    data.clinicalAnalysis ? `Analisis Clinico: ${data.clinicalAnalysis}` : "",
     `Tratamiento / Receta: ${data.treatmentPlan}`,
     data.medicationInstructions ? `Instrucciones al Paciente: ${data.medicationInstructions}` : "",
     data.recommendations ? `Recomendaciones: ${data.recommendations}` : "",
     data.warningSigns ? `Signos de alarma: ${data.warningSigns}` : "",
     "",
-    data.evolutionStatus ? `--- 4. EVOLUCION ---\nEvolucion: ${data.evolutionStatus}` : "",
+    ...(soapLines.length ? soapLines : data.evolutionStatus ? ["--- 4. EVOLUCION ---", `Evolucion: ${data.evolutionStatus}`] : []),
     data.followUpDate ? `Proximo control: ${data.followUpDate}` : "",
+    (data.prognosisVital || data.prognosisFunctional)
+      ? `PRONOSTICO - Vital: ${data.prognosisVital || "No evaluado"} / Funcional: ${data.prognosisFunctional || "No evaluado"}`
+      : "",
   ].filter(Boolean);
 }
 
@@ -108,7 +144,7 @@ function calculateAge(birthDate: string): string {
     age--;
   }
   if (age < 0 || age > 130) return "N/A";
-  return `${age} años`;
+  return `${age} aÃ±os`;
 }
 
 export async function generateConsultationPdf(
@@ -164,7 +200,7 @@ export async function generateConsultationPdf(
   doc.setFontSize(10);
   setColor(COLOR_LIGHT_TEXT);
   const infoLines = [
-    `${letterhead.specialties || "Medicina General"} ${letterhead.professional_title ? `| Reg. Médico: ${letterhead.professional_title}` : ""}`,
+    `${letterhead.specialties || "Medicina General"} ${letterhead.professional_title ? `| Reg. MÃ©dico: ${letterhead.professional_title}` : ""}`,
     letterhead.address || "",
     `Tel: ${letterhead.phone_primary} ${letterhead.contact_email ? `| ${letterhead.contact_email}` : ""}`
   ];
@@ -186,7 +222,7 @@ export async function generateConsultationPdf(
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
   setColor("#FFFFFF");
-  const titleText = "HISTORIA CLÍNICA Y PLAN DE MANEJO";
+  const titleText = "HISTORIA CLÃNICA Y PLAN DE MANEJO";
   const titleWidth = doc.getTextWidth(titleText);
   doc.text(titleText, pageWidth / 2 - titleWidth / 2, y + 16);
   y += 40;
@@ -219,8 +255,8 @@ export async function generateConsultationPdf(
     return false;
   };
 
-  // --- 1. IDENTIFICACIÓN DEL PACIENTE ---
-  y = drawSectionHeader("IDENTIFICACIÓN DEL PACIENTE", y);
+  // --- 1. IDENTIFICACIÃ“N DEL PACIENTE ---
+  y = drawSectionHeader("IDENTIFICACIÃ“N DEL PACIENTE", y);
   
   doc.setFontSize(10);
   const drawPatientGrid = () => {
@@ -233,10 +269,10 @@ export async function generateConsultationPdf(
     doc.setFont("helvetica", "bold");
     doc.text("Nombre Completo:", col1, y);
     doc.text("Edad:", col1, y + 20);
-    doc.text("Ocupación:", col1, y + 40);
+    doc.text("OcupaciÃ³n:", col1, y + 40);
 
     doc.text("Documento:", col3, y);
-    doc.text("Género:", col3, y + 20);
+    doc.text("GÃ©nero:", col3, y + 20);
     doc.text("Fecha/Hora:", col3, y + 40);
 
     setColor(COLOR_TEXT);
@@ -265,7 +301,7 @@ export async function generateConsultationPdf(
   const drawBlock = (label: string, text: string) => {
     if (!text || !text.trim()) return;
     checkPageBreak(30);
-    const hasBullets = text.includes("\n") || text.includes("•") || text.length > 80;
+    const hasBullets = text.includes("\n") || text.includes("â€¢") || text.length > 80;
     if (hasBullets) {
       doc.setFont("helvetica", "bold");
       doc.setFontSize(9);
@@ -310,14 +346,14 @@ export async function generateConsultationPdf(
   drawBlock("Enfermedad Actual", data.anamnesis);
   
   if (data.backgrounds && Object.values(data.backgrounds).some(val => val.trim() !== "")) {
-    if (data.backgrounds.pathological) drawBlock("Ant. Patológicos", data.backgrounds.pathological);
-    if (data.backgrounds.surgical) drawBlock("Ant. Quirúrgicos", data.backgrounds.surgical);
-    if (data.backgrounds.allergic) drawBlock("Ant. Alérgicos", data.backgrounds.allergic);
-    if (data.backgrounds.pharmacological) drawBlock("Ant. Farmacológicos", data.backgrounds.pharmacological);
+    if (data.backgrounds.pathological) drawBlock("Ant. PatolÃ³gicos", data.backgrounds.pathological);
+    if (data.backgrounds.surgical) drawBlock("Ant. QuirÃºrgicos", data.backgrounds.surgical);
+    if (data.backgrounds.allergic) drawBlock("Ant. AlÃ©rgicos", data.backgrounds.allergic);
+    if (data.backgrounds.pharmacological) drawBlock("Ant. FarmacolÃ³gicos", data.backgrounds.pharmacological);
     if (data.backgrounds.family) drawBlock("Ant. Familiares", data.backgrounds.family);
-    if (data.backgrounds.toxic) drawBlock("Ant. Hábitos / Tóxicos", data.backgrounds.toxic);
+    if (data.backgrounds.toxic) drawBlock("Ant. HÃ¡bitos / TÃ³xicos", data.backgrounds.toxic);
     if (data.gender === "Femenino" && data.backgrounds.gynecoObstetric) {
-      drawBlock("Ant. Gineco-obstétricos", data.backgrounds.gynecoObstetric);
+      drawBlock("Ant. Gineco-obstÃ©tricos", data.backgrounds.gynecoObstetric);
     }
   } else if (data.medicalHistory) {
     drawBlock("Antecedentes", data.medicalHistory);
@@ -325,9 +361,9 @@ export async function generateConsultationPdf(
 
   y += 16;
 
-  // --- 3. EXAMEN FÍSICO Y SIGNOS VITALES ---
+  // --- 3. EXAMEN FÃSICO Y SIGNOS VITALES ---
   checkPageBreak(140);
-  y = drawSectionHeader("EXAMEN FÍSICO Y SIGNOS VITALES", y);
+  y = drawSectionHeader("EXAMEN FÃSICO Y SIGNOS VITALES", y);
 
   const drawVitals = () => {
     // Calculate BMI
@@ -357,11 +393,11 @@ export async function generateConsultationPdf(
 
     // Vitals to display as cards
     const vitals = [
-      { label: "Tensión Arterial",  unit: "mmHg",  val: data.vitalSigns.bloodPressure,     isRed: taRed  },
-      { label: "Frec. Cardíaca",    unit: "lpm",   val: data.vitalSigns.heartRate,          isRed: fcRed  },
+      { label: "TensiÃ³n Arterial",  unit: "mmHg",  val: data.vitalSigns.bloodPressure,     isRed: taRed  },
+      { label: "Frec. CardÃ­aca",    unit: "lpm",   val: data.vitalSigns.heartRate,          isRed: fcRed  },
       { label: "Frec. Resp.",       unit: "rpm",   val: data.vitalSigns.respiratoryRate,    isRed: frRed  },
-      { label: "Saturación O\u2082",     unit: "%",     val: data.vitalSigns.oxygenSaturation,   isRed: satRed },
-      { label: "Temperatura",       unit: "°C",    val: data.vitalSigns.temperature,        isRed: false  },
+      { label: "Saturacion O2",      unit: "%",     val: data.vitalSigns.oxygenSaturation,   isRed: satRed },
+      { label: "Temperatura",       unit: "Â°C",    val: data.vitalSigns.temperature,        isRed: false  },
       { label: "Peso",              unit: "kg",    val: data.vitalSigns.weight,             isRed: false  },
       { label: "Talla",             unit: "m",     val: data.vitalSigns.height,             isRed: false  },
       { label: "IMC",               unit: "",      val: bmiText,                            isRed: false  },
@@ -379,7 +415,7 @@ export async function generateConsultationPdf(
       const col = i % cols;
       const row = Math.floor(i / cols);
       if (col === 0 && i > 0) {
-        // New row — increment y after first row completes
+        // New row â€” increment y after first row completes
       }
       const cx = margin + col * cardW;
       const cy = y + row * (cardH + 4);
@@ -422,9 +458,9 @@ export async function generateConsultationPdf(
   }
   y += 16;
 
-  // --- 4. IMPRESIÓN DIAGNÓSTICA ---
+  // --- 4. IMPRESIÃ“N DIAGNÃ“STICA ---
   checkPageBreak(100);
-  y = drawSectionHeader("IMPRESIÓN DIAGNÓSTICA", y);
+  y = drawSectionHeader("IMPRESIÃ“N DIAGNÃ“STICA", y);
 
   doc.setDrawColor(209, 213, 219);
   doc.setLineDashPattern([3, 3], 0);
@@ -452,7 +488,7 @@ export async function generateConsultationPdf(
 
   if (data.clinicalAnalysis) {
     doc.setFont("helvetica", "bold");
-    doc.text("Análisis:", margin + 10, y);
+    doc.text("AnÃ¡lisis:", margin + 10, y);
     doc.setFont("helvetica", "normal");
     doc.text(analLines, margin + 55, y);
     y += analLines.length * 14;
@@ -495,14 +531,14 @@ export async function generateConsultationPdf(
   doc.text(`Fecha: ${data.consultationDate.split(",")[0]}`, pageWidth - margin - doc.getTextWidth(`Fecha: ${data.consultationDate.split(",")[0]}`), y);
   y += 20;
 
-  y = drawSectionHeader("PRESCRIPCIÓN MÉDICA", y);
+  y = drawSectionHeader("PRESCRIPCIÃ“N MÃ‰DICA", y);
 
   doc.setFont("helvetica", "normal");
   setColor(COLOR_TEXT);
   const tpLines = doc.splitTextToSize(data.treatmentPlan, contentWidth - 10);
   for (const line of tpLines) {
     checkPageBreak(15);
-    const printLine = line.trim().startsWith("-") || line.trim().startsWith("•") ? line : `• ${line}`;
+    const printLine = line.trim().startsWith("-") || line.trim().startsWith("â€¢") ? line : `â€¢ ${line}`;
     doc.text(printLine, margin + 5, y);
     y += 14;
   }
@@ -517,10 +553,10 @@ export async function generateConsultationPdf(
   doc.setFont("helvetica", "italic");
   doc.setFontSize(8);
   setColor(COLOR_LIGHT_TEXT);
-  doc.text("Válido solo con firma y sello del médico. Documento confidencial — uso exclusivo para dispensación farmacéutica.", margin, y);
+  doc.text("VÃ¡lido solo con firma y sello del mÃ©dico. Documento confidencial â€” uso exclusivo para dispensaciÃ³n farmacÃ©utica.", margin, y);
   y += 20;
 
-  // Firma del médico — siempre en la misma página que la receta
+  // Firma del mÃ©dico â€” siempre en la misma pÃ¡gina que la receta
   const sigX = margin + 30; // Center it a bit
   if (letterhead.signature_data_url) {
     try {
@@ -540,7 +576,7 @@ export async function generateConsultationPdf(
   doc.line(sigX - 10, sigLineY, sigX + 110, sigLineY); // line length 120
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
-  doc.text("Firma del Profesional Médico", sigX + 50 - doc.getTextWidth("Firma del Profesional Médico") / 2, sigLineY + 12);
+  doc.text("Firma del Profesional MÃ©dico", sigX + 50 - doc.getTextWidth("Firma del Profesional MÃ©dico") / 2, sigLineY + 12);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
   const docName = `Dr. ${letterhead.doctor_name || ""}`;
@@ -548,7 +584,7 @@ export async function generateConsultationPdf(
 
   // ==========================================
   // PAGE 3: HOJA DEL PACIENTE
-  // (medicación, recomendaciones, alarma)
+  // (medicaciÃ³n, recomendaciones, alarma)
   // ==========================================
   if (data.medicationInstructions || data.recommendations || data.warningSigns) {
     doc.addPage();
@@ -618,7 +654,7 @@ export async function generateConsultationPdf(
       setColor(COLOR_TEXT);
       for (const line of lines) {
         checkPageBreak(16);
-        const printLine = line.trim().startsWith("•") || line.trim().startsWith("-") ? line : `• ${line}`;
+        const printLine = line.trim().startsWith("â€¢") || line.trim().startsWith("-") ? line : `â€¢ ${line}`;
         doc.text(printLine, margin + 12, y);
         y += 14;
       }
@@ -626,7 +662,7 @@ export async function generateConsultationPdf(
     };
 
     if (data.medicationInstructions) {
-      drawPatientSection("CÓMO TOMAR SU MEDICACIÓN", data.medicationInstructions, "37,99,235");
+      drawPatientSection("CÃ“MO TOMAR SU MEDICACIÃ“N", data.medicationInstructions, "37,99,235");
     }
 
     if (data.recommendations) {
@@ -648,12 +684,12 @@ export async function generateConsultationPdf(
       doc.setFont("helvetica", "bold");
       doc.setFontSize(10);
       setColor(COLOR_RED);
-      doc.text("⚠ SIGNOS DE ALARMA — ACUDA A URGENCIAS SI PRESENTA:", margin + 14, y + 18);
+      doc.text("! SIGNOS DE ALARMA - ACUDA A URGENCIAS SI PRESENTA:", margin + 14, y + 18);
       doc.setFont("helvetica", "normal");
       doc.setTextColor(127, 29, 19);
       let wy = y + 34;
       for (const line of wLines) {
-        const printLine = line.trim().startsWith("•") || line.trim().startsWith("-") ? line : `• ${line}`;
+        const printLine = line.trim().startsWith("â€¢") || line.trim().startsWith("-") ? line : `â€¢ ${line}`;
         doc.text(printLine, margin + 14, wy);
         wy += 14;
       }
@@ -671,7 +707,7 @@ export async function generateConsultationPdf(
       doc.setFont("helvetica", "bold");
       doc.setFontSize(11);
       doc.setTextColor(20, 83, 45);
-      doc.text("📅  PRÓXIMA CITA MÉDICA:", margin + 14, y + 16);
+      doc.text("PROXIMA CITA MEDICA:", margin + 14, y + 16);
       doc.setFont("helvetica", "normal");
       doc.setFontSize(13);
       doc.text(data.followUpDate, margin + 14, y + 32);
@@ -686,20 +722,20 @@ export async function generateConsultationPdf(
     doc.setFont("helvetica", "italic");
     doc.setFontSize(8);
     setColor(COLOR_LIGHT_TEXT);
-    const footerTxt = `Emitido el ${data.consultationDate.split(",")[0]} · Dr. ${letterhead.doctor_name}`;
+    const footerTxt = `Emitido el ${data.consultationDate.split(",")[0]} Â· Dr. ${letterhead.doctor_name}`;
     doc.text(footerTxt, pageWidth / 2 - doc.getTextWidth(footerTxt) / 2, y + 16);
   }
 
   // ==========================================
-  // PAGE 4: ORDENES PARACLÍNICAS
-  // (laboratorio e imagen — minimalista)
+  // PAGE 4: ORDENES PARACLÃNICAS
+  // (laboratorio e imagen â€” minimalista)
   // ==========================================
   const hasParaclinicos = (data.labOrders?.length ?? 0) > 0 || (data.imagingOrders?.length ?? 0) > 0;
   if (hasParaclinicos) {
     doc.addPage();
     y = margin;
 
-    // Header mínimo: solo doctor y fecha
+    // Header mÃ­nimo: solo doctor y fecha
     doc.setFont("helvetica", "bold");
     doc.setFontSize(14);
     setColor(COLOR_DARK_BLUE);
@@ -723,11 +759,11 @@ export async function generateConsultationPdf(
     doc.setFont("helvetica", "bold");
     doc.setFontSize(12);
     setColor("#FFFFFF");
-    const p4Title = "ORDEN DE ESTUDIOS PARACLÍNICOS";
+    const p4Title = "ORDEN DE ESTUDIOS PARACLÃNICOS";
     doc.text(p4Title, pageWidth / 2 - doc.getTextWidth(p4Title) / 2, y + 17);
     y += 36;
 
-    // Solo nombre del paciente — sin datos adicionales
+    // Solo nombre del paciente â€” sin datos adicionales
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
     setColor(COLOR_DARK_BLUE);
@@ -759,7 +795,7 @@ export async function generateConsultationPdf(
       setColor(COLOR_TEXT);
       for (const item of items) {
         checkPageBreak(16);
-        doc.text(`•  ${item}`, margin + 14, y);
+        doc.text(`â€¢  ${item}`, margin + 14, y);
         y += 16;
       }
       y += 12;
@@ -770,10 +806,10 @@ export async function generateConsultationPdf(
     }
 
     if (data.imagingOrders && data.imagingOrders.length > 0) {
-      drawOrderSection("IMAGENOLOGÍA / DIAGNÓSTICO POR IMAGEN", data.imagingOrders, "79,70,229");
+      drawOrderSection("IMAGENOLOGÃA / DIAGNÃ“STICO POR IMAGEN", data.imagingOrders, "79,70,229");
     }
 
-    // Firma en la orden paraclínica
+    // Firma en la orden paraclÃ­nica
     const sigY = Math.max(y + 60, pageHeight - 90);
     const sigX2 = margin + 30;
     if (letterhead.signature_data_url) {
@@ -794,7 +830,7 @@ export async function generateConsultationPdf(
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     setColor(COLOR_TEXT);
-    doc.text("Firma del Profesional Médico", sigX2 + 50 - doc.getTextWidth("Firma del Profesional Médico") / 2, sigY + 12);
+    doc.text("Firma del Profesional MÃ©dico", sigX2 + 50 - doc.getTextWidth("Firma del Profesional MÃ©dico") / 2, sigY + 12);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
     const docName2 = `Dr. ${letterhead.doctor_name || ""}`;
@@ -808,7 +844,7 @@ export async function generateConsultationPdf(
     doc.setFont("helvetica", "italic");
     doc.setFontSize(8);
     setColor(COLOR_LIGHT_TEXT);
-    const p4Footer = `Orden emitida el ${orderDate} · Dr. ${letterhead.doctor_name} — Válida solo con firma y sello.`;
+    const p4Footer = `Orden emitida el ${orderDate} Â· Dr. ${letterhead.doctor_name} â€” VÃ¡lida solo con firma y sello.`;
     doc.text(p4Footer, pageWidth / 2 - doc.getTextWidth(p4Footer) / 2, y + 16);
   }
 

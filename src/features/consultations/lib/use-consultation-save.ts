@@ -104,6 +104,28 @@ export function useConsultationSave() {
         recordId,
         specialtyId,
         cieCodes: form.cieCodes,
+        // --- NUEVOS CAMPOS ---
+        consultationType: form.consultationType,
+        informantSource: form.informantSource,
+        informantReliability: form.informantReliability,
+        referringDoctor: form.referringDoctor,
+        reviewOfSystems: form.reviewOfSystems,
+        generalCondition: form.generalCondition,
+        painScale: form.painScale,
+        meanArterialPressure: form.vitalSigns.mean_arterial_pressure,
+        currentMedications: form.currentMedications,
+        soapSubjective: form.soapSubjective,
+        soapObjective: form.soapObjective,
+        soapAssessment: form.soapAssessment,
+        soapPlan: form.soapPlan,
+        prognosisVital: form.prognosisVital,
+        prognosisFunctional: form.prognosisFunctional,
+        pediatricData: form.pediatricData.headCircumference ? form.pediatricData : null,
+        bloodType: form.blood_type || undefined,
+        emergencyContact: form.emergency_contact.name ? form.emergency_contact : null,
+        medicalOrders: (form.medical_orders.diet_type || form.medical_orders.general_measures || form.medical_orders.nursing_cares)
+          ? form.medical_orders
+          : null,
       });
 
       // --- Persistencia local + sync ---

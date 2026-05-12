@@ -50,6 +50,29 @@ export type ConsultationPayloadInput = {
   recordId: string;
   specialtyId: string;
   cieCodes: string;
+  // --- NUEVOS ---
+  consultationType?: string;
+  informantSource?: string;
+  informantReliability?: string;
+  referringDoctor?: string;
+  reviewOfSystems?: Record<string, { present: boolean; notes: string }>;
+  generalCondition?: string;
+  painScale?: number | null;
+  meanArterialPressure?: string;
+  currentMedications?: Array<{ id: string; name: string; dose: string; frequency: string; since: string }>;
+  soapSubjective?: string;
+  soapObjective?: string;
+  soapAssessment?: string;
+  soapPlan?: string;
+  prognosisVital?: string;
+  prognosisFunctional?: string;
+  pediatricData?: { headCircumference: string; developmentStage: string; vaccineStatus: string } | null;
+  /** Tipo de sangre ABO + Rh. */
+  bloodType?: string;
+  /** Contacto de emergencia médico-legal. */
+  emergencyContact?: { name: string; relationship: string; phone: string } | null;
+  /** Órdenes Intrahospitalarias / Medidas Generales. */
+  medicalOrders?: { diet_type: string; general_measures: string; nursing_cares: string } | null;
 };
 
 type ConsultationPayloadBundle = {
@@ -91,6 +114,32 @@ export function buildConsultationPayload(
     next_follow_up_date: input.nextFollowUpDate || null,
     follow_up_mode: input.entryMode,
     linked_record_id: input.entryMode === "seguimiento" ? input.linkedRecordId || null : null,
+    // --- NUEVOS CAMPOS ---
+    consultation_type: input.consultationType || null,
+    informant_source: input.informantSource || null,
+    informant_reliability: input.informantReliability || null,
+    referring_doctor: input.referringDoctor || null,
+    review_of_systems: input.reviewOfSystems || null,
+    general_condition: input.generalCondition?.trim() || null,
+    pain_scale: input.painScale ?? null,
+    mean_arterial_pressure: input.meanArterialPressure || null,
+    current_medications: input.currentMedications ?? [],
+    soap: {
+      subjective: input.soapSubjective?.trim() || null,
+      objective: input.soapObjective?.trim() || null,
+      assessment: input.soapAssessment?.trim() || null,
+      plan: input.soapPlan?.trim() || null,
+    },
+    prognosis: {
+      vital: input.prognosisVital || null,
+      functional: input.prognosisFunctional || null,
+    },
+    pediatric_data: input.pediatricData?.headCircumference ? input.pediatricData : null,
+    blood_type: input.bloodType || null,
+    emergency_contact: input.emergencyContact?.name ? input.emergencyContact : null,
+    medical_orders: (input.medicalOrders?.diet_type || input.medicalOrders?.general_measures || input.medicalOrders?.nursing_cares)
+      ? input.medicalOrders
+      : null,
   };
 
   const record: ClinicalRecordRecord = {

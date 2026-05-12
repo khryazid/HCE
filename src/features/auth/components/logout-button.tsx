@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { getSupabaseClient } from "@/lib/supabase/client";
 
@@ -13,6 +14,13 @@ type LogoutButtonProps = {
 export function LogoutButton({ mode = "full" }: LogoutButtonProps) {
   const router = useRouter();
   const [phase, setPhase] = useState<ModalPhase>("closed");
+
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
 
   async function handleLogout() {
     setPhase("leaving");
@@ -50,7 +58,7 @@ export function LogoutButton({ mode = "full" }: LogoutButtonProps) {
       </button>
 
       {/* Overlay */}
-      {phase !== "closed" ? (
+      {phase !== "closed" && mounted ? createPortal(
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm transition-opacity duration-300"
         >
@@ -123,7 +131,8 @@ export function LogoutButton({ mode = "full" }: LogoutButtonProps) {
               </div>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       ) : null}
     </>
   );

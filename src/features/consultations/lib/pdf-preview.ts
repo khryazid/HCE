@@ -43,6 +43,16 @@ export type ConsultationPdfPreviewData = {
   specialtyKind: string;
   evolutionStatus?: string;
   followUpDate?: string;
+  // --- NUEVOS ---
+  generalCondition?: string;
+  painScale?: number | null;
+  reviewOfSystems?: Record<string, { present: boolean; notes: string }>;
+  soapSubjective?: string;
+  soapObjective?: string;
+  soapAssessment?: string;
+  soapPlan?: string;
+  prognosisVital?: string;
+  prognosisFunctional?: string;
 };
 
 type ConsultationPdfPreviewInput = Omit<ConsultationPdfPreviewData, "cieCodes"> & {

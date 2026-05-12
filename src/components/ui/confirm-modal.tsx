@@ -76,9 +76,9 @@ export function ConfirmModal({
       onClick={onCancel}
       role="presentation"
     >
-      <dialog
-        open
-        className="mx-4 w-full max-w-sm rounded-3xl border border-[color:var(--border)] bg-[color:var(--card)] p-6 shadow-2xl space-y-5 not-italic"
+      <div
+        className="mx-4 w-full max-w-sm rounded-3xl border border-[color:var(--border)] bg-[color:var(--card)] p-6 shadow-2xl space-y-5 not-italic relative z-10"
+        role="dialog"
         aria-modal="true"
         aria-labelledby="confirm-modal-title"
         aria-describedby="confirm-modal-description"
@@ -138,7 +138,7 @@ export function ConfirmModal({
             {loading ? "Procesando..." : confirmLabel}
           </button>
         </div>
-      </dialog>
+      </div>
     </div>
   );
 }

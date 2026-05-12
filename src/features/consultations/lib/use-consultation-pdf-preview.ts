@@ -62,6 +62,15 @@ export function useConsultationPdfPreview({ form, patients, pendingFollowUp }: O
       specialtyKind: form.specialtyKind,
       evolutionStatus: form.evolutionStatus || undefined,
       followUpDate: form.nextFollowUpDate || undefined,
+      generalCondition: form.generalCondition || undefined,
+      painScale: form.painScale,
+      reviewOfSystems: form.reviewOfSystems,
+      soapSubjective: form.soapSubjective || undefined,
+      soapObjective: form.soapObjective || undefined,
+      soapAssessment: form.soapAssessment || undefined,
+      soapPlan: form.soapPlan || undefined,
+      prognosisVital: form.prognosisVital || undefined,
+      prognosisFunctional: form.prognosisFunctional || undefined,
     });
   }
 

@@ -94,11 +94,14 @@ type WizardPatientBackgrounds = {
 };
 
 type WizardAutofillEditableFields = {
-  gender: string;
+  gender: "Hombre" | "Mujer" | "";
   occupation: string;
   insurance: string;
+  blood_type: "" | "A+" | "A-" | "B+" | "B-" | "AB+" | "AB-" | "O+" | "O-";
+  emergency_contact: { name: string; relationship: string; phone: string };
   medicalHistory: string;
   backgrounds: WizardPatientBackgrounds;
+  currentMedications: Array<{ id: string; name: string; dose: string; frequency: string; since: string }>;
 };
 
 export type WizardPendingFollowUp = {
@@ -198,8 +201,11 @@ export function buildAutofillFormStatePatch(
       gender: "",
       occupation: "",
       insurance: "",
+      blood_type: "",
+      emergency_contact: { name: "", relationship: "", phone: "" },
       medicalHistory: "",
       backgrounds: EMPTY_BACKGROUNDS,
+      currentMedications: [],
     };
   }
 
@@ -209,15 +215,27 @@ export function buildAutofillFormStatePatch(
   const rawBackgrounds =
     (specialtyData.backgrounds as Partial<WizardPatientBackgrounds>) || {};
 
+  const rawEmergencyContact =
+    (specialtyData.emergency_contact as { name?: string; relationship?: string; phone?: string }) || {};
+
   return {
     gender:
-      typeof patientSnapshot.gender === "string" ? patientSnapshot.gender : "",
+      typeof patientSnapshot.gender === "string" ? (patientSnapshot.gender as "Hombre" | "Mujer" | "") : "",
     occupation:
       typeof patientSnapshot.occupation === "string"
         ? patientSnapshot.occupation
         : "",
     insurance:
       typeof patientSnapshot.insurance === "string" ? patientSnapshot.insurance : "",
+    blood_type:
+      typeof specialtyData.blood_type === "string"
+        ? (specialtyData.blood_type as "A+" | "A-" | "B+" | "B-" | "AB+" | "AB-" | "O+" | "O-" | "")
+        : "",
+    emergency_contact: {
+      name: rawEmergencyContact.name ?? "",
+      relationship: rawEmergencyContact.relationship ?? "",
+      phone: rawEmergencyContact.phone ?? "",
+    },
     medicalHistory:
       typeof specialtyData.medical_history === "string"
         ? specialtyData.medical_history
@@ -231,6 +249,10 @@ export function buildAutofillFormStatePatch(
       toxic: rawBackgrounds.toxic ?? "",
       gynecoObstetric: rawBackgrounds.gynecoObstetric ?? "",
     },
+    // Los currentMedications se pre-llenan desde la última consulta.
+    currentMedications: Array.isArray(specialtyData.current_medications)
+      ? (specialtyData.current_medications as Array<{ id: string; name: string; dose: string; frequency: string; since: string }>)
+      : [],
   };
 }
 

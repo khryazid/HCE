@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { useTenant } from "@/lib/supabase/tenant-context";
 import { ConsultasSkeleton } from "@/components/ui/skeletons";
 import {
@@ -8,17 +10,54 @@ import {
 } from "@/components/ui/empty-state";
 import { useConsultationWizard } from "@/features/consultations/lib/use-consultation-wizard";
 import { WizardStepPatient } from "@/features/consultations/components/wizard-step-patient";
-import { WizardStepDiagnosis } from "@/features/consultations/components/wizard-step-diagnosis";
+import { WizardStepAnamnesis } from "@/features/consultations/components/wizard-step-anamnesis";
+import { WizardStepReviewOfSystems } from "@/features/consultations/components/wizard-step-review-of-systems";
+import { WizardStepPhysicalExam } from "@/features/consultations/components/wizard-step-physical-exam";
+import { WizardStepDiagnosisOnly } from "@/features/consultations/components/wizard-step-diagnosis-only";
 import { WizardStepTreatment } from "@/features/consultations/components/wizard-step-treatment";
+
+// ─── Step metadata (medico-legal order) ─────────────────────────────────────
+const STEPS = [
+  { num: 1, label: "Datos del Paciente e Ingreso" },
+  { num: 2, label: "Anamnesis y Antecedentes" },
+  { num: 3, label: "Revisión por Sistemas" },
+  { num: 4, label: "Examen Físico" },
+  { num: 5, label: "Diagnóstico" },
+  { num: 6, label: "Tratamiento y Plan" },
+] as const;
 
 export default function ConsultationsView() {
   const { tenant, loading: tenantLoading } = useTenant();
   const wizard = useConsultationWizard(tenant);
+  const searchParams = useSearchParams();
+
+  // Escuchar parámetros de la URL para Iniciar Consulta desde la Agenda
+  const { wizardOpen, openWizard, setQuickPatient } = wizard;
+  useEffect(() => {
+    const aptId = searchParams?.get("appointmentId");
+    const pName = searchParams?.get("patientName");
+
+    if (aptId && !wizardOpen) {
+      openWizard();
+
+      if (pName) {
+        // Separamos el nombre completo de forma simple para pre-llenar "Nuevo paciente"
+        const parts = pName.trim().split(" ");
+        const firstName = parts[0] || "";
+        const lastName = parts.slice(1).join(" ") || "";
+        
+        setQuickPatient((prev) => ({
+          ...prev,
+          firstName,
+          lastName,
+        }));
+      }
+    }
+  }, [searchParams, wizardOpen, openWizard, setQuickPatient]);
 
   if (tenantLoading || wizard.dataLoading) {
     return <ConsultasSkeleton />;
   }
-
 
   return (
     <section className="hce-page">
@@ -42,7 +81,7 @@ export default function ConsultationsView() {
               Flujo de consulta
             </h1>
             <p className="mt-2 text-sm leading-7 text-ink-soft">
-              Registro guiado por pasos: paciente, anamnesis y diagnóstico, tratamiento y PDF.
+              Registro guiado en 6 pasos siguiendo el orden médico-legal estricto.
             </p>
           </div>
           <button
@@ -71,7 +110,7 @@ export default function ConsultationsView() {
       ) : null}
 
       {wizard.wizardOpen ? (
-        <article className="space-y-4">
+        <article className="space-y-4" spellCheck={true} lang="es">
 
           {/* Wizard header */}
           <div className="relative overflow-hidden rounded-3xl border border-border bg-card p-6 shadow-sm">
@@ -97,13 +136,36 @@ export default function ConsultationsView() {
                 Cancelar
               </button>
             </div>
+
+            {/* Stepper visual */}
+            <div className="mt-5 flex items-center gap-1 overflow-x-auto pb-1" role="list" aria-label="Pasos del flujo clínico">
+              {STEPS.map(({ num, label }, i) => (
+                <div key={num} className="flex items-center gap-1 shrink-0" role="listitem">
+                  <div className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold transition-all ${
+                    wizard.form.patientId || num === 1
+                      ? "bg-teal-500/15 text-teal-800 dark:text-teal-300"
+                      : "bg-bg-soft text-ink-soft"
+                  }`}>
+                    <span className={`inline-flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-extrabold ${
+                      wizard.form.patientId || num === 1
+                        ? "bg-teal-600 text-white"
+                        : "bg-border text-ink-soft"
+                    }`}>{num}</span>
+                    <span className="hidden sm:inline">{label}</span>
+                  </div>
+                  {i < STEPS.length - 1 && (
+                    <span aria-hidden className="text-border text-xs">›</span>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
 
-          {/* Step 1: Paciente */}
+          {/* ── Paso 1: Datos del Paciente e Ingreso ──────────────────────── */}
           <section className="rounded-3xl border border-border bg-card p-6 shadow-sm space-y-4">
             <h3 className="text-base font-bold text-ink border-b border-border pb-3">
               <span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-accent/10 text-xs font-extrabold text-accent">1</span>
-              Paciente
+              Datos del Paciente e Ingreso
             </h3>
             <WizardStepPatient
               form={wizard.form}
@@ -123,13 +185,51 @@ export default function ConsultationsView() {
 
           {wizard.form.patientId ? (
             <>
-              {/* Step 2: Diagnóstico */}
+              {/* ── Paso 2: Anamnesis y Antecedentes ──────────────────────── */}
               <section className="rounded-3xl border border-border bg-card p-6 shadow-sm space-y-4">
                 <h3 className="text-base font-bold text-ink border-b border-border pb-3">
                   <span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-accent/10 text-xs font-extrabold text-accent">2</span>
-                  Anamnesis y Diagnóstico
+                  Anamnesis y Antecedentes
                 </h3>
-                <WizardStepDiagnosis
+                <WizardStepAnamnesis
+                  form={wizard.form}
+                  setForm={wizard.setForm}
+                  validationErrors={wizard.validationErrors}
+                />
+              </section>
+
+              {/* ── Paso 3: Revisión por Sistemas (Examen Funcional) ────────── */}
+              <section className="rounded-3xl border border-border bg-card p-6 shadow-sm space-y-4">
+                <h3 className="text-base font-bold text-ink border-b border-border pb-3">
+                  <span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-accent/10 text-xs font-extrabold text-accent">3</span>
+                  Revisión por Sistemas (Examen Funcional)
+                </h3>
+                <WizardStepReviewOfSystems
+                  form={wizard.form}
+                  setForm={wizard.setForm}
+                />
+              </section>
+
+              {/* ── Paso 4: Examen Físico ──────────────────────────────────── */}
+              <section className="rounded-3xl border border-border bg-card p-6 shadow-sm space-y-4">
+                <h3 className="text-base font-bold text-ink border-b border-border pb-3">
+                  <span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-accent/10 text-xs font-extrabold text-accent">4</span>
+                  Examen Físico
+                </h3>
+                <WizardStepPhysicalExam
+                  form={wizard.form}
+                  setForm={wizard.setForm}
+                  tenantSpecialties={tenant?.specialties ?? []}
+                />
+              </section>
+
+              {/* ── Paso 5: Diagnóstico ───────────────────────────────────── */}
+              <section className="rounded-3xl border border-border bg-card p-6 shadow-sm space-y-4">
+                <h3 className="text-base font-bold text-ink border-b border-border pb-3">
+                  <span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-accent/10 text-xs font-extrabold text-accent">5</span>
+                  Diagnóstico
+                </h3>
+                <WizardStepDiagnosisOnly
                   form={wizard.form}
                   setForm={wizard.setForm}
                   validationErrors={wizard.validationErrors}
@@ -137,17 +237,18 @@ export default function ConsultationsView() {
                 />
               </section>
 
-              {/* Step 3: Tratamiento */}
+              {/* ── Paso 6: Tratamiento y Plan ────────────────────────────── */}
               <section className="rounded-3xl border border-border bg-card p-6 shadow-sm space-y-4">
                 <h3 className="text-base font-bold text-ink border-b border-border pb-3">
-                  <span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-accent/10 text-xs font-extrabold text-accent">3</span>
-                  Tratamiento
+                  <span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-accent/10 text-xs font-extrabold text-accent">6</span>
+                  Tratamiento y Plan
                 </h3>
                 <WizardStepTreatment
                   form={wizard.form}
                   setForm={wizard.setForm}
                   templates={wizard.templates}
                   validationErrors={wizard.validationErrors}
+                  latestPatientRecord={wizard.latestPatientRecord}
                   onApplyTemplate={wizard.applyTemplate}
                 />
               </section>

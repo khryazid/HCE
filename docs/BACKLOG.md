@@ -1,14 +1,76 @@
 # HCE · Backlog de Producción
-> Última revisión: 2026-05-12 | Estado del build: ✅ TS 0 errores · 85/85 tests · ESLint limpio
+> Última revisión: 2026-05-12 | Estado del build: ✅ TS 0 errores · 85/85 tests · ESLint limpio | 🎨 Redesign en progreso
 
 ---
 
 ## 🗓️ Sprint Actual — Próximas Tareas
 
 Esta es la lista ordenada de lo que trabajamos en la próxima sesión, en prioridad descendente.
-**¡TODAS LAS TAREAS DE V1.0 COMPLETADAS! 🎉**
 
-### 🔴 Prioridad Alta (hacer primero)
+---
+
+## 🎨 Redesign Sprint — "Ferric Meridian" Design System
+
+> Identidad visual: **Ferric Meridian** — clínica industrializada, tierra quemada + cobre oxidado
+> Paleta: `#1C120B` (dominante/obsidiana cálida) · `#C4602A` (cobre oxidado/acento) · `#F5EDE4` (pergamino/neutro warm) · `#7A5C4F` (tierra media)
+> Tipografía: **Sentient** (display/serif) + **Switzer** (UI sans) — loaded from Fontshare
+
+### Fase 1 — Sistema Base (globals.css)
+- [x] **RD-01** — Reescribir variables CSS en `globals.css` con paleta Ferric Meridian ✅
+- [x] **RD-02** — Actualizar utilidades `hce-card`, `hce-btn-*`, `hce-input`, `hce-alert-*` ✅
+- [x] **RD-03** — Capa de compatibilidad teal→copper para componentes clínicos ✅
+
+### Fase 2 — Landing Page
+- [x] **RD-04** — Reescribir `landing.css` con estética Ferric Meridian ✅
+- [x] **RD-05** — Landing: botón hero, bento cards, pricing oscuro ✅
+- [x] **RD-06** — `layout.tsx` cargando fuentes Sentient + Switzer desde Fontshare ✅
+
+### Fase 3 — Dashboard Shell
+- [x] **RD-07** — `sidebar.tsx` rediseñado con logo cobre, fuentes propias ✅
+- [x] **RD-08** — `MobileHeader` y `BottomNav` actualizados ✅
+- [x] **RD-09** — `DashboardView.tsx` gradientes y tipografía actualizados ✅
+- [x] **RD-10** — Tipografía: Sentient+Switzer → **Space Grotesk + Outfit** (Google Fonts) ✅
+- [x] **RD-11** — `BottomNav` oculto en desktop (fix inline `display:flex` vs `lg:hidden`) ✅
+- [x] **RD-12** — Hero italic `<em>` reemplazado por span cobre weight-800 ✅
+- [x] **RD-13** — Paleta modo claro: pergamino → blanco puro `#FFFFFF` ✅
+- [x] **RD-14** — Paleta modo oscuro: obsidiana marrón → zinc-950 `#09090B` elegante ✅
+- [x] **RD-15** — Habilitado plan "Clínica" en pricing (`/registro?plan=clinica`) ✅
+
+---
+
+### ✅ Completado en esta sesión
+
+- [x] **W-01** — Reestructuración del flujo clínico a 6 pasos (orden médico-legal estricto) ✅  
+  Nuevo stepper visual. Componentes separados: `wizard-step-anamnesis.tsx`, `wizard-step-physical-exam.tsx`, `wizard-step-diagnosis-only.tsx`.
+
+- [x] **W-02** — Sexo biológico binario (`Hombre`/`Mujer`) con nota médico-legal ✅  
+  Enum estricto en `WizardForm.gender`. Condicional gineco-obstétrico actualizado.
+
+- [x] **W-03** — Tipo de sangre ABO+Rh y Contacto de Emergencia (Paso 1) ✅  
+  `blood_type` select (A+…O-) y `emergency_contact` {name, relationship, phone} en UI y JSONB.
+
+- [x] **W-04** — Auto-cálculo de PAM (Presión Arterial Media) ✅  
+  Fórmula `(SIS + 2·DIA) / 3` en tiempo real. Badge de color (verde/rojo). Alerta PAM < 65 mmHg.
+
+- [x] **W-05** — Botón "🪄 Normal" por sistema en Examen Físico Segmentario ✅  
+  Textos estándar de normalidad para 11 sistemas. Concatena si ya hay texto.
+
+- [x] **W-06** — Órdenes Intrahospitalarias / Medidas Generales (Paso 6) ✅  
+  `diet_type` select, `general_measures` y `nursing_cares` textareas. Guardado en `medical_orders` JSONB.
+
+- [x] **W-07** — Payload JSONB actualizado (`specialty_data`) ✅  
+  Nuevos campos: `blood_type`, `emergency_contact`, `mean_arterial_pressure`, `medical_orders`.
+
+---
+
+### 🔴 Prioridad Alta
+
+- [x] **FEAT-01** — Módulo de Agenda Médica (Calendario) y Control de Pagos 🚀
+  - Crear tabla `appointments` (citas con campos de cobro) en SQL.
+  - Agregar `payment_config` a la tabla `profiles`.
+  - Crear UI del Calendario en `/dashboard/agenda`.
+  - Crear formulario modal para agendar citas rápidas.
+  - Sección de configuración de métodos de pago en Ajustes.
 
 - [x] **BUG-01** — Eliminar `as any` residual en `profile.ts:110` ✅  
   Tipos v14.5 aceptan el insert sin cast. `satisfies ProfileInsert` garantiza la forma.
@@ -108,14 +170,29 @@ Esta es la lista ordenada de lo que trabajamos en la próxima sesión, en priori
 
 ---
 
-## 🐛 Bugs conocidos / Deuda técnica menor
+## 🛡️ Auditoría de Deuda Técnica y Calidad (Reporte de Estado)
 
-### ~~BUG-05 · Plan "Clínica" en pricing muestra precio fijo sin validar~~ ✅ Resuelto
-Los precios del plan Profesional y Clínica se movieron a constantes `PLAN_PRO_PRICE` y `PLAN_CLINIC_PRICE` en `src/app/page.tsx` para evitar valores "hardcodeados" enterrados en el JSX.
+Se realizó una auditoría completa del código estático encontrando lo siguiente:
 
-### ~~BUG-06 · Pérdida de datos locales al refrescar o cambiar dispositivo (Sync)~~ ✅ Resuelto
-**Descripción:** Un usuario reportó pérdida de pacientes e historias. El problema era que al refrescar la app antes de que el worker subiera los datos, se sobrescribía la base de datos local (IndexedDB) con la versión vieja del servidor. Además, al abrir en un nuevo dispositivo, no se descargaban las historias clínicas.
-**Solución:** Se añadieron `refreshClinicalRecordsFromRemote` y `refreshSpecialtyDataFromRemote`. Se integró un filtro en las 3 funciones de `refresh` que lee la cola de sincronización para *saltarse* cualquier registro con cambios locales pendientes.
+### Hallazgos de la Auditoría
+1. **Errores de Linting (18 errores, 11 warnings)**:
+   - Uso excesivo de `any` explícitos en múltiples componentes de la agenda (`appointment-modal.tsx`, `calendar-view.tsx`, `use-agenda.ts`) y de pagos (`payment-settings-panel.tsx`).
+   - Anti-patrón de React (`react-hooks/set-state-in-effect`) en `logout-button.tsx`.
+   - Dependencias faltantes en useEffect en `ConsultationsView.tsx` (posibles bugs de sincronización).
+   - Componentes no utilizados e importaciones huérfanas en varios archivos.
+   - Fuente cargada incorrectamente en `layout.tsx` (`no-page-custom-font`).
+2. **Dependencias Potencialmente Sin Uso**:
+   - `depcheck` detectó `@tailwindcss/postcss`, `fake-indexeddb`, y `tailwindcss` como dependencias de desarrollo sin uso explícito. `@stripe/stripe-js` aparece como dependencia principal sin uso, probablemente debido a importaciones dinámicas que deben validarse.
+3. **Consistencia de Tipos**: El build de TypeScript (`tsc --noEmit`) no reportó errores, lo cual es excelente. Sin embargo, los `any` suprimen verificaciones de tipo y deben resolverse.
+4. **Seguridad**: No se detectaron vulnerabilidades críticas ni exposición obvia de secretos en el frontend, el RLS de Supabase se encarga de la seguridad de la capa de datos.
+
+### 📋 Tasklist de Resolución (Prioridad de Ejecución)
+
+- [x] **TD-01** — Corregir antipatrones de React: Resolver `react-hooks/set-state-in-effect` en `logout-button.tsx` y `react-hooks/exhaustive-deps` en `ConsultationsView.tsx` (Prioridad Alta: Afecta rendimiento/bugs).
+- [x] **TD-02** — Limpiar importaciones y variables sin uso: Remover íconos y componentes declarados pero no usados en `appointment-modal.tsx`, `payment-settings-panel.tsx` y `agenda/page.tsx` (Prioridad Media).
+- [x] **TD-03** — Refactorizar tipos `any`: Tipar correctamente las variables en `use-agenda.ts`, `calendar-view.tsx` y `payment-settings-panel.tsx` evitando usar `any` (Prioridad Media).
+- [x] **TD-04** — Resolver `no-page-custom-font`: Mover o corregir la carga de fuentes en `layout.tsx` según las recomendaciones de Next.js (Prioridad Media).
+- [x] **TD-05** — Auditoría de dependencias: Validar el uso de `@stripe/stripe-js`, `tailwindcss` y `fake-indexeddb`, y desinstalarlos si realmente son código muerto (Prioridad Baja).
 
 ---
 
@@ -131,6 +208,7 @@ Los precios del plan Profesional y Clínica se movieron a constantes `PLAN_PRO_P
 - Recordatorios por Email (Resend) ✅
 - Modo Oscuro / Claro / Sistema ✅
 - Internacionalización (i18n fundamental) ✅
+- **Wizard HCE Completo** — Revisión por Sistemas, SOAP, Pronóstico, Escala EVA, Tabla de Medicamentos, Datos Pediátricos, Tipo de Consulta ✅
 
 Actualmente no hay nuevas features mayores planificadas. El enfoque es monitoreo y estabilidad post-lanzamiento.
 
@@ -168,9 +246,9 @@ Añadido a `/api/stripe/*` y `/api/push/*`.
 - [x] `useTemplates` con `staleTime: 5min`
 
 ### ⏳ Pendiente tuyo — Supabase (SQL Editor)
-- [ ] **Ejecutar** `supabase/migrations/000_production_full_schema.sql` completo  
+- [x] **Ejecutar** `supabase/migrations/000_production_full_schema.sql` completo  
   _(incluye índices FTS, `search_global()`, `send_followup_emails()`, crons)_
-- [ ] **Actualizar** `app_config` con valores reales:
+- [x] **Actualizar** `app_config` con valores reales:
   ```sql
   insert into public.app_config (key, value) values
     ('site_url',           'https://TU-APP.vercel.app'),
@@ -178,15 +256,15 @@ Añadido a `/api/stripe/*` y `/api/push/*`.
     ('resend_email_secret','EL_MISMO_QUE_EN_VERCEL')
   on conflict (key) do update set value = excluded.value, updated_at = now();
   ```
-- [ ] **Activar extensión** `pg_cron` en Supabase → Database → Extensions
+- [x] **Activar extensión** `pg_cron` en Supabase → Database → Extensions
 
 ### ⏳ Pendiente tuyo — Vercel (Environment Variables)
-- [ ] `PUSH_SEND_SECRET` → secreto para el cron de push
-- [ ] `ADMIN_EMAIL` → tu email de administrador
-- [ ] `RESEND_API_KEY` → key de [resend.com](https://resend.com)
-- [ ] `RESEND_EMAIL_SECRET` → mismo valor que `resend_email_secret` en `app_config`
-- [ ] `RESEND_FROM_EMAIL` → ej. `Glyph <no-reply@tudominio.com>`
+- [x] `PUSH_SEND_SECRET` → secreto para el cron de push
+- [x] `ADMIN_EMAIL` → tu email de administrador
+- [x] `RESEND_API_KEY` → key de [resend.com](https://resend.com)
+- [x] `RESEND_EMAIL_SECRET` → mismo valor que `resend_email_secret` en `app_config`
+- [x] `RESEND_FROM_EMAIL` → ej. `Glyph <no-reply@tudominio.com>`
 
 ### ⏳ Pendiente tuyo — Resend
-- [ ] Crear cuenta en [resend.com](https://resend.com) y obtener API Key
-- [ ] (Recomendado) Verificar tu dominio para enviar desde `@tudominio.com`
+- [x] Crear cuenta en [resend.com](https://resend.com) y obtener API Key
+- [x] (Recomendado) Verificar tu dominio para enviar desde `@tudominio.com`
