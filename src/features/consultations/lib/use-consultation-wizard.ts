@@ -8,6 +8,7 @@ import { useClinicalContext } from "@/features/consultations/context/clinical-co
 import { mergeCieCodeList } from "@/features/consultations/lib/ai/cie-suggestions";
 import { fetchFirstCieSuggestionCode } from "@/features/consultations/lib/cie-suggestions-client";
 import type { ClinicalRecordRecord } from "@/features/consultations/types";
+import type { MedInstruction } from "@/features/consultations/components/medication-instructions-builder";
 
 import { normalizeCommaValues } from "@/features/consultations/lib/workflow";
 import {
@@ -138,6 +139,8 @@ export type WizardForm = {
 
   // --- Medicamentos estructurados ---
   currentMedications: CurrentMedication[];
+  /** Instrucciones de posología estructuradas por medicamento (se serializa en specialty_data) */
+  medicationInstructionsStructured: MedInstruction[];
 
   evolutionStatus: string;
   nextFollowUpDate: string;
@@ -225,6 +228,7 @@ const EMPTY_FORM: WizardForm = {
   labOrders: [],
   imagingOrders: [],
   currentMedications: [],
+  medicationInstructionsStructured: [],
   evolutionStatus: "",
   nextFollowUpDate: "",
   soapSubjective: "",

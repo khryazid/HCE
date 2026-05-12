@@ -1,6 +1,11 @@
 "use client";
 
 import { ChipSelector } from "@/features/consultations/components/chip-selector";
+import {
+  MedicationInstructionsBuilder,
+  assembleInstructionText,
+} from "@/features/consultations/components/medication-instructions-builder";
+import type { MedInstruction } from "@/features/consultations/components/medication-instructions-builder";
 import type { TreatmentTemplate } from "@/features/consultations/lib/treatments";
 import type { WizardForm } from "@/features/consultations/lib/use-consultation-wizard";
 import type { ClinicalRecordRecord } from "@/features/consultations/types";
@@ -202,28 +207,20 @@ export function WizardStepTreatment({
             <label className="text-xs font-semibold text-ink">Instrucciones de Uso para el Paciente</label>
             <span className="rounded-full bg-teal-100 px-2 py-0.5 text-[10px] font-semibold text-teal-700">Hoja del paciente</span>
           </div>
-          <p className="text-[11px] text-ink-soft">La receta queda en la farmacia — aquí el paciente lleva cómo tomar su medicación.</p>
-          <textarea
-            className="hce-input min-h-24"
-            placeholder="Ej: Tomar Ibuprofeno después de las comidas. Omeprazol en ayunas 30 min antes del desayuno..."
-            value={form.medicationInstructions}
-            onFocus={(e) => {
-              if (e.target.value.trim()) return;
-              setForm(c => ({ ...c, medicationInstructions: "• " }));
-              requestAnimationFrame(() => { e.target.selectionStart = e.target.selectionEnd = 2; });
-            }}
-            onKeyDown={(e) => {
-              if (e.key !== "Enter") return;
-              e.preventDefault();
-              const ta = e.currentTarget;
-              const { selectionStart, selectionEnd, value } = ta;
-              const insert = "\n• ";
-              const next = value.slice(0, selectionStart) + insert + value.slice(selectionEnd);
-              setForm(c => ({ ...c, medicationInstructions: next }));
-              const pos = selectionStart + insert.length;
-              requestAnimationFrame(() => { ta.selectionStart = ta.selectionEnd = pos; });
-            }}
-            onChange={(event) => setForm(c => ({ ...c, medicationInstructions: event.target.value }))}
+          <p className="text-[11px] text-ink-soft">
+            Cada medicamento obtiene su tarjeta de posología. El texto final se imprime en la hoja del paciente.
+          </p>
+          <MedicationInstructionsBuilder
+            medications={form.currentMedications}
+            value={form.medicationInstructionsStructured}
+            onChange={(instructions: MedInstruction[]) =>
+              setForm((c) => ({
+                ...c,
+                medicationInstructionsStructured: instructions,
+                // Keep the plain text field in sync for PDF compatibility
+                medicationInstructions: assembleInstructionText(instructions),
+              }))
+            }
           />
         </div>
 
