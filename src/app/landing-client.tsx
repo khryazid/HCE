@@ -203,21 +203,30 @@ export default function LandingClient({ proPrice, clinicPrice }: { proPrice: num
               adapta a tu especialidad y trabaja contigo, no contra ti.
             </p>
 
-            {/* Bento grid */}
             <div className="l-bento" role="list">
 
               {/* Wide card — Wizard */}
               <article className="l-bento-card wide reveal" role="listitem" aria-labelledby="feat-wizard">
                 <div className="l-card-icon" aria-hidden>⚕️</div>
-                <h3 id="feat-wizard" className="l-card-title">Wizard de consulta inteligente</h3>
+                <h3 id="feat-wizard" className="l-card-title">Motor Clínico Adaptativo</h3>
                 <p className="l-card-body">
-                  Flujo guiado por pasos adaptado al modo <strong style={{color:"var(--lt)"}}>Consulta Completa</strong> o{" "}
-                  <strong style={{color:"var(--lt)"}}>Seguimiento Clínico</strong>. Auto-scroll
-                  a errores, máscara de fecha, bullets automáticos y selector
-                  de estado del paciente al cerrar.
+                  Flujo de <strong style={{color:"var(--lt)"}}>6 pasos médico-legales</strong> que se adapta a tu especialidad. 
+                  Oculta las secciones que no usas (ej. pediatría, intrahospitalarias) y el sistema lo recordará 
+                  automáticamente en tu próxima sesión.
                 </p>
                 <div className="l-card-big-num">3min</div>
                 <span className="l-card-tag">Por consulta documentada</span>
+              </article>
+
+              {/* Posología */}
+              <article className="l-bento-card reveal" role="listitem" aria-labelledby="feat-posology">
+                <div className="l-card-icon" aria-hidden>💊</div>
+                <h3 id="feat-posology" className="l-card-title">Posología Inteligente</h3>
+                <p className="l-card-body">
+                  Escribe la receta médica en texto libre y Glyph generará automáticamente tarjetas estructuradas 
+                  de indicaciones para la hoja del paciente.
+                </p>
+                <span className="l-card-tag">Generación automática</span>
               </article>
 
               {/* AI */}
@@ -226,7 +235,7 @@ export default function LandingClient({ proPrice, clinicPrice }: { proPrice: num
                 <h3 id="feat-ai" className="l-card-title">CIE-10 asistido por IA</h3>
                 <p className="l-card-body">
                   Sugerencias de diagnóstico en tiempo real con Gemini 2.0 Flash.
-                  Contextualizado a tu especialidad, sin catálogo local.
+                  Contextualizado a tu especialidad, sin catálogos lentos.
                 </p>
                 <span className="l-card-tag">Gemini 2.0 Flash</span>
               </article>
@@ -242,24 +251,15 @@ export default function LandingClient({ proPrice, clinicPrice }: { proPrice: num
                 <span className="l-card-tag">Sin pérdida de datos</span>
               </article>
 
-              {/* PDF */}
-              <article className="l-bento-card reveal" role="listitem" aria-labelledby="feat-pdf">
-                <div className="l-card-icon" aria-hidden>📄</div>
-                <h3 id="feat-pdf" className="l-card-title">PDF clínico multipágina</h3>
+              {/* Clinics */}
+              <article className="l-bento-card reveal" role="listitem" aria-labelledby="feat-clinics">
+                <div className="l-card-icon" aria-hidden>🏥</div>
+                <h3 id="feat-clinics" className="l-card-title">Gestión Multi-Doctor</h3>
                 <p className="l-card-body">
-                  Historia completa + receta + hoja del paciente con membrete
-                  profesional personalizable y firma digital.
+                  Agrega a tus colegas y asistentes. Arquitectura multi-tenant con roles de seguridad estrictos (RLS)
+                  para clínicas y consultorios compartidos.
                 </p>
-              </article>
-
-              {/* Security */}
-              <article className="l-bento-card reveal" role="listitem" aria-labelledby="feat-security">
-                <div className="l-card-icon" aria-hidden>🔐</div>
-                <h3 id="feat-security" className="l-card-title">Seguridad multi-tenant</h3>
-                <p className="l-card-body">
-                  RLS en todas las tablas. Datos clínicos aislados por tenant.
-                  Logs de auditoría con hash criptográfico encadenado.
-                </p>
+                <span className="l-card-tag">Equipos médicos</span>
               </article>
 
             </div>

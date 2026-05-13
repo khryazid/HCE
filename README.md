@@ -35,7 +35,7 @@ Con arquitectura multi-tenant de grado empresarial, Glyph automatiza la facturac
 
 ---
 
-## ✅ Estado Actual del Proyecto *(2026-05-11)*
+## ✅ Estado Actual del Proyecto *(2026-05-13)*
 
 > Build limpio. 0 errores TypeScript. 85/85 tests unitarios. 9 specs E2E.
 
@@ -43,8 +43,11 @@ Con arquitectura multi-tenant de grado empresarial, Glyph automatiza la facturac
 
 | Feature | Descripción |
 |---|---|
-| **Consulta Wizard** | Flujo guiado 4 pasos → PDF con membrete y firma |
+| **Consulta Wizard** | Flujo guiado 6 pasos → PDF con membrete. PAM auto-calculada, normalidad auto-completada. |
+| **UI Adaptativa** | Secciones colapsables con memoria (JSONB) — el doctor ajusta el wizard a su especialidad. |
+| **Constructor Posología** | Parsea texto libre con viñetas y lo convierte en tarjetas de medicación estructuradas automáticamente. |
 | **Offline-First** | IndexedDB + sync worker con backoff exponencial |
+| **Plan Multi-Doctor** | Arquitectura multi-tenant para Clínicas, roles de acceso (admin/doctor/viewer) y billing multi-seat. |
 | **IA CIE-10** | Gemini 2.0 Flash sugiere diagnósticos en tiempo real |
 | **Plantillas** | Multi-dispositivo en Supabase, versionado JSONB, historial restaurable |
 | **Búsqueda Global** | `Ctrl+K` — FTS PostgreSQL con índices GIN + `websearch_to_tsquery` |
@@ -59,7 +62,7 @@ Con arquitectura multi-tenant de grado empresarial, Glyph automatiza la facturac
 
 ### Próxima feature mayor
 
-**F-01 — Plan Clínica multi-doctor**: nueva tabla `clinic_members`, roles (admin/doctor/assistant), ajustes de RLS, pricing con seats. Ver `docs/BACKLOG.md` para el detalle completo.
+**Integraciones y Automatización Avanzada**: Interoperabilidad con laboratorios y mayor optimización de tareas diarias basadas en IA. Ver `docs/BACKLOG.md` para el detalle completo.
 
 ---
 
@@ -341,11 +344,10 @@ Ver el tasklist completo con prioridades en **[docs/BACKLOG.md](docs/BACKLOG.md)
 
 La siguiente feature mayor:
 
-**F-01 — Plan Clínica Multi-Doctor**
-- Nueva tabla `clinic_members` con roles: `admin` / `doctor` / `viewer`
-- Ajustes de RLS para acceso compartido dentro de la clínica
-- Pricing con seats (N doctores por clínica)
-- UI de gestión de miembros en `/ajustes`
+**W-08 — Citas y Calendario Avanzado**
+- Creación rápida de pacientes desde el flujo de Walk-In
+- Control de arrastrar y soltar (Drag & Drop)
+- Estados de asistencia integrados al wizard clínico
 
 ---
 
