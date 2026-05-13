@@ -1102,6 +1102,62 @@ select cron.schedule(
   $$select public.send_followup_emails()$$
 );
 
+-- ── send_trial_ending_emails ──────────────────────────────────────────
+-- Envia recordatorios por email a doctores cuyo free trial termina mañana o hoy.
+-- Llama a POST /api/email/trial-ending.
+
+create or replace function public.send_trial_ending_emails() returns void
+language plpgsql security definer as $$
+declare
+  v_site_url     text;
+  v_email_secret text;
+  r record;
+begin
+  select value into v_site_url      from public.app_config where key = 'site_url';
+  select value into v_email_secret  from public.app_config where key = 'resend_email_secret';
+
+  if v_site_url is null or v_email_secret is null
+     or v_site_url like 'REEMPLAZAR%' or v_email_secret like 'REEMPLAZAR%' then
+    return;
+  end if;
+
+  for r in
+    select
+      p.doctor_id,
+      u.email                                      as doctor_email,
+      p.full_name                                  as doctor_name,
+      extract(day from (p.subscription_expires_at - now())) as days_left
+    from public.profiles p
+    inner join auth.users u on u.id = p.doctor_id
+    where p.subscription_status = 'trialing'
+      and p.subscription_expires_at is not null
+      -- Send if it expires between now and 48 hours from now
+      and p.subscription_expires_at between now() and now() + interval '2 days'
+      and u.email is not null
+  loop
+    perform net.http_post(
+      url     := v_site_url || '/api/email/trial-ending',
+      headers := jsonb_build_object(
+        'Content-Type',   'application/json',
+        'x-email-secret', v_email_secret
+      ),
+      body    := jsonb_build_object(
+        'target_doctor_id', r.doctor_id,
+        'doctor_email',     r.doctor_email,
+        'doctor_name',      r.doctor_name,
+        'days_left',        r.days_left
+      )
+    );
+  end loop;
+end;
+$$;
+
+select cron.schedule(
+  'send_trial_ending_emails_daily',
+  '30 7 * * *', -- 7:30am UTC
+  $$select public.send_trial_ending_emails()$$
+);
+
 -- Agrega el secreto de email a app_config
 insert into public.app_config (key, value) values
   ('resend_email_secret', '183492765')

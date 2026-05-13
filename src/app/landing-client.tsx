@@ -155,7 +155,7 @@ export default function LandingClient({ proPrice, clinicPrice }: { proPrice: num
           {/* CTAs */}
           <div className="l-hero-actions">
             <Link href="/registro" className="l-btn-hero">
-              Crear cuenta
+              Prueba gratis por 7 días
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
                 <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
@@ -164,7 +164,7 @@ export default function LandingClient({ proPrice, clinicPrice }: { proPrice: num
           </div>
 
           {/* Trust note */}
-          <p className="l-hero-note">Configuración en 2 minutos · Cancela cuando quieras</p>
+          <p className="l-hero-note">7 días de prueba gratis · Sin tarjeta de crédito · Cancela cuando quieras</p>
 
           {/* Stats bar */}
           <div className="l-hero-stats" role="list" aria-label="Métricas clave">
@@ -380,7 +380,8 @@ export default function LandingClient({ proPrice, clinicPrice }: { proPrice: num
                 Planes simples,<br /><em>sin sorpresas</em>
               </h2>
               <p className="l-section-body reveal" style={{margin:"12px auto 0", textAlign:"center"}}>
-                Un plan claro. Paga solo lo que usas.
+                Un plan claro. Paga solo lo que usas.<br />
+                <span style={{ color: "var(--accent)", fontWeight: 600 }}>Todos los planes incluyen 7 días de prueba gratis. Sin tarjeta.</span>
               </p>
             </div>
 
@@ -456,7 +457,7 @@ export default function LandingClient({ proPrice, clinicPrice }: { proPrice: num
             </p>
             <div className="l-cta-actions">
               <Link href="/registro" className="l-btn-hero">
-                Crear cuenta
+                Prueba gratis por 7 días
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
                   <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>

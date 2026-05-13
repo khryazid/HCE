@@ -7,6 +7,7 @@ export type TenantProfile = {
   full_name: string;
   specialties: string[];
   subscription_status?: string | null;
+  subscription_expires_at?: string | null;
   plan: "basic" | "clinic";
   role: "admin" | "doctor" | "assistant";
   ui_preferences?: Record<string, boolean>;
@@ -49,6 +50,7 @@ function withSpecialties(profile: {
   specialty: string[];
   plan: "basic" | "clinic";
   subscription_status?: string | null;
+  subscription_expires_at?: string | null;
   role?: "admin" | "doctor" | "assistant";
   ui_preferences?: Record<string, boolean> | unknown;
 }): TenantProfile {
@@ -70,7 +72,7 @@ export async function loadTenantProfile(userId: string): Promise<TenantProfile |
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from("profiles")
-    .select("doctor_id, clinic_id, full_name, specialty, subscription_status, plan, ui_preferences")
+    .select("doctor_id, clinic_id, full_name, specialty, subscription_status, subscription_expires_at, plan, ui_preferences")
     .eq("doctor_id", userId)
     .maybeSingle();
 
@@ -134,8 +136,10 @@ export async function ensureTenantProfile(
       full_name: fullName,
       specialty: specialties,
       plan: input.plan || "basic",
+      subscription_status: "trialing",
+      subscription_expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
     } satisfies ProfileInsert)
-    .select("doctor_id, clinic_id, full_name, specialty, subscription_status, plan, ui_preferences")
+    .select("doctor_id, clinic_id, full_name, specialty, subscription_status, subscription_expires_at, plan, ui_preferences")
     .single();
 
   if (error) {

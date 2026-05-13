@@ -141,23 +141,7 @@ export function SyncQueuePanel() {
     };
   }, [expanded, refreshQueue]);
 
-  async function handleRetryNow() {
-    setWorking(true);
-    setError(null);
 
-    try {
-      await flushSyncQueue({ forceRetry: true });
-      await refreshQueue();
-    } catch (syncError) {
-      setError(
-        syncError instanceof Error
-          ? syncError.message
-          : buildRetryableErrorMessage("reintentar la sincronizacion"),
-      );
-    } finally {
-      setWorking(false);
-    }
-  }
 
   async function handleDiscard(itemId: string) {
     setWorking(true);
@@ -270,14 +254,7 @@ export function SyncQueuePanel() {
           >
             {expanded ? "Ocultar cola" : "Ver cola"}
           </button>
-          <button
-            type="button"
-            onClick={() => void handleRetryNow()}
-            disabled={working || !isOnline}
-            className="rounded-xl bg-accent px-3 py-2 text-xs font-semibold uppercase tracking-[0.15em] text-white disabled:opacity-60 hover:opacity-90 transition"
-          >
-            Sincronizar ahora
-          </button>
+
         </div>
       </div>
 
@@ -351,7 +328,7 @@ export function SyncQueuePanel() {
 
       {expanded && !hasItems ? (
         <div className="mt-4 rounded-xl border border-border bg-card/70 p-4 text-sm text-ink-soft backdrop-blur-md">
-          No hay elementos pendientes en la cola. Puedes usar &quot;Sincronizar ahora&quot; para forzar un intento de verificacion.
+          No hay elementos pendientes en la cola.
         </div>
       ) : null}
     </section>

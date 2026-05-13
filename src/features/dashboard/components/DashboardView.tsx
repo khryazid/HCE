@@ -10,7 +10,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { isSameDay, parseISO } from "date-fns";
+import { isSameDay, parseISO, differenceInDays } from "date-fns";
 import { useTenant } from "@/lib/supabase/tenant-context";
 import { DashboardSkeleton } from "@/components/ui/skeletons";
 import {
@@ -236,6 +236,29 @@ export default function DashboardView() {
           {tenantError}
         </div>
       ) : null}
+
+      {tenant?.subscription_status === "trialing" && tenant?.subscription_expires_at && (
+        <div className="rounded-2xl border border-accent/20 bg-accent/5 p-4" role="alert">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent/10 text-accent">
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-accent">
+                  Prueba gratuita ({Math.max(0, differenceInDays(parseISO(tenant.subscription_expires_at), new Date()))} días restantes)
+                </h3>
+                <p className="mt-0.5 text-xs text-ink-soft">
+                  Estás probando el motor clínico con todas sus funcionalidades. Activa tu suscripción para mantener el acceso ininterrumpido.
+                </p>
+              </div>
+            </div>
+            <Link href="/billing" className="shrink-0 hce-btn-primary py-2 px-4 text-xs">
+              Activar cuenta
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* ── Today summary ── */}
       <article

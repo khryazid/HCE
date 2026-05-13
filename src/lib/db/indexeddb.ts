@@ -171,6 +171,10 @@ export async function enqueueSyncItem(item: SyncQueueItem) {
     },
     next_retry_at: item.next_retry_at ?? Date.now(),
   });
+
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("hce:sync-enqueued"));
+  }
 }
 
 function isRetryDue(item: SyncQueueItem, now: number) {

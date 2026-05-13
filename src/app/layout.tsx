@@ -28,6 +28,17 @@ export const metadata: Metadata = {
     "historia clínica electrónica", "HCE", "software médico", "CIE-10",
     "consulta médica", "offline-first", "médicos", "salud digital",
   ],
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
   icons: {
     icon: "/icon.svg",
     apple: "/icon.svg",

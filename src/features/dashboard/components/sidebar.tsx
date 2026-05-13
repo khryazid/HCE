@@ -14,7 +14,10 @@ import {
   Settings,
   PanelLeftClose,
   PanelLeftOpen,
+  Cloudy,
+  CloudLightning
 } from "lucide-react";
+import { SYNC_STARTED_EVENT, SYNC_FINISHED_EVENT } from "@/lib/sync/sync-worker";
 
 type NavItem = {
   href: string;
@@ -67,6 +70,7 @@ export function Sidebar() {
   const overdueCount = useOverdueCount();
 
   const [isOnline, setIsOnline] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -74,9 +78,18 @@ export function Sidebar() {
     setIsOnline(navigator.onLine);
     const on  = () => setIsOnline(true);
     const off = () => setIsOnline(false);
+    const onSyncStart = () => setIsSyncing(true);
+    const onSyncFinish = () => setIsSyncing(false);
     window.addEventListener("online", on);
     window.addEventListener("offline", off);
-    return () => { window.removeEventListener("online", on); window.removeEventListener("offline", off); };
+    window.addEventListener(SYNC_STARTED_EVENT, onSyncStart);
+    window.addEventListener(SYNC_FINISHED_EVENT, onSyncFinish);
+    return () => { 
+      window.removeEventListener("online", on); 
+      window.removeEventListener("offline", off);
+      window.removeEventListener(SYNC_STARTED_EVENT, onSyncStart);
+      window.removeEventListener(SYNC_FINISHED_EVENT, onSyncFinish);
+    };
   }, []);
 
   return (
@@ -123,8 +136,16 @@ export function Sidebar() {
             </p>
             <div className="mt-1 flex items-center gap-1.5">
               <span className={`relative flex h-1.5 w-1.5 shrink-0`}>
-                {isOnline && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-teal-400 opacity-75"></span>}
-                <span className={`relative inline-flex h-1.5 w-1.5 rounded-full ${isOnline ? "bg-teal-500" : "bg-red-500"}`}></span>
+                {isSyncing ? (
+                  <>
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-400 opacity-75"></span>
+                    <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-blue-500"></span>
+                  </>
+                ) : isOnline ? (
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-teal-500"></span>
+                ) : (
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-red-500"></span>
+                )}
               </span>
               <p
                 style={{
@@ -136,7 +157,7 @@ export function Sidebar() {
                   lineHeight: 1,
                 }}
               >
-                {isOnline ? "En línea" : "Sin conexión"}
+                {isSyncing ? "Sincronizando..." : isOnline ? "Sincronizado" : "Offline"}
               </p>
             </div>
           </div>

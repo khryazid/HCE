@@ -16,7 +16,10 @@ import { MAX_RETRY_DELAY_MS, BASE_RETRY_DELAY_MS } from "@/lib/constants/sync";
 
 const MAX_RETRIES = 3;
 
+export const SYNC_STARTED_EVENT = "hce:sync-started";
 export const SYNC_FINISHED_EVENT = "hce:sync-finished";
+
+let isFlushing = false;
 
 export type SyncFlushSummary = {
   startedAt: number;
@@ -339,6 +342,13 @@ async function syncItem(item: SyncQueueItem): Promise<"synced" | "conflicted"> {
 }
 
 export async function flushSyncQueue(options?: { forceRetry?: boolean }) {
+  if (isFlushing) return;
+  isFlushing = true;
+
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent(SYNC_STARTED_EVENT));
+  }
+
   const startedAt = Date.now();
   const supabase = getSupabaseClient() as SupabaseClient<Database>;
   const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -346,7 +356,7 @@ export async function flushSyncQueue(options?: { forceRetry?: boolean }) {
   // If the session is invalid (e.g. refresh token revoked), skip this flush
   // gracefully. The middleware will redirect to login on the next navigation.
   if (authError || !user) {
-    return {
+    const summary: SyncFlushSummary = {
       startedAt,
       finishedAt: Date.now(),
       processed: 0,
@@ -354,6 +364,15 @@ export async function flushSyncQueue(options?: { forceRetry?: boolean }) {
       failed: 0,
       conflicted: 0,
     };
+    isFlushing = false;
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent<SyncFlushSummary>(SYNC_FINISHED_EVENT, {
+          detail: summary,
+        }),
+      );
+    }
+    return summary;
   }
 
   const currentDoctorId = user.id;
@@ -377,6 +396,7 @@ export async function flushSyncQueue(options?: { forceRetry?: boolean }) {
         }),
       );
     }
+    isFlushing = false;
     return summary;
   }
 
@@ -571,21 +591,25 @@ export async function flushSyncQueue(options?: { forceRetry?: boolean }) {
     );
   }
 
+  isFlushing = false;
   return summary;
 }
 
 export function startSyncWorker() {
   const handleOnline = () => {
     void flushSyncQueue().catch((err) => {
+      isFlushing = false;
       logSyncError("flush_trigger", "Unhandled error starting flushSyncQueue", { error: String(err) });
     });
   };
 
   if (typeof window !== "undefined") {
     window.addEventListener("online", handleOnline);
+    window.addEventListener("hce:sync-enqueued", handleOnline);
 
     if (window.navigator.onLine) {
       void flushSyncQueue().catch((err) => {
+        isFlushing = false;
         logSyncError("flush_trigger", "Unhandled error on initial flushSyncQueue", { error: String(err) });
       });
     }
@@ -594,6 +618,7 @@ export function startSyncWorker() {
   return () => {
     if (typeof window !== "undefined") {
       window.removeEventListener("online", handleOnline);
+      window.removeEventListener("hce:sync-enqueued", handleOnline);
     }
   };
 }
