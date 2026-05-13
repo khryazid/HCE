@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { LogoutButton } from "@/features/auth/components/logout-button";
+import { useOverdueCount } from "@/features/dashboard/hooks/use-overdue-count";
 import {
   Home,
   ClipboardList,
@@ -63,6 +64,20 @@ function GlyphMark({ size = 36 }: { size?: number }) {
 export function Sidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const overdueCount = useOverdueCount();
+
+  const [isOnline, setIsOnline] = useState(true);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsOnline(navigator.onLine);
+    const on  = () => setIsOnline(true);
+    const off = () => setIsOnline(false);
+    window.addEventListener("online", on);
+    window.addEventListener("offline", off);
+    return () => { window.removeEventListener("online", on); window.removeEventListener("offline", off); };
+  }, []);
 
   return (
     <aside
@@ -106,22 +121,46 @@ export function Sidebar() {
             >
               Glyph
             </p>
-            <p
-              style={{
-                fontSize: ".68rem",
-                color: "var(--ink-faint)",
-                fontFamily: "'Outfit', system-ui, sans-serif",
-                letterSpacing: ".06em",
-                textTransform: "uppercase",
-                lineHeight: 1,
-                marginTop: 2,
-              }}
-            >
-              Motor clínico
-            </p>
+            <div className="mt-1 flex items-center gap-1.5">
+              <span className={`relative flex h-1.5 w-1.5 shrink-0`}>
+                {isOnline && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-teal-400 opacity-75"></span>}
+                <span className={`relative inline-flex h-1.5 w-1.5 rounded-full ${isOnline ? "bg-teal-500" : "bg-red-500"}`}></span>
+              </span>
+              <p
+                style={{
+                  fontSize: ".65rem",
+                  color: "var(--ink-faint)",
+                  fontFamily: "'Outfit', system-ui, sans-serif",
+                  letterSpacing: ".04em",
+                  textTransform: "uppercase",
+                  lineHeight: 1,
+                }}
+              >
+                {isOnline ? "En línea" : "Sin conexión"}
+              </p>
+            </div>
           </div>
         )}
       </div>
+
+      {!collapsed && (
+        <div className="px-3 pb-2 pt-3">
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new KeyboardEvent("keydown", {
+              key: "k", ctrlKey: true, bubbles: true
+            }))}
+            className="flex w-full items-center gap-2 rounded-xl border border-border bg-bg-soft px-3 py-2 text-sm text-ink-soft transition hover:border-accent/30 hover:text-ink"
+          >
+            <svg className="h-4 w-4 shrink-0 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+            Buscar
+            <div className="ml-auto flex items-center gap-1">
+              <kbd className="inline-flex h-5 items-center rounded border border-border bg-card px-1.5 text-[10px] font-medium">⌘</kbd>
+              <kbd className="inline-flex h-5 items-center rounded border border-border bg-card px-1.5 text-[10px] font-medium">K</kbd>
+            </div>
+          </button>
+        </div>
+      )}
 
       {/* Nav */}
       <nav
@@ -176,8 +215,15 @@ export function Sidebar() {
                   }}
                 />
               )}
-              <span style={{ flexShrink: 0, display: "flex" }}>{item.icon}</span>
+              <span style={{ flexShrink: 0, display: "flex", position: "relative" }}>
+                {item.icon}
+              </span>
               {!collapsed && <span style={{ whiteSpace: "nowrap" }}>{item.label}</span>}
+              {item.href === "/pacientes" && overdueCount > 0 && (
+                <span className="ml-auto flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                  {overdueCount > 9 ? "9+" : overdueCount}
+                </span>
+              )}
             </Link>
           );
         })}
@@ -264,6 +310,7 @@ export function MobileHeader() {
 /* ── Bottom Nav (mobile) ────────────────────────────────────── */
 export function BottomNav() {
   const pathname = usePathname();
+  const overdueCount = useOverdueCount();
 
   return (
     <nav
@@ -319,9 +366,15 @@ export function BottomNav() {
                 transform: isActive ? "scale(1.1)" : "scale(1)",
                 transition: "transform .15s",
                 display: "flex",
+                position: "relative",
               }}
             >
               {item.icon}
+              {item.href === "/pacientes" && overdueCount > 0 && (
+                <span className="absolute -right-2 -top-1 flex h-3.5 min-w-[14px] items-center justify-center rounded-full border border-card bg-red-500 px-0.5 text-[8px] font-bold text-white">
+                  {overdueCount > 9 ? "9+" : overdueCount}
+                </span>
+              )}
             </span>
             <span>{item.label}</span>
           </Link>

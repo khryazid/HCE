@@ -440,3 +440,71 @@ html {
 /* Misc */
 .accent-teal-600 { accent-color: var(--accent); }
 .shadow-teal-500\/20 { --tw-shadow-color: rgba(196,96,42,.20); }
+
+/* ── Animación de entrada de página ─────────────────────────────────── */
+@keyframes hce-page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hce-page {
+  animation: hce-page-enter 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ── Shimmer para skeletons ──────────────────────────────────────────── */
+@keyframes hce-shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--bg-soft) 25%,
+    color-mix(in srgb, var(--bg-soft) 70%, var(--ink) 30%) 50%,
+    var(--bg-soft) 75%
+  );
+  background-size: 200% 100%;
+  animation: hce-shimmer 1.6s infinite;
+  border-radius: var(--radius, 12px);
+}
+
+/* ── Focus ring suave (reemplaza el outline duro) ────────────────────── */
+@layer base {
+  :focus-visible {
+    outline: none !important;
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent) !important;
+  }
+}
+
+/* ── Tokens de sombra adicionales ────────────────────────────────────── */
+:root {
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.05), 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-lg: 0 24px 56px rgba(15, 23, 42, 0.14), 0 8px 24px rgba(15, 23, 42, 0.08);
+}
+
+/* ── Entrada suave de modales ────────────────────────────────────────── */
+@keyframes hce-modal-in {
+  from { opacity: 0; transform: scale(0.96) translateY(4px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.hce-modal-enter {
+  animation: hce-modal-in 160ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Respetar preferencia de movimiento reducido */
+@media (prefers-reduced-motion: reduce) {
+  .hce-page,
+  .hce-modal-enter,
+  .skeleton-shimmer {
+    animation: none !important;
+  }
+}

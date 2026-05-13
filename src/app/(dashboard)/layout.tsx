@@ -4,6 +4,8 @@ import { SyncStatusBanner } from "@/features/sync/components/sync-status-banner"
 import { GlobalSearch } from "@/features/dashboard/components/global-search";
 import { TenantProvider } from "@/lib/supabase/tenant-context";
 import { ClinicalProvider } from "@/features/consultations/context/clinical-context";
+import Link from "next/link";
+import { Plus } from "lucide-react";
 
 export default function DashboardLayout({
   children,
@@ -35,6 +37,14 @@ export default function DashboardLayout({
               </div>
             </main>
           </div>
+
+          {/* Mobile FAB */}
+          <Link
+            href="/consultas"
+            className="fixed bottom-20 right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-accent text-white shadow-lg transition-transform hover:scale-105 active:scale-95 lg:hidden"
+          >
+            <Plus className="h-6 w-6" />
+          </Link>
 
           {/* Mobile bottom nav */}
           <BottomNav />

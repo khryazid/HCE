@@ -15,6 +15,15 @@ import { WizardStepReviewOfSystems } from "@/features/consultations/components/w
 import { WizardStepPhysicalExam } from "@/features/consultations/components/wizard-step-physical-exam";
 import { WizardStepDiagnosisOnly } from "@/features/consultations/components/wizard-step-diagnosis-only";
 import { WizardStepTreatment } from "@/features/consultations/components/wizard-step-treatment";
+import { WizardStepper } from "./wizard-stepper";
+
+// Constante de steps (fuera del componente)
+const WIZARD_STEPS = [
+  { number: 1, label: "Paciente" },
+  { number: 2, label: "Diagnóstico" },
+  { number: 3, label: "Tratamiento" },
+  { number: 4, label: "PDF" },
+];
 
 // ─── Step metadata (medico-legal order) ─────────────────────────────────────
 const STEPS = [
@@ -138,26 +147,8 @@ export default function ConsultationsView() {
             </div>
 
             {/* Stepper visual */}
-            <div className="mt-5 flex items-center gap-1 overflow-x-auto pb-1" role="list" aria-label="Pasos del flujo clínico">
-              {STEPS.map(({ num, label }, i) => (
-                <div key={num} className="flex items-center gap-1 shrink-0" role="listitem">
-                  <div className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold transition-all ${
-                    wizard.form.patientId || num === 1
-                      ? "bg-teal-500/15 text-teal-800 dark:text-teal-300"
-                      : "bg-bg-soft text-ink-soft"
-                  }`}>
-                    <span className={`inline-flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-extrabold ${
-                      wizard.form.patientId || num === 1
-                        ? "bg-teal-600 text-white"
-                        : "bg-border text-ink-soft"
-                    }`}>{num}</span>
-                    <span className="whitespace-nowrap">{label}</span>
-                  </div>
-                  {i < STEPS.length - 1 && (
-                    <span aria-hidden className="text-border text-xs">›</span>
-                  )}
-                </div>
-              ))}
+            <div className="mt-5 flex justify-center w-full">
+              <WizardStepper steps={WIZARD_STEPS} currentStep={wizard.step} />
             </div>
           </div>
 
@@ -291,17 +282,26 @@ export default function ConsultationsView() {
         <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
           <EmptyState
             icon={<EmptyStateIconConsultations />}
-            title="Listo para registrar una atención"
-            description="Inicia el flujo guiado para crear una nueva consulta o seguimiento. Los datos se guardan offline y se sincronizan al recuperar conexión."
+            title="Primera consulta del día"
+            description="Registra una atención en menos de 3 minutos con el flujo guiado. Los datos se guardan offline y se sincronizan automáticamente."
             size="md"
             action={
-              <button
-                type="button"
-                onClick={wizard.openWizard}
-                className="hce-btn-primary"
-              >
-                Nueva consulta
-              </button>
+              <div className="flex flex-col items-center gap-3">
+                <button
+                  type="button"
+                  onClick={wizard.openWizard}
+                  className="hce-btn-primary"
+                >
+                  Nueva consulta
+                </button>
+                <p className="text-xs text-ink-soft">
+                  o presiona{" "}
+                  <kbd className="inline-flex items-center rounded border border-border bg-bg-soft px-1.5 font-sans text-[10px] font-semibold text-ink-soft">
+                    Ctrl+K
+                  </kbd>{" "}
+                  para buscar un paciente existente
+                </p>
+              </div>
             }
           />
         </div>

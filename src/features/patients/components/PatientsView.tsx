@@ -247,6 +247,7 @@ export default function PatientsView() {
           search={search}
           onSearchChange={setSearch}
           onSelect={setSelectedPatientId}
+          allPatients={patients}
         />
 
         <section className="space-y-6">

@@ -169,10 +169,12 @@ export function useConsultationSave() {
         await generateConsultationPdf(letterhead, buildPdfPreviewData(timestamp));
       }
 
-      const message = buildConsultationSuccessMessage({
-        entryMode: form.entryMode,
-        generatedPdf: shouldGeneratePdf,
-      });
+      const patientName = patients.find(p => p.id === form.patientId)?.full_name ?? "paciente";
+      const shortName = patientName.split(" ")[0]; // Solo el primer nombre
+
+      const message = form.entryMode === "seguimiento"
+        ? `Seguimiento de ${shortName} guardado correctamente${shouldGeneratePdf ? " · PDF generado" : ""}`
+        : `Consulta de ${shortName} guardada${shouldGeneratePdf ? " · PDF generado" : ""}`;
 
       // Evento de auditoría / observabilidad
       emitAppEvent(APP_EVENT_CONSULTATION_SAVED, {

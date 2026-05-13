@@ -8,7 +8,7 @@
  */
 
 function shimmerClass() {
-  return "animate-pulse rounded-xl bg-[color:var(--bg-soft)]";
+  return "skeleton-shimmer rounded-xl";
 }
 
 function SkeletonLine({ width = "100%", height = "0.875rem" }: { width?: string; height?: string }) {

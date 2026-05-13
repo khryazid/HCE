@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import SearchInput from "@/components/ui/search-input";
 import { useRouter } from "next/navigation";
 import { useTenant } from "@/lib/supabase/tenant-context";
@@ -232,6 +232,72 @@ export function GlobalSearch() {
     router.push(item.href);
   }
 
+  // Función helper para agrupar (añadir antes del return del componente)
+  const groupedItems = useMemo(() => {
+    const patients     = filteredItems.filter(i => i.kind === "patient");
+    const consultations = filteredItems.filter(i => i.kind === "consultation");
+    const treatments   = filteredItems.filter(i => i.kind === "treatment");
+    return { patients, consultations, treatments };
+  }, [filteredItems]);
+
+  // Componente de grupo (añadir antes del return)
+  const ResultGroup = ({
+    label,
+    items,
+    startIndex,
+  }: {
+    label: string;
+    items: typeof filteredItems;
+    startIndex: number;
+  }) => {
+    if (items.length === 0) return null;
+    return (
+      <>
+        <div className="px-3 pb-1 pt-2">
+          <h4 className="text-[10px] font-bold uppercase tracking-widest text-ink-faint">
+            {label}
+          </h4>
+        </div>
+        {items.map((item, i) => {
+          const globalIndex = startIndex + i;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => selectItem(item)}
+              onMouseEnter={() => setActiveIndex(globalIndex)}
+              className={`mb-0.5 w-full rounded-xl px-3 py-2.5 text-left transition ${
+                globalIndex === activeIndex
+                  ? "bg-accent/8 border border-accent/20"
+                  : "hover:bg-bg-soft border border-transparent"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-semibold ${
+                  item.kind === "patient"      ? "bg-teal-100 text-teal-700" :
+                  item.kind === "consultation" ? "bg-purple-100 text-purple-700" :
+                                                 "bg-amber-100 text-amber-700"
+                }`}>
+                  {item.kind === "patient"      ? "P" :
+                   item.kind === "consultation" ? "C" : "T"}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-ink">{item.title}</p>
+                  <p className="truncate text-[11px] text-ink-soft">{item.subtitle}</p>
+                </div>
+                {globalIndex === activeIndex && (
+                  <span className="shrink-0 text-[10px] font-semibold text-accent">
+                    ↵
+                  </span>
+                )}
+              </div>
+            </button>
+          );
+        })}
+      </>
+    );
+  };
+
   // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
@@ -291,25 +357,11 @@ export function GlobalSearch() {
                     : "Empieza a escribir para buscar…"}
                 </p>
               ) : (
-                filteredItems.map((item, index) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => selectItem(item)}
-                    onMouseEnter={() => setActiveIndex(index)}
-                    className={`mb-1 w-full rounded-xl border px-3 py-2 text-left transition ${
-                      index === activeIndex
-                        ? "border-teal-500/50 bg-teal-500/10"
-                        : "border-transparent bg-card hover:border-border hover:bg-bg-soft"
-                    }`}
-                  >
-                    <p className="text-sm font-semibold text-ink">{item.title}</p>
-                    <p className="mt-0.5 text-xs text-ink-soft">{item.subtitle}</p>
-                    <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-soft">
-                      {itemKindLabel(item.kind)}
-                    </p>
-                  </button>
-                ))
+                <>
+                  <ResultGroup label="Pacientes" items={groupedItems.patients} startIndex={0} />
+                  <ResultGroup label="Consultas" items={groupedItems.consultations} startIndex={groupedItems.patients.length} />
+                  <ResultGroup label="Tratamientos" items={groupedItems.treatments} startIndex={groupedItems.patients.length + groupedItems.consultations.length} />
+                </>
               )}
             </div>
           </section>

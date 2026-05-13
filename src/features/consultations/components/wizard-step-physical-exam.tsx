@@ -138,6 +138,8 @@ export function WizardStepPhysicalExam({ form, setForm, tenantSpecialties = [] }
             <div className="space-y-1 sm:col-span-2">
               <label className="text-[10px] font-medium text-ink-soft uppercase">T.A. (mmHg)</label>
               <input
+                inputMode="decimal"
+                pattern="[0-9.,]*"
                 className="hce-input text-sm text-center px-2"
                 placeholder="120/80"
                 value={form.vitalSigns.bloodPressure}
@@ -182,35 +184,35 @@ export function WizardStepPhysicalExam({ form, setForm, tenantSpecialties = [] }
 
             <div className="space-y-1">
               <label className="text-[10px] font-medium text-ink-soft uppercase">F.C. (lpm)</label>
-              <input className="hce-input text-sm text-center px-2" placeholder="80"
+              <input inputMode="decimal" pattern="[0-9.,]*" className="hce-input text-sm text-center px-2" placeholder="80"
                 value={form.vitalSigns.heartRate}
                 onChange={(e) => setForm((c) => ({ ...c, vitalSigns: { ...c.vitalSigns, heartRate: e.target.value } }))}
               />
             </div>
             <div className="space-y-1">
               <label className="text-[10px] font-medium text-ink-soft uppercase">F.R. (rpm)</label>
-              <input className="hce-input text-sm text-center px-2" placeholder="16"
+              <input inputMode="decimal" pattern="[0-9.,]*" className="hce-input text-sm text-center px-2" placeholder="16"
                 value={form.vitalSigns.respiratoryRate}
                 onChange={(e) => setForm((c) => ({ ...c, vitalSigns: { ...c.vitalSigns, respiratoryRate: e.target.value } }))}
               />
             </div>
             <div className="space-y-1">
               <label className="text-[10px] font-medium text-ink-soft uppercase">Temp. (°C)</label>
-              <input className="hce-input text-sm text-center px-2" placeholder="36.5"
+              <input inputMode="decimal" pattern="[0-9.,]*" className="hce-input text-sm text-center px-2" placeholder="36.5"
                 value={form.vitalSigns.temperature}
                 onChange={(e) => setForm((c) => ({ ...c, vitalSigns: { ...c.vitalSigns, temperature: e.target.value } }))}
               />
             </div>
             <div className="space-y-1">
               <label className="text-[10px] font-medium text-ink-soft uppercase">SatO2 (%)</label>
-              <input className="hce-input text-sm text-center px-2" placeholder="98"
+              <input inputMode="decimal" pattern="[0-9.,]*" className="hce-input text-sm text-center px-2" placeholder="98"
                 value={form.vitalSigns.oxygenSaturation}
                 onChange={(e) => setForm((c) => ({ ...c, vitalSigns: { ...c.vitalSigns, oxygenSaturation: e.target.value } }))}
               />
             </div>
             <div className="space-y-1">
               <label className="text-[10px] font-medium text-ink-soft uppercase">Peso (kg)</label>
-              <input className="hce-input text-sm text-center px-2" placeholder="70.5"
+              <input inputMode="decimal" pattern="[0-9.,]*" className="hce-input text-sm text-center px-2" placeholder="70.5"
                 value={form.vitalSigns.weight}
                 onChange={(e) => setForm((c) => ({ ...c, vitalSigns: { ...c.vitalSigns, weight: e.target.value } }))}
               />
@@ -218,6 +220,8 @@ export function WizardStepPhysicalExam({ form, setForm, tenantSpecialties = [] }
             <div className="space-y-1">
               <label className="text-[10px] font-medium text-ink-soft uppercase">Talla (m)</label>
               <input
+                inputMode="decimal"
+                pattern="[0-9.,]*"
                 className="hce-input text-sm text-center px-2"
                 placeholder="1.75"
                 value={form.vitalSigns.height ?? ""}

@@ -77,7 +77,7 @@ export function ConfirmModal({
       role="presentation"
     >
       <div
-        className="mx-4 w-full max-w-sm rounded-3xl border border-[color:var(--border)] bg-[color:var(--card)] p-6 shadow-2xl space-y-5 not-italic relative z-10"
+        className="mx-4 w-full max-w-sm rounded-3xl border border-[color:var(--border)] bg-[color:var(--card)] p-6 shadow-2xl space-y-5 not-italic relative z-10 hce-modal-enter"
         role="dialog"
         aria-modal="true"
         aria-labelledby="confirm-modal-title"

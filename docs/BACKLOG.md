@@ -3,9 +3,32 @@
 
 ---
 
-## 🗓️ Sprint Actual — Próximas Tareas
+## 🗓️ Sprint Actual — Mejoras UX/UI Completas
 
-Esta es la lista ordenada de lo que trabajamos en la próxima sesión, en prioridad descendente.
+> **Reglas de oro antes de empezar:**
+> 1. Leer el archivo completo antes de modificarlo
+> 2. Después de cada grupo de cambios ejecutar `npx tsc --noEmit` — debe dar 0 errores
+> 3. No eliminar funcionalidad existente — solo añadir o mejorar
+> 4. Respetar las utilidades CSS existentes: `hce-input`, `hce-btn-primary`, `hce-surface`, etc.
+> 5. Todo CSS nuevo va en `src/app/globals.css` salvo que sea lógica de componente
+
+### GRUPO 1 — IMPACTO MÁXIMO (implementar primero)
+- [x] **1.1** — FAB (Floating Action Button) para nueva consulta en móvil (`src/app/(dashboard)/layout.tsx`)
+- [x] **1.2** — Stepper de progreso en el wizard de consultas (`src/features/consultations/components/ConsultationsView.tsx` & `wizard-stepper.tsx`)
+- [x] **1.3** — Badge de alertas en el Sidebar y BottomNav (`src/features/dashboard/components/sidebar.tsx` & `BottomNav`)
+- [x] **1.4** — `inputMode="decimal"` en signos vitales (`src/features/consultations/components/wizard-step-diagnosis.tsx`)
+
+### GRUPO 2 — IMPACTO ALTO
+- [x] **2.1** — Animación de entrada de páginas y modales (`src/app/globals.css`, `skeletons.tsx`, `confirm-modal.tsx`)
+- [x] **2.2** — Ctrl+K con resultados categorizados (`src/features/dashboard/components/global-search.tsx`)
+- [x] **2.3** — Dashboard accionable — alertas urgentes (`src/features/dashboard/components/DashboardView.tsx`)
+- [x] **2.4** — Toasts contextuales con nombre del paciente (`src/features/consultations/lib/use-consultation-save.ts`)
+
+### GRUPO 3 — REFINAMIENTOS VISUALES
+- [x] **3.1** — Búsqueda integrada al Sidebar (`src/features/dashboard/components/sidebar.tsx`)
+- [x] **3.2** — Indicador de estado offline/online en Sidebar (`src/features/dashboard/components/sidebar.tsx`)
+- [x] **3.3** — Estados vacíos mejorados (`src/features/consultations/components/ConsultationsView.tsx`)
+- [x] **3.4** — Lista de pacientes compacta con filtros rápidos (`src/features/patients/components/PatientList.tsx`)
 
 ---
 
