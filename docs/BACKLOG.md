@@ -3,7 +3,20 @@
 
 ---
 
-## 🗓️ Sprint Actual — Mejoras UX/UI Completas
+## 🚀 Siguiente Sprint — Onboarding y Sync Transparente
+
+### GRUPO 1 — FREE TRIAL (7 Días)
+- [ ] **1.1** — Registro sin tarjeta: Activar 7 días de prueba gratis automático al crear cuenta para ambos planes.
+- [ ] **1.2** — Alerta en Dashboard: Mostrar contador de días restantes de prueba en la interfaz principal.
+- [ ] **1.3** — Notificación por correo: Configurar cron/Resend para enviar recordatorio de fin de prueba a los 7 días.
+
+### GRUPO 2 — SINCRONIZACIÓN INVISIBLE
+- [ ] **2.1** — Automatización de Sync: Refactorizar el motor de sincronización (IndexedDB <-> Supabase) para que actúe silenciosamente en segundo plano sin requerir intervención manual del usuario.
+- [ ] **2.2** — UX de Sincronización: Eliminar modales invasivos o botones manuales complejos. Reemplazar por un micro-indicador de estado discreto en la barra inferior (Online/Sincronizando/Offline).
+
+---
+
+## 🗓️ Sprint Anterior — Mejoras UX/UI Completas
 
 > **Reglas de oro antes de empezar:**
 > 1. Leer el archivo completo antes de modificarlo
