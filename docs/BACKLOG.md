@@ -15,6 +15,10 @@
 - [ ] **2.1** — Automatización de Sync: Refactorizar el motor de sincronización (IndexedDB <-> Supabase) para que actúe silenciosamente en segundo plano sin requerir intervención manual del usuario.
 - [ ] **2.2** — UX de Sincronización: Eliminar modales invasivos o botones manuales complejos. Reemplazar por un micro-indicador de estado discreto en la barra inferior (Online/Sincronizando/Offline).
 
+### GRUPO 3 — SEO Y PERFORMANCE (Landing Page)
+- [ ] **3.1** — Core Web Vitals: Optimizar tiempos de carga, LCP y CLS para alcanzar un score 95+ en Google PageSpeed Insights.
+- [ ] **3.2** — Metadatos y Estructura: Implementar Schema Markup, Open Graph estructurado, mapa del sitio (sitemap.xml) y etiquetas alt completas para maximizar el posicionamiento orgánico.
+
 ---
 
 ## 🗓️ Sprint Anterior — Mejoras UX/UI Completas

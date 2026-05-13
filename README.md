@@ -349,6 +349,7 @@ La siguiente prioridad de desarrollo:
 - Free Trial de 7 días automático sin tarjeta de crédito al registrarse.
 - Notificaciones automáticas de fin de trial por correo y dashboard.
 - Motor de sincronización background invisible (zero-UI) para IndexedDB <-> Supabase.
+- **Optimización SEO Avanzada**: Refinamiento técnico de Core Web Vitals y Metadatos para alcanzar score perfecto en Google y dominar el posicionamiento orgánico.
 
 ---
 
