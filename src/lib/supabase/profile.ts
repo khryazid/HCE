@@ -9,6 +9,7 @@ export type TenantProfile = {
   subscription_status?: string | null;
   plan: "basic" | "clinic";
   role: "admin" | "doctor" | "assistant";
+  ui_preferences?: Record<string, boolean>;
 };
 
 type EnsureTenantProfileInput = {
@@ -49,10 +50,16 @@ function withSpecialties(profile: {
   plan: "basic" | "clinic";
   subscription_status?: string | null;
   role?: "admin" | "doctor" | "assistant";
+  ui_preferences?: Record<string, boolean> | unknown;
 }): TenantProfile {
   // Map the DB column name `specialty` to the canonical `specialties` field.
-  const { specialty, role, ...rest } = profile;
-  return { ...rest, specialties: specialty, role: role || "admin" };
+  const { specialty, role, ui_preferences, ...rest } = profile;
+  return { 
+    ...rest, 
+    specialties: specialty, 
+    role: role || "admin",
+    ui_preferences: (ui_preferences as Record<string, boolean>) || {}
+  };
 }
 
 export function createClinicId() {
@@ -63,7 +70,7 @@ export async function loadTenantProfile(userId: string): Promise<TenantProfile |
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from("profiles")
-    .select("doctor_id, clinic_id, full_name, specialty, subscription_status, plan")
+    .select("doctor_id, clinic_id, full_name, specialty, subscription_status, plan, ui_preferences")
     .eq("doctor_id", userId)
     .maybeSingle();
 
@@ -87,6 +94,7 @@ export async function loadTenantProfile(userId: string): Promise<TenantProfile |
     ...data,
     plan: data.plan as "basic" | "clinic",
     role: (memberData?.role as "admin" | "doctor" | "assistant") || "admin",
+    ui_preferences: data.ui_preferences,
   });
 }
 
@@ -127,7 +135,7 @@ export async function ensureTenantProfile(
       specialty: specialties,
       plan: input.plan || "basic",
     } satisfies ProfileInsert)
-    .select("doctor_id, clinic_id, full_name, specialty, subscription_status, plan")
+    .select("doctor_id, clinic_id, full_name, specialty, subscription_status, plan, ui_preferences")
     .single();
 
   if (error) {
@@ -151,6 +159,7 @@ export async function ensureTenantProfile(
   return withSpecialties({
     ...data,
     plan: data.plan as "basic" | "clinic",
+    ui_preferences: data.ui_preferences,
   });
 }
 

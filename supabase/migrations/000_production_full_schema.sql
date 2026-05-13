@@ -58,6 +58,7 @@ create table if not exists public.profiles (
   subscription_expires_at timestamptz default null,
   plan                    text        not null default 'basic' check (plan in ('basic', 'clinic')),
   payment_config          jsonb       not null default '{}'::jsonb,
+  ui_preferences          jsonb       not null default '{}'::jsonb,
   created_at              timestamptz not null default now(),
   updated_at              timestamptz not null default now(),
   unique (clinic_id, doctor_id)

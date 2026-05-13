@@ -207,6 +207,8 @@ export default function ConsultationsView() {
                 <WizardStepReviewOfSystems
                   form={wizard.form}
                   setForm={wizard.setForm}
+                  uiPreferences={wizard.uiPreferences}
+                  onToggleSection={wizard.toggleSectionVisibility}
                 />
               </section>
 
@@ -250,6 +252,8 @@ export default function ConsultationsView() {
                   validationErrors={wizard.validationErrors}
                   latestPatientRecord={wizard.latestPatientRecord}
                   onApplyTemplate={wizard.applyTemplate}
+                  uiPreferences={wizard.uiPreferences}
+                  onToggleSection={wizard.toggleSectionVisibility}
                 />
               </section>
 

@@ -56,7 +56,43 @@ type Props = {
   validationErrors: Record<string, string>;
   latestPatientRecord?: ClinicalRecordRecord | null;
   onApplyTemplate: (templateId: string) => void;
+  uiPreferences?: Record<string, boolean>;
+  onToggleSection?: (key: string) => void;
 };
+
+function SectionHeader({ 
+  title, 
+  prefKey, 
+  uiPreferences, 
+  onToggle 
+}: { 
+  title: string; 
+  prefKey: string; 
+  uiPreferences?: Record<string, boolean>; 
+  onToggle?: (key: string) => void;
+}) {
+  const isHidden = uiPreferences?.[prefKey] === true;
+  return (
+    <div className="flex items-center justify-between border-b border-teal-100 dark:border-teal-500/30 pb-2">
+      <h4 className="text-sm font-semibold text-teal-900 dark:text-teal-400">
+        {title}
+      </h4>
+      {onToggle && (
+        <button
+          type="button"
+          onClick={() => onToggle(prefKey)}
+          className="text-[10px] uppercase font-bold tracking-wider text-teal-700 dark:text-teal-300 hover:bg-teal-100 dark:hover:bg-teal-900/50 transition-colors bg-teal-50 dark:bg-teal-900/30 px-2.5 py-1 rounded-md flex items-center gap-1.5"
+        >
+          {isHidden ? (
+            <><span>👁️</span> Mostrar</>
+          ) : (
+            <><span>🙈</span> Ocultar</>
+          )}
+        </button>
+      )}
+    </div>
+  );
+}
 
 export function WizardStepTreatment({
   form,
@@ -65,6 +101,8 @@ export function WizardStepTreatment({
   validationErrors,
   latestPatientRecord,
   onApplyTemplate,
+  uiPreferences,
+  onToggleSection,
 }: Props) {
 
   function updateField(field: "treatmentPlan" | "recommendations" | "warningSigns", value: string) {
@@ -129,53 +167,61 @@ export function WizardStepTreatment({
 
       {/* ÓRDENES INTRAHOSPITALARIAS (Tarea 5) */}
       <div className="space-y-4">
-        <h4 className="text-sm font-semibold text-teal-900 dark:text-teal-400 border-b border-teal-100 dark:border-teal-500/30 pb-2">
-          D. Órdenes Intrahospitalarias / Medidas Generales
-        </h4>
-        <p className="text-[11px] text-ink-soft">
-          Para pacientes en observación, emergencia u hospitalización. Completa si aplica.
-        </p>
+        <SectionHeader 
+          title="D. Órdenes Intrahospitalarias / Medidas Generales" 
+          prefKey="hide_medical_orders" 
+          uiPreferences={uiPreferences} 
+          onToggle={onToggleSection} 
+        />
+        
+        {uiPreferences?.hide_medical_orders !== true && (
+          <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+            <p className="text-[11px] text-ink-soft mb-4">
+              Para pacientes en observación, emergencia u hospitalización. Completa si aplica.
+            </p>
 
-        <div className="rounded-2xl border border-border bg-bg-soft p-4 space-y-4">
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-ink">Tipo de Dieta</label>
-            <select
-              className="hce-input"
-              value={form.medical_orders.diet_type}
-              onChange={(e) => setForm((c) => ({ ...c, medical_orders: { ...c.medical_orders, diet_type: e.target.value } }))}
-            >
-              <option value="">No aplica / No especificada</option>
-              <option value="absoluta">Absoluta (NPO)</option>
-              <option value="liquida">Líquida clara</option>
-              <option value="blanda">Blanda / Papilla</option>
-              <option value="completa">Completa</option>
-              <option value="hiposodica">Hipósodica</option>
-              <option value="diabetica">Diabética</option>
-              <option value="hipocalorica">Hipocalórica</option>
-              <option value="renal">Renal</option>
-            </select>
-          </div>
+            <div className="rounded-2xl border border-border bg-bg-soft p-4 space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-ink">Tipo de Dieta</label>
+                <select
+                  className="hce-input"
+                  value={form.medical_orders.diet_type}
+                  onChange={(e) => setForm((c) => ({ ...c, medical_orders: { ...c.medical_orders, diet_type: e.target.value } }))}
+                >
+                  <option value="">No aplica / No especificada</option>
+                  <option value="absoluta">Absoluta (NPO)</option>
+                  <option value="liquida">Líquida clara</option>
+                  <option value="blanda">Blanda / Papilla</option>
+                  <option value="completa">Completa</option>
+                  <option value="hiposodica">Hipósodica</option>
+                  <option value="diabetica">Diabética</option>
+                  <option value="hipocalorica">Hipocalórica</option>
+                  <option value="renal">Renal</option>
+                </select>
+              </div>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-ink">Medidas Generales</label>
-            <textarea
-              className="hce-input min-h-20"
-              placeholder={`Ej:\n• Cabecera a 30°\n• Oxigenoterapia 2L/min por cánula nasal\n• Reposo absoluto en cama`}
-              value={form.medical_orders.general_measures}
-              onChange={(e) => setForm((c) => ({ ...c, medical_orders: { ...c.medical_orders, general_measures: e.target.value } }))}
-            />
-          </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-ink">Medidas Generales</label>
+                <textarea
+                  className="hce-input min-h-20"
+                  placeholder={`Ej:\n• Cabecera a 30°\n• Oxigenoterapia 2L/min por cánula nasal\n• Reposo absoluto en cama`}
+                  value={form.medical_orders.general_measures}
+                  onChange={(e) => setForm((c) => ({ ...c, medical_orders: { ...c.medical_orders, general_measures: e.target.value } }))}
+                />
+              </div>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-ink">Cuidados de Enfermería</label>
-            <textarea
-              className="hce-input min-h-20"
-              placeholder={`Ej:\n• Control de signos vitales cada 4h\n• Balance de líquidos\n• Avisar eventualidad al médico de guardia`}
-              value={form.medical_orders.nursing_cares}
-              onChange={(e) => setForm((c) => ({ ...c, medical_orders: { ...c.medical_orders, nursing_cares: e.target.value } }))}
-            />
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-ink">Cuidados de Enfermería</label>
+                <textarea
+                  className="hce-input min-h-20"
+                  placeholder={`Ej:\n• Control de signos vitales cada 4h\n• Balance de líquidos\n• Avisar eventualidad al médico de guardia`}
+                  value={form.medical_orders.nursing_cares}
+                  onChange={(e) => setForm((c) => ({ ...c, medical_orders: { ...c.medical_orders, nursing_cares: e.target.value } }))}
+                />
+              </div>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* PRESCRIPCIÓN MÉDICA */}
@@ -250,29 +296,38 @@ export function WizardStepTreatment({
 
       {/* PARACLÍNICOS */}
       <div className="space-y-4">
-        <h4 className="text-sm font-semibold text-teal-900 dark:text-teal-400 border-b border-teal-100 dark:border-teal-500/30 pb-2">E. Paraclínicos Solicitados</h4>
+        <SectionHeader 
+          title="E. Paraclínicos Solicitados" 
+          prefKey="hide_paraclinicals" 
+          uiPreferences={uiPreferences} 
+          onToggle={onToggleSection} 
+        />
 
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-ink">Órdenes de Laboratorio</label>
-          <p className="text-[11px] text-ink-soft">Selecciona del catálogo o escribe uno personalizado y presiona Enter.</p>
-          <ChipSelector
-            catalog={LAB_CATALOG}
-            selected={form.labOrders}
-            onChange={(next) => setForm((c) => ({ ...c, labOrders: next }))}
-            placeholder="Ej: Perfil tiroideo completo..."
-          />
-        </div>
+        {uiPreferences?.hide_paraclinicals !== true && (
+          <div className="animate-in fade-in slide-in-from-top-2 duration-300 space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-ink">Órdenes de Laboratorio</label>
+              <p className="text-[11px] text-ink-soft">Selecciona del catálogo o escribe uno personalizado y presiona Enter.</p>
+              <ChipSelector
+                catalog={LAB_CATALOG}
+                selected={form.labOrders}
+                onChange={(next) => setForm((c) => ({ ...c, labOrders: next }))}
+                placeholder="Ej: Perfil tiroideo completo..."
+              />
+            </div>
 
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-ink">Estudios de Imagen</label>
-          <p className="text-[11px] text-ink-soft">Selecciona del catálogo o escribe uno personalizado y presiona Enter.</p>
-          <ChipSelector
-            catalog={IMAGING_CATALOG}
-            selected={form.imagingOrders}
-            onChange={(next) => setForm((c) => ({ ...c, imagingOrders: next }))}
-            placeholder="Ej: Rx de pie derecho AP y lateral..."
-          />
-        </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-ink">Estudios de Imagen</label>
+              <p className="text-[11px] text-ink-soft">Selecciona del catálogo o escribe uno personalizado y presiona Enter.</p>
+              <ChipSelector
+                catalog={IMAGING_CATALOG}
+                selected={form.imagingOrders}
+                onChange={(next) => setForm((c) => ({ ...c, imagingOrders: next }))}
+                placeholder="Ej: Rx de pie derecho AP y lateral..."
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {form.entryMode === "seguimiento" ? (
@@ -396,43 +451,49 @@ export function WizardStepTreatment({
 
       {/* PRONÓSTICO */}
       <div className="space-y-4">
-        <h4 className="text-sm font-semibold text-teal-900 dark:text-teal-400 border-b border-teal-100 dark:border-teal-500/30 pb-2">
-          {form.entryMode === "seguimiento" ? "G. Pronóstico" : "F. Pronóstico"}
-        </h4>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <label className="text-xs font-semibold text-ink">Pronóstico Vital</label>
-            <div className="flex gap-2">
-              {(["bueno", "reservado", "malo"] as const).map((p) => (
-                <button key={p} type="button"
-                  onClick={() => setForm(c => ({ ...c, prognosisVital: p }))}
-                  className={`flex-1 py-2 rounded-xl border text-xs font-semibold capitalize transition ${
-                    form.prognosisVital === p
-                      ? p === "bueno" ? "border-emerald-500 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300"
-                      : p === "reservado" ? "border-amber-500 bg-amber-500/10 text-amber-800 dark:text-amber-300"
-                      : "border-red-500 bg-red-500/10 text-red-800 dark:text-red-300"
-                      : "border-border bg-card text-ink-soft hover:bg-bg-soft"
-                  }`}>{p}</button>
-              ))}
+        <SectionHeader 
+          title={form.entryMode === "seguimiento" ? "G. Pronóstico" : "F. Pronóstico"}
+          prefKey="hide_prognosis" 
+          uiPreferences={uiPreferences} 
+          onToggle={onToggleSection} 
+        />
+
+        {uiPreferences?.hide_prognosis !== true && (
+          <div className="grid gap-4 sm:grid-cols-2 animate-in fade-in slide-in-from-top-2 duration-300">
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-ink">Pronóstico Vital</label>
+              <div className="flex gap-2">
+                {(["bueno", "reservado", "malo"] as const).map((p) => (
+                  <button key={p} type="button"
+                    onClick={() => setForm(c => ({ ...c, prognosisVital: p }))}
+                    className={`flex-1 py-2 rounded-xl border text-xs font-semibold capitalize transition ${
+                      form.prognosisVital === p
+                        ? p === "bueno" ? "border-emerald-500 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300"
+                        : p === "reservado" ? "border-amber-500 bg-amber-500/10 text-amber-800 dark:text-amber-300"
+                        : "border-red-500 bg-red-500/10 text-red-800 dark:text-red-300"
+                        : "border-border bg-card text-ink-soft hover:bg-bg-soft"
+                    }`}>{p}</button>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-ink">Pronóstico Funcional</label>
+              <div className="flex gap-2">
+                {(["bueno", "reservado", "malo"] as const).map((p) => (
+                  <button key={p} type="button"
+                    onClick={() => setForm(c => ({ ...c, prognosisFunctional: p }))}
+                    className={`flex-1 py-2 rounded-xl border text-xs font-semibold capitalize transition ${
+                      form.prognosisFunctional === p
+                        ? p === "bueno" ? "border-emerald-500 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300"
+                        : p === "reservado" ? "border-amber-500 bg-amber-500/10 text-amber-800 dark:text-amber-300"
+                        : "border-red-500 bg-red-500/10 text-red-800 dark:text-red-300"
+                        : "border-border bg-card text-ink-soft hover:bg-bg-soft"
+                    }`}>{p}</button>
+                ))}
+              </div>
             </div>
           </div>
-          <div className="space-y-2">
-            <label className="text-xs font-semibold text-ink">Pronóstico Funcional</label>
-            <div className="flex gap-2">
-              {(["bueno", "reservado", "malo"] as const).map((p) => (
-                <button key={p} type="button"
-                  onClick={() => setForm(c => ({ ...c, prognosisFunctional: p }))}
-                  className={`flex-1 py-2 rounded-xl border text-xs font-semibold capitalize transition ${
-                    form.prognosisFunctional === p
-                      ? p === "bueno" ? "border-emerald-500 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300"
-                      : p === "reservado" ? "border-amber-500 bg-amber-500/10 text-amber-800 dark:text-amber-300"
-                      : "border-red-500 bg-red-500/10 text-red-800 dark:text-red-300"
-                      : "border-border bg-card text-ink-soft hover:bg-bg-soft"
-                  }`}>{p}</button>
-              ))}
-            </div>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );

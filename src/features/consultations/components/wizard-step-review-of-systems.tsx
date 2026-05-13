@@ -65,6 +65,8 @@ const SYSTEMS: {
 type Props = {
   form: WizardForm;
   setForm: React.Dispatch<React.SetStateAction<WizardForm>>;
+  uiPreferences?: Record<string, boolean>;
+  onToggleSection?: (key: string) => void;
 };
 
 type SystemRowProps = {
@@ -124,7 +126,12 @@ const SystemRow = memo(function SystemRow({
   );
 });
 
-export const WizardStepReviewOfSystems = memo(function WizardStepReviewOfSystems({ form, setForm }: Props) {
+export const WizardStepReviewOfSystems = memo(function WizardStepReviewOfSystems({ 
+  form, 
+  setForm,
+  uiPreferences,
+  onToggleSection
+}: Props) {
   const ros = form.reviewOfSystems;
   const activeCount = Object.values(ros).filter((s) => s.present).length;
 
@@ -151,13 +158,28 @@ export const WizardStepReviewOfSystems = memo(function WizardStepReviewOfSystems
   return (
     <div className="space-y-4">
       <div>
-        <div className="flex items-center gap-2 mb-1">
-          <h4 className="text-sm font-semibold text-teal-900 dark:text-teal-400">
-            Revisión por Sistemas
-          </h4>
-          <span className="text-xs text-ink-soft bg-bg-soft px-2 py-0.5 rounded-full border border-border">
-            {activeCount} sistema{activeCount !== 1 ? "s" : ""} con hallazgos
-          </span>
+        <div className="flex items-center justify-between mb-1">
+          <div className="flex items-center gap-2">
+            <h4 className="text-sm font-semibold text-teal-900 dark:text-teal-400">
+              Cuestionario por Sistemas
+            </h4>
+            <span className="text-xs text-ink-soft bg-bg-soft px-2 py-0.5 rounded-full border border-border">
+              {activeCount} sistema{activeCount !== 1 ? "s" : ""} con hallazgos
+            </span>
+          </div>
+          {onToggleSection && (
+            <button
+              type="button"
+              onClick={() => onToggleSection("hide_ros_details")}
+              className="text-[10px] uppercase font-bold tracking-wider text-teal-700 dark:text-teal-300 hover:bg-teal-100 dark:hover:bg-teal-900/50 transition-colors bg-teal-50 dark:bg-teal-900/30 px-2.5 py-1 rounded-md flex items-center gap-1.5"
+            >
+              {uiPreferences?.hide_ros_details ? (
+                <><span>👁️</span> Mostrar</>
+              ) : (
+                <><span>🙈</span> Ocultar</>
+              )}
+            </button>
+          )}
         </div>
         <p className="text-xs text-ink-soft">
           Activa los sistemas que presentan síntomas o hallazgos relevantes.
@@ -165,19 +187,21 @@ export const WizardStepReviewOfSystems = memo(function WizardStepReviewOfSystems
         </p>
       </div>
 
-      <div className="grid gap-2 sm:grid-cols-2">
-        {SYSTEMS.map(({ key, label, placeholder }) => (
-          <SystemRow
-            key={key}
-            systemKey={key}
-            label={label}
-            placeholder={placeholder}
-            entry={ros[key]}
-            onToggle={handleToggle}
-            onNotesChange={handleNotesChange}
-          />
-        ))}
-      </div>
+      {uiPreferences?.hide_ros_details !== true && (
+        <div className="grid gap-2 sm:grid-cols-2 animate-in fade-in slide-in-from-top-2 duration-300">
+          {SYSTEMS.map(({ key, label, placeholder }) => (
+            <SystemRow
+              key={key}
+              systemKey={key}
+              label={label}
+              placeholder={placeholder}
+              entry={ros[key]}
+              onToggle={handleToggle}
+              onNotesChange={handleNotesChange}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 });

@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
+import { getSupabaseClient } from "@/lib/supabase/client";
 import type { TenantProfile } from "@/lib/supabase/profile";
 import { useClinicalContext } from "@/features/consultations/context/clinical-context";
 import { mergeCieCodeList } from "@/features/consultations/lib/ai/cie-suggestions";
@@ -274,6 +275,28 @@ export function useConsultationWizard(tenant: TenantProfile | null) {
     ...EMPTY_FORM,
     specialtyKind: (tenant?.specialties?.[0] as WizardForm["specialtyKind"]) || "medicina-general"
   }));
+
+  const [uiPreferences, setUiPreferences] = useState<Record<string, boolean>>(() => {
+    return (tenant?.ui_preferences as Record<string, boolean>) || {};
+  });
+
+  const toggleSectionVisibility = useMemo(() => {
+    return (sectionKey: string) => {
+      setUiPreferences((prev) => {
+        const next = { ...prev, [sectionKey]: prev[sectionKey] === false ? true : false };
+        if (tenant?.doctor_id) {
+          getSupabaseClient()
+            .from("profiles")
+            .update({ ui_preferences: next })
+            .eq("doctor_id", tenant.doctor_id)
+            .then(({ error }) => {
+              if (error) console.error("Error saving UI preference:", error);
+            });
+        }
+        return next;
+      });
+    };
+  }, [tenant?.doctor_id]);
 
   const setForm = useMemo(() => {
     return (next: WizardForm | ((prev: WizardForm) => WizardForm)) => {
@@ -581,6 +604,8 @@ export function useConsultationWizard(tenant: TenantProfile | null) {
     pendingFollowUp,
     selectedPatientTimelineId,
     setSelectedPatientTimelineId,
+    uiPreferences,
+    toggleSectionVisibility,
 
     // CIE
     cieSuggestions,
