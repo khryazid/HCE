@@ -24,6 +24,7 @@
 ## 🗓️ Sprint Anterior — Mejoras UX/UI Completas
 
 > **Reglas de oro antes de empezar:**
+> 0. **NUNCA trabajar en la rama `main`.** Siempre revisar en qué rama estamos con `git branch` antes de empezar. El trabajo activo va en `dev`.
 > 1. Leer el archivo completo antes de modificarlo
 > 2. Después de cada grupo de cambios ejecutar `npx tsc --noEmit` — debe dar 0 errores
 > 3. No eliminar funcionalidad existente — solo añadir o mejorar
