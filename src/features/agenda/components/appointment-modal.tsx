@@ -398,13 +398,13 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
           </div>
 
           {/* Botones */}
-          <div className="flex justify-between items-center pt-4 border-t border-border/50">
-            <div>
+          <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4 pt-4 border-t border-border/50">
+            <div className="flex justify-center sm:justify-start order-last sm:order-first">
               {initialData && onDelete && (
                 <button
                   type="button"
                   onClick={handleDelete}
-                  className="text-sm font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 px-3 py-2 rounded-xl transition-colors flex items-center gap-1.5"
+                  className="w-full sm:w-auto text-sm font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 px-3 py-2 rounded-xl transition-colors flex items-center justify-center gap-1.5"
                   disabled={isSubmitting}
                 >
                   <Trash2 className="h-4 w-4" />
@@ -413,12 +413,12 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
               )}
             </div>
 
-            <div className="flex justify-end gap-3">
+            <div className="flex flex-col sm:flex-row justify-end items-stretch gap-3 w-full sm:w-auto">
               {initialData && (
                 <button
                   type="button"
                   onClick={handleStartConsultation}
-                  className="hce-btn-secondary border-teal-500/30 text-teal-600 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-950/20 gap-2"
+                  className="hce-btn-secondary border-teal-500/30 text-teal-600 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-950/20 gap-2 w-full sm:w-auto justify-center"
                   disabled={isSubmitting}
                 >
                   <Check className="h-4 w-4" />
@@ -428,14 +428,14 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
               <button
                 type="button"
                 onClick={onClose}
-                className="hce-btn-secondary"
+                className="hce-btn-secondary w-full sm:w-auto justify-center"
                 disabled={isSubmitting}
               >
                 Cancelar
               </button>
               <button
                 type="submit"
-                className="hce-btn-primary gap-2"
+                className="hce-btn-primary gap-2 w-full sm:w-auto justify-center"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? (

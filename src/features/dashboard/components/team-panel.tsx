@@ -198,11 +198,11 @@ export function TeamPanel() {
                     <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold">
                       {member.full_name?.charAt(0).toUpperCase() || "?"}
                     </div>
-                    <div>
-                      <p className="font-medium text-ink">
-                        {member.full_name}
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-ink flex items-center gap-2 flex-wrap">
+                        <span className="truncate">{member.full_name}</span>
                         {member.doctor_id === tenant?.doctor_id && (
-                          <span className="ml-2 text-xs font-normal text-muted-foreground bg-muted px-2 py-0.5 rounded-full">Tú</span>
+                          <span className="text-[10px] font-normal text-muted-foreground bg-muted px-2 py-0.5 rounded-full whitespace-nowrap shrink-0">Tú</span>
                         )}
                       </p>
                     </div>

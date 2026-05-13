@@ -229,23 +229,23 @@ export function SyncQueuePanel() {
         hasErrors ? "hce-alert-warning" : "hce-alert-success"
       }`}
     >
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="font-semibold">Estado de sincronizacion</p>
-          <p className="mt-1">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex-1 space-y-2 min-w-0 pr-4">
+          <p className="font-semibold text-ink">Estado de sincronizacion</p>
+          <p className="text-sm text-ink-soft leading-relaxed break-words">
             Pendientes: {stats.pending} · Fallidos: {stats.failed} · Abandonados: {stats.abandoned} · Conflictos: {stats.conflicted}
           </p>
-          <p className="mt-1 text-xs">
+          <p className="text-xs text-muted-foreground leading-relaxed break-words">
             Conexion: {isOnline ? "En linea" : "Sin conexion"}
             {lastSync ? ` · Ultima sincronizacion: ${formatTimestamp(lastSync.at)}` : " · Sin sincronizacion registrada"}
           </p>
           {lastSync ? (
-            <p className="mt-1 text-xs">
+            <p className="text-xs text-muted-foreground leading-relaxed break-words">
               Resultado ultimo intento: procesados {lastSync.summary.processed}, exitosos {lastSync.summary.succeeded}, fallidos {lastSync.summary.failed}, conflictos {lastSync.summary.conflicted}
             </p>
           ) : null}
           {lastRefreshAt > 0 ? (
-            <p className="mt-1 text-[11px] text-ink-soft/80">
+            <p className="text-[11px] text-muted-foreground/80 leading-relaxed break-words">
               Actualizado {formatTimestamp(lastRefreshAt)}
             </p>
           ) : null}

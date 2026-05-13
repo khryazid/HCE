@@ -106,8 +106,8 @@ export function PaymentSettingsPanel() {
         
         <div className="space-y-3">
           {consultationTypes.map((ctype, i) => (
-            <div key={i} className="flex items-start gap-3 bg-bg-soft/50 p-3 rounded-xl border border-border/50">
-              <div className="flex-1 space-y-1">
+            <div key={i} className="flex flex-col sm:flex-row sm:items-start gap-3 bg-bg-soft/50 p-3 rounded-xl border border-border/50">
+              <div className="flex-1 w-full sm:w-auto space-y-1">
                 <label className="text-[11px] font-semibold text-ink-soft uppercase tracking-wider">Nombre del Servicio</label>
                 <input
                   type="text"
@@ -121,7 +121,7 @@ export function PaymentSettingsPanel() {
                   }}
                 />
               </div>
-              <div className="w-32 space-y-1">
+              <div className="w-full sm:w-32 space-y-1">
                 <label className="text-[11px] font-semibold text-ink-soft uppercase tracking-wider">Precio ($)</label>
                 <input
                   type="number"
@@ -135,14 +135,16 @@ export function PaymentSettingsPanel() {
                   }}
                 />
               </div>
-              <button
-                type="button"
-                onClick={() => setConsultationTypes(consultationTypes.filter((_, idx) => idx !== i))}
-                className="mt-6 p-2.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                title="Eliminar"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
+              <div className="flex justify-end sm:mt-6">
+                <button
+                  type="button"
+                  onClick={() => setConsultationTypes(consultationTypes.filter((_, idx) => idx !== i))}
+                  className="p-2.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                  title="Eliminar"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
             </div>
           ))}
           {consultationTypes.length === 0 && (
@@ -172,8 +174,8 @@ export function PaymentSettingsPanel() {
 
         <div className="space-y-3">
           {methods.map((method, i) => (
-            <div key={i} className="flex items-start gap-3 bg-bg-soft/50 p-3 rounded-xl border border-border/50">
-              <div className="w-1/3 space-y-1">
+            <div key={i} className="flex flex-col sm:flex-row sm:items-start gap-3 bg-bg-soft/50 p-3 rounded-xl border border-border/50">
+              <div className="w-full sm:w-1/3 space-y-1">
                 <label className="text-[11px] font-semibold text-ink-soft uppercase tracking-wider">Método</label>
                 <input
                   type="text"
@@ -187,7 +189,7 @@ export function PaymentSettingsPanel() {
                   }}
                 />
               </div>
-              <div className="flex-1 space-y-1">
+              <div className="w-full sm:flex-1 space-y-1">
                 <label className="text-[11px] font-semibold text-ink-soft uppercase tracking-wider">Datos / Instrucciones (Opcional)</label>
                 <input
                   type="text"
@@ -201,14 +203,16 @@ export function PaymentSettingsPanel() {
                   }}
                 />
               </div>
-              <button
-                type="button"
-                onClick={() => setMethods(methods.filter((_, idx) => idx !== i))}
-                className="mt-6 p-2.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                title="Eliminar"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
+              <div className="flex justify-end sm:mt-6">
+                <button
+                  type="button"
+                  onClick={() => setMethods(methods.filter((_, idx) => idx !== i))}
+                  className="p-2.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                  title="Eliminar"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
             </div>
           ))}
           {methods.length === 0 && (
