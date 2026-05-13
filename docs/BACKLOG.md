@@ -9,6 +9,7 @@
 - [ ] **1.1** — Registro sin tarjeta: Activar 7 días de prueba gratis automático al crear cuenta para ambos planes.
 - [ ] **1.2** — Alerta en Dashboard: Mostrar contador de días restantes de prueba en la interfaz principal.
 - [ ] **1.3** — Notificación por correo: Configurar cron/Resend para enviar recordatorio de fin de prueba a los 7 días.
+- [ ] **1.4** — Landing Page: Actualizar los copys y la sección de precios para destacar y promocionar los "7 días de prueba gratis sin tarjeta".
 
 ### GRUPO 2 — SINCRONIZACIÓN INVISIBLE
 - [ ] **2.1** — Automatización de Sync: Refactorizar el motor de sincronización (IndexedDB <-> Supabase) para que actúe silenciosamente en segundo plano sin requerir intervención manual del usuario.

@@ -59,10 +59,11 @@ Con arquitectura multi-tenant de grado empresarial, Glyph automatiza la facturac
 | **Admin Panel** | Métricas de tenants, control de acceso por `ADMIN_EMAIL` |
 | **Rate Limiting** | Por RPC Postgres en `/api/push/send` y `/api/stripe/*` |
 | **Auditoría** | Hash criptográfico encadenado en cada consulta sellada |
+| **UX/UI Refinada** | Animaciones fluidas, Skeletons, búsqueda global (Ctrl+K) categorizada, y alertas urgentes contextuales. |
 
 ### Próxima feature mayor
 
-**Integraciones y Automatización Avanzada**: Interoperabilidad con laboratorios y mayor optimización de tareas diarias basadas en IA. Ver `docs/BACKLOG.md` para el detalle completo.
+**Onboarding Sin Fricción y Sync Transparente**: Implementación de 7 días de prueba gratis automático sin tarjeta para captación de usuarios y refactorización del motor offline para sincronización completamente silenciosa. Ver `docs/BACKLOG.md` para el detalle completo.
 
 ---
 
@@ -342,12 +343,12 @@ docs/
 
 Ver el tasklist completo con prioridades en **[docs/BACKLOG.md](docs/BACKLOG.md)**.
 
-La siguiente feature mayor:
+La siguiente prioridad de desarrollo:
 
-**W-08 — Citas y Calendario Avanzado**
-- Creación rápida de pacientes desde el flujo de Walk-In
-- Control de arrastrar y soltar (Drag & Drop)
-- Estados de asistencia integrados al wizard clínico
+**Sprint — Onboarding y Sync Transparente**
+- Free Trial de 7 días automático sin tarjeta de crédito al registrarse.
+- Notificaciones automáticas de fin de trial por correo y dashboard.
+- Motor de sincronización background invisible (zero-UI) para IndexedDB <-> Supabase.
 
 ---
 
