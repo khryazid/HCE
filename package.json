@@ -39,7 +39,7 @@
     "next-intl": "^4.11.2",
     "next-pwa": "^5.6.0",
     "next-themes": "^0.4.6",
-    "react": "19.2.4",
+    "react": "19.2.6",
     "react-dom": "19.2.4",
     "react-hook-form": "^7.74.0",
     "resend": "^6.12.2",
