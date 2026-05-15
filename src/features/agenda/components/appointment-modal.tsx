@@ -2,16 +2,24 @@
 
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { CalendarDays, User, Phone, CreditCard, DollarSign, Check, Trash2, Users } from "lucide-react";
 import { format, formatISO, startOfDay, endOfDay } from "date-fns";
 import { useRouter } from "next/navigation";
+import { toISODateString, isValidDateString } from "@/lib/utils/date-utils";
 
 const appointmentSchema = z.object({
   patient_name: z.string().min(2, "El nombre es requerido"),
   patient_phone: z.string().optional(),
+  patient_document: z.string().optional(),
+  patient_birth_date: z.string()
+    .optional()
+    .refine(
+      (val) => isValidDateString(val),
+      "Fecha de nacimiento inválida (usa DD/MM/AAAA)"
+    ),
   start_date: z.string(),
   start_time: z.string(),
   end_time: z.string(),
@@ -44,8 +52,12 @@ type Props = {
   };
 };
 
+import { ConfirmModal } from "@/components/ui/confirm-modal";
+
 export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialData, selectedSlot, tenantInfo, config }: Props) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const router = useRouter();
 
   const form = useForm<AppointmentFormValues>({
@@ -53,6 +65,8 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
     defaultValues: {
       patient_name: "",
       patient_phone: "",
+      patient_document: "",
+      patient_birth_date: "",
       start_date: format(new Date(), "yyyy-MM-dd"),
       start_time: "09:00",
       end_time: "09:30",
@@ -104,6 +118,8 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
         form.reset({
           patient_name: initialData.patient_name,
           patient_phone: initialData.patient_phone || "",
+          patient_document: initialData.patient_document || "",
+          patient_birth_date: initialData.patient_birth_date || "",
           start_date: format(startD, "yyyy-MM-dd"),
           start_time: format(startD, "HH:mm"),
           end_time: format(endD, "HH:mm"),
@@ -121,6 +137,8 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
         form.reset({
           patient_name: "",
           patient_phone: "",
+          patient_document: "",
+          patient_birth_date: "",
           start_date: format(selectedSlot.start, "yyyy-MM-dd"),
           start_time: format(selectedSlot.start, "HH:mm"),
           end_time: format(selectedSlot.end, "HH:mm"),
@@ -137,6 +155,7 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
 
   async function onSubmit(values: AppointmentFormValues) {
     setIsSubmitting(true);
+    setSubmitError(null);
     try {
       const isWalkInMode = isWalkIn || values.consultation_type === 'walk-in';
 
@@ -158,6 +177,8 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
         doctor_id: tenantInfo.doctor_id,
         patient_name: values.patient_name,
         patient_phone: values.patient_phone,
+        patient_document: values.patient_document || null,
+        patient_birth_date: toISODateString(values.patient_birth_date),
         start_time: formatISO(startDateTime),
         end_time: formatISO(endDateTime),
         status: values.status,
@@ -174,38 +195,50 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
         await onSave(payload);
       }
       onClose();
-    } catch (error) {
-      console.error(error);
+    } catch (error: unknown) {
+      // Supabase PostgrestError comes as a plain object with a 'message' field
+      let msg = "Ocurrió un error al guardar la cita. Intenta de nuevo.";
+      if (error && typeof error === "object") {
+        const e = error as Record<string, unknown>;
+        if (typeof e.message === "string" && e.message) msg = e.message;
+        else if (typeof e.details === "string" && e.details) msg = e.details;
+        else if (typeof e.hint === "string" && e.hint) msg = e.hint;
+      } else if (typeof error === "string") {
+        msg = error;
+      }
+      console.error("[appointment-modal] save error:", JSON.stringify(error));
+      setSubmitError(msg);
     } finally {
       setIsSubmitting(false);
     }
   }
 
-  async function handleDelete() {
+  async function confirmDelete() {
     if (!initialData?.id || !onDelete) return;
-    if (confirm("¿Estás seguro de que deseas eliminar esta cita? Esta acción no se puede deshacer.")) {
-      setIsSubmitting(true);
-      try {
-        await onDelete(initialData.id);
-        onClose();
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setIsSubmitting(false);
-      }
+    setIsSubmitting(true);
+    try {
+      await onDelete(initialData.id);
+      onClose();
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsSubmitting(false);
+      setShowDeleteConfirm(false);
     }
   }
 
   function handleStartConsultation() {
     if (!initialData) return;
     const pName = encodeURIComponent(initialData.patient_name || form.getValues("patient_name") || "");
-    const url = `/dashboard/consultas?appointmentId=${initialData.id}&patientName=${pName}`;
+    const pDoc = initialData.patient_document ? `&patientDoc=${encodeURIComponent(initialData.patient_document)}` : "";
+    const pBirth = initialData.patient_birth_date ? `&patientBirth=${encodeURIComponent(initialData.patient_birth_date)}` : "";
+    const url = `/consultas?appointmentId=${initialData.id}&patientName=${pName}${pDoc}${pBirth}`;
     router.push(url);
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[650px] p-0 overflow-hidden bg-card border-border" aria-describedby={undefined}>
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="sm:max-w-[650px] p-0 overflow-hidden bg-card border-border" aria-describedby={undefined}>
         <div className="bg-bg-soft px-6 py-4 border-b border-border">
           <DialogTitle className="text-xl font-bold text-ink">
             <CalendarDays className="inline-block mr-2 h-5 w-5 text-teal-600" />
@@ -240,6 +273,62 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
                     className="hce-input pl-9"
                     placeholder="Ej. +34 600..."
                   />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-ink">Cédula / DNI</label>
+                <div className="relative">
+                  <input
+                    {...form.register("patient_document")}
+                    className="hce-input pl-3"
+                    placeholder="Ej. 0912345678"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-ink">Fecha de Nacimiento</label>
+                <div className="relative">
+                  <Controller
+                    control={form.control}
+                    name="patient_birth_date"
+                    render={({ field }) => (
+                      <input
+                        type="text"
+                        placeholder="DD/MM/AAAA"
+                        className="hce-input pl-3"
+                        value={
+                          (field.value || "").includes("-") && (field.value || "").length === 10
+                            ? (field.value || "").split("-").reverse().join("/")
+                            : field.value || ""
+                        }
+                        onChange={(event) => {
+                          let val = event.target.value.replace(/\D/g, "");
+                          if (val.length > 8) val = val.slice(0, 8);
+                          
+                          let formatted = val;
+                          if (val.length > 4) {
+                            formatted = `${val.slice(0, 2)}/${val.slice(2, 4)}/${val.slice(4)}`;
+                          } else if (val.length > 2) {
+                            formatted = `${val.slice(0, 2)}/${val.slice(2)}`;
+                          }
+                          
+                          if (val.length === 8) {
+                            const iso = `${val.slice(4)}-${val.slice(2, 4)}-${val.slice(0, 2)}`;
+                            field.onChange(iso);
+                          } else {
+                            field.onChange(formatted);
+                          }
+                        }}
+                      />
+                    )}
+                  />
+                  {form.formState.errors.patient_birth_date && (
+                    <p className="text-xs text-red-500 mt-1">
+                      {form.formState.errors.patient_birth_date.message}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -397,13 +486,13 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
             </div>
           </div>
 
-          {/* Botones */}
+        {/* Botones */}
           <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4 pt-4 border-t border-border/50">
             <div className="flex justify-center sm:justify-start order-last sm:order-first">
               {initialData && onDelete && (
                 <button
                   type="button"
-                  onClick={handleDelete}
+                  onClick={() => setShowDeleteConfirm(true)}
                   className="w-full sm:w-auto text-sm font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 px-3 py-2 rounded-xl transition-colors flex items-center justify-center gap-1.5"
                   disabled={isSubmitting}
                 >
@@ -447,9 +536,25 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
                   </>
                 )}
               </button>
+            {submitError && (
+              <div className="rounded-xl border border-red-200 bg-red-50 dark:bg-red-900/20 dark:border-red-700/40 px-4 py-3 text-sm text-red-700 dark:text-red-400">
+                ⚠️ {submitError}
+              </div>
+            )}
             </div>
           </div>
         </form>
+        
+        <ConfirmModal
+          open={showDeleteConfirm}
+          onCancel={() => setShowDeleteConfirm(false)}
+          onConfirm={confirmDelete}
+          title="Eliminar Cita"
+          description="¿Estás seguro de que deseas eliminar esta cita? Esta acción no se puede deshacer."
+          confirmLabel="Eliminar"
+          cancelLabel="Mantener Cita"
+          variant="danger"
+        />
       </DialogContent>
     </Dialog>
   );

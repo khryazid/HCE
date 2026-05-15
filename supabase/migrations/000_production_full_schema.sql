@@ -167,6 +167,8 @@ create table if not exists public.appointments (
   patient_id      uuid        references public.patients (id) on delete set null,
   patient_name    text        not null,
   patient_phone   text,
+  patient_document text,
+  patient_birth_date date,
   start_time      timestamptz not null,
   end_time        timestamptz not null,
   status          text        not null default 'scheduled'
@@ -217,6 +219,7 @@ create table if not exists public.treatment_templates (
   trigger         text        not null,  -- síntoma/diagnóstico que activa la plantilla
   title           text        not null,  -- nombre legible de la plantilla
   treatment       text        not null,  -- texto del tratamiento recomendado
+  extra_sections  jsonb       not null default '{}'::jsonb,
   current_version integer     not null default 1,
   versions        jsonb       not null default '[]'::jsonb,
   created_at      timestamptz not null default now(),
@@ -1163,4 +1166,190 @@ insert into public.app_config (key, value) values
   ('resend_email_secret', '183492765')
 on conflict (key) do update
   set value = excluded.value, updated_at = now();
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- SPRINT 2 UPDATES: User by Email, Subscription RLS, and Storage Bucket
+-- ─────────────────────────────────────────────────────────────────────────────
+
+-- Function to allow service role to get a user ID by email securely without exposing auth.users
+CREATE OR REPLACE FUNCTION get_user_id_by_email(email_input TEXT)
+RETURNS UUID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  found_id UUID;
+BEGIN
+  SELECT id INTO found_id FROM auth.users WHERE email = email_input LIMIT 1;
+  RETURN found_id;
+END;
+$$;
+
+-- Enforce subscription expiration check in RLS write policies
+CREATE OR REPLACE FUNCTION has_active_subscription(c_id UUID)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  sub_status TEXT;
+  sub_expires TIMESTAMPTZ;
+BEGIN
+  -- Obtener el estado del plan principal de la clinica (del owner o del primer perfil)
+  SELECT subscription_status, subscription_expires_at INTO sub_status, sub_expires
+  FROM public.profiles
+  WHERE clinic_id = c_id
+  ORDER BY created_at ASC
+  LIMIT 1;
+
+  IF sub_status = 'lifetime' THEN
+    RETURN TRUE;
+  END IF;
+
+  IF sub_status IN ('active', 'trialing') THEN
+    IF sub_expires IS NULL OR sub_expires > now() THEN
+      RETURN TRUE;
+    END IF;
+  END IF;
+
+  RETURN FALSE;
+END;
+$$;
+
+-- Actualizar politicas de escritura para verificar suscripcion
+
+-- patients
+DROP POLICY IF EXISTS "patients_tenant_write" ON public.patients;
+CREATE POLICY "patients_tenant_write"
+  ON public.patients FOR ALL TO authenticated
+  USING (
+    (exists (select 1 from public.profiles p where p.doctor_id = auth.uid() and p.clinic_id = public.patients.clinic_id)
+     or public.is_clinic_member(public.patients.clinic_id))
+    AND has_active_subscription(public.patients.clinic_id)
+  )
+  WITH CHECK (
+    (exists (select 1 from public.profiles p where p.doctor_id = auth.uid() and p.clinic_id = public.patients.clinic_id)
+     or public.is_clinic_member(public.patients.clinic_id))
+    AND has_active_subscription(public.patients.clinic_id)
+  );
+
+-- clinical_records
+DROP POLICY IF EXISTS "records_tenant_write" ON public.clinical_records;
+CREATE POLICY "records_tenant_write"
+  ON public.clinical_records FOR ALL TO authenticated
+  USING (
+    (exists (select 1 from public.profiles p where p.doctor_id = auth.uid() and p.clinic_id = public.clinical_records.clinic_id)
+     or public.is_clinic_member(public.clinical_records.clinic_id))
+    AND has_active_subscription(public.clinical_records.clinic_id)
+  )
+  WITH CHECK (
+    (exists (select 1 from public.profiles p where p.doctor_id = auth.uid() and p.clinic_id = public.clinical_records.clinic_id)
+     or public.is_clinic_member(public.clinical_records.clinic_id))
+    AND has_active_subscription(public.clinical_records.clinic_id)
+  );
+
+-- appointments
+DROP POLICY IF EXISTS "appointments_tenant_write" ON public.appointments;
+CREATE POLICY "appointments_tenant_write"
+  ON public.appointments FOR ALL TO authenticated
+  USING (
+    (exists (select 1 from public.profiles p where p.doctor_id = auth.uid() and p.clinic_id = public.appointments.clinic_id)
+     or public.is_clinic_member(public.appointments.clinic_id))
+    AND has_active_subscription(public.appointments.clinic_id)
+  )
+  WITH CHECK (
+    (exists (select 1 from public.profiles p where p.doctor_id = auth.uid() and p.clinic_id = public.appointments.clinic_id)
+     or public.is_clinic_member(public.appointments.clinic_id))
+    AND has_active_subscription(public.appointments.clinic_id)
+  );
+
+-- Create a public bucket for clinic assets (logos, signatures)
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('clinic_assets', 'clinic_assets', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- RLS para clinic_assets
+DROP POLICY IF EXISTS "clinic_assets_select" ON storage.objects;
+CREATE POLICY "clinic_assets_select"
+  ON storage.objects FOR SELECT TO public
+  USING (bucket_id = 'clinic_assets');
+
+DROP POLICY IF EXISTS "clinic_assets_insert" ON storage.objects;
+CREATE POLICY "clinic_assets_insert"
+  ON storage.objects FOR INSERT TO authenticated
+  WITH CHECK (bucket_id = 'clinic_assets');
+
+DROP POLICY IF EXISTS "clinic_assets_update" ON storage.objects;
+CREATE POLICY "clinic_assets_update"
+  ON storage.objects FOR UPDATE TO authenticated
+  USING (bucket_id = 'clinic_assets')
+  WITH CHECK (bucket_id = 'clinic_assets');
+
+DROP POLICY IF EXISTS "clinic_assets_delete" ON storage.objects;
+CREATE POLICY "clinic_assets_delete"
+  ON storage.objects FOR DELETE TO authenticated
+  USING (bucket_id = 'clinic_assets');
+
 commit;
+
+
+-- ====================================================================================
+-- 15. SYSTEM EXTENSIONS AND MAINTENANCE JOBS
+-- ====================================================================================
+
+CREATE EXTENSION IF NOT EXISTS pg_cron;
+
+-- Automatically delete audit_logs older than 90 days every midnight
+SELECT cron.schedule(
+  'cleanup-audit-logs',
+  '0 0 * * *',
+  $$ DELETE FROM public.audit_logs WHERE created_at < now() - interval '90 days' $$
+);
+
+-- ====================================================================================
+-- 16. SUPABASE REALTIME — Publicaciones para sincronización en tiempo real
+-- ====================================================================================
+-- Habilita el envío de cambios (INSERT/UPDATE/DELETE) vía WebSocket para cada tabla.
+-- Esto permite que los hooks usePatientsRealtime, useAgendaRealtime, etc.
+-- reciban eventos sin necesidad de recargar la página.
+-- Es idempotente: si la tabla ya está en la publicación, no falla.
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'patients'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.patients;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'appointments'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.appointments;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'clinical_records'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.clinical_records;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'clinic_members'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.clinic_members;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'treatment_templates'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.treatment_templates;
+  END IF;
+END $$;
+

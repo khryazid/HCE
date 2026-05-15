@@ -69,6 +69,8 @@ export type Database = {
           patient_id: string | null
           patient_name: string
           patient_phone: string | null
+          patient_document: string | null
+          patient_birth_date: string | null
           payment_method: string | null
           payment_status: string
           start_time: string
@@ -87,6 +89,8 @@ export type Database = {
           patient_id?: string | null
           patient_name: string
           patient_phone?: string | null
+          patient_document?: string | null
+          patient_birth_date?: string | null
           payment_method?: string | null
           payment_status?: string
           start_time: string
@@ -105,6 +109,8 @@ export type Database = {
           patient_id?: string | null
           patient_name?: string
           patient_phone?: string | null
+          patient_document?: string | null
+          patient_birth_date?: string | null
           payment_method?: string | null
           payment_status?: string
           start_time?: string
@@ -467,6 +473,7 @@ export type Database = {
           trigger: string
           updated_at: string
           versions: Json
+          extra_sections: Json
         }
         Insert: {
           clinic_id: string
@@ -479,6 +486,7 @@ export type Database = {
           trigger: string
           updated_at?: string
           versions?: Json
+          extra_sections?: Json
         }
         Update: {
           clinic_id?: string
@@ -491,6 +499,7 @@ export type Database = {
           trigger?: string
           updated_at?: string
           versions?: Json
+          extra_sections?: Json
         }
         Relationships: []
       }
@@ -517,6 +526,8 @@ export type Database = {
         }
         Returns: boolean
       }
+      get_user_id_by_email: { Args: { email_input: string }; Returns: string }
+      has_active_subscription: { Args: { c_id: string }; Returns: boolean }
       is_clinic_admin: { Args: { check_clinic_id: string }; Returns: boolean }
       is_clinic_member: { Args: { check_clinic_id: string }; Returns: boolean }
       log_audit_event: {
@@ -554,6 +565,7 @@ export type Database = {
       }
       send_followup_emails: { Args: never; Returns: undefined }
       send_followup_push_notifications: { Args: never; Returns: undefined }
+      send_trial_ending_emails: { Args: never; Returns: undefined }
     }
     Enums: {
       [_ in never]: never

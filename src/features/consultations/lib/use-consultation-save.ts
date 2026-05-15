@@ -4,7 +4,6 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { generateConsultationPdf } from "@/features/consultations/lib/pdf";
 import {
   buildConsultationPayload,
-  buildConsultationSuccessMessage,
 } from "@/features/consultations/lib/wizard-payload";
 import { persistConsultationLocally } from "@/features/consultations/lib/consultation-persistence";
 import { buildLetterheadFromSession } from "@/features/dashboard/lib/letterhead";
@@ -155,6 +154,15 @@ export function useConsultationSave() {
         });
       }
 
+      // --- Marcar Cita como Completada (si existe) ---
+      if (form.appointmentId) {
+        const supabase = getSupabaseClient();
+        await supabase
+          .from("appointments")
+          .update({ status: "completed", patient_id: form.patientId, updated_at: timestamp })
+          .eq("id", form.appointmentId);
+      }
+
       // --- PDF (opcional) ---
       const shouldGeneratePdf = options.generatePdf ?? false;
       if (shouldGeneratePdf) {
@@ -194,6 +202,7 @@ export function useConsultationSave() {
     onSuccess: (message, { context }) => {
       queryClient.invalidateQueries({ queryKey: recordKeys.tenant(context.tenant.clinic_id) });
       queryClient.invalidateQueries({ queryKey: patientKeys.tenant(context.tenant.clinic_id) });
+      queryClient.invalidateQueries({ queryKey: ["appointments"] });
       context.onSuccess(message);
     },
   });

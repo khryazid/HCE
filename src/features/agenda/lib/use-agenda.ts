@@ -37,6 +37,8 @@ export function useAgenda() {
   });
 
   // Obtener citas
+  // refetchInterval → polling cada 30s como respaldo si Realtime no está activo
+  // refetchOnWindowFocus → refresca automáticamente cuando el médico cambia de pestaña y vuelve
   const { data: appointments = [], isLoading, refetch } = useQuery({
     queryKey: ["appointments"],
     queryFn: async () => {
@@ -51,6 +53,9 @@ export function useAgenda() {
       if (error) throw error;
       return data;
     },
+    refetchInterval: 30_000,       // refresca cada 30 segundos
+    refetchOnWindowFocus: true,    // refresca al volver a la pestaña
+    staleTime: 15_000,             // considera los datos frescos por 15s
   });
 
   // Crear cita

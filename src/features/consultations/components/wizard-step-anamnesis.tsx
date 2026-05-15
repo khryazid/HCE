@@ -8,9 +8,10 @@ type Props = {
   form: WizardForm;
   setForm: React.Dispatch<React.SetStateAction<WizardForm>>;
   validationErrors: Record<string, string>;
+  uiPreferences?: Record<string, boolean>;
 };
 
-export function WizardStepAnamnesis({ form, setForm, validationErrors }: Props) {
+export function WizardStepAnamnesis({ form, setForm, validationErrors, uiPreferences }: Props) {
   const handleMedicationsChange = useCallback(
     (meds: CurrentMedication[]) => {
       const pharmacologicalText = meds
@@ -126,56 +127,64 @@ export function WizardStepAnamnesis({ form, setForm, validationErrors }: Props) 
               />
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-widest text-ink-soft">Patológicos (Médicos)</label>
-              <textarea
-                className="hce-input min-h-16"
-                placeholder="HTA, Diabetes, Asma..."
-                value={form.backgrounds?.pathological ?? ""}
-                onFocus={(e) => handleBulletFocus(e, "pathological")}
-                onKeyDown={(e) => handleBulletKeyDown(e, "pathological")}
-                onChange={(e) => updateBackground("pathological", e.target.value)}
-              />
-            </div>
+            {uiPreferences?.hide_personal_history !== true && (
+              <>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold uppercase tracking-widest text-ink-soft">Patológicos (Médicos)</label>
+                  <textarea
+                    className="hce-input min-h-16"
+                    placeholder="HTA, Diabetes, Asma..."
+                    value={form.backgrounds?.pathological ?? ""}
+                    onFocus={(e) => handleBulletFocus(e, "pathological")}
+                    onKeyDown={(e) => handleBulletKeyDown(e, "pathological")}
+                    onChange={(e) => updateBackground("pathological", e.target.value)}
+                  />
+                </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-widest text-ink-soft">Quirúrgicos</label>
-              <textarea
-                className="hce-input min-h-16"
-                placeholder="Cirugías previas..."
-                value={form.backgrounds?.surgical ?? ""}
-                onFocus={(e) => handleBulletFocus(e, "surgical")}
-                onKeyDown={(e) => handleBulletKeyDown(e, "surgical")}
-                onChange={(e) => updateBackground("surgical", e.target.value)}
-              />
-            </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold uppercase tracking-widest text-ink-soft">Quirúrgicos</label>
+                  <textarea
+                    className="hce-input min-h-16"
+                    placeholder="Cirugías previas..."
+                    value={form.backgrounds?.surgical ?? ""}
+                    onFocus={(e) => handleBulletFocus(e, "surgical")}
+                    onKeyDown={(e) => handleBulletKeyDown(e, "surgical")}
+                    onChange={(e) => updateBackground("surgical", e.target.value)}
+                  />
+                </div>
+              </>
+            )}
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-widest text-ink-soft">Familiares</label>
-              <textarea
-                className="hce-input min-h-16"
-                placeholder="Padres, abuelos..."
-                value={form.backgrounds?.family ?? ""}
-                onFocus={(e) => handleBulletFocus(e, "family")}
-                onKeyDown={(e) => handleBulletKeyDown(e, "family")}
-                onChange={(e) => updateBackground("family", e.target.value)}
-              />
-            </div>
+            {uiPreferences?.hide_family_history !== true && (
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold uppercase tracking-widest text-ink-soft">Familiares</label>
+                <textarea
+                  className="hce-input min-h-16"
+                  placeholder="Padres, abuelos..."
+                  value={form.backgrounds?.family ?? ""}
+                  onFocus={(e) => handleBulletFocus(e, "family")}
+                  onKeyDown={(e) => handleBulletKeyDown(e, "family")}
+                  onChange={(e) => updateBackground("family", e.target.value)}
+                />
+              </div>
+            )}
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-widest text-ink-soft">Hábitos / Tóxicos</label>
-              <textarea
-                className="hce-input min-h-16"
-                placeholder="Tabaco, alcohol, drogas, sedentarismo..."
-                value={form.backgrounds?.toxic ?? ""}
-                onFocus={(e) => handleBulletFocus(e, "toxic")}
-                onKeyDown={(e) => handleBulletKeyDown(e, "toxic")}
-                onChange={(e) => updateBackground("toxic", e.target.value)}
-              />
-            </div>
+            {uiPreferences?.hide_habits !== true && (
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold uppercase tracking-widest text-ink-soft">Hábitos / Tóxicos</label>
+                <textarea
+                  className="hce-input min-h-16"
+                  placeholder="Tabaco, alcohol, drogas, sedentarismo..."
+                  value={form.backgrounds?.toxic ?? ""}
+                  onFocus={(e) => handleBulletFocus(e, "toxic")}
+                  onKeyDown={(e) => handleBulletKeyDown(e, "toxic")}
+                  onChange={(e) => updateBackground("toxic", e.target.value)}
+                />
+              </div>
+            )}
 
-            {/* Solo visible si el sexo biológico es Mujer */}
-            {form.gender === "Mujer" && (
+            {/* Solo visible si el sexo biológico es Mujer y no está oculto por preferencias */}
+            {form.gender === "Mujer" && uiPreferences?.hide_female_history !== true && (
               <div className="space-y-1.5">
                 <label className="text-xs font-bold uppercase tracking-widest text-ink-soft">Gineco-obstétricos</label>
                 <textarea

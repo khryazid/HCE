@@ -1,5 +1,5 @@
 # HCE · Backlog de Producción
-> Última revisión: 2026-05-12 | Estado del build: ✅ TS 0 errores · 85/85 tests · ESLint limpio | 🎨 Redesign en progreso
+> Última revisión: 2026-05-15 | Estado del build: ✅ TS 0 errores · Build OK · 176 archivos fuente | 🌟 Realtime Sync activo
 
 ---
 
@@ -201,14 +201,15 @@
 | Check | Estado |
 |-------|--------|
 | `tsc --noEmit` | ✅ 0 errores |
+| `next build` | ✅ Compila sin errores (25 rutas) |
 | `vitest run` | ✅ 85/85 passing |
 | `eslint src` | ✅ Sin warnings ni errors |
 | Sin archivos basura en `src/` | ✅ Confirmado |
-| Sin `console.log` de debug | ✅ Confirmado |
-| Sin TODOs/FIXMEs críticos | ✅ Confirmado |
 | RLS habilitado en todas las tablas | ✅ Confirmado |
 | Tipos Supabase generados y actualizados | ✅ `supabase.types.ts` v14.5 |
 | Un solo archivo SQL (fuente de verdad) | ✅ `000_production_full_schema.sql` |
+| Supabase Realtime habilitado | ✅ 5 tablas en `supabase_realtime` publication |
+| Validación de fechas DD/MM/AAAA | ✅ `toISODateString` en todos los formularios |
 
 ---
 
@@ -306,6 +307,24 @@ Añadido a `/api/stripe/*` y `/api/push/*`.
 - [x] `RESEND_API_KEY` → key de [resend.com](https://resend.com)
 - [x] `RESEND_EMAIL_SECRET` → mismo valor que `resend_email_secret` en `app_config`
 - [x] `RESEND_FROM_EMAIL` → ej. `Glyph <no-reply@tudominio.com>`
+
+---
+
+## 🔄 Sprint Reciente — Estabilidad, Realtime y Corrección de Bugs (2026-05-15)
+
+- [x] **RT-01** — `usePatientsRealtime` — Pacientes se actualizan en tiempo real entre sesiones
+- [x] **RT-02** — `useAgendaRealtime` — Calendario reacciona instantáneamente a citas nuevas/modificadas
+- [x] **RT-03** — `useClinicalRecordsRealtime` — Historial clínico sincronizado entre dispositivos
+- [x] **RT-04** — `useTeamRealtime` — Panel de equipo se actualiza al agregar/remover miembros
+- [x] **RT-05** — `useTemplatesRealtime` — Plantillas de tratamiento sincronizadas
+- [x] **RT-06** — Schema SQL: sección 16 `supabase_realtime` idempotente con `IF NOT EXISTS + schemaname`
+- [x] **RT-07** — Polling 30s + `refetchOnWindowFocus` en agenda como respaldo si Realtime no está disponible
+- [x] **BUG-10** — Modal eliminar cita: `ConfirmModal` movido dentro de `DialogContent` para evitar bloqueo de pointer events
+- [x] **BUG-11** — Error `{}` al guardar cita: Parseo correcto de errores Supabase + banner de error visible al usuario
+- [x] **BUG-12** — IndexedDB “fantasmas”: `refreshPatientsFromRemote`, `refreshClinicalRecordsFromRemote` y `refreshSpecialtyDataFromRemote` ahora eliminan registros locales que ya no existen en Supabase
+- [x] **BUG-13** — Error PostgreSQL 22008 (`date/time field value out of range`): Creada utilidad `src/lib/utils/date-utils.ts` con `isValidDateString` y `toISODateString`, aplicada en `appointment-modal`, `wizard-domain` y `wizard-payload`
+
+---
 
 ### ⏳ Pendiente tuyo — Resend
 - [x] Crear cuenta en [resend.com](https://resend.com) y obtener API Key

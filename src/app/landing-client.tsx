@@ -480,6 +480,8 @@ export default function LandingClient({ proPrice, clinicPrice }: { proPrice: num
           <Link href="/registro">Registro</Link>
           <a href="#pricing">Precios</a>
           <a href="#features">Funciones</a>
+          <Link href="/privacidad">Privacidad</Link>
+          <Link href="/terminos">Términos</Link>
         </nav>
         <div className="flex items-center gap-4 mt-8 justify-center text-sm">
           <button 

@@ -401,10 +401,23 @@ export function AuthForm({ mode }: AuthFormProps) {
           <p className="hce-alert-success" role="status">{message}</p>
         ) : null}
 
+        {isSignUp && (
+          <p className="text-xs text-ink-soft text-center mt-4">
+            Al crear una cuenta, aceptas nuestros{" "}
+            <Link href="/terminos" target="_blank" className="text-accent hover:underline">
+              Términos y Condiciones
+            </Link>{" "}
+            y la{" "}
+            <Link href="/privacidad" target="_blank" className="text-accent hover:underline">
+              Política de Privacidad
+            </Link>.
+          </p>
+        )}
+
         <Button
           type="submit"
           disabled={isSubmitting}
-          className="hce-btn-primary w-full justify-center py-3 text-sm font-semibold disabled:cursor-not-allowed"
+          className="hce-btn-primary w-full justify-center py-3 text-sm font-semibold disabled:cursor-not-allowed mt-4"
           aria-busy={isSubmitting}
         >
           {isSubmitting ? "Procesando..." : isSignUp ? "Crear cuenta" : "Entrar"}

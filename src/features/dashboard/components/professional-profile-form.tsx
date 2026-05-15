@@ -153,7 +153,7 @@ export function ProfessionalProfileForm({
       await saveOnboardingProfile(toProfile(form));
 
       if (tenant) {
-        saveLetterheadSettings(tenant.doctor_id, tenant.clinic_id, {
+        await saveLetterheadSettings(tenant.doctor_id, tenant.clinic_id, {
           doctor_name: form.signatureName,
           professional_title: form.professionalTitle,
           specialties: letterhead.specialties || tenant.specialties.join(", "),

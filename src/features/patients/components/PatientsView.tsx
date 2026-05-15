@@ -27,6 +27,8 @@ import {
   useDeletePatient,
   useDeleteClinicalRecord,
 } from "@/features/patients/lib/use-patients-queries";
+import { usePatientsRealtime } from "@/features/patients/lib/use-patients-realtime";
+import { useClinicalRecordsRealtime } from "@/features/patients/lib/use-clinical-records-realtime";
 
 // ─── Estado de borrado ─────────────────────────────────────────────────────────
 
@@ -49,6 +51,10 @@ export default function PatientsView() {
   const updateStatusMutation = useUpdatePatientStatus();
   const deletePatientMutation = useDeletePatient();
   const deleteRecordMutation = useDeleteClinicalRecord();
+
+  // ─── Realtime ─ auto-refresh cuando otra sesión crea/edita/borra pacientes ──
+  usePatientsRealtime(tenant);
+  useClinicalRecordsRealtime(tenant);
 
   // ─── Local State ─────────────────────────────────────────────────────────────
   const [selectedPatientId, setSelectedPatientIdLocal] = useState<string>(

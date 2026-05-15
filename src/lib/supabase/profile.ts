@@ -167,6 +167,21 @@ export async function ensureTenantProfile(
   });
 }
 
+export async function updateTenantUIPreferences(
+  userId: string,
+  preferences: Record<string, boolean>,
+): Promise<void> {
+  const supabase = getSupabaseClient();
+  const { error } = await supabase
+    .from("profiles")
+    .update({ ui_preferences: preferences })
+    .eq("doctor_id", userId);
+
+  if (error) {
+    throw error;
+  }
+}
+
 export async function bootstrapTenantProfileFromMetadata(
   userId: string,
   metadata: TenantMetadata,

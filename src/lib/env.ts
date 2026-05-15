@@ -1,3 +1,5 @@
+import "server-only";
+
 /**
  * env.ts — Validación de variables de entorno en startup
  *

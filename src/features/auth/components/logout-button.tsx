@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { getSupabaseClient } from "@/lib/supabase/client";
+import { clearOfflineDb } from "@/lib/db/indexeddb";
 
 type ModalPhase = "closed" | "confirm" | "leaving";
 
@@ -27,6 +28,9 @@ export function LogoutButton({ mode = "full" }: LogoutButtonProps) {
 
     // Show farewell animation for 1.2s before actually signing out
     await new Promise((resolve) => setTimeout(resolve, 1200));
+
+    // Purge local database before signing out to ensure data isolation
+    await clearOfflineDb().catch(e => console.error("Failed to clear offline DB:", e));
 
     const supabase = getSupabaseClient();
     await supabase.auth.signOut();

@@ -58,9 +58,10 @@ type Props = {
   form: WizardForm;
   setForm: React.Dispatch<React.SetStateAction<WizardForm>>;
   tenantSpecialties?: string[];
+  uiPreferences?: Record<string, boolean>;
 };
 
-export function WizardStepPhysicalExam({ form, setForm, tenantSpecialties = [] }: Props) {
+export function WizardStepPhysicalExam({ form, setForm, tenantSpecialties = [], uiPreferences }: Props) {
   const isPediatric = tenantSpecialties.some(
     (s) => s.toLowerCase().includes("pediatr") || s.toLowerCase().includes("neonat"),
   );
@@ -128,10 +129,11 @@ export function WizardStepPhysicalExam({ form, setForm, tenantSpecialties = [] }
       </div>
 
       {/* ── B. Signos Vitales + PAM (Tarea 3) ────────────────────────── */}
-      <div className="space-y-4">
-        <h4 className="text-sm font-semibold text-teal-900 dark:text-teal-400 border-b border-teal-100 dark:border-teal-500/30 pb-2">
-          B. Signos Vitales y Antropometría
-        </h4>
+      {uiPreferences?.hide_vital_signs !== true && (
+        <div className="space-y-4">
+          <h4 className="text-sm font-semibold text-teal-900 dark:text-teal-400 border-b border-teal-100 dark:border-teal-500/30 pb-2">
+            B. Signos Vitales y Antropometría
+          </h4>
         <div className="rounded-2xl border border-border bg-bg-soft p-4 space-y-4">
           <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-3">
             {/* T.A. con PAM */}
@@ -328,12 +330,14 @@ export function WizardStepPhysicalExam({ form, setForm, tenantSpecialties = [] }
           })()}
         </div>
       </div>
+      )}
 
       {/* ── C. Examen Físico Segmentario (Tarea 4) ───────────────────── */}
-      <div className="space-y-4">
-        <h4 className="text-sm font-semibold text-teal-900 dark:text-teal-400 border-b border-teal-100 dark:border-teal-500/30 pb-2">
-          C. Examen Físico Segmentario
-        </h4>
+      {uiPreferences?.hide_physical_exam !== true && (
+        <div className="space-y-4">
+          <h4 className="text-sm font-semibold text-teal-900 dark:text-teal-400 border-b border-teal-100 dark:border-teal-500/30 pb-2">
+            C. Examen Físico Segmentario
+          </h4>
 
         <div>
           <p className="text-[11px] text-ink-soft mb-2">
@@ -427,6 +431,7 @@ export function WizardStepPhysicalExam({ form, setForm, tenantSpecialties = [] }
           </div>
         )}
       </div>
+      )}
     </div>
   );
 }

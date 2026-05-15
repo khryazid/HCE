@@ -6,14 +6,8 @@ import { createClient as createSupabaseServerClient } from "@/lib/supabase/serve
 // ─── SUPER-ADMIN CONFIG ────────────────────────────────────────────────────────
 // The admin email is read from the ADMIN_EMAIL environment variable.
 // Set it in .env.local (development) and in the Vercel/hosting dashboard (production).
-function getAdminEmail(): string {
-  const email = process.env.ADMIN_EMAIL;
-  if (!email) {
-    throw new Error(
-      "Missing env var: ADMIN_EMAIL must be set to grant super-admin access."
-    );
-  }
-  return email;
+function getAdminEmail(): string | undefined {
+  return process.env.ADMIN_EMAIL;
 }
 
 function getSupabaseAdmin() {
@@ -35,9 +29,22 @@ export async function verifySuperAdmin() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user || user.email !== getAdminEmail()) {
+
+  if (!user) {
     throw new Error("Unauthorized");
   }
+
+  const { data: isSuperAdmin, error } = await supabase.rpc("is_super_admin" as never);
+
+  if (error || !isSuperAdmin) {
+    throw new Error("Unauthorized");
+  }
+
+  const adminEmail = getAdminEmail();
+  if (adminEmail && user.email !== adminEmail) {
+    console.warn(`[Admin Audit] Admin access granted to ${user.email} (does not match ADMIN_EMAIL)`);
+  }
+
   return user;
 }
 
@@ -78,26 +85,51 @@ export async function getAbandonedSyncItems() {
   return data;
 }
 
-export async function getAllUsersWithProfiles(): Promise<{
+export async function getAllUsersWithProfiles(page: number = 1, limit: number = 50): Promise<{
   users: AdminUserRecord[];
   stats: AdminStats;
+  totalItems: number;
+  totalPages: number;
 }> {
   await verifySuperAdmin();
   const admin = getSupabaseAdmin();
 
+  // Para las stats globales
+  const { data: allProfiles, error: profStatsError } = await admin
+    .from("profiles")
+    .select("subscription_status");
+  if (profStatsError) throw profStatsError;
+
+  const stats: AdminStats = {
+    total: allProfiles.length,
+    active: allProfiles.filter((p) => p.subscription_status === "active").length,
+    lifetime: allProfiles.filter((p) => p.subscription_status === "lifetime").length,
+    inactive: allProfiles.filter((p) => p.subscription_status === "canceled").length,
+    none: allProfiles.filter((p) => p.subscription_status === "none" || !p.subscription_status).length,
+  };
+
   const { data: authData, error: authError } = await admin.auth.admin.listUsers({
-    perPage: 1000,
+    page,
+    perPage: limit,
   });
   if (authError) throw authError;
 
-  const { data: profiles, error: profError } = await admin
-    .from("profiles")
-    .select("doctor_id, full_name, specialty, subscription_status, subscription_expires_at, plan");
-  if (profError) throw profError;
+  const userIds = authData.users.map((u) => u.id);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let profiles: any[] = [];
+  if (userIds.length > 0) {
+    const { data, error: profError } = await admin
+      .from("profiles")
+      .select("doctor_id, full_name, specialty, subscription_status, subscription_expires_at, plan")
+      .in("doctor_id", userIds);
+    if (profError) throw profError;
+    profiles = data || [];
+  }
 
   const users: AdminUserRecord[] = authData.users
     .map((u) => {
-      const profile = (profiles ?? []).find((p) => p.doctor_id === u.id);
+      const profile = profiles.find((p) => p.doctor_id === u.id);
       return {
         id: u.id,
         email: u.email,
@@ -113,15 +145,10 @@ export async function getAllUsersWithProfiles(): Promise<{
       (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );
 
-  const stats: AdminStats = {
-    total: users.length,
-    active: users.filter((u) => u.subscription_status === "active").length,
-    lifetime: users.filter((u) => u.subscription_status === "lifetime").length,
-    inactive: users.filter((u) => u.subscription_status === "canceled").length,
-    none: users.filter((u) => u.subscription_status === "none" || !u.subscription_status).length,
-  };
+  const totalItems = stats.total;
+  const totalPages = Math.ceil(totalItems / limit);
 
-  return { users, stats };
+  return { users, stats, totalItems, totalPages };
 }
 
 // ─── MUTATIONS ─────────────────────────────────────────────────────────────────

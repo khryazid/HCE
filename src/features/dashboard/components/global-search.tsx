@@ -32,14 +32,7 @@ type FtsResult = {
   rank: number;
 };
 
-function itemKindLabel(kind: SearchItemKind) {
-  switch (kind) {
-    case "patient":      return "Paciente";
-    case "consultation": return "Consulta";
-    case "treatment":    return "Tratamiento";
-    default:             return "Registro";
-  }
-}
+
 
 // ─── Debounce hook ────────────────────────────────────────────────────────────
 
@@ -305,6 +298,9 @@ export function GlobalSearch() {
       <button
         type="button"
         onClick={() => setOpen(true)}
+        aria-expanded={open}
+        aria-controls="global-search-dialog"
+        aria-label="Abrir búsqueda global"
         className="flex w-full items-center justify-between rounded-2xl border border-[color:var(--border)] bg-[color:var(--card)] px-4 py-2.5 text-left shadow-sm transition hover:border-teal-300 hover:bg-[color:var(--bg-soft)]"
       >
         <span className="text-sm text-[color:var(--ink-soft)] truncate">
@@ -322,6 +318,10 @@ export function GlobalSearch() {
           onClick={() => setOpen(false)}
         >
           <section
+            id="global-search-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Búsqueda global"
             className="w-full max-w-2xl overflow-hidden rounded-2xl border border-border bg-card shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >

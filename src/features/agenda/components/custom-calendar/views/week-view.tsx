@@ -19,6 +19,7 @@ export function WeekView({ weekDays, events, onEventClick, startHour = 6, endHou
   const [now, setNow] = useState(new Date());
   const headerScrollRef = useRef<HTMLDivElement>(null);
   const bodyScrollRef = useRef<HTMLDivElement>(null);
+  const walkinScrollRef = useRef<HTMLDivElement>(null);
   const isSyncing = useRef(false); // prevent scroll loop
 
   useEffect(() => {
@@ -42,21 +43,19 @@ export function WeekView({ weekDays, events, onEventClick, startHour = 6, endHou
 
   const isWalkIn = (e: CalendarEvent) => e.consultation_type === 'walk-in';
 
-  // Sync header ↔ body horizontal scroll
-  function onBodyScroll(e: React.UIEvent<HTMLDivElement>) {
+  // Sync header ↔ body ↔ walkin horizontal scroll
+  function onScrollHorizontal(e: React.UIEvent<HTMLDivElement>) {
     if (isSyncing.current) return;
     isSyncing.current = true;
-    if (headerScrollRef.current) {
-      headerScrollRef.current.scrollLeft = e.currentTarget.scrollLeft;
+    const scrollLeft = e.currentTarget.scrollLeft;
+    if (headerScrollRef.current && e.currentTarget !== headerScrollRef.current) {
+      headerScrollRef.current.scrollLeft = scrollLeft;
     }
-    isSyncing.current = false;
-  }
-
-  function onHeaderScroll(e: React.UIEvent<HTMLDivElement>) {
-    if (isSyncing.current) return;
-    isSyncing.current = true;
-    if (bodyScrollRef.current) {
-      bodyScrollRef.current.scrollLeft = e.currentTarget.scrollLeft;
+    if (bodyScrollRef.current && e.currentTarget !== bodyScrollRef.current) {
+      bodyScrollRef.current.scrollLeft = scrollLeft;
+    }
+    if (walkinScrollRef.current && e.currentTarget !== walkinScrollRef.current) {
+      walkinScrollRef.current.scrollLeft = scrollLeft;
     }
     isSyncing.current = false;
   }
@@ -74,7 +73,7 @@ export function WeekView({ weekDays, events, onEventClick, startHour = 6, endHou
         <div
           ref={headerScrollRef}
           className="flex flex-1 overflow-x-hidden"
-          onScroll={onHeaderScroll}
+          onScroll={onScrollHorizontal}
         >
           {weekDays.map(({ date, isToday }) => (
             <div
@@ -108,7 +107,12 @@ export function WeekView({ weekDays, events, onEventClick, startHour = 6, endHou
             </span>
           </div>
           {/* Mirror header scroll for walk-in strip too */}
-          <div className="flex flex-1 overflow-x-hidden" style={{ overflowX: 'hidden' }}>
+          <div 
+            ref={walkinScrollRef}
+            className="flex flex-1 overflow-x-hidden" 
+            style={{ overflowX: 'hidden' }}
+            onScroll={onScrollHorizontal}
+          >
             <div className="flex" style={{ transform: 'translateX(0)' }}>
               {weekDays.map(({ date }) => {
                 const walkIns = events.filter(isWalkIn).filter((e) => isSameDay(new Date(e.start), date));
@@ -168,8 +172,8 @@ export function WeekView({ weekDays, events, onEventClick, startHour = 6, endHou
             // Sync hour gutter vertical scroll
             const gutter = e.currentTarget.previousElementSibling as HTMLElement | null;
             if (gutter) gutter.scrollTop = e.currentTarget.scrollTop;
-            // Sync header horizontal scroll
-            onBodyScroll(e);
+            // Sync horizontal scroll
+            onScrollHorizontal(e);
           }}
         >
           {/* Inner container: fixed height, flex row */}

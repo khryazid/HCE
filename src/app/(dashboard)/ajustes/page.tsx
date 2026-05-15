@@ -6,6 +6,7 @@ import { PushNotificationToggle } from "@/features/dashboard/components/push-not
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { TeamPanel } from "@/features/dashboard/components/team-panel";
 import { PaymentSettingsPanel } from "@/features/dashboard/components/payment-settings-panel";
+import { ClinicalFormBuilderPanel } from "@/features/dashboard/components/clinical-form-builder-panel";
 
 export default function AjustesPage() {
   return (
@@ -16,6 +17,13 @@ export default function AjustesPage() {
         lead="Centraliza los datos profesionales, el logo de PDF y el backup de la clave de cifrado en una sola pantalla."
         submitLabel="Guardar ajustes"
       />
+      <section className="hce-surface space-y-4">
+        <div>
+          <h2 className="text-lg font-semibold text-ink">Constructor Clínico (Rompecabezas)</h2>
+          <p className="text-sm text-muted-foreground">Personaliza el formulario de consulta ocultando los módulos que no necesitas.</p>
+        </div>
+        <ClinicalFormBuilderPanel />
+      </section>
       <section className="hce-surface space-y-4">
         <h2 className="text-lg font-semibold text-ink">Facturación</h2>
         <BillingPortalPanel />

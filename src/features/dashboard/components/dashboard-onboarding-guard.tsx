@@ -34,7 +34,15 @@ export function DashboardOnboardingGuard() {
     // "lifetime" and "active" and "trialing" all grant access.
     const validSubscriptionStatuses = ["active", "trialing", "lifetime"];
     const status = tenant.subscription_status;
-    const hasActiveSub = validSubscriptionStatuses.includes(status ?? "incomplete");
+    let hasActiveSub = validSubscriptionStatuses.includes(status ?? "incomplete");
+
+    // Enforce expiration check
+    if (hasActiveSub && (status === "active" || status === "trialing") && tenant.subscription_expires_at) {
+      const expiresAt = new Date(tenant.subscription_expires_at).getTime();
+      if (expiresAt < Date.now()) {
+        hasActiveSub = false; // Expirado
+      }
+    }
 
     if (!hasActiveSub && !isBillingPage) {
       router.replace("/billing");

@@ -1,7 +1,8 @@
+import { PanelErrorBoundary } from "@/components/ui/panel-error-boundary";
 import { DashboardOnboardingGuard } from "@/features/dashboard/components/dashboard-onboarding-guard";
+import { GlobalSearch } from "@/features/dashboard/components/global-search";
 import { Sidebar, BottomNav, MobileHeader } from "@/features/dashboard/components/sidebar";
 import { SyncStatusBanner } from "@/features/sync/components/sync-status-banner";
-import { GlobalSearch } from "@/features/dashboard/components/global-search";
 import { TenantProvider } from "@/lib/supabase/tenant-context";
 import { ClinicalProvider } from "@/features/consultations/context/clinical-context";
 import Link from "next/link";
@@ -15,13 +16,17 @@ export default function DashboardLayout({
       <ClinicalProvider>
         <div className="flex h-full min-h-screen">
           {/* Desktop sidebar — hidden on mobile */}
-          <Sidebar />
+          <PanelErrorBoundary>
+            <Sidebar />
+          </PanelErrorBoundary>
 
           {/* Main content column */}
           <div className="flex flex-1 flex-col overflow-x-hidden">
 
             {/* Mobile top header — sits in normal flow above main */}
-            <MobileHeader />
+            <PanelErrorBoundary>
+              <MobileHeader />
+            </PanelErrorBoundary>
 
             <DashboardOnboardingGuard />
 
@@ -30,10 +35,16 @@ export default function DashboardLayout({
             >
               <div className="mx-auto w-full max-w-6xl">
                 <div className="mb-4 space-y-3">
-                  <GlobalSearch />
-                  <SyncStatusBanner />
+                  <PanelErrorBoundary>
+                    <GlobalSearch />
+                  </PanelErrorBoundary>
+                  <PanelErrorBoundary>
+                    <SyncStatusBanner />
+                  </PanelErrorBoundary>
                 </div>
-                {children}
+                <PanelErrorBoundary>
+                  {children}
+                </PanelErrorBoundary>
               </div>
             </main>
           </div>
@@ -47,7 +58,9 @@ export default function DashboardLayout({
           </Link>
 
           {/* Mobile bottom nav */}
-          <BottomNav />
+          <PanelErrorBoundary>
+            <BottomNav />
+          </PanelErrorBoundary>
         </div>
       </ClinicalProvider>
     </TenantProvider>

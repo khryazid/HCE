@@ -10,19 +10,23 @@ import {
   migrateLegacyLocalStorageTemplates,
   saveTreatmentTemplate,
   type TreatmentTemplate,
+  type TreatmentTemplateExtraSections,
 } from "@/features/consultations/lib/treatments";
 import { useTemplates, templateKeys } from "@/features/consultations/lib/use-consultation-queries";
+import { useTemplatesRealtime } from "@/features/consultations/lib/use-templates-realtime";
 
 type TemplateForm = {
   trigger: string;
   title: string;
   treatment: string;
+  extra_sections: TreatmentTemplateExtraSections;
 };
 
 const EMPTY_FORM: TemplateForm = {
   trigger: "",
   title: "",
   treatment: "",
+  extra_sections: {},
 };
 
 // ─── VERSION HISTORY MODAL ────────────────────────────────────────────────────
@@ -196,6 +200,9 @@ export default function TreatmentsView() {
 
   // ── Data: Supabase via React Query ────────────────────────────────────────
   const { data: templates = [], isLoading: templatesLoading } = useTemplates(tenant);
+
+  // ── Realtime: actualiza plantillas cuando otro dispositivo hace cambios ────
+  useTemplatesRealtime(tenant);
   const editing = editingId ? (templates.find((t) => t.id === editingId) ?? null) : null;
 
   // ── Helpers ───────────────────────────────────────────────────────────────
@@ -214,6 +221,7 @@ export default function TreatmentsView() {
       trigger: template.trigger,
       title: template.title,
       treatment: template.treatment,
+      extra_sections: template.extra_sections || {},
     });
     setFormError(null);
     // Scroll form into view on mobile
@@ -254,6 +262,7 @@ export default function TreatmentsView() {
           trigger: form.trigger,
           title: form.title,
           treatment: form.treatment,
+          extra_sections: form.extra_sections,
         },
         editing ?? undefined,
       );
@@ -346,7 +355,7 @@ export default function TreatmentsView() {
             />
           </label>
           <label className="block space-y-2 text-sm font-medium text-ink-soft">
-            <span>Tratamiento recomendado</span>
+            <span>Tratamiento Médico (Receta)</span>
             <textarea
               className="min-h-32 w-full rounded-xl border border-border px-3 py-2 text-sm"
               value={form.treatment}
@@ -354,6 +363,61 @@ export default function TreatmentsView() {
               required
             />
           </label>
+          
+          <div className="pt-4 border-t border-border/50">
+            <p className="text-xs font-semibold text-ink uppercase tracking-wider mb-3">Extras (Plan Integral Opcional)</p>
+            
+            <div className="space-y-4">
+              <label className="block space-y-2 text-sm font-medium text-ink-soft">
+                <span>Dieta</span>
+                <select
+                  className="w-full rounded-xl border border-border px-3 py-2 text-sm bg-card"
+                  value={form.extra_sections.diet_type || ""}
+                  onChange={(e) => setForm(c => ({ ...c, extra_sections: { ...c.extra_sections, diet_type: e.target.value } }))}
+                >
+                  <option value="">No especificada</option>
+                  <option value="absoluta">Absoluta (NPO)</option>
+                  <option value="liquida">Líquida clara</option>
+                  <option value="blanda">Blanda / Papilla</option>
+                  <option value="completa">Completa</option>
+                  <option value="hiposodica">Hipósodica</option>
+                  <option value="diabetica">Diabética</option>
+                  <option value="hipocalorica">Hipocalórica</option>
+                  <option value="renal">Renal</option>
+                </select>
+              </label>
+
+              <label className="block space-y-2 text-sm font-medium text-ink-soft">
+                <span>Medidas Generales / Cuidados</span>
+                <textarea
+                  className="min-h-20 w-full rounded-xl border border-border px-3 py-2 text-sm"
+                  placeholder="Ej: Reposo en cama, cabecera a 30°..."
+                  value={form.extra_sections.general_measures || ""}
+                  onChange={(e) => setForm(c => ({ ...c, extra_sections: { ...c.extra_sections, general_measures: e.target.value } }))}
+                />
+              </label>
+
+              <label className="block space-y-2 text-sm font-medium text-ink-soft">
+                <span>Recomendaciones Generales</span>
+                <textarea
+                  className="min-h-20 w-full rounded-xl border border-border px-3 py-2 text-sm"
+                  placeholder="Recomendaciones para la casa..."
+                  value={form.extra_sections.recommendations || ""}
+                  onChange={(e) => setForm(c => ({ ...c, extra_sections: { ...c.extra_sections, recommendations: e.target.value } }))}
+                />
+              </label>
+              
+              <label className="block space-y-2 text-sm font-medium text-ink-soft">
+                <span>Signos de Alarma</span>
+                <textarea
+                  className="min-h-20 w-full rounded-xl border border-border px-3 py-2 text-sm"
+                  placeholder="Acudir a urgencias si..."
+                  value={form.extra_sections.warningSigns || ""}
+                  onChange={(e) => setForm(c => ({ ...c, extra_sections: { ...c.extra_sections, warningSigns: e.target.value } }))}
+                />
+              </label>
+            </div>
+          </div>
           <div className="flex gap-2">
             <button
               className="rounded-xl bg-teal-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"

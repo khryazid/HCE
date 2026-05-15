@@ -10,7 +10,11 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 
-export default async function AdminPage() {
+export default async function AdminPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
   // Guard – non-admin users get silently redirected
   try {
     await verifySuperAdmin();
@@ -38,17 +42,33 @@ export default async function AdminPage() {
           </div>
         }
       >
-        <AdminDataLayer />
+        <AdminDataLayer searchParams={searchParams} />
       </Suspense>
     </div>
   );
 }
 
-async function AdminDataLayer() {
-  const [{ users, stats }, abandonedItems, pricing] = await Promise.all([
-    getAllUsersWithProfiles(),
+async function AdminDataLayer({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const params = await searchParams;
+  const page = typeof params.page === "string" ? parseInt(params.page, 10) : 1;
+  const limit = 50;
+
+  const [{ users, stats, totalItems, totalPages }, abandonedItems, pricing] = await Promise.all([
+    getAllUsersWithProfiles(page, limit),
     getAbandonedSyncItems(),
     getPublicPricing()
   ]);
-  return <AdminPanelClient initialUsers={users} stats={stats} abandonedItems={abandonedItems} pricing={pricing} />;
+  return <AdminPanelClient 
+    initialUsers={users} 
+    stats={stats} 
+    abandonedItems={abandonedItems} 
+    pricing={pricing}
+    currentPage={page}
+    totalPages={totalPages}
+    totalItems={totalItems}
+  />;
 }

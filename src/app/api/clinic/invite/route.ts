@@ -90,14 +90,12 @@ export async function POST(req: Request) {
     });
 
     if (inviteError) {
-      // If user already exists, Supabase admin auth might return an error or we might need to find them.
-      // Wait, admin.inviteUserByEmail will return the user object if they exist but aren't confirmed, or fail.
-      // Actually, let's just list users to find them.
-      const { data: listData } = await adminClient.auth.admin.listUsers();
-      const existing = listData.users.find((u: { email?: string }) => u.email === email);
+      // If user already exists, find their ID via RPC
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: foundId } = await (adminClient.rpc as any)('get_user_id_by_email', { email_input: email });
       
-      if (existing) {
-        invitedUserId = existing.id;
+      if (foundId) {
+        invitedUserId = foundId as string;
       } else {
         return NextResponse.json({ error: inviteError.message }, { status: 400 });
       }

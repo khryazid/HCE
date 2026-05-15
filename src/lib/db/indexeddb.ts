@@ -1,4 +1,5 @@
 import { openDB, type DBSchema, type IDBPDatabase } from "idb";
+import { deriveKey, encryptData, decryptData } from "./crypto";
 import type { SyncQueueItem, SyncStatus } from "@/types/sync";
 import type { PatientRecord, PatientStatus } from "@/features/patients/types";
 import type {
@@ -15,9 +16,45 @@ import { MAX_RETRY_DELAY_MS, BASE_RETRY_DELAY_MS } from "@/lib/constants/sync";
  * Esto permite multidevice transparente sin gestión de claves por el usuario.
  */
 
-const DB_NAME = "hce-offline-db";
-const DB_VERSION = 2; // Bump de versión para migrar de payload cifrado a plano
+const DB_VERSION = 3; // Bump to v3 for encryption migration
 const DEFAULT_RETRY_DELAY_MS = BASE_RETRY_DELAY_MS;
+
+let cryptoKey: CryptoKey | null = null;
+let activeDbUserId: string | null = null;
+let dbPromise: Promise<IDBPDatabase<HceOfflineSchema>> | null = null;
+
+export async function initDbCrypto(userId: string) {
+  cryptoKey = await deriveKey(userId);
+}
+
+async function ensureCrypto() {
+  if (!cryptoKey) {
+    const supabase = getSupabaseClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user.id) {
+      cryptoKey = await deriveKey(session.user.id);
+    } else {
+      throw new Error("DB Crypto Key not initialized and no session found");
+    }
+  }
+  return cryptoKey;
+}
+
+// Wrapper for encryption/decryption
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function wrapData(data: any, indexedFields: Record<string, unknown>) {
+  const key = await ensureCrypto();
+  const encrypted = await encryptData(key, data);
+  return { ...indexedFields, __encrypted_payload: encrypted };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function unwrapData(record: any) {
+  if (!record) return record;
+  if (!record.__encrypted_payload) return record; // Already plaintext (unmigrated)
+  const key = await ensureCrypto();
+  return await decryptData(key, record.__encrypted_payload);
+}
 
 interface HceOfflineSchema extends DBSchema {
   profiles: {
@@ -97,11 +134,38 @@ interface HceOfflineSchema extends DBSchema {
   };
 }
 
-let dbPromise: Promise<IDBPDatabase<HceOfflineSchema>> | null = null;
+async function getUserId() {
+  if (activeDbUserId) return activeDbUserId;
+  const supabase = getSupabaseClient();
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.user?.id) throw new Error("No user session");
+  return session.user.id;
+}
 
-export function getOfflineDb() {
-  if (!dbPromise) {
-    dbPromise = openDB<HceOfflineSchema>(DB_NAME, DB_VERSION, {
+export async function clearOfflineDb() {
+  const userId = await getUserId().catch(() => null);
+  if (!userId) return;
+  const dbName = `hce-offline-db-${userId}`;
+  
+  if (dbPromise) {
+    const db = await dbPromise;
+    db.close();
+    dbPromise = null;
+  }
+  
+  const { deleteDB } = await import("idb");
+  await deleteDB(dbName);
+  activeDbUserId = null;
+  cryptoKey = null;
+}
+
+export async function getOfflineDb() {
+  const userId = await getUserId();
+  const dbName = `hce-offline-db-${userId}`;
+
+  if (!dbPromise || activeDbUserId !== userId) {
+    activeDbUserId = userId;
+    dbPromise = openDB<HceOfflineSchema>(dbName, DB_VERSION, {
       upgrade(db, oldVersion) {
         // v1 → v2: recrea todos los stores sin payload cifrado.
         // Los datos locales cifrados de v1 no son migrables (requieren la clave),
@@ -161,7 +225,8 @@ export function getOfflineDb() {
 
 export async function enqueueSyncItem(item: SyncQueueItem) {
   const db = await getOfflineDb();
-  await db.put("sync_queue", {
+  
+  const payloadToEncrypt = {
     ...item,
     table_name_record_id: `${item.table_name}:${item.record_id}`,
     payload: {
@@ -170,7 +235,17 @@ export async function enqueueSyncItem(item: SyncQueueItem) {
       clinic_id: item.clinic_id,
     },
     next_retry_at: item.next_retry_at ?? Date.now(),
+  };
+
+  const wrapped = await wrapData(payloadToEncrypt, {
+    id: item.id,
+    status: item.status,
+    client_timestamp: item.client_timestamp,
+    table_name_record_id: `${item.table_name}:${item.record_id}`,
   });
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await db.put("sync_queue", wrapped as any);
 
   if (typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent("hce:sync-enqueued"));
@@ -186,7 +261,8 @@ export async function getSyncQueueItemsByStatus(
   options?: { includeDelayed?: boolean },
 ) {
   const db = await getOfflineDb();
-  const allItems = await db.getAll("sync_queue");
+  const allItemsRaw = await db.getAll("sync_queue");
+  const allItems = await Promise.all(allItemsRaw.map(unwrapData));
   const now = Date.now();
 
   return allItems.filter((item) => {
@@ -204,7 +280,8 @@ export async function updateSyncItemStatus(
   nextRetryAtOverride?: number,
 ) {
   const db = await getOfflineDb();
-  const current = await db.get("sync_queue", id);
+  const currentRaw = await db.get("sync_queue", id);
+  const current = await unwrapData(currentRaw);
 
   if (!current) return;
 
@@ -222,13 +299,23 @@ export async function updateSyncItemStatus(
         ? undefined
         : Date.now() + Math.min(DEFAULT_RETRY_DELAY_MS * 2 ** Math.max(retryCount - 1, 0), MAX_RETRY_DELAY_MS);
 
-  await db.put("sync_queue", {
+  const updatedItem = {
     ...current,
     status,
     retry_count: retryCount,
     last_error: lastError,
     next_retry_at: nextRetryAt,
+  };
+
+  const wrapped = await wrapData(updatedItem, {
+    id: updatedItem.id,
+    status: updatedItem.status,
+    client_timestamp: updatedItem.client_timestamp,
+    table_name_record_id: updatedItem.table_name_record_id,
   });
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await db.put("sync_queue", wrapped as any);
 }
 
 export async function deleteSyncQueueItem(id: string) {
@@ -238,7 +325,8 @@ export async function deleteSyncQueueItem(id: string) {
 
 export async function getSyncQueueStats() {
   const db = await getOfflineDb();
-  const allItems = await db.getAll("sync_queue");
+  const allItemsRaw = await db.getAll("sync_queue");
+  const allItems = await Promise.all(allItemsRaw.map(unwrapData));
 
   return {
     pending: allItems.filter((i) => i.status === "pending").length,
@@ -250,7 +338,8 @@ export async function getSyncQueueStats() {
 
 export async function listSyncQueueItems() {
   const db = await getOfflineDb();
-  const allItems = await db.getAll("sync_queue");
+  const allItemsRaw = await db.getAll("sync_queue");
+  const allItems = await Promise.all(allItemsRaw.map(unwrapData));
   return allItems.sort((a, b) => b.client_timestamp - a.client_timestamp);
 }
 
@@ -265,7 +354,8 @@ export async function listSyncQueueItems() {
  */
 export async function purgeAbandonedSyncItems(): Promise<number> {
   const db = await getOfflineDb();
-  const allItems = await db.getAll("sync_queue");
+  const allItemsRaw = await db.getAll("sync_queue");
+  const allItems = await Promise.all(allItemsRaw.map(unwrapData));
 
   // Collect record_ids of all abandoned items
   const abandonedRecordIds = new Set<string>(
@@ -295,7 +385,8 @@ export async function purgeAbandonedSyncItems(): Promise<number> {
  */
 async function getPendingRecordIds(tableName: string): Promise<Set<string>> {
   const db = await getOfflineDb();
-  const allItems = await db.getAll("sync_queue");
+  const allItemsRaw = await db.getAll("sync_queue");
+  const allItems = await Promise.all(allItemsRaw.map(unwrapData));
   const pendingIds = new Set<string>();
   for (const item of allItems) {
     if (item.table_name === tableName && (item.status === "pending" || item.status === "failed")) {
@@ -317,28 +408,33 @@ export async function refreshPatientsFromRemote(clinicId: string): Promise<boole
       .select("id, clinic_id, doctor_id, document_number, full_name, birth_date, status, created_at, updated_at")
       .eq("clinic_id", clinicId);
 
-    if (error || !remotePatients || remotePatients.length === 0) return false;
+    if (error || !remotePatients) return false;
 
     const pendingIds = await getPendingRecordIds("patients");
     const db = await getOfflineDb();
     
     const typedPatients = (remotePatients as PatientRecord[]).filter((p) => !pendingIds.has(p.id));
     
-    await Promise.all(
-      typedPatients.map((patient) =>
-        db.put("patients", {
+    const allLocalRaw = await db.getAll("patients");
+    const allLocal = await Promise.all(allLocalRaw.map(unwrapData)) as PatientRecord[];
+    const localForClinic = allLocal.filter(p => p.clinic_id === clinicId);
+    
+    const remoteIds = new Set(remotePatients.map(p => p.id));
+    const idsToDelete = localForClinic.map(p => p.id).filter(id => !remoteIds.has(id) && !pendingIds.has(id));
+
+    await Promise.all([
+      ...typedPatients.map(async (patient) => {
+        const wrapped = await wrapData(patient, {
           id: patient.id,
           clinic_id: patient.clinic_id,
           doctor_id: patient.doctor_id,
-          document_number: patient.document_number,
-          full_name: patient.full_name,
-          birth_date: patient.birth_date ?? null,
-          status: (patient.status as PatientStatus) ?? "activo",
-          created_at: patient.created_at,
           updated_at: patient.updated_at,
-        }),
-      ),
-    );
+        });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return db.put("patients", wrapped as any);
+      }),
+      ...idsToDelete.map(id => db.delete("patients", id))
+    ]);
     return true;
   } catch {
     // Network error or IDB write failure — caller falls back to local cache.
@@ -355,7 +451,8 @@ export async function refreshPatientsFromRemote(clinicId: string): Promise<boole
  */
 export async function listPatientsByTenant(clinicId: string) {
   const db = await getOfflineDb();
-  const allPatients = await db.getAll("patients");
+  const allPatientsRaw = await db.getAll("patients");
+  const allPatients = await Promise.all(allPatientsRaw.map(unwrapData));
   return allPatients
     .filter((p) => p.clinic_id === clinicId)
     .sort((a, b) => b.updated_at.localeCompare(a.updated_at)) as PatientRecord[];
@@ -363,17 +460,18 @@ export async function listPatientsByTenant(clinicId: string) {
 
 export async function savePatientLocal(patient: PatientRecord) {
   const db = await getOfflineDb();
-  await db.put("patients", {
+  const payload = {
+    ...patient,
+    status: patient.status ?? "activo",
+  };
+  const wrapped = await wrapData(payload, {
     id: patient.id,
     clinic_id: patient.clinic_id,
     doctor_id: patient.doctor_id,
-    document_number: patient.document_number,
-    full_name: patient.full_name,
-    birth_date: patient.birth_date ?? null,
-    status: patient.status ?? "activo",
-    created_at: patient.created_at,
     updated_at: patient.updated_at,
   });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await db.put("patients", wrapped as any);
 }
 
 export async function deletePatientLocal(id: string) {
@@ -392,14 +490,25 @@ export async function deletePatientLocal(id: string) {
 
 export async function updatePatientStatusLocal(id: string, status: PatientStatus) {
   const db = await getOfflineDb();
-  const existing = await db.get("patients", id);
-  if (!existing) return;
+  const rawExisting = await db.get("patients", id);
+  if (!rawExisting) return;
+  const existing = await unwrapData(rawExisting);
 
-  await db.put("patients", {
+  const updated = {
     ...existing,
     status,
     updated_at: new Date().toISOString(),
+  };
+
+  const wrapped = await wrapData(updated, {
+    id: updated.id,
+    clinic_id: updated.clinic_id,
+    doctor_id: updated.doctor_id,
+    updated_at: updated.updated_at,
   });
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await db.put("patients", wrapped as any);
 }
 
 // ─── Clinical Records ─────────────────────────────────────────────────────────
@@ -416,16 +525,33 @@ export async function refreshClinicalRecordsFromRemote(clinicId: string, doctorI
       .eq("clinic_id", clinicId)
       .eq("doctor_id", doctorId);
 
-    if (error || !remoteRecords || remoteRecords.length === 0) return false;
+    if (error || !remoteRecords) return false;
 
     const pendingIds = await getPendingRecordIds("clinical_records");
     const db = await getOfflineDb();
     
     const typedRecords = (remoteRecords as ClinicalRecordRecord[]).filter((r) => !pendingIds.has(r.id));
     
-    await Promise.all(
-      typedRecords.map((r) => db.put("clinical_records", r))
-    );
+    const allLocalRaw = await db.getAll("clinical_records");
+    const allLocal = await Promise.all(allLocalRaw.map(unwrapData)) as ClinicalRecordRecord[];
+    const localForDoctor = allLocal.filter(r => r.clinic_id === clinicId && r.doctor_id === doctorId);
+    
+    const remoteIds = new Set(remoteRecords.map(r => r.id));
+    const idsToDelete = localForDoctor.map(r => r.id).filter(id => !remoteIds.has(id) && !pendingIds.has(id));
+
+    await Promise.all([
+      ...typedRecords.map(async (record) => {
+        const wrapped = await wrapData(record, {
+          id: record.id,
+          patient_id: record.patient_id,
+          doctor_id: record.doctor_id,
+          updated_at: record.updated_at,
+        });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return db.put("clinical_records", wrapped as any);
+      }),
+      ...idsToDelete.map(id => db.delete("clinical_records", id))
+    ]);
     return true;
   } catch {
     return false;
@@ -434,7 +560,8 @@ export async function refreshClinicalRecordsFromRemote(clinicId: string, doctorI
 
 export async function listClinicalRecordsByTenant(doctorId: string, clinicId: string) {
   const db = await getOfflineDb();
-  const allRecords = await db.getAll("clinical_records");
+  const allRecordsRaw = await db.getAll("clinical_records");
+  const allRecords = await Promise.all(allRecordsRaw.map(unwrapData));
 
   return allRecords
     .filter((r) => r.doctor_id === doctorId && r.clinic_id === clinicId)
@@ -443,18 +570,14 @@ export async function listClinicalRecordsByTenant(doctorId: string, clinicId: st
 
 export async function saveClinicalRecordLocal(record: ClinicalRecordRecord) {
   const db = await getOfflineDb();
-  await db.put("clinical_records", {
+  const wrapped = await wrapData(record, {
     id: record.id,
-    clinic_id: record.clinic_id,
-    doctor_id: record.doctor_id,
     patient_id: record.patient_id,
-    specialty_kind: record.specialty_kind,
-    chief_complaint: record.chief_complaint,
-    cie_codes: record.cie_codes,
-    specialty_data: record.specialty_data,
-    created_at: record.created_at,
+    doctor_id: record.doctor_id,
     updated_at: record.updated_at,
   });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await db.put("clinical_records", wrapped as any);
 }
 
 export async function deleteClinicalRecordLocal(id: string) {
@@ -481,16 +604,33 @@ export async function refreshSpecialtyDataFromRemote(clinicId: string, doctorId:
       .eq("clinic_id", clinicId)
       .eq("doctor_id", doctorId);
 
-    if (error || !remoteData || remoteData.length === 0) return false;
+    if (error || !remoteData) return false;
 
     const pendingIds = await getPendingRecordIds("specialty_data");
     const db = await getOfflineDb();
     
     const typedData = (remoteData as SpecialtyDataRow[]).filter((d) => !pendingIds.has(d.id));
     
-    await Promise.all(
-      typedData.map((d) => db.put("specialty_data", d))
-    );
+    const allLocalRaw = await db.getAll("specialty_data");
+    const allLocal = await Promise.all(allLocalRaw.map(unwrapData)) as SpecialtyDataRow[];
+    const localForDoctor = allLocal.filter(d => d.doctor_id === doctorId);
+    
+    const remoteIds = new Set(remoteData.map(d => d.id));
+    const idsToDelete = localForDoctor.map(d => d.id).filter(id => !remoteIds.has(id) && !pendingIds.has(id));
+
+    await Promise.all([
+      ...typedData.map(async (d) => {
+        const wrapped = await wrapData(d, {
+          id: d.id,
+          clinical_record_id: d.clinical_record_id,
+          doctor_id: d.doctor_id,
+          updated_at: d.updated_at,
+        });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return db.put("specialty_data", wrapped as any);
+      }),
+      ...idsToDelete.map(id => db.delete("specialty_data", id))
+    ]);
     return true;
   } catch {
     return false;
@@ -499,16 +639,14 @@ export async function refreshSpecialtyDataFromRemote(clinicId: string, doctorId:
 
 export async function saveSpecialtyDataLocal(row: SpecialtyDataRow) {
   const db = await getOfflineDb();
-  await db.put("specialty_data", {
+  const wrapped = await wrapData(row, {
     id: row.id,
-    clinic_id: row.clinic_id,
-    doctor_id: row.doctor_id,
     clinical_record_id: row.clinical_record_id,
-    specialty_kind: row.specialty_kind,
-    data: row.data,
-    created_at: row.created_at,
+    doctor_id: row.doctor_id,
     updated_at: row.updated_at,
   });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await db.put("specialty_data", wrapped as any);
 }
 
 // ─── Test Utilities ───────────────────────────────────────────────────────────

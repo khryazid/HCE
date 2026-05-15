@@ -1,6 +1,7 @@
 import type { SpecialtyKind } from "@/features/consultations/types/clinical";
 import type { ClinicalRecordRecord, SpecialtyDataRow } from "@/features/consultations/types";
 import { normalizeCommaValues } from "@/features/consultations/lib/workflow";
+import { toISODateString } from "@/lib/utils/date-utils";
 
 type WizardPatientSnapshot = {
   gender: string;
@@ -111,7 +112,7 @@ export function buildConsultationPayload(
     imaging_orders: input.imagingOrders ?? [],
     treatment_template_id: input.treatmentTemplateId || null,
     evolution_status: input.evolutionStatus.trim() || null,
-    next_follow_up_date: input.nextFollowUpDate || null,
+    next_follow_up_date: toISODateString(input.nextFollowUpDate),
     follow_up_mode: input.entryMode,
     linked_record_id: input.entryMode === "seguimiento" ? input.linkedRecordId || null : null,
     // --- NUEVOS CAMPOS ---

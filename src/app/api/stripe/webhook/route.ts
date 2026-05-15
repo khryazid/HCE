@@ -39,15 +39,20 @@ export async function POST(req: Request) {
       case "customer.subscription.created":
       case "customer.subscription.updated":
       case "customer.subscription.deleted": {
-        const subscription = event.data.object as Stripe.Subscription;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const subscription = event.data.object as any;
         const customerId = subscription.customer as string;
         const status = subscription.status;
+        const expiresAt = new Date(subscription.current_period_end * 1000).toISOString();
+        const plan = subscription.items.data[0]?.price.metadata?.plan || "basic";
 
         const { error: subUpdateError } = await supabaseAdmin
           .from("profiles")
           .update({
             subscription_status: status,
             stripe_subscription_id: subscription.id,
+            subscription_expires_at: expiresAt,
+            plan: plan as "basic" | "clinic",
           })
           .eq("stripe_customer_id", customerId);
 
@@ -57,19 +62,58 @@ export async function POST(req: Request) {
         }
         break;
       }
+      case "invoice.payment_succeeded": {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const invoice = event.data.object as any;
+        if (invoice.subscription && invoice.customer) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const subscription = await getStripe().subscriptions.retrieve(invoice.subscription as string) as any;
+          const expiresAt = new Date(subscription.current_period_end * 1000).toISOString();
+          
+          await supabaseAdmin
+            .from("profiles")
+            .update({
+              subscription_status: subscription.status,
+              subscription_expires_at: expiresAt,
+            })
+            .eq("stripe_customer_id", invoice.customer as string);
+        }
+        break;
+      }
+      case "invoice.payment_failed": {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const invoice = event.data.object as any;
+        if (invoice.subscription && invoice.customer) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const subscription = await getStripe().subscriptions.retrieve(invoice.subscription as string) as any;
+          
+          await supabaseAdmin
+            .from("profiles")
+            .update({
+              subscription_status: subscription.status, // usually past_due
+            })
+            .eq("stripe_customer_id", invoice.customer as string);
+        }
+        break;
+      }
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
         if (session.mode === "subscription") {
           const customerId = session.customer as string;
           const subscriptionId = session.subscription as string;
 
-          const subscription = await getStripe().subscriptions.retrieve(subscriptionId);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const subscription = await getStripe().subscriptions.retrieve(subscriptionId) as any;
+          const expiresAt = new Date(subscription.current_period_end * 1000).toISOString();
+          const plan = subscription.items.data[0]?.price.metadata?.plan || "basic";
 
           const { error: sessionUpdateError } = await supabaseAdmin
             .from("profiles")
             .update({
               subscription_status: subscription.status,
               stripe_subscription_id: subscription.id,
+              subscription_expires_at: expiresAt,
+              plan: plan as "basic" | "clinic",
             })
             .eq("stripe_customer_id", customerId);
 

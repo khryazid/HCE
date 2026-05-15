@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createClient } from "@/lib/supabase/server";
 import {
   buildCieSuggestionPrompt,
   extractGeminiSuggestions,
   type CieSuggestionInput,
 } from "@/features/consultations/lib/ai/cie-suggestions";
 import { isCieSuggestionRateLimited } from "@/features/consultations/lib/ai/cie-rate-limit";
-import type { Database } from "@/types/supabase.types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,30 +17,12 @@ function readRequestText(value: unknown) {
   return typeof value === "string" ? value.trim().slice(0, MAX_INPUT_LENGTH) : "";
 }
 
-function readBearerToken(request: Request) {
-  const authorization = request.headers.get("authorization");
-  if (!authorization) return null;
-  const [scheme, token] = authorization.split(" ");
-  if (!scheme || !token || scheme.toLowerCase() !== "bearer") return null;
-  return token.trim();
-}
-
-async function getAuthorizedUserId(request: Request) {
-  const token = readBearerToken(request);
-  if (!token) return null;
-
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !anonKey) return null;
-
-  const supabase = createClient<Database>(url, anonKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-
-  const { data, error } = await supabase.auth.getUser(token);
+async function getAuthorizedUserId() {
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.getUser();
   if (error) return null;
 
-  return { userId: data.user?.id ?? null, token };
+  return { userId: data.user?.id ?? null };
 }
 
 async function requestGeminiSuggestions(input: RequestBody): Promise<ReturnType<typeof extractGeminiSuggestions> | null> {
@@ -108,7 +89,7 @@ async function requestGeminiSuggestions(input: RequestBody): Promise<ReturnType<
 
 export async function POST(request: Request) {
   try {
-    const authorizedUser = await getAuthorizedUserId(request);
+    const authorizedUser = await getAuthorizedUserId();
 
     if (!authorizedUser?.userId) {
       return NextResponse.json(
@@ -117,7 +98,7 @@ export async function POST(request: Request) {
       );
     }
 
-    if (await isCieSuggestionRateLimited({ userId: authorizedUser.userId, token: authorizedUser.token })) {
+    if (await isCieSuggestionRateLimited({ userId: authorizedUser.userId })) {
       return NextResponse.json(
         { source: "gemini", suggestions: [], error: "Rate limit exceeded" },
         { status: 429, headers: { "Retry-After": "60" } },

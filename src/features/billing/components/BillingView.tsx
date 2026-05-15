@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 
 const STRIPE_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_PRICE_ID ?? null;
 
-export default function BillingView() {
+export default function BillingView({ proPrice = 29 }: { proPrice?: number }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -51,7 +51,7 @@ export default function BillingView() {
         <h2 className="text-xl font-semibold text-ink">Plan Profesional</h2>
         <p className="mt-2 text-sm text-ink-soft">Suscripción mensual recurrente</p>
         <p className="mt-4 flex items-baseline gap-x-2">
-          <span className="text-4xl font-bold tracking-tight text-ink">$29</span>
+          <span className="text-4xl font-bold tracking-tight text-ink">${proPrice}</span>
           <span className="text-sm font-semibold text-ink-soft">/mes</span>
         </p>
 

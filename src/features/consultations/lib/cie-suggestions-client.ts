@@ -1,6 +1,6 @@
 "use client";
 
-import { getSupabaseClient } from "@/lib/supabase/client";
+
 import type {
   CieSuggestion,
   CieSuggestionInput,
@@ -49,22 +49,10 @@ export async function fetchCieSuggestionsFromApi(
     return { source: "gemini" as const, suggestions: [] };
   }
 
-  const supabase = getSupabaseClient();
-  // getSession() is intentional here: we only need the access_token to send
-  // as a Bearer header to our own API route. We are NOT using it for identity
-  // verification — the API route calls getUser() server-side for that.
-  // Using getUser() here would require an extra server round-trip for no benefit.
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
   const response = await fetch("/api/cie-suggestions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      ...(session?.access_token
-        ? { Authorization: `Bearer ${session.access_token}` }
-        : {}),
     },
     body: JSON.stringify(input),
     signal,

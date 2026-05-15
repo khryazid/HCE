@@ -4,6 +4,7 @@ import { useState, useMemo, useTransition, useCallback, useEffect } from "react"
 import { toast } from "sonner";
 import type { AdminUserRecord, AdminStats } from "@/features/admin/actions";
 import { setSubscriptionStatus, deleteUserAccount } from "@/features/admin/actions";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
 
@@ -22,6 +23,9 @@ type Props = {
   stats: AdminStats;
   abandonedItems: AbandonedItem[];
   pricing: { proPrice: number; clinicPrice: number };
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
 };
 
 type PlanDraft = {
@@ -289,7 +293,10 @@ const FILTER_OPTIONS: { value: StatusFilter; label: string }[] = [
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 
-export function AdminPanelClient({ initialUsers, stats, abandonedItems, pricing }: Props) {
+export function AdminPanelClient({ initialUsers, stats, abandonedItems, pricing, currentPage, totalPages, totalItems }: Props) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParamsHook = useSearchParams();
   const [users, setUsers] = useState<AdminUserRecord[]>(initialUsers);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -603,6 +610,39 @@ export function AdminPanelClient({ initialUsers, stats, abandonedItems, pricing 
             </tbody>
           </table>
         </div>
+        
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="px-5 py-3 border-t border-border flex items-center justify-between">
+            <span className="text-xs text-ink-soft">
+              Página {currentPage} de {totalPages} ({totalItems} en total)
+            </span>
+            <div className="flex gap-2">
+              <button
+                disabled={currentPage <= 1 || isPending}
+                onClick={() => {
+                  const params = new URLSearchParams(searchParamsHook.toString());
+                  params.set("page", (currentPage - 1).toString());
+                  startTransition(() => router.push(`${pathname}?${params.toString()}`));
+                }}
+                className="px-3 py-1 rounded-lg border border-border text-xs font-medium hover:bg-bg-soft disabled:opacity-50 transition-colors"
+              >
+                Anterior
+              </button>
+              <button
+                disabled={currentPage >= totalPages || isPending}
+                onClick={() => {
+                  const params = new URLSearchParams(searchParamsHook.toString());
+                  params.set("page", (currentPage + 1).toString());
+                  startTransition(() => router.push(`${pathname}?${params.toString()}`));
+                }}
+                className="px-3 py-1 rounded-lg border border-border text-xs font-medium hover:bg-bg-soft disabled:opacity-50 transition-colors"
+              >
+                Siguiente
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── ABANDONED SYNC ITEMS ── */}

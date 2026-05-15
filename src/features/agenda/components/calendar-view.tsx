@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useAgenda } from "@/features/agenda/lib/use-agenda";
+import { useAgendaRealtime } from "@/features/agenda/lib/use-agenda-realtime";
 import { AppointmentModal } from "@/features/agenda/components/appointment-modal";
 import { useTenant } from "@/lib/supabase/tenant-context";
 import { toast } from "sonner";
@@ -9,7 +10,6 @@ import { Plus } from "lucide-react";
 import { Database } from "@/types/supabase.types";
 import { CalendarContainer } from "./custom-calendar/calendar-container";
 import { CalendarEvent } from "./custom-calendar/types";
-import { startOfDay } from "date-fns";
 
 type AppointmentRow = Database["public"]["Tables"]["appointments"]["Row"];
 type AppointmentInsert = Database["public"]["Tables"]["appointments"]["Insert"];
@@ -17,6 +17,9 @@ type AppointmentInsert = Database["public"]["Tables"]["appointments"]["Insert"];
 export function CalendarView() {
   const { tenant: tenantProfile, loading } = useTenant();
   const { appointments, config, isLoading, createAppointment, updateAppointment, deleteAppointment } = useAgenda();
+
+  // ─── Realtime ─ auto-refresh cuando otra sesión crea/modifica/borra citas ──
+  useAgendaRealtime(tenantProfile);
 
   // Estado del Modal
   const [isModalOpen, setIsModalOpen] = useState(false);

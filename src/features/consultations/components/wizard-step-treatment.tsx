@@ -146,10 +146,15 @@ export function WizardStepTreatment({
       ) : null}
 
       <div className="space-y-4">
-        <h4 className="text-sm font-semibold text-teal-900 dark:text-teal-400 border-b border-teal-100 dark:border-teal-500/30 pb-2">C. Plantilla de Prescripción</h4>
+        <h4 className="text-sm font-semibold text-teal-900 dark:text-teal-400 border-b border-teal-100 dark:border-teal-500/30 pb-2">C. Plantilla de Tratamiento Integral</h4>
 
         <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-ink">Plantilla de Prescripción Rápida</label>
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-semibold text-ink">Plantilla Clínica (Autollenado)</label>
+          </div>
+          <p className="text-[11px] text-ink-soft">
+            Aplica medicamentos, dieta, medidas generales, recomendaciones y signos de alarma simultáneamente.
+          </p>
           <select
             className="hce-input"
             value={form.treatmentTemplateId}

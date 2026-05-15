@@ -11,14 +11,32 @@ import type {
 
 function calculateAge(birthDate: string): string {
   if (!birthDate || !birthDate.includes("-") || birthDate.length !== 10) return "";
-  const birth = new Date(birthDate);
-  if (isNaN(birth.getTime())) return "";
+  const [yearStr, monthStr, dayStr] = birthDate.split("-");
+  const year = parseInt(yearStr, 10);
+  const month = parseInt(monthStr, 10);
+  const day = parseInt(dayStr, 10);
+
+  const birth = new Date(year, month - 1, day);
+  if (
+    isNaN(birth.getTime()) ||
+    birth.getFullYear() !== year ||
+    birth.getMonth() !== month - 1 ||
+    birth.getDate() !== day
+  ) {
+    return "Fecha inválida";
+  }
+
   const now = new Date();
+  if (birth > now) return "Fecha futura";
+
   let age = now.getFullYear() - birth.getFullYear();
   const m = now.getMonth() - birth.getMonth();
   if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) {
     age--;
   }
+  
+  if (age > 130) return "Edad irreal";
+  
   return `${age} años`;
 }
 
@@ -53,7 +71,12 @@ export function WizardStepPatient({
 }: Props) {
   const [searchQuery, setSearchQuery] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [activeTab, setActiveTab] = useState<"search" | "create">("search");
+  // Start on "create" tab if quickPatient data is pre-filled from URL params
+  const [activeTab, setActiveTab] = useState<"search" | "create">(() =>
+    !form.patientId && (quickPatient.documentNumber || quickPatient.firstName)
+      ? "create"
+      : "search"
+  );
 
   // Autocomplete: search by name, surname, or document number
   const suggestions = useMemo(() => {
@@ -508,9 +531,15 @@ export function WizardStepPatient({
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-semibold text-ink">Fecha de nacimiento</label>
                     {quickPatient.birthDate && quickPatient.birthDate.length === 10 && quickPatient.birthDate.includes("-") ? (
-                      <span className="text-xs font-bold text-teal-700 dark:text-teal-300 bg-teal-500/10 px-2 py-0.5 rounded-full">
-                        {calculateAge(quickPatient.birthDate)}
-                      </span>
+                      (() => {
+                        const ageStr = calculateAge(quickPatient.birthDate);
+                        const isInvalid = ageStr === "Fecha inválida" || ageStr === "Fecha futura" || ageStr === "Edad irreal";
+                        return (
+                          <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${isInvalid ? "text-red-700 bg-red-100" : "text-teal-700 dark:text-teal-300 bg-teal-500/10"}`}>
+                            {ageStr}
+                          </span>
+                        );
+                      })()
                     ) : null}
                   </div>
                   <input
@@ -575,7 +604,14 @@ export function WizardStepPatient({
               </div>
               <button
                 type="button"
-                className="hce-btn-primary w-full sm:w-auto"
+                disabled={(() => {
+                  if (quickPatient.birthDate && quickPatient.birthDate.length === 10 && quickPatient.birthDate.includes("-")) {
+                    const ageStr = calculateAge(quickPatient.birthDate);
+                    return ageStr === "Fecha inválida" || ageStr === "Fecha futura" || ageStr === "Edad irreal";
+                  }
+                  return false;
+                })()}
+                className="hce-btn-primary w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick={onCreateQuickPatient}
               >
                 Crear paciente y continuar

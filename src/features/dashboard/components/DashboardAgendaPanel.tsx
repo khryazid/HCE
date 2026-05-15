@@ -1,5 +1,4 @@
 import { isSameDay, parseISO, format } from "date-fns";
-import { es } from "date-fns/locale";
 import type { Database } from "@/types/supabase.types";
 
 type AppointmentRow = Database["public"]["Tables"]["appointments"]["Row"];
@@ -78,6 +77,7 @@ export function DashboardAgendaPanel({
                   }`}
                 >
                   <div className="flex flex-col items-end shrink-0 w-14">
+                    { }
                     <span className="text-sm font-bold text-ink">
                       {format(start, "HH:mm")}
                     </span>
@@ -117,6 +117,18 @@ export function DashboardAgendaPanel({
                       </span>
                     </div>
                   </div>
+
+                  {/* Botón Iniciar Consulta */}
+                  {app.status === "scheduled" && (
+                    <div className="shrink-0">
+                      <a 
+                        href={`/consultas?appointmentId=${app.id}&patientName=${encodeURIComponent(app.patient_name || "")}${app.patient_document ? `&patientDoc=${encodeURIComponent(app.patient_document)}` : ""}${app.patient_birth_date ? `&patientBirth=${encodeURIComponent(app.patient_birth_date)}` : ""}`}
+                        className="flex items-center justify-center rounded-lg bg-teal-500 px-3 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-teal-600 transition-colors"
+                      >
+                        Iniciar
+                      </a>
+                    </div>
+                  )}
                 </li>
               );
             })}

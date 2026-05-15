@@ -21,7 +21,7 @@
 import type { PatientRecord } from "@/features/patients/types";
 import type { ClinicalRecordRecord } from "@/features/consultations/types";
 import type { LetterheadSettings } from "@/features/dashboard/lib/letterhead";
-import { generateConsultationPdfBlob, type ConsultationPdfData } from "@/features/consultations/lib/pdf";
+import { generateConsultationPdf, type ConsultationPdfData } from "@/features/consultations/lib/pdf";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -166,7 +166,7 @@ export async function exportPatientZip({
     report(`Generando PDF ${i + 1} de ${sorted.length}…`);
 
     const pdfData = buildPdfDataFromRecord(record, patient);
-    const pdfBytes = await generateConsultationPdfBlob(letterhead, pdfData);
+    const pdfBytes = (await generateConsultationPdf(letterhead, pdfData, "blob")) as Uint8Array;
     folder.file(filename, pdfBytes, { binary: true });
   }
 

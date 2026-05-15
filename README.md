@@ -35,19 +35,21 @@ Con arquitectura multi-tenant de grado empresarial, Glyph automatiza la facturac
 
 ---
 
-## ✅ Estado Actual del Proyecto *(2026-05-13)*
+## ✅ Estado Actual del Proyecto *(2026-05-15)*
 
-> Build limpio. 0 errores TypeScript. 85/85 tests unitarios. 9 specs E2E.
+> Build limpio · 0 errores TypeScript · Build de producción OK · 176 archivos fuente
 
 ### Features entregadas
 
 | Feature | Descripción |
 |---|---|
 | **Consulta Wizard** | Flujo guiado 6 pasos → PDF con membrete. PAM auto-calculada, normalidad auto-completada. |
-| **UI Adaptativa** | Secciones colapsables con memoria (JSONB) — el doctor ajusta el wizard a su especialidad. |
-| **Constructor Posología** | Parsea texto libre con viñetas y lo convierte en tarjetas de medicación estructuradas automáticamente. |
-| **Offline-First** | IndexedDB + sync worker con backoff exponencial |
-| **Plan Multi-Doctor** | Arquitectura multi-tenant para Clínicas, roles de acceso (admin/doctor/viewer) y billing multi-seat. |
+| **UI Adaptativa (Clinical Rompecabezas)** | Secciones colapsables con memoria (JSONB) — el especialista configura el wizard a su flujo. |
+| **Constructor Posología** | Parsea texto libre con viñetas y lo convierte en tarjetas de medicación estructuradas. |
+| **Offline-First** | IndexedDB + sync worker con backoff exponencial. Eliminações remotas se propagan al cache local. |
+| **Realtime Sync** | Supabase WebSocket Realtime en 5 tablas (pacientes, citas, consultas, equipo, plantillas). |
+| **Agenda Reactiva** | Calendario con polling 30s + `refetchOnWindowFocus` + Realtime — el médico ve citas nuevas al instante. |
+| **Plan Multi-Doctor** | Multi-tenant para Clínicas, roles (admin/doctor/viewer) y billing multi-seat. |
 | **IA CIE-10** | Gemini 2.0 Flash sugiere diagnósticos en tiempo real |
 | **Plantillas** | Multi-dispositivo en Supabase, versionado JSONB, historial restaurable |
 | **Búsqueda Global** | `Ctrl+K` — FTS PostgreSQL con índices GIN + `websearch_to_tsquery` |
@@ -59,11 +61,12 @@ Con arquitectura multi-tenant de grado empresarial, Glyph automatiza la facturac
 | **Admin Panel** | Métricas de tenants, control de acceso por `ADMIN_EMAIL` |
 | **Rate Limiting** | Por RPC Postgres en `/api/push/send` y `/api/stripe/*` |
 | **Auditoría** | Hash criptográfico encadenado en cada consulta sellada |
+| **Validación de Fechas** | Utilidad `toISODateString` — previene error PostgreSQL 22008 en todos los formularios |
 | **UX/UI Refinada** | Animaciones fluidas, Skeletons, búsqueda global (Ctrl+K) categorizada, y alertas urgentes contextuales. |
 
 ### Próxima feature mayor
 
-**Onboarding Sin Fricción y Sync Transparente**: Implementación de 7 días de prueba gratis automático sin tarjeta para captación de usuarios y refactorización del motor offline para sincronización completamente silenciosa. Ver `docs/BACKLOG.md` para el detalle completo.
+**Onboarding Sin Fricción y Sync Transparente**: Trial gratuito 7 días sin tarjeta, sincronización silenciosa, Core Web Vitals. Ver `docs/BACKLOG.md`.
 
 ---
 
@@ -123,19 +126,22 @@ graph TD
     Stripe[💳 Stripe Billing & Webhooks]
     Push[🔔 Web Push / VAPID]
     Email[📧 Resend / Email]
+    RT[📡 Supabase Realtime]
 
     Client --> PROXY
     PROXY -->|Protege rutas| Client
     Client <-->|0ms Latency| IDB
     IDB -->|Background Flush| SW
     SW -->|Upsert + Audit Log| SupabaseDB
-    SW -->|Refresh| IDB
+    SW -->|Refresh + Pruning| IDB
     Client -->|JWT Sessions| Auth
     Client -->|Análisis CIE-10| AI
     Client -->|Gestión Suscripción| Stripe
     Stripe -->|Webhooks Verificados| SupabaseDB
     SupabaseDB -->|pg_cron 7am| Email
     SupabaseDB -->|pg_cron 8am| Push
+    SupabaseDB -->|WebSocket| RT
+    RT -->|INSERT/UPDATE/DELETE| Client
 ```
 
 ---
@@ -289,23 +295,24 @@ src/
 │   ├── (auth)/             # Login, registro, onboarding
 │   ├── (dashboard)/        # Dashboard, pacientes, consultas, admin, ajustes, tratamientos
 │   └── api/                # Stripe, push, email, search, IA CIE-10
-├── features/               # Lógica de negocio por dominio
+├── features/               # Lógica de negocio por dominio (Vertical Slice)
 │   ├── admin/              # Panel super admin
 │   ├── auth/               # Formularios y flujos de autenticación
 │   ├── billing/            # Integración Stripe + portal
-│   ├── consultations/      # Wizard, PDF, generateConsultationPdfBlob, IA CIE, plantillas
-│   ├── dashboard/          # Métricas, búsqueda global Ctrl+K, letterhead, ThemeToggle
-│   ├── patients/           # CRUD pacientes, ExportZipButton, export-zip.ts
+│   ├── consultations/      # Wizard, PDF, IA CIE, plantillas, realtime
+│   ├── dashboard/          # Métricas, búsqueda global Ctrl+K, letterhead, equipo
+│   ├── patients/           # CRUD pacientes, ExportZip, realtime hooks
 │   └── sync/               # Bootstrap del sync worker
 ├── lib/
 │   ├── constants/          # Especialidades médicas y constantes
-│   ├── db/                 # IndexedDB schema + queries locales
+│   ├── db/                 # IndexedDB schema + queries locales con pruning remoto
 │   ├── env.ts              # Validación de variables de entorno al arrancar
 │   ├── hooks/use-theme.ts  # Hook de dark mode con lazy initializer
 │   ├── observability/      # Logger de errores, usage-tracker
 │   ├── supabase/           # Cliente SSR/browser, profile, tenant, onboarding
-│   └── sync/               # Sync worker con backoff exponencial
-├── components/ui/          # ThemeToggle, EmptyState, etc.
+│   ├── sync/               # Sync worker con backoff exponencial
+│   └── utils/date-utils.ts # Validación/conversión de fechas DD/MM/AAAA ↔ ISO
+├── components/ui/          # ThemeToggle, EmptyState, ConfirmModal, etc.
 ├── proxy.ts                # Proxy SSR de Next.js 16 (reemplaza middleware.ts)
 └── types/supabase.types.ts # Generado con npm run db:types
 supabase/
@@ -343,13 +350,12 @@ docs/
 
 Ver el tasklist completo con prioridades en **[docs/BACKLOG.md](docs/BACKLOG.md)**.
 
-La siguiente prioridad de desarrollo:
+Las siguientes prioridades de desarrollo:
 
-**Sprint — Onboarding y Sync Transparente**
-- Free Trial de 7 días automático sin tarjeta de crédito al registrarse.
-- Notificaciones automáticas de fin de trial por correo y dashboard.
-- Motor de sincronización background invisible (zero-UI) para IndexedDB <-> Supabase.
-- **Optimización SEO Avanzada**: Refinamiento técnico de Core Web Vitals y Metadatos para alcanzar score perfecto en Google y dominar el posicionamiento orgánico.
+- **Trial 7 días**: Free Trial automático sin tarjeta de crédito al registrarse.
+- **Notificaciones de trial**: Alertas automáticas de fin de plan por correo y dashboard.
+- **Sync invisible**: Motor de sincronización background zero-UI para IndexedDB ↔ Supabase.
+- **SEO Avanzado**: Core Web Vitals y metadatos para posicionamiento orgánico.
 
 ---
 

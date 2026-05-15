@@ -26,6 +26,16 @@ type TreatmentTemplateVersion = {
   updated_at: string;
 };
 
+export type TreatmentTemplateExtraSections = {
+  diet_type?: string;
+  general_measures?: string;
+  nursing_cares?: string;
+  recommendations?: string;
+  warningSigns?: string;
+  labOrders?: string[];
+  imagingOrders?: string[];
+};
+
 export type TreatmentTemplate = {
   id: string;
   doctor_id: string;
@@ -33,6 +43,7 @@ export type TreatmentTemplate = {
   trigger: string;
   title: string;
   treatment: string;
+  extra_sections?: TreatmentTemplateExtraSections;
   current_version: number;
   versions: TreatmentTemplateVersion[];
   created_at: string;
@@ -45,6 +56,7 @@ type TreatmentTemplateInput = {
   trigger: string;
   title: string;
   treatment: string;
+  extra_sections?: TreatmentTemplateExtraSections;
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -68,6 +80,7 @@ export function buildNextTemplate(
         trigger: template.trigger.trim(),
         title: template.title.trim(),
         treatment: template.treatment.trim(),
+        extra_sections: template.extra_sections,
         current_version: existing.current_version + 1,
         versions: [
           ...existing.versions,
@@ -86,6 +99,7 @@ export function buildNextTemplate(
         trigger: template.trigger.trim(),
         title: template.title.trim(),
         treatment: template.treatment.trim(),
+        extra_sections: template.extra_sections,
         current_version: 1,
         versions: [
           {
@@ -145,6 +159,7 @@ export async function saveTreatmentTemplate(
         trigger: next.trigger,
         title: next.title,
         treatment: next.treatment,
+        extra_sections: next.extra_sections,
         current_version: next.current_version,
         versions: next.versions,
         updated_at: next.updated_at,
@@ -169,6 +184,7 @@ export async function saveTreatmentTemplate(
       trigger: next.trigger,
       title: next.title,
       treatment: next.treatment,
+      extra_sections: next.extra_sections,
       current_version: next.current_version,
       versions: next.versions,
       created_at: next.created_at,

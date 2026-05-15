@@ -10,6 +10,7 @@ import {
 import { useRouter } from "next/navigation";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { loadTenantProfile, type TenantProfile } from "@/lib/supabase/profile";
+import { initDbCrypto } from "@/lib/db/indexeddb";
 import type { Session } from "@supabase/supabase-js";
 
 type TenantState = {
@@ -55,6 +56,7 @@ export function TenantProvider({ children }: { children: ReactNode }) {
         }
 
         const profile = await loadTenantProfile(user.id);
+        await initDbCrypto(user.id);
 
         if (active) {
           setState({

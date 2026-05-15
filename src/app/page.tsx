@@ -1,7 +1,7 @@
 import LandingClient from "./landing-client";
 import { getPublicPricing } from "@/lib/config";
 
-export const dynamic = "force-dynamic"; // We want the pricing to update without redeploying
+export const revalidate = 3600; // ISR: Revalidate pricing every hour without forcing dynamic rendering
 
 export default async function Page() {
   const pricing = await getPublicPricing();

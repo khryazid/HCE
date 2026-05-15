@@ -25,7 +25,8 @@ const WIZARD_STEPS = [
   { number: 4, label: "PDF" },
 ];
 
-// ─── Step metadata (medico-legal order) ─────────────────────────────────────
+// ─── Step metadata (medico-legal order) — used by WizardStepper internally
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const STEPS = [
   { num: 1, label: "Datos del Paciente e Ingreso" },
   { num: 2, label: "Anamnesis y Antecedentes" },
@@ -45,23 +46,44 @@ export default function ConsultationsView() {
   useEffect(() => {
     const aptId = searchParams?.get("appointmentId");
     const pName = searchParams?.get("patientName");
+    const pDoc = searchParams?.get("patientDoc");
+    const pBirth = searchParams?.get("patientBirth");
 
     if (aptId && !wizardOpen) {
       openWizard();
 
-      if (pName) {
-        // Separamos el nombre completo de forma simple para pre-llenar "Nuevo paciente"
-        const parts = pName.trim().split(" ");
-        const firstName = parts[0] || "";
-        const lastName = parts.slice(1).join(" ") || "";
-        
-        setQuickPatient((prev) => ({
-          ...prev,
-          firstName,
-          lastName,
-        }));
+      wizard.setForm((prev) => ({
+        ...prev,
+        appointmentId: aptId,
+      }));
+
+      if (pName || pDoc || pBirth) {
+        // Buscar coincidencia exacta por cédula
+        const existingPatient = pDoc ? wizard.patients.find(p => p.document_number === pDoc) : undefined;
+
+        if (existingPatient) {
+          wizard.setForm((prev) => ({
+            ...prev,
+            patientId: existingPatient.id,
+            patientStatus: existingPatient.status ?? "activo",
+          }));
+        } else {
+          // Si no existe, pre-llenar para crear paciente
+          const parts = (pName || "").trim().split(" ");
+          const firstName = parts[0] || "";
+          const lastName = parts.slice(1).join(" ") || "";
+          
+          setQuickPatient((prev) => ({
+            ...prev,
+            firstName: firstName || prev.firstName,
+            lastName: lastName || prev.lastName,
+            documentNumber: pDoc || prev.documentNumber,
+            birthDate: pBirth || prev.birthDate,
+          }));
+        }
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, wizardOpen, openWizard, setQuickPatient]);
 
   if (tenantLoading || wizard.dataLoading) {
@@ -186,22 +208,25 @@ export default function ConsultationsView() {
                   form={wizard.form}
                   setForm={wizard.setForm}
                   validationErrors={wizard.validationErrors}
+                  uiPreferences={wizard.uiPreferences}
                 />
               </section>
 
               {/* ── Paso 3: Revisión por Sistemas (Examen Funcional) ────────── */}
-              <section className="rounded-3xl border border-border bg-card p-6 shadow-sm space-y-4">
-                <h3 className="text-base font-bold text-ink border-b border-border pb-3">
-                  <span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-accent/10 text-xs font-extrabold text-accent">3</span>
-                  Revisión por Sistemas (Examen Funcional)
-                </h3>
-                <WizardStepReviewOfSystems
-                  form={wizard.form}
-                  setForm={wizard.setForm}
-                  uiPreferences={wizard.uiPreferences}
-                  onToggleSection={wizard.toggleSectionVisibility}
-                />
-              </section>
+              {wizard.uiPreferences?.hide_review_of_systems !== true && (
+                <section className="rounded-3xl border border-border bg-card p-6 shadow-sm space-y-4">
+                  <h3 className="text-base font-bold text-ink border-b border-border pb-3">
+                    <span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-accent/10 text-xs font-extrabold text-accent">3</span>
+                    Revisión por Sistemas (Examen Funcional)
+                  </h3>
+                  <WizardStepReviewOfSystems
+                    form={wizard.form}
+                    setForm={wizard.setForm}
+                    uiPreferences={wizard.uiPreferences}
+                    onToggleSection={wizard.toggleSectionVisibility}
+                  />
+                </section>
+              )}
 
               {/* ── Paso 4: Examen Físico ──────────────────────────────────── */}
               <section className="rounded-3xl border border-border bg-card p-6 shadow-sm space-y-4">
@@ -213,6 +238,7 @@ export default function ConsultationsView() {
                   form={wizard.form}
                   setForm={wizard.setForm}
                   tenantSpecialties={tenant?.specialties ?? []}
+                  uiPreferences={wizard.uiPreferences}
                 />
               </section>
 

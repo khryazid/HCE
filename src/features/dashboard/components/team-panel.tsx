@@ -4,12 +4,16 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTenant } from "@/lib/supabase/tenant-context";
 import { getSupabaseClient } from "@/lib/supabase/client";
+import { useTeamRealtime } from "@/features/dashboard/lib/use-team-realtime";
 
 export function TeamPanel() {
   const { tenant } = useTenant();
   const queryClient = useQueryClient();
   const supabase = getSupabaseClient();
   
+  // ── Realtime: actualiza lista de miembros cuando algún admin hace cambios ─
+  useTeamRealtime(tenant);
+
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("assistant");
   const [inviteError, setInviteError] = useState("");
@@ -136,42 +140,46 @@ export function TeamPanel() {
             e.preventDefault();
             if (inviteEmail) inviteMutation.mutate();
           }}
-          className="flex flex-col sm:flex-row gap-3 items-end bg-background/50 p-4 rounded-lg border border-border"
+          className="bg-background/50 p-4 rounded-lg border border-border space-y-3"
         >
-          <div className="flex-1 space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">Email</label>
-            <input
-              type="email"
-              required
-              value={inviteEmail}
-              onChange={(e) => setInviteEmail(e.target.value)}
-              placeholder="medico@ejemplo.com"
-              className="w-full h-10 px-3 rounded-md border border-input bg-background focus:outline-none focus:ring-2 focus:ring-ring text-sm"
-            />
-          </div>
-          <div className="w-full sm:w-40 space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">Rol</label>
-            <select
-              value={tenant?.plan === "basic" ? "assistant" : inviteRole}
-              onChange={(e) => setInviteRole(e.target.value)}
-              disabled={tenant?.plan === "basic"}
-              className="w-full h-10 px-3 rounded-md border border-input bg-bg text-ink focus:outline-none focus:ring-2 focus:ring-accent text-sm disabled:opacity-50"
+          <div className="flex flex-col sm:flex-row gap-3 items-end">
+            <div className="flex-1 space-y-1 w-full">
+              <label className="text-xs font-medium text-muted-foreground">Email</label>
+              <input
+                type="email"
+                required
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+                placeholder="medico@ejemplo.com"
+                className="w-full h-10 px-3 rounded-md border border-input bg-background focus:outline-none focus:ring-2 focus:ring-ring text-sm"
+              />
+            </div>
+            <div className="w-full sm:w-40 space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">Rol</label>
+              <select
+                value={tenant?.plan === "basic" ? "assistant" : inviteRole}
+                onChange={(e) => setInviteRole(e.target.value)}
+                disabled={tenant?.plan === "basic" || inviteMutation.isPending}
+                className="w-full h-10 px-3 rounded-md border border-input bg-bg text-ink focus:outline-none focus:ring-2 focus:ring-accent text-sm disabled:opacity-50"
+              >
+                {tenant?.plan === "clinic" && <option className="bg-bg text-ink" value="doctor">Doctor</option>}
+                {tenant?.plan === "clinic" && <option className="bg-bg text-ink" value="admin">Admin</option>}
+                <option className="bg-bg text-ink" value="assistant">Asistente</option>
+              </select>
+            </div>
+            <button
+              type="submit"
+              disabled={inviteMutation.isPending}
+              className="w-full sm:w-auto h-10 px-4 py-2 bg-primary text-primary-foreground font-medium rounded-md hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:opacity-50 text-sm whitespace-nowrap"
             >
-              {tenant?.plan === "clinic" && <option className="bg-bg text-ink" value="doctor">Doctor</option>}
-              {tenant?.plan === "clinic" && <option className="bg-bg text-ink" value="admin">Admin</option>}
-              <option className="bg-bg text-ink" value="assistant">Asistente</option>
-            </select>
-            {tenant?.plan === "basic" && (
-              <p className="text-[10px] text-ink-soft leading-tight mt-1">El plan básico solo permite asistentes.</p>
-            )}
+              {inviteMutation.isPending ? "Invitando..." : "Invitar miembro"}
+            </button>
           </div>
-          <button
-            type="submit"
-            disabled={inviteMutation.isPending}
-            className="h-10 px-4 py-2 bg-primary text-primary-foreground font-medium rounded-md hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:opacity-50 text-sm whitespace-nowrap"
-          >
-            {inviteMutation.isPending ? "Invitando..." : "Invitar miembro"}
-          </button>
+          {tenant?.plan === "basic" && (
+            <p className="text-[11px] text-muted-foreground leading-tight">
+              * El plan básico solo permite invitar asistentes. Actualiza al plan clínica para invitar a otros médicos.
+            </p>
+          )}
         </form>
       )}
 
@@ -213,7 +221,7 @@ export function TeamPanel() {
                     <select
                       value={member.role}
                       onChange={(e) => updateRoleMutation.mutate({ id: member.id, role: e.target.value })}
-                      disabled={updateRoleMutation.isPending || tenant?.plan === "basic"}
+                      disabled={(updateRoleMutation.isPending && updateRoleMutation.variables?.id === member.id) || tenant?.plan === "basic"}
                       className="h-8 px-2 rounded border border-border bg-bg text-ink text-xs focus:ring-2 focus:ring-accent disabled:opacity-50"
                     >
                       {tenant?.plan === "clinic" && <option className="bg-bg text-ink" value="admin">Admin</option>}

@@ -1,5 +1,6 @@
 import type { PatientRecord } from "@/features/patients/types";
 import type { ClinicalRecordRecord } from "@/features/consultations/types";
+import { toISODateString } from "@/lib/utils/date-utils";
 
 export type WizardValidationInput = {
   patientId: string;
@@ -60,7 +61,7 @@ export function buildQuickPatientRecord(
     doctor_id: tenant.doctor_id,
     document_number: input.documentNumber.trim(),
     full_name: `${input.firstName.trim()} ${input.lastName.trim()}`,
-    birth_date: input.birthDate ? input.birthDate : null,
+    birth_date: toISODateString(input.birthDate),
     status: "activo",
     created_at: timestamp,
     updated_at: timestamp,

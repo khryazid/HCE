@@ -9,7 +9,6 @@ import { useClinicalContext } from "@/features/consultations/context/clinical-co
 import { mergeCieCodeList } from "@/features/consultations/lib/ai/cie-suggestions";
 import { fetchFirstCieSuggestionCode } from "@/features/consultations/lib/cie-suggestions-client";
 import type { ClinicalRecordRecord } from "@/features/consultations/types";
-import type { MedInstruction } from "@/features/consultations/components/medication-instructions-builder";
 
 import { normalizeCommaValues } from "@/features/consultations/lib/workflow";
 import {
@@ -33,234 +32,28 @@ import { logApiError } from "@/lib/observability/error-logger";
 import { usePatients, useClinicalRecords, patientKeys } from "@/features/patients/lib/use-patients-queries";
 import { useTemplates } from "@/features/consultations/lib/use-consultation-queries";
 
-export type CurrentMedication = {
-  id: string;
-  name: string;
-  dose: string;
-  frequency: string;
-  since: string;
+import type {
+  WizardForm,
+  CurrentMedication,
+  ReviewOfSystemEntry,
+  QuickPatientForm,
+  PendingFollowUp,
+} from "./wizard-types";
+import { EMPTY_FORM, EMPTY_QUICK_PATIENT } from "./wizard-constants";
+
+export type {
+  WizardForm,
+  CurrentMedication,
+  ReviewOfSystemEntry,
+  QuickPatientForm,
+  PendingFollowUp,
 };
-
-export type ReviewOfSystemEntry = { present: boolean; notes: string };
-
-export type WizardForm = {
-  entryMode: "consulta" | "seguimiento";
-  patientId: string;
-  linkedRecordId: string;
-  specialtyKind: string;
-  patientStatus: "activo" | "inactivo" | "en-seguimiento" | "alta";
-
-  // Identificación extendida (Snapshots) — Tarea 2
-  /** Sexo biológico. Clínicamente binario; requerido para valores de referencia de laboratorio. */
-  gender: "Hombre" | "Mujer" | "";
-  occupation: string;
-  insurance: string;
-  /** Tipo de sangre (ABO + Rh). */
-  blood_type: "A+" | "A-" | "B+" | "B-" | "AB+" | "AB-" | "O+" | "O-" | "";
-  /** Contacto de emergencia. */
-  emergency_contact: {
-    name: string;
-    relationship: string;
-    phone: string;
-  };
-
-  // --- Datos de Ingreso ---
-  consultationType: "primera-vez" | "control" | "urgencia" | "interconsulta";
-  informantSource: "paciente" | "familiar" | "expediente" | "otro";
-  informantReliability: "confiable" | "parcialmente-confiable" | "no-confiable";
-  referringDoctor: string;
-
-  // Registro clínico
-  chiefComplaint: string;
-  anamnesis: string;
-  symptoms: string; // Keep for backward compat
-  medicalHistory: string;
-  backgrounds: {
-    pathological: string;
-    surgical: string;
-    allergic: string;
-    pharmacological: string;
-    family: string;
-    toxic: string;
-    gynecoObstetric: string;
-  };
-
-  // --- Revisión por Sistemas ---
-  reviewOfSystems: {
-    cardiovascular: ReviewOfSystemEntry;
-    respiratory: ReviewOfSystemEntry;
-    gastrointestinal: ReviewOfSystemEntry;
-    genitourinary: ReviewOfSystemEntry;
-    neurological: ReviewOfSystemEntry;
-    musculoskeletal: ReviewOfSystemEntry;
-    dermatological: ReviewOfSystemEntry;
-    endocrine: ReviewOfSystemEntry;
-    psychiatric: ReviewOfSystemEntry;
-    hematological: ReviewOfSystemEntry;
-  };
-
-  // --- Examen Físico (Paso 4) ---
-  vitalSigns: {
-    bloodPressure: string;
-    heartRate: string;
-    respiratoryRate: string;
-    temperature: string;
-    oxygenSaturation: string;
-    weight: string;
-    height: string;
-    /** PAM calculada automáticamente: (sistólica + 2*diastólica) / 3. Solo lectura. */
-    mean_arterial_pressure: string;
-  };
-  physicalExam: { system: string; content: string }[];
-  generalCondition: string;
-  painScale: number | null;
-
-  // --- Diagnóstico (Paso 5) ---
-  diagnosis: string;
-  cieCodes: string;
-  clinicalAnalysis: string;
-
-  // --- Plan de Manejo (Paso 6) ---
-  /** Órdenes Intrahospitalarias / Medidas Generales — Tarea 5. */
-  medical_orders: {
-    diet_type: string;
-    general_measures: string;
-    nursing_cares: string;
-  };
-  treatmentTemplateId: string;
-  treatmentPlan: string;
-  /** Instrucciones de uso para el paciente (no para la farmacia). Se imprime en la hoja del paciente. */
-  medicationInstructions: string;
-  recommendations: string;
-  warningSigns: string;
-  /** Órdenes de laboratorio seleccionadas o escritas manualmente. */
-  labOrders: string[];
-  /** Estudios de imagen solicitados (Rx, TAC, RM, etc.). */
-  imagingOrders: string[];
-
-  // --- Medicamentos estructurados ---
-  currentMedications: CurrentMedication[];
-  /** Instrucciones de posología estructuradas por medicamento (se serializa en specialty_data) */
-  medicationInstructionsStructured: MedInstruction[];
-
-  evolutionStatus: string;
-  nextFollowUpDate: string;
-
-  // --- SOAP para seguimientos ---
-  soapSubjective: string;
-  soapObjective: string;
-  soapAssessment: string;
-  soapPlan: string;
-
-  // --- Pronóstico ---
-  prognosisVital: "bueno" | "reservado" | "malo" | "";
-  prognosisFunctional: "bueno" | "reservado" | "malo" | "";
-
-  // --- Datos pediátricos ---
-  pediatricData: {
-    headCircumference: string;
-    developmentStage: string;
-    vaccineStatus: string;
-  };
-};
-
-const EMPTY_FORM: WizardForm = {
-  entryMode: "consulta",
-  patientId: "",
-  linkedRecordId: "",
-  specialtyKind: "medicina-general",
-  patientStatus: "activo",
-  gender: "",
-  occupation: "",
-  insurance: "",
-  blood_type: "",
-  emergency_contact: { name: "", relationship: "", phone: "" },
-  consultationType: "primera-vez",
-  informantSource: "paciente",
-  informantReliability: "confiable",
-  referringDoctor: "",
-  chiefComplaint: "",
-  anamnesis: "",
-  symptoms: "",
-  medicalHistory: "",
-  backgrounds: {
-    pathological: "",
-    surgical: "",
-    allergic: "",
-    pharmacological: "",
-    family: "",
-    toxic: "",
-    gynecoObstetric: "",
-  },
-  reviewOfSystems: {
-    cardiovascular: { present: false, notes: "" },
-    respiratory: { present: false, notes: "" },
-    gastrointestinal: { present: false, notes: "" },
-    genitourinary: { present: false, notes: "" },
-    neurological: { present: false, notes: "" },
-    musculoskeletal: { present: false, notes: "" },
-    dermatological: { present: false, notes: "" },
-    endocrine: { present: false, notes: "" },
-    psychiatric: { present: false, notes: "" },
-    hematological: { present: false, notes: "" },
-  },
-  vitalSigns: {
-    bloodPressure: "",
-    heartRate: "",
-    respiratoryRate: "",
-    temperature: "",
-    oxygenSaturation: "",
-    weight: "",
-    height: "",
-    mean_arterial_pressure: "",
-  },
-  physicalExam: [],
-  generalCondition: "",
-  painScale: null,
-  diagnosis: "",
-  cieCodes: "",
-  clinicalAnalysis: "",
-  medical_orders: { diet_type: "", general_measures: "", nursing_cares: "" },
-  treatmentTemplateId: "",
-  treatmentPlan: "",
-  medicationInstructions: "",
-  recommendations: "",
-  warningSigns: "",
-  labOrders: [],
-  imagingOrders: [],
-  currentMedications: [],
-  medicationInstructionsStructured: [],
-  evolutionStatus: "",
-  nextFollowUpDate: "",
-  soapSubjective: "",
-  soapObjective: "",
-  soapAssessment: "",
-  soapPlan: "",
-  prognosisVital: "",
-  prognosisFunctional: "",
-  pediatricData: {
-    headCircumference: "",
-    developmentStage: "",
-    vaccineStatus: "",
-  },
-};
-
-const EMPTY_QUICK_PATIENT = {
-  documentNumber: "",
-  firstName: "",
-  lastName: "",
-  birthDate: "",
-};
-
-export type QuickPatientForm = typeof EMPTY_QUICK_PATIENT;
-
-export type PendingFollowUp = WizardPendingFollowUp;
 
 export function useConsultationWizard(tenant: TenantProfile | null) {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const deepLinkHandled = useRef(false);
   const draftRestored = useRef(false);
+  const deepLinkHandled = useRef(false);
   const clinical = useClinicalContext();
 
   const { data: patients = [], isLoading: patientsLoading } = usePatients(tenant);
@@ -453,10 +246,23 @@ export function useConsultationWizard(tenant: TenantProfile | null) {
   function applyTemplate(templateId: string) {
     setForm((current) => {
       const selected = templates.find((item) => item.id === templateId);
+      if (!selected) return current;
+
+      const extras = selected.extra_sections || {};
+      
       return {
         ...current,
         treatmentTemplateId: templateId,
-        treatmentPlan: selected ? selected.treatment : current.treatmentPlan,
+        treatmentPlan: selected.treatment,
+        recommendations: extras.recommendations || current.recommendations,
+        warningSigns: extras.warningSigns || current.warningSigns,
+        labOrders: extras.labOrders || current.labOrders,
+        imagingOrders: extras.imagingOrders || current.imagingOrders,
+        medical_orders: {
+          diet_type: extras.diet_type || current.medical_orders.diet_type,
+          general_measures: extras.general_measures || current.medical_orders.general_measures,
+          nursing_cares: extras.nursing_cares || current.medical_orders.nursing_cares,
+        }
       };
     });
   }
