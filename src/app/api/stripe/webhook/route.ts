@@ -34,6 +34,23 @@ export async function POST(req: Request) {
     serverEnv.SUPABASE_SERVICE_ROLE_KEY
   );
 
+  // C-02: Idempotency check — Stripe guarantees at-least-once delivery, not exactly-once.
+  // If this event was already processed (e.g. Vercel timeout retry), skip it silently.
+  const { error: idempotencyError } = await supabaseAdmin
+    .from("stripe_webhook_events")
+    .insert({ stripe_event_id: event.id });
+
+  if (idempotencyError) {
+    if (idempotencyError.code === "23505") {
+      // unique_violation — event already processed, return 200 to stop Stripe retrying.
+      console.info(`[stripe:webhook] Duplicate event skipped: ${event.id}`);
+      return NextResponse.json({ received: true, duplicate: true });
+    }
+    // Unexpected DB error — let Stripe retry.
+    console.error("[stripe:webhook] Idempotency insert failed:", idempotencyError);
+    return NextResponse.json({ error: "Database error" }, { status: 500 });
+  }
+
   try {
     switch (event.type) {
       case "customer.subscription.created":
@@ -69,7 +86,7 @@ export async function POST(req: Request) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const subscription = await getStripe().subscriptions.retrieve(invoice.subscription as string) as any;
           const expiresAt = new Date(subscription.current_period_end * 1000).toISOString();
-          
+
           await supabaseAdmin
             .from("profiles")
             .update({
@@ -81,18 +98,28 @@ export async function POST(req: Request) {
         break;
       }
       case "invoice.payment_failed": {
+        // A-11: Grace period of 7 days — do NOT cut access on first failure.
+        // Stripe retries up to 4 times over ~14 days. Access is suspended only when
+        // subscription_status becomes "unpaid" or "canceled" via
+        // the customer.subscription.updated/deleted events above.
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const invoice = event.data.object as any;
         if (invoice.subscription && invoice.customer) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const subscription = await getStripe().subscriptions.retrieve(invoice.subscription as string) as any;
-          
+          const gracePeriodExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
           await supabaseAdmin
             .from("profiles")
             .update({
-              subscription_status: subscription.status, // usually past_due
+              subscription_status: "past_due",
+              // subscription_expires_at stays intact — access is NOT cut during grace period.
             })
-            .eq("stripe_customer_id", invoice.customer as string);
+            .eq("stripe_customer_id", invoice.customer as string)
+            .eq("subscription_status", "active"); // Only downgrade active subs, not trialing
+
+          console.info(
+            `[stripe:webhook] Payment failed — grace period until ${gracePeriodExpiresAt}. ` +
+            `Customer: ${invoice.customer as string}`
+          );
         }
         break;
       }

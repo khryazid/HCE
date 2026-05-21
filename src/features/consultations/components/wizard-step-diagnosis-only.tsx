@@ -1,6 +1,7 @@
 "use client";
 
 import type { WizardForm } from "@/features/consultations/lib/use-consultation-wizard";
+import { APP_NAME } from "@/lib/constants/app";
 
 type Props = {
   form: WizardForm;
@@ -51,7 +52,7 @@ export function WizardStepDiagnosisOnly({
             <p className="text-sm font-medium text-red-600">{validationErrors.diagnosis}</p>
           ) : null}
           <p className="text-[10px] text-ink-soft">
-            Al perder el foco, Glyph intentará sugerir el código CIE-10 automáticamente.
+            Al perder el foco, {APP_NAME} intentará sugerir el código CIE-10 automáticamente.
           </p>
         </div>
 

@@ -20,9 +20,11 @@ import { WizardStepper } from "./wizard-stepper";
 // Constante de steps (fuera del componente)
 const WIZARD_STEPS = [
   { number: 1, label: "Paciente" },
-  { number: 2, label: "Diagnóstico" },
-  { number: 3, label: "Tratamiento" },
-  { number: 4, label: "PDF" },
+  { number: 2, label: "Anamnesis" },
+  { number: 3, label: "Rev. Sistemas" },
+  { number: 4, label: "Examen Físico" },
+  { number: 5, label: "Diagnóstico" },
+  { number: 6, label: "Tratamiento" },
 ];
 
 // ─── Step metadata (medico-legal order) — used by WizardStepper internally

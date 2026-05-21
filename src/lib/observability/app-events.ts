@@ -11,6 +11,10 @@ export const APP_EVENT_SYNC_ERROR = "hce:sync-error";
 export const APP_EVENT_SYNC_ABANDONED = "hce:sync-abandoned";
 export const APP_EVENT_API_ERROR = "hce:api-error";
 
+// ─── Eventos de conectividad Realtime (Sync-3.1) ─────────────────────────────
+export const APP_EVENT_REALTIME_DISCONNECTED = "hce:realtime-disconnected";
+export const APP_EVENT_REALTIME_RECONNECTED  = "hce:realtime-reconnected";
+
 type AppEventDetail = Record<string, unknown>;
 
 export function emitAppEvent(eventName: string, detail: AppEventDetail) {

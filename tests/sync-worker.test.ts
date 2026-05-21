@@ -32,6 +32,7 @@ vi.mock("@/lib/db/indexeddb", () => ({
   updateSyncItemStatus: mockUpdateSyncItemStatus,
   deleteSyncQueueItem: mockDeleteSyncQueueItem,
   getOfflineDb: mockGetOfflineDb,
+  pruneOldSyncQueueItems: vi.fn(),
 }));
 
 vi.mock("@/lib/supabase/client", () => ({

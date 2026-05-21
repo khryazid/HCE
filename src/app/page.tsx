@@ -9,7 +9,7 @@ export default async function Page() {
   const schemaData = {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
-    "name": "Glyph Motor Clínico",
+    "name": "Glyphix",
     "operatingSystem": "Web, Windows, macOS, iOS, Android",
     "applicationCategory": "HealthApplication",
     "offers": {
@@ -18,11 +18,6 @@ export default async function Page() {
       "priceCurrency": "USD"
     },
     "description": "Historia clínica electrónica multiespecialidad con IA, trabajo offline y sincronización automática. Diseñado para médicos modernos.",
-    "aggregateRating": {
-      "@type": "AggregateRating",
-      "ratingValue": "4.9",
-      "ratingCount": "89"
-    }
   };
 
   return (

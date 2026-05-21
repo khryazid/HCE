@@ -208,6 +208,26 @@ export async function deleteUserAccount(userId: string) {
   await verifySuperAdmin();
   const admin = getSupabaseAdmin();
 
+  // M-20: Limpiar bucket clinic_assets antes de borrar la cuenta
+  try {
+    const { data: files } = await admin.storage
+      .from("clinic_assets")
+      .list(userId);
+
+    if (files && files.length > 0) {
+      const filePaths = files.map((f) => `${userId}/${f.name}`);
+      const { error: storageError } = await admin.storage
+        .from("clinic_assets")
+        .remove(filePaths);
+      
+      if (storageError) {
+        console.warn(`[Admin] No se pudieron borrar algunos archivos del usuario ${userId}:`, storageError);
+      }
+    }
+  } catch (err) {
+    console.warn(`[Admin] Error intentando limpiar clinic_assets para ${userId}:`, err);
+  }
+
   // Delete profile first (FK cascade should handle the rest)
   const { error: profError } = await admin
     .from("profiles")

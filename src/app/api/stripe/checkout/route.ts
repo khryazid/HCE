@@ -3,8 +3,15 @@ import Stripe from "stripe";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { serverEnv } from "@/lib/env";
+import { isValidOrigin } from "@/lib/api/guards";
+import { z } from "zod";
 
 export const dynamic = "force-dynamic";
+
+// A-13: Schema Zod para el body del checkout
+const checkoutBodySchema = z.object({
+  priceId: z.string().min(1, "priceId requerido"),
+});
 
 function getStripe() {
   return new Stripe(serverEnv.STRIPE_SECRET_KEY, { apiVersion: "2026-04-22.dahlia" });
@@ -12,6 +19,11 @@ function getStripe() {
 
 export async function POST(req: Request) {
   try {
+    // M-16: Validar Origin para prevenir CSRF en operaciones de pago
+    if (!isValidOrigin(req)) {
+      return NextResponse.json({ error: "Origen no permitido" }, { status: 403 });
+    }
+
     const cookieStore = await cookies();
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -41,24 +53,29 @@ export async function POST(req: Request) {
     }
 
     // Rate limit: 5 checkout attempts per user per minute
-    const { data: allowed } = await supabase.rpc("claim_api_rate_limit", {
+    const { data: allowed, error: rateLimitError } = await supabase.rpc("claim_api_rate_limit", {
       p_scope: "stripe-checkout",
       p_identifier: user.id,
       p_window_seconds: 60,
       p_max_requests: 5,
     });
-    if (!allowed) {
+    if (rateLimitError || !allowed) {
       return NextResponse.json(
         { error: "Demasiadas solicitudes. Intenta en un momento." },
         { status: 429 },
       );
     }
 
-    const { priceId } = await req.json();
-
-    if (!priceId) {
-      return NextResponse.json({ error: "Missing priceId" }, { status: 400 });
+    // A-13: Validar body con Zod
+    const rawBody = await req.json();
+    const parsed = checkoutBodySchema.safeParse(rawBody);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.issues[0]?.message ?? "Payload inválido" },
+        { status: 400 },
+      );
     }
+    const { priceId } = parsed.data;
 
     // Get the user's profile to see if they already have a customer ID
     const { data: profile } = await supabase

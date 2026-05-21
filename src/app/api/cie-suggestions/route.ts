@@ -20,9 +20,33 @@ function readRequestText(value: unknown) {
 async function getAuthorizedUserId() {
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getUser();
-  if (error) return null;
+  if (error || !data.user) return null;
 
-  return { userId: data.user?.id ?? null };
+  const userId = data.user.id;
+
+  // A-04: Verify active subscription server-side — the frontend guard is not enough.
+  // A user with a valid JWT but cancelled subscription must not consume Gemini quota.
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("subscription_status, subscription_expires_at")
+    .eq("doctor_id", userId)
+    .maybeSingle();
+
+  const validStatuses = ["active", "trialing", "lifetime", "past_due"];
+  const status = profile?.subscription_status ?? "";
+
+  if (!validStatuses.includes(status)) {
+    return null; // Treated as unauthorized
+  }
+
+  // For active/trialing: check expiration
+  if ((status === "active" || status === "trialing") && profile?.subscription_expires_at) {
+    if (new Date(profile.subscription_expires_at).getTime() < Date.now()) {
+      return null;
+    }
+  }
+
+  return { userId };
 }
 
 async function requestGeminiSuggestions(input: RequestBody): Promise<ReturnType<typeof extractGeminiSuggestions> | null> {

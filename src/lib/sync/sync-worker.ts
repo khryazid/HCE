@@ -4,6 +4,7 @@ import {
   getSyncQueueItemsByStatus,
   updateSyncItemStatus,
   getOfflineDb,
+  pruneOldSyncQueueItems,
 } from "@/lib/db/indexeddb";
 import type { SyncQueueItem } from "@/types/sync";
 import { logSyncError } from "@/lib/observability/error-logger";
@@ -13,6 +14,9 @@ import {
   emitAppEvent,
 } from "@/lib/observability/app-events";
 import { MAX_RETRY_DELAY_MS, BASE_RETRY_DELAY_MS } from "@/lib/constants/sync";
+
+// C-06: Evento dedicado para suscripción expirada
+export const APP_EVENT_SUBSCRIPTION_EXPIRED = "hce:subscription-expired";
 
 const MAX_RETRIES = 3;
 
@@ -265,6 +269,14 @@ async function syncItem(item: SyncQueueItem): Promise<"synced" | "conflicted"> {
     .maybeSingle();
 
   if (remoteError) {
+    // C-06: Detectar 42501 (suscripción inactiva / RLS denegado) en la lectura de remote
+    const errObj = remoteError as { code?: string };
+    if (errObj.code === "42501") {
+      emitAppEvent(APP_EVENT_SUBSCRIPTION_EXPIRED, {
+        message: "Tu suscripción expiró. Los datos locales están seguros y se sincronizarán al renovar.",
+      });
+      throw new Error(`SUBSCRIPTION_EXPIRED:42501`);
+    }
     throw normalizeError(remoteError);
   }
 
@@ -273,8 +285,16 @@ async function syncItem(item: SyncQueueItem): Promise<"synced" | "conflicted"> {
     : Number.NEGATIVE_INFINITY;
 
   if (remoteTime > item.client_timestamp) {
-    // Si el registro remoto es más nuevo, la carga local es obsoleta. 
-    // Auto-descartamos para evitar bloqueos en la cola.
+    // A-10: No operar en silencio — notificar al usuario que su cambio local fue
+    // descartado porque el servidor tenía una versión más reciente (clock drift).
+    emitAppEvent(APP_EVENT_SYNC_ERROR, {
+      source: "clock-drift",
+      message:
+        `Cambio local en "${tableName}" descartado: el servidor tiene una versión más reciente. ` +
+        "Recarga la página para ver los datos actualizados.",
+      record_id: item.record_id,
+      table: tableName,
+    });
     await deleteSyncQueueItem(item.id);
     return "synced";
   }
@@ -304,6 +324,15 @@ async function syncItem(item: SyncQueueItem): Promise<"synced" | "conflicted"> {
     const { error } = await tableClient.upsert(payload, { onConflict: "id" });
 
     if (error) {
+      // C-06: Detectar 42501 en la escritura del upsert
+      const errObj = error as { code?: string };
+      if (errObj.code === "42501") {
+        emitAppEvent(APP_EVENT_SUBSCRIPTION_EXPIRED, {
+          message: "Tu suscripción expiró. Los datos locales están seguros y se sincronizarán al renovar.",
+        });
+        throw new Error(`SUBSCRIPTION_EXPIRED:42501`);
+      }
+
       const isPgError = (e: unknown): e is { code?: string } =>
         typeof e === "object" && e !== null && "code" in e;
 
@@ -344,6 +373,13 @@ async function syncItem(item: SyncQueueItem): Promise<"synced" | "conflicted"> {
 export async function flushSyncQueue(options?: { forceRetry?: boolean }) {
   if (isFlushing) return;
   isFlushing = true;
+
+  try {
+    // Sync-1.2: Prune old items before processing
+    await pruneOldSyncQueueItems(7, 30);
+  } catch (err) {
+    console.error("[sync-worker] Failed to prune old sync queue items:", err);
+  }
 
   if (typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent(SYNC_STARTED_EVENT));
@@ -474,6 +510,18 @@ export async function flushSyncQueue(options?: { forceRetry?: boolean }) {
               typeof (error as { message?: unknown }).message === "string"
             ? ((error as { message: string }).message)
             : "Unknown sync error";
+
+      // C-06: Si la suscripción expiró, marcar como conflicted sin reintentar
+      if (message.startsWith("SUBSCRIPTION_EXPIRED:")) {
+        await updateSyncItemStatus(
+          item.id,
+          "conflicted",
+          "Suscripción inactiva (42501) — renovar plan para sincronizar",
+          item.retry_count,
+        );
+        conflicted += 1;
+        continue;
+      }
             
       if (message.startsWith("PATIENT_MERGE_REQUIRED:")) {
         const realId = message.split(":")[1];

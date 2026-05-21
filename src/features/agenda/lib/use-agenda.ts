@@ -1,8 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { Database } from "@/types/supabase.types";
+import { lastAgendaRealtimeEventAt } from "./use-agenda-realtime";
 
 type AppointmentInsert = Database["public"]["Tables"]["appointments"]["Insert"];
+
+/** Sync-3.3: ms de supresión del polling tras un evento Realtime. */
+const REALTIME_POLL_SUPPRESSION_MS = 20_000;
+
 
 export function useAgenda() {
   const supabase = getSupabaseClient();
@@ -37,8 +42,10 @@ export function useAgenda() {
   });
 
   // Obtener citas
-  // refetchInterval → polling cada 30s como respaldo si Realtime no está activo
-  // refetchOnWindowFocus → refresca automáticamente cuando el médico cambia de pestaña y vuelve
+  // refetchInterval → polling cada 30s como respaldo si Realtime no está activo.
+  // Sync-3.3: Si Realtime acaba de invalidar la query, la función devuelve false
+  //           para suprimir el siguiente tick de polling (evita doble-fetch).
+  //           Pasados 20s, vuelve al ciclo normal de 30s.
   const { data: appointments = [], isLoading, refetch } = useQuery({
     queryKey: ["appointments"],
     queryFn: async () => {
@@ -53,7 +60,12 @@ export function useAgenda() {
       if (error) throw error;
       return data;
     },
-    refetchInterval: 30_000,       // refresca cada 30 segundos
+    refetchInterval: () => {
+      // Sync-3.3: suprimir el poll si Realtime actualizó hace menos de 20s
+      const msSinceRealtime = Date.now() - lastAgendaRealtimeEventAt.current;
+      if (msSinceRealtime < REALTIME_POLL_SUPPRESSION_MS) return false;
+      return 30_000;
+    },
     refetchOnWindowFocus: true,    // refresca al volver a la pestaña
     staleTime: 15_000,             // considera los datos frescos por 15s
   });

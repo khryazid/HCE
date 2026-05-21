@@ -233,7 +233,9 @@
 .l-hero-title em { font-style: italic; color: var(--accent); }
 
 @keyframes slideUp { from { transform: translateY(110%) } to { transform: translateY(0) } }
-@keyframes fadeUp  { from { opacity: 0; transform: translateY(16px) } to { opacity: 1; transform: translateY(0) } }
+/* A-16: fadeUp solo anima transform — el elemento es visible desde el primer paint.
+   Eliminado opacity:0 para no bloquear LCP ni generar FID en usuarios lentos. */
+@keyframes fadeUp  { from { transform: translateY(16px) } to { transform: translateY(0) } }
 
 .l-hero-sub {
   font-size: 1.05rem; color: var(--ink2); line-height: 1.75;
@@ -523,4 +525,19 @@
   .l-cta-box { padding: 56px 28px; }
   .l-cta-section { padding: 0 24px; }
   .l-footer { flex-direction: column; gap: 20px; align-items: flex-start; padding: 28px 24px; }
+}
+
+/* A-16: Respeta la preferencia del usuario — desactiva todas las animaciones */
+@media (prefers-reduced-motion: reduce) {
+  .l-hero-badge,
+  .l-hero-title .line span,
+  .l-hero-sub,
+  .l-hero-actions,
+  .l-hero-note,
+  .l-hero-stats,
+  .reveal, .reveal-left, .reveal-right {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
 }

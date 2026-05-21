@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import webpush from "web-push";
 import type { Database } from "@/types/supabase.types";
 import { serverEnv } from "@/lib/env";
+import { pushSendBodySchema } from "@/lib/api/guards";
 
 type PushSubscriptionRow =
   Database["public"]["Tables"]["push_subscriptions"]["Row"];
@@ -39,13 +40,13 @@ export async function POST(req: Request) {
 
     // Rate limit per user (skip for cron/system requests — they're already authenticated by secret)
     if (user && !isSystemRequest) {
-      const { data: allowed } = await supabase.rpc("claim_api_rate_limit", {
+      const { data: allowed, error: rateLimitError } = await supabase.rpc("claim_api_rate_limit", {
         p_scope: "push-send",
         p_identifier: user.id,
         p_window_seconds: PUSH_RATE_WINDOW,
         p_max_requests: PUSH_RATE_LIMIT,
       });
-      if (!allowed) {
+      if (rateLimitError || !allowed) {
         return NextResponse.json(
           { error: "Demasiadas solicitudes. Intenta en un momento." },
           { status: 429 },
@@ -53,13 +54,16 @@ export async function POST(req: Request) {
       }
     }
 
-    const body = await req.json() as {
-      title?: string;
-      body?: string;
-      target_doctor_id?: string;
-      url?: string;
-    };
-    const { title, body: message, target_doctor_id, url } = body;
+    // A-13: Validar body con Zod
+    const rawBody = await req.json();
+    const parsedBody = pushSendBodySchema.safeParse(rawBody);
+    if (!parsedBody.success) {
+      return NextResponse.json(
+        { error: parsedBody.error.issues[0]?.message ?? "Payload inválido" },
+        { status: 400 },
+      );
+    }
+    const { title, body: message, target_doctor_id, url } = parsedBody.data;
 
     if (target_doctor_id && user && target_doctor_id !== user.id && !isSystemRequest) {
       return NextResponse.json({ error: "No autorizado" }, { status: 403 });

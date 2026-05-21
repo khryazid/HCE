@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { createClient as createSupabaseAdmin } from "@supabase/supabase-js";
+import { APP_NAME, APP_FROM_EMAIL, APP_URL } from "@/lib/constants/app";
 
 /**
  * POST /api/email/followup
@@ -44,8 +45,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "target_doctor_id y doctor_email son requeridos" }, { status: 400 });
   }
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://app.glyphmedico.com";
-  const fromAddress = process.env.RESEND_FROM_EMAIL ?? "Glyph <recordatorios@glyphmedico.com>";
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? APP_URL;
+  const fromAddress = process.env.RESEND_FROM_EMAIL ?? APP_FROM_EMAIL;
   const name = doctor_name ?? "Doctor";
 
   const resend = new Resend(resendKey);
@@ -70,7 +71,7 @@ export async function POST(req: Request) {
   const { error } = await resend.emails.send({
     from: fromAddress,
     to: [doctor_email],
-    subject: `🩺 ${taskCount} seguimiento${taskCount !== 1 ? "s" : ""} pendiente${taskCount !== 1 ? "s" : ""} hoy — Glyph`,
+    subject: `🩺 ${taskCount} seguimiento${taskCount !== 1 ? "s" : ""} pendiente${taskCount !== 1 ? "s" : ""} hoy — ${APP_NAME}`,
     html: buildEmailHtml({ name, taskCount, siteUrl }),
   });
 
@@ -102,7 +103,7 @@ function buildEmailHtml({
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Seguimientos pendientes — Glyph</title>
+  <title>Seguimientos pendientes — ${APP_NAME}</title>
 </head>
 <body style="margin:0;padding:0;background:#f6f8f6;font-family:'Segoe UI',Arial,sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f6f8f6;padding:40px 16px;">
@@ -113,7 +114,7 @@ function buildEmailHtml({
           <!-- Header -->
           <tr>
             <td style="background:#0f766e;padding:32px 40px;text-align:center;">
-              <p style="margin:0;font-size:28px;font-weight:700;color:#ffffff;letter-spacing:-0.5px;">Glyph</p>
+              <p style="margin:0;font-size:28px;font-weight:700;color:#ffffff;letter-spacing:-0.5px;">${APP_NAME}</p>
               <p style="margin:8px 0 0;font-size:13px;color:rgba(255,255,255,0.75);letter-spacing:0.1em;text-transform:uppercase;">Motor Clínico</p>
             </td>
           </tr>
@@ -141,7 +142,7 @@ function buildEmailHtml({
               </table>
 
               <p style="margin:0 0 24px;font-size:14px;color:#51606d;line-height:1.7;">
-                Accede a Glyph para revisar los detalles de cada paciente y registrar el resultado del seguimiento.
+                Accede a ${APP_NAME} para revisar los detalles de cada paciente y registrar el resultado del seguimiento.
               </p>
 
               <!-- CTA -->
@@ -162,7 +163,7 @@ function buildEmailHtml({
           <tr>
             <td style="padding:24px 40px;border-top:1px solid #d8e0dd;background:#f6f8f6;">
               <p style="margin:0;font-size:12px;color:#9eb0bb;line-height:1.6;">
-                Este email fue enviado automáticamente por Glyph porque tienes seguimientos clínicos programados para hoy.
+                Este email fue enviado automáticamente por ${APP_NAME} porque tienes seguimientos clínicos programados para hoy.
                 Si no deseas recibir estos recordatorios, puedes desactivarlos en
                 <a href="${siteUrl}/ajustes" style="color:#0f766e;">Ajustes → Notificaciones</a>.
               </p>

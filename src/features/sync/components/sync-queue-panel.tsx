@@ -35,6 +35,24 @@ function formatTimestamp(value: number) {
   return new Date(value).toLocaleString("es-EC");
 }
 
+/**
+ * M-06: Convierte códigos de error PostgreSQL a mensajes en español.
+ * Los códigos aparecen en last_error cuando el sync falla contra Supabase.
+ */
+function pgErrorToSpanish(raw: string): string {
+  if (/23505/.test(raw))
+    return "⚠️ Registro duplicado: ya existe un elemento con esos datos (cód. 23505).";
+  if (/42501/.test(raw))
+    return "🔒 Sin permisos: la política de seguridad impidió esta operación (cód. 42501).";
+  if (/23503/.test(raw))
+    return "🔗 Referencia inválida: el registro padre no existe o fue eliminado (cód. 23503).";
+  if (/40001/.test(raw))
+    return "⏳ Conflicto de concurrencia: reintenta en unos segundos (cód. 40001).";
+  if (/PGRST/.test(raw))
+    return `❌ Error de API: ${raw.substring(0, 120)}`;
+  return raw;
+}
+
 export function SyncQueuePanel() {
   const [stats, setStats] = useState<QueueStats>({
     pending: 0,
@@ -296,7 +314,7 @@ export function SyncQueuePanel() {
                       {formatTimestamp(item.client_timestamp)} · intentos {item.retry_count}
                     </p>
                     {item.last_error ? (
-                      <p className="text-xs text-red-500">{item.last_error}</p>
+                      <p className="text-xs text-red-500">{pgErrorToSpanish(item.last_error)}</p>
                     ) : null}
                   </div>
                   <div className="flex gap-2 shrink-0">

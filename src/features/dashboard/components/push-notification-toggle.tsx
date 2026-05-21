@@ -15,6 +15,7 @@ import { useTenant } from "@/lib/supabase/tenant-context";
 import { Button } from "@/components/ui/button";
 import { Bell, BellOff, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { APP_NAME } from "@/lib/constants/app";
 
 const SW_READY_TIMEOUT_MS = 5000;
 
@@ -120,7 +121,7 @@ export function PushNotificationToggle() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          title: "Glyph — Notificaciones activas ✓",
+          title: `${APP_NAME} — Notificaciones activas ✓`,
           body: "Recibirás un aviso cuando un seguimiento venza hoy.",
           url: "/pacientes",
         }),

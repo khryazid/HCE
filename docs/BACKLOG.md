@@ -1,331 +1,200 @@
-# HCE · Backlog de Producción
-> Última revisión: 2026-05-15 | Estado del build: ✅ TS 0 errores · Build OK · 176 archivos fuente | 🌟 Realtime Sync activo
+# BACKLOG — Glyphix HCE
+**Última revisión:** 2026-05-21 (Sprint 3 y Backlog técnico 100% completados)
+**Estado:** Todos los pendientes técnicos finalizados. Solo quedan acciones manuales del administrador.
+
+> Fuente de verdad: `docs/AUDITORIA_2026.md` (58 hallazgos · 9 críticos · 19 altos · 21 medios · 9 bajos)
 
 ---
 
-## 🚀 Siguiente Sprint — Onboarding y Sync Transparente
+## 👤 Tareas que solo tú puedes hacer (acciones manuales)
 
-### GRUPO 1 — FREE TRIAL (7 Días)
-- [x] **1.1** — Registro sin tarjeta: Activar 7 días de prueba gratis automático al crear cuenta para ambos planes.
-- [x] **1.2** — Alerta en Dashboard: Mostrar contador de días restantes de prueba en la interfaz principal.
-- [x] **1.3** — Notificación por correo: Configurar cron/Resend para enviar recordatorio de fin de prueba a los 7 días.
-- [x] **1.4** — Landing Page: Actualizar los copys y la sección de precios para destacar y promocionar los "7 días de prueba gratis sin tarjeta".
+> Estas tareas requieren acceso a dashboards externos o credenciales que no viven en el código. El agente no puede ejecutarlas.
 
-### GRUPO 2 — SINCRONIZACIÓN INVISIBLE
-- [x] **2.1** — Automatización de Sync: Refactorizar el motor de sincronización (IndexedDB <-> Supabase) para que actúe silenciosamente en segundo plano sin requerir intervención manual del usuario.
-- [x] **2.2** — UX de Sincronización: Eliminar modales invasivos o botones manuales complejos. Reemplazar por un micro-indicador de estado discreto en la barra inferior (Online/Sincronizando/Offline).
+### 🚨 Urgente — hacer antes de cualquier otra cosa
 
-### GRUPO 3 — SEO Y PERFORMANCE (Landing Page)
-- [x] **3.1** — Core Web Vitals: Optimizar tiempos de carga, LCP y CLS para alcanzar un score 95+ en Google PageSpeed Insights.
-- [x] **3.2** — Metadatos y Estructura: Implementar Schema Markup, Open Graph estructurado, mapa del sitio (sitemap.xml) y etiquetas alt completas para maximizar el posicionamiento orgánico.
+- [x] **[Supabase SQL Editor]** Rotar `push_send_secret` — rotado _(2026-05-21)_
+- [x] **[Supabase SQL Editor]** Rotar `resend_email_secret` — rotado _(2026-05-21)_
+- [x] **[Vercel Dashboard]** Actualizar las variables de entorno `PUSH_SEND_SECRET` y `RESEND_EMAIL_SECRET` con los nuevos valores rotados — hecho _(2026-05-21)_
 
----
+### 🟠 Billing y Stripe
 
-## 🗓️ Sprint Anterior — Mejoras UX/UI Completas
+- [ ] **[Stripe Dashboard]** Configurar reintentos de pago: en *Settings → Subscriptions → Smart Retries*, asegurarse de que el período de reintentos sea ≥ 7 días antes de cancelar
+- [ ] **[Stripe Dashboard]** Verificar que el webhook endpoint en producción apunte al dominio correcto y tenga todos los eventos necesarios: `invoice.payment_failed`, `customer.subscription.updated`, `checkout.session.completed`
 
-> **Reglas de oro antes de empezar:**
-> 0. **NUNCA trabajar en la rama `main`.** Siempre revisar en qué rama estamos con `git branch` antes de empezar. El trabajo activo va en `dev`.
-> 1. Leer el archivo completo antes de modificarlo
-> 2. Después de cada grupo de cambios ejecutar `npx tsc --noEmit` — debe dar 0 errores
-> 3. No eliminar funcionalidad existente — solo añadir o mejorar
-> 4. Respetar las utilidades CSS existentes: `hce-input`, `hce-btn-primary`, `hce-surface`, etc.
-> 5. Todo CSS nuevo va en `src/app/globals.css` salvo que sea lógica de componente
+### 🌐 Dominio y DNS (migración glyphmed.app → glyphix.app)
 
-### GRUPO 1 — IMPACTO MÁXIMO (implementar primero)
-- [x] **1.1** — FAB (Floating Action Button) para nueva consulta en móvil (`src/app/(dashboard)/layout.tsx`)
-- [x] **1.2** — Stepper de progreso en el wizard de consultas (`src/features/consultations/components/ConsultationsView.tsx` & `wizard-stepper.tsx`)
-- [x] **1.3** — Badge de alertas en el Sidebar y BottomNav (`src/features/dashboard/components/sidebar.tsx` & `BottomNav`)
-- [x] **1.4** — `inputMode="decimal"` en signos vitales (`src/features/consultations/components/wizard-step-diagnosis.tsx`)
+- [ ] **[Registrador de dominio]** Comprar / verificar que tienes `glyphix.app`
+- [ ] **[Vercel Dashboard]** Agregar `glyphix.app` como dominio del proyecto y configurar redirects 301 desde `glyphmed.app`
+- [ ] **[Supabase Dashboard → Auth → URL Configuration]** Actualizar `Site URL` y `Redirect URLs` al nuevo dominio
+- [ ] **[Resend Dashboard]** Actualizar el dominio remitente al nuevo dominio y re-verificar DNS (DKIM/SPF)
+- [ ] **[Vercel Dashboard]** Actualizar `NEXT_PUBLIC_SITE_URL` y `VAPID_MAILTO` al nuevo dominio
 
-### GRUPO 2 — IMPACTO ALTO
-- [x] **2.1** — Animación de entrada de páginas y modales (`src/app/globals.css`, `skeletons.tsx`, `confirm-modal.tsx`)
-- [x] **2.2** — Ctrl+K con resultados categorizados (`src/features/dashboard/components/global-search.tsx`)
-- [x] **2.3** — Dashboard accionable — alertas urgentes (`src/features/dashboard/components/DashboardView.tsx`)
-- [x] **2.4** — Toasts contextuales con nombre del paciente (`src/features/consultations/lib/use-consultation-save.ts`)
+### 🗄️ Supabase — acciones en dashboard
 
-### GRUPO 3 — REFINAMIENTOS VISUALES
-- [x] **3.1** — Búsqueda integrada al Sidebar (`src/features/dashboard/components/sidebar.tsx`)
-- [x] **3.2** — Indicador de estado offline/online en Sidebar (`src/features/dashboard/components/sidebar.tsx`)
-- [x] **3.3** — Estados vacíos mejorados (`src/features/consultations/components/ConsultationsView.tsx`)
-- [x] **3.4** — Lista de pacientes compacta con filtros rápidos (`src/features/patients/components/PatientList.tsx`)
+- [x] **[Supabase → Database → Extensions]** Verificar que `pg_cron` esté habilitado — ✅ habilitado _(2026-05-21)_
+- [x] **[Supabase → Database → Extensions]** Verificar que `pg_net` esté habilitado — ✅ habilitado _(2026-05-21)_
+- [x] **[Supabase → Database → Extensions]** Deshabilitar extensión `http` — ✅ deshabilitada, unificado con pg_net _(2026-05-21)_
+- [x] **[Supabase SQL Editor]** Aplicar el trigger `sync_follow_up_task` (ver C-03 en auditoría) — ✅ completado _(2026-05-21)_
+- [x] **[Supabase SQL Editor]** Crear tabla `stripe_webhook_events` para idempotencia (ver C-02) — ✅ completado _(2026-05-21)_
+- [x] **[Supabase SQL Editor]** Crear tabla `notification_log` para deduplicar cron jobs (ver A-03) — ✅ completado _(2026-05-21)_
+
+### 🔔 Push Notifications / VAPID
+
+- [ ] **[Terminal local]** Si rotas las claves VAPID: `npx web-push generate-vapid-keys` y actualizar `NEXT_PUBLIC_VAPID_PUBLIC_KEY` + `VAPID_PRIVATE_KEY` en Vercel _(solo necesario si hay compromiso de las claves actuales)_
 
 ---
 
-## 🎨 Redesign Sprint — "Ferric Meridian" Design System
+## 🔴 Sprint 1 — Semana 1 (Críticos + Quick Wins)
 
-> Identidad visual: **Ferric Meridian** — clínica industrializada, tierra quemada + cobre oxidado
-> Paleta: `#1C120B` (dominante/obsidiana cálida) · `#C4602A` (cobre oxidado/acento) · `#F5EDE4` (pergamino/neutro warm) · `#7A5C4F` (tierra media)
-> Tipografía: **Sentient** (display/serif) + **Switzer** (UI sans) — loaded from Fontshare
+> Meta: eliminar los riesgos más urgentes en seguridad, datos y SEO antes de cualquier otra acción.
 
-### Fase 1 — Sistema Base (globals.css)
-- [x] **RD-01** — Reescribir variables CSS en `globals.css` con paleta Ferric Meridian ✅
-- [x] **RD-02** — Actualizar utilidades `hce-card`, `hce-btn-*`, `hce-input`, `hce-alert-*` ✅
-- [x] **RD-03** — Capa de compatibilidad teal→copper para componentes clínicos ✅
+### Quick Wins (< 2h cada uno)
 
-### Fase 2 — Landing Page
-- [x] **RD-04** — Reescribir `landing.css` con estética Ferric Meridian ✅
-- [x] **RD-05** — Landing: botón hero, bento cards, pricing oscuro ✅
-- [x] **RD-06** — `layout.tsx` cargando fuentes Sentient + Switzer desde Fontshare ✅
+- [x] **C-09** — Eliminar `aggregateRating` ficticio del JSON-LD en `src/app/page.tsx` — _también corregida marca `name: "Glyphix"`_
+- [x] **C-08** — `if (loading) return` en `DashboardOnboardingGuard.useEffect` _(ya estaba implementado — verificado 2026-05-16)_
+- [x] **A-09** — Agregar `/billing` a `isProtectedRoute` en `src/lib/supabase/middleware.ts` _(ya estaba implementado — verificado 2026-05-16)_
+- [x] **M-08** — Fix bypass de rate limit en `stripe/checkout/route.ts` y `push/send/route.ts`: ahora verifica `error` de la RPC antes de permitir la request
+- [x] **A-05** — Corregir operador OR ambiguo en RLS de `push_subscriptions` (paréntesis añadidos en las 3 policies)
+- [x] **M-04** — Habilitar RLS en vista materializada `mv_dashboard_kpis_daily` con policy `kpis_tenant_select`
+- [x] **M-03** — Script anti-flash en `layout.tsx` ya tiene try/catch completo _(verificado 2026-05-16)_
+- [x] **B-01** — Corregir WizardStepper: actualizado de 4 a 6 pasos en `ConsultationsView.tsx`
+- [x] **M-09** — Unificar `net.http_post` en `notify_followup_due_today` (eliminado `extensions.http_post`)
+- [x] **M-15** — Metadata title/description añadido en `/privacidad` y `/terminos`; marca actualizada a "Glyphix"
 
-### Fase 3 — Dashboard Shell
-- [x] **RD-07** — `sidebar.tsx` rediseñado con logo cobre, fuentes propias ✅
-- [x] **RD-08** — `MobileHeader` y `BottomNav` actualizados ✅
-- [x] **RD-09** — `DashboardView.tsx` gradientes y tipografía actualizados ✅
-- [x] **RD-10** — Tipografía: Sentient+Switzer → **Space Grotesk + Outfit** (Google Fonts) ✅
-- [x] **RD-11** — `BottomNav` oculto en desktop (fix inline `display:flex` vs `lg:hidden`) ✅
-- [x] **RD-12** — Hero italic `<em>` reemplazado por span cobre weight-800 ✅
-- [x] **RD-13** — Paleta modo claro: pergamino → blanco puro `#FFFFFF` ✅
-- [x] **RD-14** — Paleta modo oscuro: obsidiana marrón → zinc-950 `#09090B` elegante ✅
-- [x] **RD-15** — Habilitado plan "Clínica" en pricing (`/registro?plan=clinica`) ✅
+### Críticos de Seguridad — Semana 1
+
+- [x] **C-01 (código)** — Secretos hardcodeados reemplazados con placeholders en `000_production_full_schema.sql`  
+  _⚠️ Pendiente **tu acción**: rotar los valores reales en Supabase dashboard + Vercel (ver sección "Tareas manuales")_
 
 ---
 
-### ✅ Completado en esta sesión
+## 🟠 Sprint 1 — Semana 2 (Críticos de Datos y Billing)
 
-- [x] **W-01** — Reestructuración del flujo clínico a 6 pasos (orden médico-legal estricto) ✅  
-  Nuevo stepper visual. Componentes separados: `wizard-step-anamnesis.tsx`, `wizard-step-physical-exam.tsx`, `wizard-step-diagnosis-only.tsx`.
-
-- [x] **W-02** — Sexo biológico binario (`Hombre`/`Mujer`) con nota médico-legal ✅  
-  Enum estricto en `WizardForm.gender`. Condicional gineco-obstétrico actualizado.
-
-- [x] **W-03** — Tipo de sangre ABO+Rh y Contacto de Emergencia (Paso 1) ✅  
-  `blood_type` select (A+…O-) y `emergency_contact` {name, relationship, phone} en UI y JSONB.
-
-- [x] **W-04** — Auto-cálculo de PAM (Presión Arterial Media) ✅  
-  Fórmula `(SIS + 2·DIA) / 3` en tiempo real. Badge de color (verde/rojo). Alerta PAM < 65 mmHg.
-
-- [x] **W-05** — Botón "🪄 Normal" por sistema en Examen Físico Segmentario ✅  
-  Textos estándar de normalidad para 11 sistemas. Concatena si ya hay texto.
-
-- [x] **W-06** — Órdenes Intrahospitalarias / Medidas Generales (Paso 6) ✅  
-  `diet_type` select, `general_measures` y `nursing_cares` textareas. Guardado en `medical_orders` JSONB.
-
-- [x] **W-07** — Payload JSONB actualizado (`specialty_data`) ✅  
-  Nuevos campos: `blood_type`, `emergency_contact`, `mean_arterial_pressure`, `medical_orders`.
+- [x] **C-02** — Idempotencia en webhooks Stripe: tabla `stripe_webhook_events` + check `ON CONFLICT DO NOTHING` al inicio del handler
+- [x] **C-03** — Trigger `sync_follow_up_task` en `clinical_records` que puebla `follow_up_tasks` desde `specialty_data.next_follow_up_date`  
+  _⚠️ Pendiente **tu acción**: ejecutar el bloque SQL del final de `000_production_full_schema.sql` en Supabase SQL Editor_
+- [x] **A-03** — Tabla `notification_log` + cron jobs actualizados con deduplicación `ON CONFLICT DO NOTHING`  
+  _⚠️ Pendiente **tu acción**: ejecutar el bloque SQL en Supabase SQL Editor_
+- [x] **A-02** — Trial movido a Server Action `createTenantProfileWithTrial` con `service_role`. `auth-form.tsx` actualizado para usarla.
+- [x] **A-04** — Verificación de `subscription_status` añadida en `/api/cie-suggestions/route.ts` (rechaza con 401 si suscripción inactiva)
+- [x] **A-11** — Grace period de 7 días en `invoice.payment_failed`: marca `past_due` sin cortar acceso; solo suspende al llegar a `unpaid` vía `customer.subscription.updated`
+- [x] **A-19** — Validación `auth.uid() <> p_doctor_id` añadida en `log_audit_event` SECURITY DEFINER
 
 ---
 
-### 🔴 Prioridad Alta
+## 🟡 Sprint 2 — Mes 1 (Medios con alto impacto)
 
-- [x] **FEAT-01** — Módulo de Agenda Médica (Calendario) y Control de Pagos 🚀
-  - Crear tabla `appointments` (citas con campos de cobro) en SQL.
-  - Agregar `payment_config` a la tabla `profiles`.
-  - Crear UI del Calendario en `/dashboard/agenda`.
-  - Crear formulario modal para agendar citas rápidas.
-  - Sección de configuración de métodos de pago en Ajustes.
+### Sync / Offline (críticos diferidos)
 
-- [x] **BUG-01** — Eliminar `as any` residual en `profile.ts:110` ✅  
-  Tipos v14.5 aceptan el insert sin cast. `satisfies ProfileInsert` garantiza la forma.
+- [x] **C-04** — `getPendingRecordIds` propaga excepciones de crypto (ya lanzaba; ahora documentado y callers no lo tragan) _(2026-05-18)_
+- [x] **C-05** — `cryptoInitPromise` compartido en `indexeddb.ts` — `ensureCrypto()` serializa todas las llamadas concurrentes _(2026-05-18)_
+- [x] **C-06** — Error `42501` detectado en sync worker → emite `APP_EVENT_SUBSCRIPTION_EXPIRED` + banner rojo en `SyncStatusBanner` _(2026-05-18)_
+- [x] **A-07** — Guardia pre-enqueue en `enqueueSyncItem`: lanza si el `patient_id` tiene status `abandoned` en la cola _(2026-05-18)_
+- [x] **A-08** — `savePatientLocal` y `saveClinicalRecordLocal` envueltos en try/catch + emiten `APP_EVENT_SYNC_ERROR` _(2026-05-18)_
+- [x] **A-10** — `emitAppEvent(APP_EVENT_SYNC_ERROR)` al descartar cambio local por clock drift en sync-worker.ts _(2026-05-18)_
+- [x] **M-01** — `clearOfflineDb()` llamado en el handler `SIGNED_OUT` del `TenantProvider` _(2026-05-18)_
+- [x] **M-10** — Warning `queueMicrotask` + `APP_EVENT_SYNC_ERROR` antes de destruir stores en migración IDB v1→v2 _(2026-05-18)_
+- [x] **M-11** — `beforeunload` + `visibilitychange` en `use-wizard-draft-sync.ts` fuerzan guardado inmediato del borrador _(2026-05-18)_
 
-- [x] **BUG-04** — Eliminar `as any` en `onboarding.ts:124` ✅  
-  `supabase.rpc("log_audit_event")` ahora tipado correctamente con los tipos regenerados.  
-  Bonus: también eliminado el `as any` de `cie-rate-limit.ts` (`claim_api_rate_limit`).
+### Seguridad
 
-- [x] **M-04** — Validación de variables de entorno al arrancar ✅  
-  `src/lib/env.ts` creado con `serverEnv` (getters lazy, errores descriptivos).  
-  Integrado en `stripe/webhook`, `stripe/checkout`, `push/send`.
+- [x] **A-01** — `search_global` reescrita con FTS (`websearch_to_tsquery`) + índices GIN. Archivo: `sprint2_search_fts.sql` _(2026-05-18)_
+- [x] **A-06** — `clinic_id` derivado internamente en `search_global` desde `auth.uid()` — IDOR eliminado _(2026-05-18)_
+- [x] **A-12** — Validación de seats por plan en `/api/clinic/invite/route.ts` con `PLAN_LIMITS` (basic/clinica/enterprise) _(2026-05-18)_
+- [x] **M-07** — Filtro `doctor_id=eq.${doctor_id}` añadido en suscripción Realtime de `clinical_records` _(2026-05-18)_
 
-- [x] **M-03** — Rate limiting en rutas `/api/stripe/*` y `/api/push/send` ✅  
-  `/api/stripe/checkout`: 5 requests/min por usuario.  
-  `/api/push/send`: 10 requests/min por usuario (cron jobs exentos por `x-push-secret`).
+### Marca "Glyphix"
 
-### 🟡 Prioridad Media (siguiente bloque)
+- [x] **A-14** — `APP_NAME = "Glyphix"` creado en `src/lib/constants/app.ts`. Reemplazado en layout, landing, sidebar, auth, emails, billing, wizard _(2026-05-18)_
+- [x] **Branding fallbacks** — `sitemap.ts`, `robots.ts`, `api/email/followup/route.ts`, `api/email/trial-ending/route.ts` usaban `glyphmedico.com` hardcodeado — reemplazado con `APP_URL` de constantes _(2026-05-21)_
+- [ ] **A-15** — Checklist de migración `glyphmed.app` → `glyphix.app` + redirects 301 _(pendiente — acción manual DNS)_
 
-- [x] **F-02** — PDF con membrete y firma del doctor ✅  
-  `buildLetterheadFromSession` en `letterhead.ts`: combina localStorage + `onboarding_profile` como fallback.  
-  Conectado en `use-consultation-save.ts` y `PatientHistoryTimeline.tsx`. El PDF ahora se genera correctamente en cualquier dispositivo.
+### Performance / SEO
 
-- [x] **F-04** — Conectar notificaciones push con `follow_up_tasks` ✅  
-  - `push-notification-toggle.tsx` reescrito: suscripción + desuscripción + notificación de confirmación.  
-  - `DELETE /api/push/subscribe` implementado para limpiar el endpoint de la BD.  
-  - Cron job SQL `send_followup_push_daily` (8am UTC) en el schema.  
-  - Funciones `send_followup_push_notifications` y `notify_followup_due_today` en Postgres.  
-  - Bonus: eliminado el último `as any` en `push/subscribe`.
+- [x] **A-16** — `fadeUp` en `landing.css` ahora solo anima `transform` (sin `opacity:0`). Añadido `prefers-reduced-motion` _(2026-05-18)_
+- [x] **A-17** — `scripts/validate-env.ts` creado con hooks `predev`/`prebuild` en `package.json` _(2026-05-18)_
+- [x] **A-18** — PDF movido a Web Worker (`pdf.worker.ts` + hook `usePdfWorker`) — UI no bloquea en móvil. Fallback a main thread si Worker no disponible _(2026-05-18)_
+- [x] **M-17** — `min-height: 70vh` añadido a todos los skeletons (`DashboardSkeleton`, `ConsultasSkeleton`, `PacientesSkeleton`) _(2026-05-18)_
+- [x] **M-12** — Focus trap WCAG 2.1 2.4.3 implementado en modal de búsqueda global con `Tab`/`Shift+Tab` _(2026-05-18)_
+- [x] **M-14** — `alternates.languages` hreflang (es/en/x-default) añadido al root layout _(2026-05-18)_
+- [x] **M-21** — `NetworkOnly` configurado para `/api/*` en `next.config.ts` via `runtimeCaching` _(2026-05-18)_
 
-- [x] **F-03** — Panel Admin completo ✅  
-  Filtros por estado (pills + stat cards clickables), StatusBadge para todos los estados Stripe  
-  (trialing, past_due, paused, incomplete, unpaid), badge "Nuevo" + borde azul para usuarios  
-  de las últimas 48h, botón copiar email/ID al portapapeles, contador en tabla sync abandonada.  
-  *Actualización:* Precios dinámicos para el Landing configurables desde el panel.
+### UX / Mensajes
 
-- [x] **BUG-02** — Testimonios ficticios reemplazados ✅  
-  Sección convertida a "lanzamiento temprano" con especialidades. Sin nombres inventados.  
-  Bonus: auditoría completa de copy — 5 afirmaciones falsas corregidas (free tier, PHI cifrado, tarjeta de crédito, roles de asistente, prueba gratis).
+- [x] **M-06** — Códigos PG (23505, 42501, 23503, 40001) mapeados a mensajes en español en `sync-queue-panel.tsx` _(2026-05-18)_
 
-### 🟢 Prioridad Baja (cuando haya espacio)
+### Compliance / Legal
 
-- [x] **M-01** — E2E tests con Playwright ✅  
-  Helper compartido `tests/e2e/helpers/login.ts` elimina duplicación. 5 specs nuevas:  
-  `treatments.spec.ts` (CRUD + historial de versiones), `search.spec.ts` (Ctrl+K, debounce,  
-  navegación con flechas), `patients.spec.ts` (crear, buscar, filtro estado, contexto clínico),  
-  `theme.spec.ts` (anti-flash, toggle dark/light/sistema, localStorage), `settings.spec.ts`  
-  (perfil, billing, push toggle). Specs existentes refactorizados para usar el helper.
-
-- [x] **F-10** — UI historial de versiones de plantillas ✅  
-  Modal con versiones ordenadas (más nueva primero), badge de versión actual, preview del contenido  
-  y botón "Restaurar" que carga el contenido en el formulario para revisar antes de guardar.  
-  El botón "Historial (N)" solo aparece cuando hay más de una versión.
-
-- [x] **F-05** — Búsqueda full-text en Supabase ✅  
-  Índices GIN (`tsvector` spanish) en `patients` y `clinical_records`. Función RPC `search_global()`  
-  con `websearch_to_tsquery` + `ts_rank`. Nueva API route `GET /api/search?q=`. GlobalSearch migrado  
-  de carga masiva IndexedDB a debounce de 280ms contra Postgres. Tratamientos mantienen filtro local.
-
-- [x] **F-08** — Dark mode / tema del sistema ✅  
-  `[data-theme="dark/light"]` en `<html>` con override manual. Script anti-flash inline en `layout.tsx`  
-  (sin FOUC). Hook `useTheme` con persistencia en `localStorage('hce:theme')`. Componente `ThemeToggle`  
-  con 3 opciones (Claro / Oscuro / Sistema) integrado en `/ajustes`.
-
-- [x] **F-01** — Plan Clínica multi-doctor ✅
-  Nueva tabla `clinic_members`, roles, ajustes de RLS, UI TeamPanel, invitar y remover miembros.
-
-- [x] **F-06** — Exportación ZIP de historia clínica ✅  
-  100% client-side (sin API route): `exportPatientZip()` genera un JSZip con  
-  `00_paciente.json` + `index.json` + un PDF por consulta vía `generateConsultationPdfBlob()`.  
-  `ExportZipButton` muestra barra de progreso animada, estado de éxito y error.  
-  Integrado en `PatientHistoryTimeline` junto al botón "Nueva atención".  
-  E2E spec: `export-zip.spec.ts` (visibilidad, descarga, disabled sin consultas).
-- [x] **F-07** — Recordatorios por email (Resend) ✅  
-  `POST /api/email/followup` con auth por header. Template HTML branded. Función SQL  
-  `send_followup_emails()` + cron 7am UTC. Clave `resend_email_secret` en `app_config`.
-- [x] **F-09** — Internacionalización (i18n) ✅
-  Setup fundamental de `next-intl` completado sin alterar las rutas (usa cookies).  
-  Archivos `messages/es.json` y `messages/en.json` creados.  
-  El Hero del landing page ya está traducido. Selector de idioma temporal agregado en el footer.
+- [x] **M-18** — CHECK constraint `jsonb_typeof(specialty_data) = 'object'` en `sprint2_compliance.sql` _(2026-05-18)_
+- [x] **M-19** — Campos `terms_accepted_version` + `terms_accepted_at` añadidos a `profiles` en `sprint2_compliance.sql` _(2026-05-18)_
+- [ ] **M-20** — Limpiar bucket `clinic_assets` en `deleteUserAccount` antes del CASCADE _(pendiente: no existe función de borrado de cuenta en el código actual)_
 
 ---
 
+## 🟢 Backlog técnico (Bajos + Mejoras opcionales)
 
-## ⚡ Estado actual del proyecto
-
-| Check | Estado |
-|-------|--------|
-| `tsc --noEmit` | ✅ 0 errores |
-| `next build` | ✅ Compila sin errores (25 rutas) |
-| `vitest run` | ✅ 85/85 passing |
-| `eslint src` | ✅ Sin warnings ni errors |
-| Sin archivos basura en `src/` | ✅ Confirmado |
-| RLS habilitado en todas las tablas | ✅ Confirmado |
-| Tipos Supabase generados y actualizados | ✅ `supabase.types.ts` v14.5 |
-| Un solo archivo SQL (fuente de verdad) | ✅ `000_production_full_schema.sql` |
-| Supabase Realtime habilitado | ✅ 5 tablas en `supabase_realtime` publication |
-| Validación de fechas DD/MM/AAAA | ✅ `toISODateString` en todos los formularios |
-
----
-
-## 🛡️ Auditoría de Deuda Técnica y Calidad (Reporte de Estado)
-
-Se realizó una auditoría completa del código estático encontrando lo siguiente:
-
-### Hallazgos de la Auditoría
-1. **Errores de Linting (18 errores, 11 warnings)**:
-   - Uso excesivo de `any` explícitos en múltiples componentes de la agenda (`appointment-modal.tsx`, `calendar-view.tsx`, `use-agenda.ts`) y de pagos (`payment-settings-panel.tsx`).
-   - Anti-patrón de React (`react-hooks/set-state-in-effect`) en `logout-button.tsx`.
-   - Dependencias faltantes en useEffect en `ConsultationsView.tsx` (posibles bugs de sincronización).
-   - Componentes no utilizados e importaciones huérfanas en varios archivos.
-   - Fuente cargada incorrectamente en `layout.tsx` (`no-page-custom-font`).
-2. **Dependencias Potencialmente Sin Uso**:
-   - `depcheck` detectó `@tailwindcss/postcss`, `fake-indexeddb`, y `tailwindcss` como dependencias de desarrollo sin uso explícito. `@stripe/stripe-js` aparece como dependencia principal sin uso, probablemente debido a importaciones dinámicas que deben validarse.
-3. **Consistencia de Tipos**: El build de TypeScript (`tsc --noEmit`) no reportó errores, lo cual es excelente. Sin embargo, los `any` suprimen verificaciones de tipo y deben resolverse.
-4. **Seguridad**: No se detectaron vulnerabilidades críticas ni exposición obvia de secretos en el frontend, el RLS de Supabase se encarga de la seguridad de la capa de datos.
-
-### 📋 Tasklist de Resolución (Prioridad de Ejecución)
-
-- [x] **TD-01** — Corregir antipatrones de React: Resolver `react-hooks/set-state-in-effect` en `logout-button.tsx` y `react-hooks/exhaustive-deps` en `ConsultationsView.tsx` (Prioridad Alta: Afecta rendimiento/bugs).
-- [x] **TD-02** — Limpiar importaciones y variables sin uso: Remover íconos y componentes declarados pero no usados en `appointment-modal.tsx`, `payment-settings-panel.tsx` y `agenda/page.tsx` (Prioridad Media).
-- [x] **TD-03** — Refactorizar tipos `any`: Tipar correctamente las variables en `use-agenda.ts`, `calendar-view.tsx` y `payment-settings-panel.tsx` evitando usar `any` (Prioridad Media).
-- [x] **TD-04** — Resolver `no-page-custom-font`: Mover o corregir la carga de fuentes en `layout.tsx` según las recomendaciones de Next.js (Prioridad Media).
-- [x] **TD-05** — Auditoría de dependencias: Validar el uso de `@stripe/stripe-js`, `tailwindcss` y `fake-indexeddb`, y desinstalarlos si realmente son código muerto (Prioridad Baja).
+- [x] **B-01** — Ya estaba correcto: `WIZARD_STEPS` tiene 6 entradas _(verificado 2026-05-18)_
+- [x] **B-03** — Rotación mensual automática en `usage-tracker.ts`: key `hce:ui-usage-metrics:YYYY-MM`, limpieza lazy 5% _(2026-05-18)_
+- [x] **B-08** — `@stripe/stripe-js` NO está instalado en package.json — solo `stripe` server-side. No hay bundle extra _(verificado 2026-05-18)_
+- [x] **B-09** — Step "Check Supabase DB Types" añadido al job `build-and-test` en `ci.yml` — se omite graciosamente sin secrets _(2026-05-18)_
+- [x] **M-02** — Auto-fill del wizard movido a `useEffect` independiente; `setForm` ahora es `useCallback` estable con `[]` deps _(2026-05-18)_
+- [x] **M-16** — Validación de `Origin` header en `checkout/route.ts` y `push/subscribe/route.ts` con helper `isValidOrigin` _(2026-05-18)_
+- [x] **A-13** — Validación con Zod en `clinic/invite`, `push/send`, `push/subscribe` (POST+DELETE), `stripe/checkout` _(2026-05-18)_
+- [x] Índice `idx_clinical_records_created_at` para queries de dashboard (DB-2.3) — en `sprint2_search_fts.sql` _(2026-05-18)_
+- [x] Índice parcial `idx_follow_up_tasks_due_pending` con `WHERE status = 'pending'` (DB-2.2) — en `sprint2_search_fts.sql` _(2026-05-18)_
+- [x] **Sync-3.1** — Indicador "Realtime desconectado" (naranja) + "Sin conexión" (ámbar) en `SyncStatusBanner`. Status emitido desde `usePatientsRealtime.subscribe()` _(2026-05-18)_
+- [x] **Sync-3.3** — Resetear timer de polling después de invalidación por Realtime — `refetchInterval` en `use-agenda.ts` devuelve `false` por 20s tras un evento Realtime, evitando el doble-fetch _(2026-05-21)_
+- [x] **Sync-3.4** — Channel manager singleton `src/lib/supabase/realtime-channel-manager.ts` — los 5 hooks de Realtime (agenda, patients, clinical_records, clinic_members, templates) usan `acquire/release` en lugar de crear canales individuales en cada mount _(2026-05-21)_
+- [x] **Sync-1.2 (TTL):** Implementar TTL para borrar registros "abandonados" o "done" después de N días en la cola local. — ✅ completado _(2026-05-21)_
+- [x] Hash local provisional en consultas selladas offline (Sync-4.1) — ✅ completado _(2026-05-21)_
+- [x] **M-20** — Limpiar bucket `clinic_assets` en `deleteUserAccount` antes del CASCADE — ✅ completado _(2026-05-21)_
+- [x] **SQL Error Fix** — `search_global()` usaba columnas inexistentes (`first_name`, `reason_for_visit`); `cron.schedule()` dentro del BEGIN/COMMIT rompía toda la transacción si `pg_cron` no estaba activo. Corregido con columnas reales (`full_name`, `chief_complaint`) y DO/EXCEPTION wrapper en todos los cron calls _(2026-05-21)_
 
 ---
 
-## 🚀 Features Futuras (v1.0 Completado)
+## ✅ Completado
 
-**Todas las features planificadas para la versión 1.0 han sido completadas con éxito.**
-- Plan Clínica (Multi-doctor) ✅
-- Firma Digital y Membrete en PDF ✅
-- Panel de Admin (Suscripciones y Precios Dinámicos) ✅
-- Notificaciones Push para Seguimientos ✅
-- Búsqueda Full-Text (Ctrl+K) ✅
-- Exportación ZIP de Historia Clínica ✅
-- Recordatorios por Email (Resend) ✅
-- Modo Oscuro / Claro / Sistema ✅
-- Internacionalización (i18n fundamental) ✅
-- **Wizard HCE Completo** — Revisión por Sistemas, SOAP, Pronóstico, Escala EVA, Tabla de Medicamentos, Datos Pediátricos, Tipo de Consulta ✅
+### Sprint 1 — Semana 1 (2026-05-16)
+- [x] **C-08** — Race condition en `DashboardOnboardingGuard` _(ya estaba implementado)_
+- [x] **C-09** — `aggregateRating` ficticio eliminado del JSON-LD; marca actualizada a "Glyphix"
+- [x] **A-09** — `/billing` ya estaba en middleware.ts _(verificado)_
+- [x] **M-03** — Script anti-flash ya tenía try/catch completo _(verificado)_
+- [x] **M-08** — Fix bypass de rate limit en `stripe/checkout` y `push/send`
+- [x] **A-05** — OR ambiguo en RLS de `push_subscriptions` corregido con paréntesis
+- [x] **M-04** — RLS habilitado en `mv_dashboard_kpis_daily`
+- [x] **B-01** — WizardStepper actualizado de 4 a 6 pasos
+- [x] **M-09** — Cron unificado a `net.http_post` (eliminado `extensions.http_post`)
+- [x] **M-15** — Metadata SEO añadido a `/privacidad` y `/terminos`; marca "Glyphix"
+- [x] **C-01 (código)** — Secretos reemplazados con placeholders en SQL de migración
 
-Actualmente no hay nuevas features mayores planificadas. El enfoque es monitoreo y estabilidad post-lanzamiento.
+### Sprint 1 — Semana 2 (2026-05-16)
+- [x] **C-02** — Idempotencia en webhook Stripe (`stripe_webhook_events` + handler)
+- [x] **C-03** — Trigger `sync_follow_up_task` — notificaciones de seguimiento ahora funcionarán
+- [x] **A-03** — `notification_log` + cron jobs deduplicados
+- [x] **A-02** — Trial movido a Server Action con `service_role`
+- [x] **A-04** — Check de suscripción en `/api/cie-suggestions`
+- [x] **A-11** — Grace period 7 días en `invoice.payment_failed`
+- [x] **A-19** — Validación de tenant en `log_audit_event`
 
----
-
-## 🗂️ Tareas de mantenimiento / Calidad
-
-### ~~M-01 · Playwright E2E — Ampliar cobertura~~ ✅ Resuelto
-Completadas 9 specs cubriendo todos los flujos principales.
-
-### ~~M-02 · Stale-While-Revalidate en `useTemplates`~~ ✅ Resuelto
-**Solución:** `staleTime: 5 * 60 * 1000` añadido en `use-consultation-queries.ts`.
-
-### ~~M-03 · Rate limiting en más API routes~~ ✅ Resuelto
-Añadido a `/api/stripe/*` y `/api/push/*`.
-
-### ~~M-04 · Variables de entorno — validación en startup~~ ✅ Resuelto
-`src/lib/env.ts` creado y en uso.
-
-### M-05 · `supabase.types.ts` — regenerar tras cada cambio de schema
-**Acción al hacer cambios en BD:** Ver guía completa en `docs/SUPABASE_MIGRATIONS.md`.  
-**Prioridad:** 🔵 Proceso (no es un bug, es un recordatorio)
-
----
-
-
-## 📋 Checklist del deploy actual
-
-### ✅ Listo (código)
-- [x] `tsc --noEmit` → 0 errores
-- [x] `vitest run` → 85/85
-- [x] ESLint → limpio
-- [x] Tipos TypeScript regenerados con `npm run db:types` (PostgrestVersion 14.5)
-- [x] `layout.tsx` metadata → `"Glyph — Motor Clínico"`
-- [x] `useTemplates` con `staleTime: 5min`
-
-### ⏳ Pendiente tuyo — Supabase (SQL Editor)
-- [x] **Ejecutar** `supabase/migrations/000_production_full_schema.sql` completo  
-  _(incluye índices FTS, `search_global()`, `send_followup_emails()`, crons)_
-- [x] **Actualizar** `app_config` con valores reales:
-  ```sql
-  insert into public.app_config (key, value) values
-    ('site_url',           'https://TU-APP.vercel.app'),
-    ('push_send_secret',   'EL_MISMO_QUE_EN_VERCEL'),
-    ('resend_email_secret','EL_MISMO_QUE_EN_VERCEL')
-  on conflict (key) do update set value = excluded.value, updated_at = now();
-  ```
-- [x] **Activar extensión** `pg_cron` en Supabase → Database → Extensions
-
-### ⏳ Pendiente tuyo — Vercel (Environment Variables)
-- [x] `PUSH_SEND_SECRET` → secreto para el cron de push
-- [x] `ADMIN_EMAIL` → tu email de administrador
-- [x] `RESEND_API_KEY` → key de [resend.com](https://resend.com)
-- [x] `RESEND_EMAIL_SECRET` → mismo valor que `resend_email_secret` en `app_config`
-- [x] `RESEND_FROM_EMAIL` → ej. `Glyph <no-reply@tudominio.com>`
+### Previo al Sprint 1
+- [x] Trial de 7 días sin tarjeta (parcialmente — completado con A-02)
+- [x] Notificaciones push VAPID (completado con C-03)
+- [x] Webhook Stripe firmado
+- [x] RLS en todas las tablas base
+- [x] Sistema offline-first (IndexedDB + sync worker)
+- [x] Búsqueda global Ctrl+K con FTS PostgreSQL
+- [x] Dark mode con anti-flash
+- [x] Admin panel
+- [x] Exportación ZIP cliente-side
+- [x] Auditoría con hash criptográfico encadenado
+- [x] Rate limiting por RPC Postgres
 
 ---
 
-## 🔄 Sprint Reciente — Estabilidad, Realtime y Corrección de Bugs (2026-05-15)
+## Notas de arquitectura
 
-- [x] **RT-01** — `usePatientsRealtime` — Pacientes se actualizan en tiempo real entre sesiones
-- [x] **RT-02** — `useAgendaRealtime` — Calendario reacciona instantáneamente a citas nuevas/modificadas
-- [x] **RT-03** — `useClinicalRecordsRealtime` — Historial clínico sincronizado entre dispositivos
-- [x] **RT-04** — `useTeamRealtime` — Panel de equipo se actualiza al agregar/remover miembros
-- [x] **RT-05** — `useTemplatesRealtime` — Plantillas de tratamiento sincronizadas
-- [x] **RT-06** — Schema SQL: sección 16 `supabase_realtime` idempotente con `IF NOT EXISTS + schemaname`
-- [x] **RT-07** — Polling 30s + `refetchOnWindowFocus` en agenda como respaldo si Realtime no está disponible
-- [x] **BUG-10** — Modal eliminar cita: `ConfirmModal` movido dentro de `DialogContent` para evitar bloqueo de pointer events
-- [x] **BUG-11** — Error `{}` al guardar cita: Parseo correcto de errores Supabase + banner de error visible al usuario
-- [x] **BUG-12** — IndexedDB “fantasmas”: `refreshPatientsFromRemote`, `refreshClinicalRecordsFromRemote` y `refreshSpecialtyDataFromRemote` ahora eliminan registros locales que ya no existen en Supabase
-- [x] **BUG-13** — Error PostgreSQL 22008 (`date/time field value out of range`): Creada utilidad `src/lib/utils/date-utils.ts` con `isValidDateString` y `toISODateString`, aplicada en `appointment-modal`, `wizard-domain` y `wizard-payload`
-
----
-
-### ⏳ Pendiente tuyo — Resend
-- [x] Crear cuenta en [resend.com](https://resend.com) y obtener API Key
-- [x] (Recomendado) Verificar tu dominio para enviar desde `@tudominio.com`
+- **Stack:** Next.js 16 (App Router, Webpack forzado), React 19, Tailwind CSS v4, Supabase, Stripe v2026-04-22
+- **NO usar Turbopack**: incompatible con next-pwa y el sync worker
+- **Schema DB**: único archivo `supabase/migrations/000_production_full_schema.sql`
+- **Tipos TS**: regenerar con `npm run db:types` tras cualquier cambio de schema
+- **Proxy SSR**: `src/proxy.ts` reemplaza `middleware.ts` en Next.js 16

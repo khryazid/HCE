@@ -1,15 +1,17 @@
 /**
- * use-team-realtime.ts
+ * use-team-realtime.ts — Sync-3.4
  *
  * Supabase Realtime for clinic_members table.
  * When an admin adds/removes/changes a team member from any device,
  * the team panel updates automatically.
+ *
+ * Sync-3.4: usa realtimeChannelManager para no duplicar canales en re-mounts.
  */
 
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { getSupabaseClient } from "@/lib/supabase/client";
 import type { TenantProfile } from "@/lib/supabase/profile";
+import { realtimeChannelManager } from "@/lib/supabase/realtime-channel-manager";
 
 export function useTeamRealtime(tenant: TenantProfile | null) {
   const queryClient = useQueryClient();
@@ -17,12 +19,11 @@ export function useTeamRealtime(tenant: TenantProfile | null) {
   useEffect(() => {
     if (!tenant?.clinic_id) return;
 
-    const supabase = getSupabaseClient();
     const clinicId = tenant.clinic_id;
+    const key = `clinic_members:clinic:${clinicId}`;
 
-    const channel = supabase
-      .channel(`clinic_members:clinic:${clinicId}`)
-      .on(
+    realtimeChannelManager.acquire(key, (ch) =>
+      ch.on(
         "postgres_changes",
         {
           event: "*",
@@ -33,11 +34,11 @@ export function useTeamRealtime(tenant: TenantProfile | null) {
         () => {
           queryClient.invalidateQueries({ queryKey: ["clinic-members", clinicId] });
         },
-      )
-      .subscribe();
+      ),
+    );
 
     return () => {
-      supabase.removeChannel(channel);
+      realtimeChannelManager.release(key);
     };
   }, [tenant?.clinic_id, queryClient]);
 }

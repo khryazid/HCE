@@ -5,6 +5,7 @@ import { QueryProvider } from "@/lib/query-provider";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/react";
 import { Space_Grotesk, Outfit } from "next/font/google";
+import { APP_NAME, APP_FULL_NAME, APP_TAGLINE } from "@/lib/constants/app";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -20,7 +21,7 @@ const outfit = Outfit({
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000")),
-  title: "Glyph — Motor Clínico",
+  title: `${APP_NAME} — ${APP_TAGLINE}`,
   description:
     "Historia clínica electrónica multiespecialidad con IA, trabajo offline y sincronización automática. Diseñado para médicos modernos.",
   manifest: "/manifest.json",
@@ -46,18 +47,27 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "es_ES",
-    title: "Glyph — Motor Clínico para médicos modernos",
+    title: `${APP_FULL_NAME} para médicos modernos`,
     description:
       "Historia clínica multiespecialidad, sincronización offline-first y sugerencias CIE-10 con IA. Documentá cada consulta en menos de 3 minutos.",
-    siteName: "Glyph",
-    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "Glyph — Motor Clínico" }],
+    siteName: APP_NAME,
+    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: `${APP_FULL_NAME}` }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Glyph — Motor Clínico para médicos modernos",
+    title: `${APP_FULL_NAME} para médicos modernos`,
     description:
       "Historia clínica multiespecialidad, sincronización offline-first y sugerencias CIE-10 con IA.",
     images: ["/og-image.png"],
+  },
+  // M-14: hreflang para locales es/en (mejora SEO internacional)
+  alternates: {
+    canonical: "/",
+    languages: {
+      "es": "/",
+      "en": "/en",
+      "x-default": "/",
+    },
   },
 };
 

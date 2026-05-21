@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { ArrowLeft, Check } from "lucide-react";
+import { APP_NAME } from "@/lib/constants/app";
 
 type AuthRouteShellProps = {
   variant: "login" | "register";
@@ -46,7 +47,7 @@ export function AuthRouteShell({
             Volver al inicio
           </Link>
           <span className="text-base font-bold tracking-tight text-ink">
-            Glyph<span className="ml-1 text-accent">·</span>
+            {APP_NAME}<span className="ml-1 text-accent">·</span>
           </span>
           <Link
             href={secondaryAction.href}

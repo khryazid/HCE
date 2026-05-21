@@ -2,17 +2,20 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { serverEnv } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
+import { inviteBodySchema } from "@/lib/api/guards";
 
 export async function POST(req: Request) {
   try {
-    const { email, role, clinic_id } = await req.json();
-
-    if (!email || !role || !clinic_id) {
+    // A-13: Validar body con Zod — email, role y clinic_id en una sola pasada
+    const rawBody = await req.json();
+    const parsed = inviteBodySchema.safeParse(rawBody);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "Faltan parámetros requeridos" },
-        { status: 400 }
+        { error: parsed.error.issues[0]?.message ?? "Payload inválido" },
+        { status: 400 },
       );
     }
+    const { email, role, clinic_id } = parsed.data;
 
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -45,7 +48,8 @@ export async function POST(req: Request) {
       );
     }
 
-    // Check Plan Limits
+    // ── A-12: Validar seats pagados según plan ─────────────────────────────
+    // Obtener el plan del dueño de la clínica (primer perfil creado)
     const { data: ownerProfile } = await supabase
       .from("profiles")
       .select("plan")
@@ -53,31 +57,54 @@ export async function POST(req: Request) {
       .order("created_at", { ascending: true })
       .limit(1)
       .single();
-      
-    const plan = ownerProfile?.plan || "basic";
 
-    if (plan === "basic") {
-      if (role === "doctor") {
+    const plan = ownerProfile?.plan ?? "basic";
+
+    // Límites de seats por plan
+    const PLAN_LIMITS: Record<string, { maxDoctors: number; maxAssistants: number }> = {
+      basic:      { maxDoctors: 0,   maxAssistants: 2  }, // sin doctores adicionales
+      clinica:    { maxDoctors: 5,   maxAssistants: 10 },
+      enterprise: { maxDoctors: 999, maxAssistants: 999 },
+    };
+    const limits = PLAN_LIMITS[plan] ?? PLAN_LIMITS.basic;
+
+    if (role === "doctor") {
+      if (limits.maxDoctors === 0) {
         return NextResponse.json(
-          { error: "Tu plan Básico no permite agregar otros doctores. Mejora al Plan Clínica." },
-          { status: 403 }
+          { error: `Tu plan ${plan} no permite agregar doctores adicionales. Mejora tu plan.` },
+          { status: 403 },
         );
       }
-      if (role === "assistant") {
-        const { count } = await supabase
-          .from("clinic_members")
-          .select("*", { count: "exact", head: true })
-          .eq("clinic_id", clinic_id)
-          .eq("role", "assistant");
-          
-        if ((count || 0) >= 2) {
-          return NextResponse.json(
-            { error: "Has alcanzado el límite de 2 asistentes de tu Plan Básico." },
-            { status: 403 }
-          );
-        }
+      // Contar doctores actuales en la clínica (excluyendo el dueño que no está en clinic_members)
+      const { count: doctorCount } = await supabase
+        .from("clinic_members")
+        .select("*", { count: "exact", head: true })
+        .eq("clinic_id", clinic_id)
+        .eq("role", "doctor");
+
+      if ((doctorCount ?? 0) >= limits.maxDoctors) {
+        return NextResponse.json(
+          { error: `Has alcanzado el límite de ${limits.maxDoctors} doctores de tu plan ${plan}.` },
+          { status: 403 },
+        );
       }
     }
+
+    if (role === "assistant") {
+      const { count: assistantCount } = await supabase
+        .from("clinic_members")
+        .select("*", { count: "exact", head: true })
+        .eq("clinic_id", clinic_id)
+        .eq("role", "assistant");
+
+      if ((assistantCount ?? 0) >= limits.maxAssistants) {
+        return NextResponse.json(
+          { error: `Has alcanzado el límite de ${limits.maxAssistants} asistentes de tu plan ${plan}.` },
+          { status: 403 },
+        );
+      }
+    }
+    // ── Fin A-12 ────────────────────────────────────────────────────────────
 
     const adminClient = createAdminClient();
 

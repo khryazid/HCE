@@ -13,9 +13,10 @@ import { Input } from "@/components/ui/input";
 import {
   bootstrapTenantProfileFromMetadata,
   createClinicId,
-  ensureTenantProfile,
 } from "@/lib/supabase/profile";
+import { createTenantProfileWithTrial } from "@/lib/supabase/actions";
 import { MEDICAL_SPECIALTIES } from "@/lib/constants/medical-specialties";
+import { APP_NAME } from "@/lib/constants/app";
 
 type AuthMode = "login" | "register";
 
@@ -149,13 +150,17 @@ export function AuthForm({ mode }: AuthFormProps) {
 
       if (isSignUp) {
         if (action.data.user && action.data.session) {
-          await ensureTenantProfile({
-            userId: action.data.user.id,
+          // A-02: Use Server Action with service_role — prevents client-side trial manipulation.
+          const result = await createTenantProfileWithTrial({
             clinicId: normalizedClinicId,
             fullName: data.fullName?.trim() || "",
             specialties: data.specialties || [],
             plan: data.plan as "basic" | "clinic",
           });
+          if (!result.success) {
+            setError(result.error);
+            return;
+          }
           router.replace("/dashboard");
           return;
         }
@@ -190,7 +195,7 @@ export function AuthForm({ mode }: AuthFormProps) {
       aria-label={isSignUp ? "Formulario de registro" : "Formulario de inicio de sesión"}
     >
       <div className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-widest text-accent">Glyph</p>
+        <p className="text-xs font-semibold uppercase tracking-widest text-accent">{APP_NAME}</p>
         <h2 className="text-2xl font-extrabold tracking-tight text-ink">
           {isSignUp ? "Crear cuenta" : "Iniciar sesión"}
         </h2>

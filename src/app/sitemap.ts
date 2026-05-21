@@ -1,7 +1,8 @@
 import { MetadataRoute } from "next";
+import { APP_URL } from "@/lib/constants/app";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://app.glyphmedico.com";
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || APP_URL;
 
   return [
     {
