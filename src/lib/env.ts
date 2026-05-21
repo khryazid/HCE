@@ -54,7 +54,7 @@ export const serverEnv = {
     return requireEnv("GEMINI_API_KEY");
   },
   get GEMINI_MODEL() {
-    return optionalEnv("GEMINI_MODEL", "gemini-2.0-flash");
+    return optionalEnv("GEMINI_MODEL", "gemini-3.5-flash");
   },
 
   // ── Web Push / VAPID ───────────────────────────────────────────────────────

@@ -235,10 +235,11 @@ export default function LandingClient({ proPrice, clinicPrice }: { proPrice: num
                 <div className="l-card-icon" aria-hidden>🧠</div>
                 <h3 id="feat-ai" className="l-card-title">CIE-10 asistido por IA</h3>
                 <p className="l-card-body">
-                  Sugerencias de diagnóstico en tiempo real con Gemini 2.0 Flash.
-                  Contextualizado a tu especialidad, sin catálogos lentos.
+                  Sugerencias de diagnóstico en tiempo real con Gemini 3.5 Flash.
                 </p>
-                <span className="l-card-tag">Gemini 2.0 Flash</span>
+                <div className="l-card-tags">
+                  <span className="l-card-tag">Gemini 3.5 Flash</span>
+                </div>
               </article>
 
               {/* Offline */}

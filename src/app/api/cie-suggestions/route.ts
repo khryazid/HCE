@@ -49,23 +49,16 @@ async function getAuthorizedUserId() {
   return { userId };
 }
 
+import { GoogleGenAI } from "@google/genai";
+
+// Initialize the client once outside the request handler
+// It automatically picks up process.env.GEMINI_API_KEY
+const ai = new GoogleGenAI({});
+
 async function requestGeminiSuggestions(input: RequestBody): Promise<ReturnType<typeof extractGeminiSuggestions> | null> {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return null;
+  if (!process.env.GEMINI_API_KEY) return null;
 
-  const model = process.env.GEMINI_MODEL || "gemini-2.0-flash";
-
-  const body = JSON.stringify({
-    contents: [{ role: "user", parts: [{ text: buildCieSuggestionPrompt(input) }] }],
-    generationConfig: {
-      temperature: 0.2,
-      topP: 0.8,
-      maxOutputTokens: 512,
-      responseMimeType: "application/json",
-    },
-  });
-
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  const model = process.env.GEMINI_MODEL || "gemini-3.5-flash";
 
   // Reintentar una vez si Gemini devuelve 503 (sobrecarga temporal)
   for (let attempt = 0; attempt < 2; attempt++) {
@@ -73,38 +66,39 @@ async function requestGeminiSuggestions(input: RequestBody): Promise<ReturnType<
       await new Promise((resolve) => setTimeout(resolve, 1200));
     }
 
-    let response: Response;
     try {
-      response = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body,
-        signal: AbortSignal.timeout(8000),
+      const response = await ai.models.generateContent({
+        model,
+        contents: buildCieSuggestionPrompt(input),
+        config: {
+          // As per 2026 best practices: default temperature/topP/topK is optimal for 3.x series
+          responseMimeType: "application/json",
+        },
       });
-    } catch {
-      return null;
-    }
 
-    if (response.ok) {
-      const data = (await response.json()) as {
-        candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
-      };
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      const text = response.text;
+      if (!text) return null;
+
       const suggestions = extractGeminiSuggestions(text);
       return suggestions.length > 0 ? suggestions : null;
-    }
-
-    // Solo reintentar en 503 (servicio sobrecargado)
-    if (response.status !== 503) {
-      console.warn("[HCE:cie-api] Gemini returned non-ok status", {
-        status: response.status,
+    } catch (error: unknown) {
+      // @google/genai throws errors with .status for HTTP errors
+      const err = error as { status?: number; message?: string };
+      const status = err?.status;
+      
+      if (status === 503) {
+        console.warn("[HCE:cie-api] Gemini 503 — reintentando...", { attempt: attempt + 1, model });
+        continue;
+      }
+      
+      console.warn("[HCE:cie-api] Gemini API Error", {
+        status,
+        message: err?.message,
         model,
         specialtyKind: input.specialtyKind,
       });
       return null;
     }
-
-    console.warn("[HCE:cie-api] Gemini 503 — reintentando...", { attempt: attempt + 1, model });
   }
 
   console.warn("[HCE:cie-api] Gemini 503 tras reintentos", { model, specialtyKind: input.specialtyKind });
