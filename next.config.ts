@@ -21,9 +21,6 @@ const pwaOptions = {
     {
       urlPattern: /^\/api\//,
       handler: "NetworkOnly" as const,
-      options: {
-        networkTimeoutSeconds: 10,
-      },
     },
   ],
 } as Parameters<typeof withPWAInit>[0];
