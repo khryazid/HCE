@@ -939,7 +939,7 @@ grant execute on function public.search_global(text) to authenticated;
 
 -- KPIs diarios del dashboard (consultas y pacientes creados por día).
 -- Refrescar automáticamente con el cron job definido en la sección 7.
-drop materialized view if exists public.mv_dashboard_kpis_daily;
+drop materialized view if exists public.mv_dashboard_kpis_daily cascade;
 create materialized view public.mv_dashboard_kpis_daily as
 select
   clinic_id,
