@@ -87,6 +87,15 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: "dummy_anon_key"
           NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: "pk_test_dummy"
           NEXT_PUBLIC_VAPID_PUBLIC_KEY: "dummy_vapid_key"
+          SUPABASE_SERVICE_ROLE_KEY: "dummy"
+          STRIPE_SECRET_KEY: "dummy"
+          STRIPE_WEBHOOK_SECRET: "dummy"
+          GEMINI_API_KEY: "dummy"
+          VAPID_PRIVATE_KEY: "dummy"
+          VAPID_MAILTO: "dummy"
+          ADMIN_EMAIL: "dummy"
+          PUSH_SEND_SECRET: "dummy"
+          NEXT_PUBLIC_SITE_URL: "http://127.0.0.1:3000"
         run: npm run build
 
   e2e:
@@ -130,6 +139,14 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY }}
           NEXT_PUBLIC_SITE_URL: http://127.0.0.1:3000
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          VAPID_MAILTO: ${{ secrets.VAPID_MAILTO }}
+          ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
+          PUSH_SEND_SECRET: ${{ secrets.PUSH_SEND_SECRET }}
         run: |
           npm run build
           npm run start &
