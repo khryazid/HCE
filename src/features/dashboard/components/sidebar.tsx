@@ -18,6 +18,7 @@ import {
   CloudLightning
 } from "lucide-react";
 import { SYNC_STARTED_EVENT, SYNC_FINISHED_EVENT } from "@/lib/sync/sync-worker";
+import { APP_NAME } from "@/lib/constants/app";
 
 type NavItem = {
   href: string;
@@ -132,7 +133,7 @@ export function Sidebar() {
                 whiteSpace: "nowrap",
               }}
             >
-              Glyph
+              {APP_NAME}
             </p>
             <div className="mt-1 flex items-center gap-1.5">
               <span className={`relative flex h-1.5 w-1.5 shrink-0`}>
@@ -316,7 +317,7 @@ export function MobileHeader() {
         <GlyphMark size={30} />
         <div>
           <p style={{ fontFamily: "var(--font-display)", fontSize: ".95rem", fontWeight: 700, color: "var(--ink)", letterSpacing: "-.03em", lineHeight: 1.2 }}>
-            Glyph
+            {APP_NAME}
           </p>
           <p style={{ fontSize: ".65rem", color: "var(--ink-faint)", fontFamily: "var(--font-ui)", letterSpacing: ".06em", textTransform: "uppercase" }}>
             Motor clínico

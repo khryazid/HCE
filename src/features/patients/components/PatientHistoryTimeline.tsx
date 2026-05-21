@@ -10,7 +10,7 @@
 
 import Link from "next/link";
 import { formatDate, formatDateTime } from "@/lib/ui/format-date";
-import { generateConsultationPdf } from "@/features/consultations/lib/pdf";
+import { usePdfWorker } from "@/features/consultations/lib/use-pdf-worker";
 import { trackUsage } from "@/lib/observability/usage-tracker";
 import { buildLetterheadFromSession } from "@/features/dashboard/lib/letterhead";
 import { getSupabaseClient } from "@/lib/supabase/client";
@@ -126,6 +126,8 @@ export function PatientHistoryTimeline({
   onToggleExpand,
   onDeleteRecordRequest,
 }: Props) {
+  // A-18: PDF en Web Worker — no bloquea UI 8-15s en móvil
+  const { generatePdfInWorker, isGenerating: isPdfGenerating } = usePdfWorker();
   return (
     <article className="hce-surface">
       <div className="flex items-center justify-between gap-3">
@@ -309,6 +311,7 @@ export function PatientHistoryTimeline({
                       </Link>
                       <button
                         type="button"
+                        disabled={isPdfGenerating}
                         onClick={async () => {
                           if (!tenant || !selectedPatient) return;
                           const supabase = getSupabaseClient();
@@ -319,7 +322,12 @@ export function PatientHistoryTimeline({
                             session?.user?.user_metadata ?? {},
                             tenant.specialties,
                           );
-                          await generateConsultationPdf(letterhead, {
+                          const safeName = selectedPatient.full_name
+                            .replace(/[^a-zA-Z0-9]/g, "-")
+                            .replace(/-+/g, "-");
+                          const filename = `${safeName}-${selectedPatient.document_number}.pdf`;
+                          // A-18: Worker — jsPDF corre en hilo separado
+                          await generatePdfInWorker(letterhead, {
                             patientName: selectedPatient.full_name,
                             patientDocument: selectedPatient.document_number,
                             consultationDate: formatDateTime(details.consultationDate),
@@ -341,10 +349,10 @@ export function PatientHistoryTimeline({
                             specialtyKind: record.specialty_kind,
                             evolutionStatus: details.evolutionStatus,
                             followUpDate: details.nextFollowUpDate ?? undefined,
-                          });
+                          }, filename);
                           trackUsage("pdf:generate");
                         }}
-                        className="inline-flex items-center gap-1 rounded-xl border border-border bg-card px-3 py-2 text-xs font-semibold text-ink-soft transition hover:bg-bg-soft"
+                        className="inline-flex items-center gap-1 rounded-xl border border-border bg-card px-3 py-2 text-xs font-semibold text-ink-soft transition hover:bg-bg-soft disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <svg
                           width="14" height="14" viewBox="0 0 24 24"

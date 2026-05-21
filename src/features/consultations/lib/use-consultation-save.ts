@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { generateConsultationPdf } from "@/features/consultations/lib/pdf";
+import { usePdfWorker } from "@/features/consultations/lib/use-pdf-worker";
 import {
   buildConsultationPayload,
 } from "@/features/consultations/lib/wizard-payload";
@@ -33,6 +33,8 @@ type SaveConsultationContext = {
 
 export function useConsultationSave() {
   const queryClient = useQueryClient();
+  // A-18: PDF en Web Worker — no bloquea UI durante guardado
+  const { generatePdfInWorker } = usePdfWorker();
 
   const saveMutation = useMutation({
     mutationFn: async ({
@@ -163,7 +165,7 @@ export function useConsultationSave() {
           .eq("id", form.appointmentId);
       }
 
-      // --- PDF (opcional) ---
+      // --- PDF (opcional, en Web Worker) ---
       const shouldGeneratePdf = options.generatePdf ?? false;
       if (shouldGeneratePdf) {
         const supabase = getSupabaseClient();
@@ -174,7 +176,14 @@ export function useConsultationSave() {
           session?.user?.user_metadata ?? {},
           tenant.specialties,
         );
-        await generateConsultationPdf(letterhead, buildPdfPreviewData(timestamp));
+        const pdfData = buildPdfPreviewData(timestamp);
+        const patient = patients.find(p => p.id === form.patientId);
+        const safeName = (patient?.full_name ?? "consulta")
+          .replace(/[^a-zA-Z0-9]/g, "-")
+          .replace(/-+/g, "-");
+        const filename = `${safeName}-${patient?.document_number ?? "sin-doc"}.pdf`;
+        // A-18: No await — PDF se genera en background, no bloquea el éxito del guardado
+        void generatePdfInWorker(letterhead, pdfData, filename);
       }
 
       const patientName = patients.find(p => p.id === form.patientId)?.full_name ?? "paciente";

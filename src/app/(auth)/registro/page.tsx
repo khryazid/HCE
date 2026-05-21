@@ -2,18 +2,19 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { AuthForm } from "@/features/auth/components/auth-form";
 import { AuthRouteShell } from "@/features/auth/components/auth-route-shell";
+import { APP_NAME } from "@/lib/constants/app";
 
 export const metadata: Metadata = {
-  title: "Crear cuenta — Glyph",
+  title: `Crear cuenta — ${APP_NAME}`,
   description:
-    "Crea tu cuenta en Glyph y empieza a gestionar tu historia clínica electrónica. Configuración en 2 minutos.",
+    `Crea tu cuenta en ${APP_NAME} y empieza a gestionar tu historia clínica electrónica. Configuración en 2 minutos.`,
 };
 
 export default function RegisterPage() {
   return (
     <AuthRouteShell
       variant="register"
-      kicker="Glyph · Crear cuenta"
+      kicker={`${APP_NAME} · Crear cuenta`}
       title="Digitaliza tu consultorio en menos de 2 minutos."
       lead="Define tus especialidades, configura tu perfil y empieza a registrar consultas desde el primer día."
       highlights={[

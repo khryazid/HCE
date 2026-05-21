@@ -1,5 +1,12 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+
+export const metadata: Metadata = {
+  title: "Política de Privacidad — Glyphix",
+  description:
+    "Conoce cómo Glyphix recopila, protege y gestiona los datos clínicos y personales de los profesionales de salud que usan nuestra plataforma.",
+};
 
 export default function PrivacidadPage() {
   return (
@@ -13,7 +20,7 @@ export default function PrivacidadPage() {
         <div className="prose prose-slate prose-blue max-w-none text-slate-600 space-y-4">
           <p>Última actualización: Mayo 2026</p>
           <p>
-            En HCE, nos tomamos muy en serio la privacidad y seguridad de los datos. Esta política describe cómo 
+            En Glyphix, nos tomamos muy en serio la privacidad y seguridad de los datos. Esta política describe cómo
             recopilamos, usamos y protegemos la información clínica y personal que procesamos a través de nuestra plataforma.
           </p>
           
@@ -49,7 +56,7 @@ export default function PrivacidadPage() {
 
           <h2 className="text-xl font-semibold text-slate-800 mt-6">6. Contacto</h2>
           <p>
-            Para consultas relacionadas con la privacidad de datos, por favor contáctenos a soporte@hce-platform.com.
+            Para consultas relacionadas con la privacidad de datos, por favor contáctenos a soporte@glyphix.app.
           </p>
         </div>
       </div>

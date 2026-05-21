@@ -29,7 +29,7 @@ export function WizardStepper({ steps, currentStep }: Props) {
 
       {/* Steps */}
       <div className="relative z-10 flex w-full justify-between">
-        {steps.map((step, index) => {
+        {steps.map((step) => {
           const isDone   = step.number < currentStep;
           const isActive = step.number === currentStep;
 

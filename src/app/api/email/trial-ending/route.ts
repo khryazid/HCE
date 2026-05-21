@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
+import { APP_NAME, APP_FROM_EMAIL, APP_URL } from "@/lib/constants/app";
 
 export async function POST(req: Request) {
   const incomingSecret = req.headers.get("x-email-secret");
@@ -28,15 +29,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "target_doctor_id y doctor_email son requeridos" }, { status: 400 });
   }
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://app.glyphmedico.com";
-  const fromAddress = process.env.RESEND_FROM_EMAIL ?? "Glyph <recordatorios@glyphmedico.com>";
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? APP_URL;
+  const fromAddress = process.env.RESEND_FROM_EMAIL ?? APP_FROM_EMAIL;
   const name = doctor_name ?? "Doctor";
 
   const resend = new Resend(resendKey);
 
   const subject = days_left === 0 
-    ? "🚨 Tu prueba gratuita de Glyph finaliza hoy" 
-    : `⏳ Tu prueba gratuita de Glyph finaliza en ${days_left} día${days_left !== 1 ? "s" : ""}`;
+    ? `🚨 Tu prueba gratuita de ${APP_NAME} finaliza hoy` 
+    : `⏳ Tu prueba gratuita de ${APP_NAME} finaliza en ${days_left} día${days_left !== 1 ? "s" : ""}`;
 
   const { error } = await resend.emails.send({
     from: fromAddress,
@@ -73,7 +74,7 @@ function buildEmailHtml({
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Tu prueba gratuita finaliza pronto — Glyph</title>
+  <title>Tu prueba gratuita finaliza pronto — ${APP_NAME}</title>
 </head>
 <body style="margin:0;padding:0;background:#f6f8f6;font-family:'Segoe UI',Arial,sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f6f8f6;padding:40px 16px;">
@@ -84,7 +85,7 @@ function buildEmailHtml({
           <!-- Header -->
           <tr>
             <td style="background:#0f766e;padding:32px 40px;text-align:center;">
-              <p style="margin:0;font-size:28px;font-weight:700;color:#ffffff;letter-spacing:-0.5px;">Glyph</p>
+              <p style="margin:0;font-size:28px;font-weight:700;color:#ffffff;letter-spacing:-0.5px;">${APP_NAME}</p>
               <p style="margin:8px 0 0;font-size:13px;color:rgba(255,255,255,0.75);letter-spacing:0.1em;text-transform:uppercase;">Motor Clínico</p>
             </td>
           </tr>
@@ -96,7 +97,7 @@ function buildEmailHtml({
                 Hola, ${escapeHtml(name)} 👋
               </p>
               <p style="margin:0 0 28px;font-size:15px;color:#51606d;line-height:1.7;">
-                Tu prueba gratuita de Glyph <strong style="color:#c2410c;">${statusLabel}</strong>.
+                Tu prueba gratuita de ${APP_NAME} <strong style="color:#c2410c;">${statusLabel}</strong>.
               </p>
 
               <!-- Days left pill -->

@@ -1,16 +1,18 @@
 /**
- * use-templates-realtime.ts
+ * use-templates-realtime.ts — Sync-3.4
  *
  * Supabase Realtime for treatment_templates table.
  * When any doctor in the clinic creates/edits/deletes a template,
  * the treatment wizard selector updates without page reload.
+ *
+ * Sync-3.4: usa realtimeChannelManager para no duplicar canales en re-mounts.
  */
 
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { getSupabaseClient } from "@/lib/supabase/client";
 import type { TenantProfile } from "@/lib/supabase/profile";
 import { templateKeys } from "./use-consultation-queries";
+import { realtimeChannelManager } from "@/lib/supabase/realtime-channel-manager";
 
 export function useTemplatesRealtime(tenant: TenantProfile | null) {
   const queryClient = useQueryClient();
@@ -18,12 +20,11 @@ export function useTemplatesRealtime(tenant: TenantProfile | null) {
   useEffect(() => {
     if (!tenant?.clinic_id) return;
 
-    const supabase = getSupabaseClient();
     const clinicId = tenant.clinic_id;
+    const key = `treatment_templates:clinic:${clinicId}`;
 
-    const channel = supabase
-      .channel(`treatment_templates:clinic:${clinicId}`)
-      .on(
+    realtimeChannelManager.acquire(key, (ch) =>
+      ch.on(
         "postgres_changes",
         {
           event: "*",
@@ -34,11 +35,11 @@ export function useTemplatesRealtime(tenant: TenantProfile | null) {
         () => {
           queryClient.invalidateQueries({ queryKey: templateKeys.tenant(clinicId) });
         },
-      )
-      .subscribe();
+      ),
+    );
 
     return () => {
-      supabase.removeChannel(channel);
+      realtimeChannelManager.release(key);
     };
   }, [tenant?.clinic_id, queryClient]);
 }

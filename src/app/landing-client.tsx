@@ -3,6 +3,7 @@ import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useEffect, useRef } from "react";
 import "./landing.css";
+import { APP_NAME } from "@/lib/constants/app";
 
 /* ─── Fonts via next/font would conflict with "use client",
        so we load them in layout.tsx — see note below ── */
@@ -113,7 +114,7 @@ export default function LandingClient({ proPrice, clinicPrice }: { proPrice: num
       <nav ref={navRef} className="l-nav" aria-label="Navegación principal">
         <Link href="/" className="l-nav-logo">
           <div className="l-nav-dot" />
-          Glyph<span style={{ color: "var(--accent)", marginLeft: 2 }}>·</span>
+          {APP_NAME}<span style={{ color: "var(--accent)", marginLeft: 2 }}>·</span>
         </Link>
 
         <div className="l-nav-links">
@@ -339,11 +340,11 @@ export default function LandingClient({ proPrice, clinicPrice }: { proPrice: num
             <div style={{textAlign:"center", maxWidth:600, margin:"0 auto"}}>
               <span className="l-section-label reveal">Testimonios</span>
               <h2 id="testi-heading" className="l-section-title reveal">
-                Los médicos que ya usan <em>Glyph</em>
+                Los médicos que ya usan <em>{APP_NAME}</em>
               </h2>
               <p className="l-section-body reveal" style={{margin:"16px auto 0", textAlign:"center"}}>
                 Estamos en lanzamiento temprano. Pronto compartiremos aquí las experiencias
-                de los primeros médicos que confían en Glyph cada día.
+                de los primeros médicos que confían en {APP_NAME} cada día.
               </p>
               <div className="reveal" style={{marginTop:"48px", display:"flex", gap:"16px", justifyContent:"center", flexWrap:"wrap"}}>
                 {[
@@ -473,7 +474,7 @@ export default function LandingClient({ proPrice, clinicPrice }: { proPrice: num
       <footer className="l-footer">
         <div className="l-footer-logo">
           <div className="l-nav-dot" aria-hidden />
-          Glyph<span style={{color:"var(--accent)", marginLeft:2}}>·</span>
+          {APP_NAME}<span style={{color:"var(--accent)", marginLeft:2}}>·</span>
         </div>
         <nav className="l-footer-links" aria-label="Links del pie de página">
           <Link href="/login">Iniciar sesión</Link>
@@ -502,7 +503,7 @@ export default function LandingClient({ proPrice, clinicPrice }: { proPrice: num
           </button>
         </div>
         <p className="l-footer-copy">
-          © {new Date().getFullYear()} Glyph. Todos los derechos reservados.
+          © {new Date().getFullYear()} {APP_NAME}. Todos los derechos reservados.
         </p>
       </footer>
 

@@ -575,15 +575,20 @@ create policy "appointments_tenant_write"
 -- ── push_subscriptions ───────────────────────────────────────
 -- El médico solo ve y gestiona sus propias suscripciones push.
 drop policy if exists "push_subscriptions_tenant_select" on public.push_subscriptions;
+-- A-05: Corregido operador OR ambiguo — se agregan paréntesis para que
+-- `doctor_id = auth.uid()` sea condición obligatoria en todos los casos.
 create policy "push_subscriptions_tenant_select"
   on public.push_subscriptions for select to authenticated
   using (
     doctor_id = auth.uid()
-    and exists (
-      select 1 from public.profiles p
-      where p.doctor_id = auth.uid()
-        and p.clinic_id = public.push_subscriptions.clinic_id
-    ) or public.is_clinic_member(public.push_subscriptions.clinic_id)
+    and (
+      exists (
+        select 1 from public.profiles p
+        where p.doctor_id = auth.uid()
+          and p.clinic_id = public.push_subscriptions.clinic_id
+      )
+      or public.is_clinic_member(public.push_subscriptions.clinic_id)
+    )
   );
 
 drop policy if exists "push_subscriptions_tenant_write" on public.push_subscriptions;
@@ -591,19 +596,25 @@ create policy "push_subscriptions_tenant_write"
   on public.push_subscriptions for all to authenticated
   using (
     doctor_id = auth.uid()
-    and exists (
-      select 1 from public.profiles p
-      where p.doctor_id = auth.uid()
-        and p.clinic_id = public.push_subscriptions.clinic_id
-    ) or public.is_clinic_member(public.push_subscriptions.clinic_id)
+    and (
+      exists (
+        select 1 from public.profiles p
+        where p.doctor_id = auth.uid()
+          and p.clinic_id = public.push_subscriptions.clinic_id
+      )
+      or public.is_clinic_member(public.push_subscriptions.clinic_id)
+    )
   )
   with check (
     doctor_id = auth.uid()
-    and exists (
-      select 1 from public.profiles p
-      where p.doctor_id = auth.uid()
-        and p.clinic_id = public.push_subscriptions.clinic_id
-    ) or public.is_clinic_member(public.push_subscriptions.clinic_id)
+    and (
+      exists (
+        select 1 from public.profiles p
+        where p.doctor_id = auth.uid()
+          and p.clinic_id = public.push_subscriptions.clinic_id
+      )
+      or public.is_clinic_member(public.push_subscriptions.clinic_id)
+    )
   );
 
 -- ── treatment_templates ──────────────────────────────────────
@@ -703,6 +714,7 @@ create trigger trg_treatment_templates_updated_at
 -- Inserta en audit_logs con hash encadenado (estilo blockchain).
 -- Llamar desde la app o desde otros triggers. security definer
 -- permite que cualquier médico autenticado inserte sin acceso directo a la tabla.
+-- A-19: Valida que el llamador solo pueda insertar en su propio nombre.
 create or replace function public.log_audit_event(
   p_clinic_id     uuid,
   p_doctor_id     uuid,
@@ -719,6 +731,13 @@ declare
   v_new_hash  text;
   v_id        bigint;
 begin
+  -- A-19: Reject if caller is trying to log on behalf of another user.
+  -- Prevents fake audit entries from compromising the medical audit trail.
+  if auth.uid() <> p_doctor_id then
+    raise exception 'Unauthorized: cannot create audit log for another user'
+      using errcode = '42501';
+  end if;
+
   select entry_hash, sequence_no
     into v_prev_hash, v_seq
   from public.audit_logs
@@ -814,77 +833,105 @@ grant execute on function public.claim_api_rate_limit(text, uuid, integer, integ
   to authenticated;
 
 -- ── search_global ─────────────────────────────────────────────
--- Full-text search across patients and clinical_records for the
--- caller's clinic. Uses websearch_to_tsquery so plain phrases
--- like "garcia diabetes" work without special syntax.
--- Returns results ranked by ts_rank, limited to 20 per kind.
--- Runs as SECURITY INVOKER so RLS policies are fully respected.
+-- A-01: FTS real con websearch_to_tsquery + índices GIN.
+-- A-06: clinic_id derivado de auth.uid() — sin IDOR.
+-- SECURITY DEFINER con search_path fijo para seguridad.
+-- Actualizado: 2026-05-18
 
-create or replace function public.search_global(
-  p_query     text,
-  p_clinic_id uuid
-)
+create or replace function public.search_global(p_query text)
 returns table (
-  kind        text,
-  id          uuid,
-  title       text,
-  subtitle    text,
-  patient_id  uuid,
-  updated_at  timestamptz,
-  rank        real
+  kind       text,
+  id         uuid,
+  title      text,
+  subtitle   text,
+  patient_id uuid,
+  updated_at timestamptz,
+  rank       real
 )
-language sql
-security invoker
-stable
+language plpgsql
+security definer
+set search_path = public
 as $$
-  -- Each branch wrapped in a subquery so ORDER BY + LIMIT are valid
-  -- before the UNION ALL. PostgreSQL requires this when combining
-  -- sorted/limited sets.
-  select * from (
+declare
+  v_clinic_id uuid;
+  v_tsquery   tsquery;
+begin
+  -- A-06: Derivar clinic_id desde auth.uid() — nunca del cliente
+  select clinic_id into v_clinic_id
+    from public.profiles
+   where doctor_id = auth.uid()
+   limit 1;
+
+  if v_clinic_id is null then
+    return;
+  end if;
+
+  -- A-01: websearch_to_tsquery es seguro ante entrada arbitraria
+  begin
+    v_tsquery := websearch_to_tsquery('spanish', p_query);
+  exception when others then
+    v_tsquery := null;
+  end;
+
+  if v_tsquery is null or v_tsquery::text = '' then
+    begin
+      v_tsquery := plainto_tsquery('spanish', p_query);
+    exception when others then
+      return;
+    end;
+  end if;
+
+  -- Pacientes (full_name es la columna real del schema — no first_name/last_name)
+  return query
     select
-      'patient'::text                              as kind,
-      pat.id                                       as id,
-      pat.full_name                                as title,
-      'Doc: ' || coalesce(pat.document_number,'—') as subtitle,
-      pat.id                                       as patient_id,
-      pat.updated_at                               as updated_at,
-      1.0::real                                    as rank
-    from public.patients pat
-    where
-      pat.clinic_id = p_clinic_id
-      and (
-        pat.full_name ilike '%' || p_query || '%'
-        or replace(pat.document_number, '-', '') ilike '%' || replace(p_query, '-', '') || '%'
-        or replace(pat.document_number, '.', '') ilike '%' || replace(p_query, '.', '') || '%'
-      )
-    order by pat.updated_at desc
-    limit 20
-  ) patients_results
+      'patient'::text                                     as kind,
+      p.id,
+      p.full_name::text                                   as title,
+      coalesce(p.document_number, 'Sin documento')::text  as subtitle,
+      p.id                                                as patient_id,
+      p.updated_at,
+      ts_rank(
+        to_tsvector('spanish',
+          coalesce(p.full_name,'')       || ' ' ||
+          coalesce(p.document_number,'')),
+        v_tsquery
+      )::real                                             as rank
+    from public.patients p
+   where p.clinic_id = v_clinic_id
+     and to_tsvector('spanish',
+           coalesce(p.full_name,'')       || ' ' ||
+           coalesce(p.document_number,'')
+         ) @@ v_tsquery
+   order by rank desc
+   limit 20;
 
-  union all
-
-  select * from (
+  -- Consultas (chief_complaint es la columna real — no reason_for_visit/diagnosis/clinical_analysis)
+  return query
     select
       'consultation'::text                                               as kind,
-      cr.id                                                              as id,
-      coalesce(cr.chief_complaint, '(sin motivo)')                       as title,
-      cr.specialty_kind || ' — ' || to_char(cr.created_at, 'DD Mon YYYY') as subtitle,
-      cr.patient_id                                                      as patient_id,
-      cr.updated_at                                                      as updated_at,
-      0.5::real                                                          as rank
+      cr.id,
+      coalesce(cr.chief_complaint, 'Sin motivo')::text                  as title,
+      to_char(cr.created_at at time zone 'America/Guayaquil',
+              'DD/MM/YYYY')::text                                        as subtitle,
+      cr.patient_id,
+      cr.updated_at,
+      ts_rank(
+        to_tsvector('spanish', coalesce(cr.chief_complaint,'')),
+        v_tsquery
+      )::real                                                            as rank
     from public.clinical_records cr
-    where
-      cr.clinic_id = p_clinic_id
-      and cr.chief_complaint ilike '%' || p_query || '%'
-    order by cr.updated_at desc
-    limit 20
-  ) consultation_results
-
-  order by rank desc, updated_at desc
+   where cr.clinic_id = v_clinic_id
+     and to_tsvector('spanish', coalesce(cr.chief_complaint,'')) @@ v_tsquery
+   order by rank desc
+   limit 20;
+end;
 $$;
 
-grant execute on function public.search_global(text, uuid)
-  to authenticated;
+-- Revocar acceso a la firma vieja (text, uuid) si existe
+drop function if exists public.search_global(text, uuid);
+
+revoke all on function public.search_global(text) from anon;
+grant execute on function public.search_global(text) to authenticated;
 
 -- ════════════════════════════════════════════════════════════
 -- 6. VISTAS MATERIALIZADAS
@@ -910,20 +957,32 @@ group by clinic_id, doctor_id, date_trunc('day', created_at)::date;
 create index if not exists idx_mv_dashboard_kpis_daily
   on public.mv_dashboard_kpis_daily (clinic_id, doctor_id, report_date desc);
 
+-- M-04: Habilitar RLS en la vista materializada para aislar datos por tenant.
+alter table public.mv_dashboard_kpis_daily enable row level security;
+drop policy if exists "kpis_tenant_select" on public.mv_dashboard_kpis_daily;
+create policy "kpis_tenant_select"
+  on public.mv_dashboard_kpis_daily for select to authenticated
+  using (doctor_id = auth.uid());
+
 -- ════════════════════════════════════════════════════════════
 -- 7. CRON JOBS (requiere pg_cron activada en Supabase)
 -- ════════════════════════════════════════════════════════════
 
--- Activar pg_cron (no-op si ya está activa)
-create extension if not exists "pg_cron" with schema "extensions";
+-- pg_cron y pg_net se activan desde Supabase Dashboard → Database → Extensions.
+-- NO crear con CREATE EXTENSION desde aquí — requiere superusuario y rompe
+-- la transacción si no está disponible.
 
 -- Refresca los KPIs a medianoche cada día.
--- cron.schedule actualiza el job si ya existe con ese nombre.
-select cron.schedule(
-  'refresh_mv_kpis_daily',
-  '0 0 * * *',
-  $$refresh materialized view public.mv_dashboard_kpis_daily$$
-);
+-- Envuelto en DO/EXCEPTION para no romper la transacción si pg_cron no está activo.
+do $$ begin
+  perform cron.schedule(
+    'refresh_mv_kpis_daily',
+    '0 0 * * *',
+    'refresh materialized view public.mv_dashboard_kpis_daily'
+  );
+exception when others then
+  raise notice '[cron] pg_cron no disponible: %. Habilítalo en Supabase → Database → Extensions.', sqlerrm;
+end $$;
 
 -- ── Notificaciones push de seguimientos vencidos ─────────────────────────────
 -- Dispara a las 8:00am UTC cada día.
@@ -936,9 +995,11 @@ select cron.schedule(
 -- IMPORTANTE: Este cron job NO expone datos clínicos en el payload push.
 --   Solo envía "Tienes X seguimiento(s) para hoy" — el doctor abre la app para el detalle.
 
-create extension if not exists "pg_net" with schema "extensions";
+-- pg_net: habilitar desde Supabase Dashboard → Database → Extensions.
+-- Se usa implícitamente via net.http_post() en las funciones de cron.
 
 -- Función auxiliar: envía push para un doctor específico con sus seguimientos de hoy
+-- M-09: Unificado a net.http_post (pg_net) — antes usaba extensions.http_post inconsistentemente.
 create or replace function public.notify_followup_due_today(
   p_doctor_id    uuid,
   p_due_count    integer,
@@ -946,19 +1007,18 @@ create or replace function public.notify_followup_due_today(
   p_push_secret  text
 ) returns void language plpgsql security definer as $$
 begin
-  perform extensions.http_post(
+  perform net.http_post(
     url     := p_site_url || '/api/push/send',
+    headers := jsonb_build_object(
+                 'Content-Type',  'application/json',
+                 'x-push-secret', p_push_secret
+               ),
     body    := jsonb_build_object(
                  'target_doctor_id', p_doctor_id::text,
-                 'title', 'Glyph — Seguimientos para hoy',
+                 'title', 'Glyphix — Seguimientos para hoy',
                  'body',  'Tienes ' || p_due_count || ' seguimiento(s) que vence(n) hoy.',
                  'url',   '/pacientes'
-               )::text,
-    params  := '{}'::extensions.http_header[],
-    headers := ARRAY[
-      extensions.http_header('Content-Type', 'application/json'),
-      extensions.http_header('x-push-secret', p_push_secret)
-    ]
+               )
   );
 end;
 $$;
@@ -1003,11 +1063,15 @@ end;
 $$;
 
 -- Programa el cron job a las 8:00am UTC
-select cron.schedule(
-  'send_followup_push_daily',
-  '0 8 * * *',
-  $$select public.send_followup_push_notifications()$$
-);
+do $$ begin
+  perform cron.schedule(
+    'send_followup_push_daily',
+    '0 8 * * *',
+    'select public.send_followup_push_notifications()'
+  );
+exception when others then
+  raise notice '[cron] pg_cron no disponible: %. Habilítalo en Supabase → Database → Extensions.', sqlerrm;
+end $$;
 
 -- ════════════════════════════════════════════════════════════
 -- 8. CONFIGURACIÓN DE APP (tabla — sin privilegios especiales)
@@ -1033,10 +1097,12 @@ create table if not exists public.app_config (
 alter table public.app_config enable row level security;
 -- Sin policies públicas → solo service_role y funciones SECURITY DEFINER acceden
 
--- Inserta o actualiza los valores de configuración
+-- C-01: Los secretos reales NO se guardan aquí. Insertarlos manualmente desde
+-- el Supabase SQL Editor tras rotar los valores en Vercel.
+-- Generar nuevo PUSH_SEND_SECRET con: openssl rand -hex 32
 insert into public.app_config (key, value) values
-  ('site_url',         'https://glyphce.vercel.app/'),
-  ('push_send_secret', '6e0300c35f48bd830ace18216ec96e0f0c0ac23afa774c56470c9f18ce5171bc'),
+  ('site_url',         'REEMPLAZAR_CON_NEXT_PUBLIC_SITE_URL'),
+  ('push_send_secret', 'REEMPLAZAR_CON_PUSH_SEND_SECRET'),
   ('plan_pro_price',   '29'),
   ('plan_clinic_price','99')
 on conflict (key) do update
@@ -1099,11 +1165,15 @@ end;
 $$;
 
 -- Cron a las 7:00am UTC (1h antes del push de las 8am)
-select cron.schedule(
-  'send_followup_emails_daily',
-  '0 7 * * *',
-  $$select public.send_followup_emails()$$
-);
+do $$ begin
+  perform cron.schedule(
+    'send_followup_emails_daily',
+    '0 7 * * *',
+    'select public.send_followup_emails()'
+  );
+exception when others then
+  raise notice '[cron] pg_cron no disponible: %. Habilítalo en Supabase → Database → Extensions.', sqlerrm;
+end $$;
 
 -- ── send_trial_ending_emails ──────────────────────────────────────────
 -- Envia recordatorios por email a doctores cuyo free trial termina mañana o hoy.
@@ -1138,32 +1208,44 @@ begin
       and p.subscription_expires_at between now() and now() + interval '2 days'
       and u.email is not null
   loop
-    perform net.http_post(
-      url     := v_site_url || '/api/email/trial-ending',
-      headers := jsonb_build_object(
-        'Content-Type',   'application/json',
-        'x-email-secret', v_email_secret
-      ),
-      body    := jsonb_build_object(
-        'target_doctor_id', r.doctor_id,
-        'doctor_email',     r.doctor_email,
-        'doctor_name',      r.doctor_name,
-        'days_left',        r.days_left
-      )
-    );
+    -- A-03: Deduplicar envíos (una sola notificación por día por médico para trial_ending)
+    insert into public.notification_log (doctor_id, notification_date, type)
+    values (r.doctor_id, current_date, 'trial_ending')
+    on conflict do nothing;
+
+    if found then
+      perform net.http_post(
+        url     := v_site_url || '/api/email/trial-ending',
+        headers := jsonb_build_object(
+          'Content-Type',   'application/json',
+          'x-email-secret', v_email_secret
+        ),
+        body    := jsonb_build_object(
+          'target_doctor_id', r.doctor_id,
+          'doctor_email',     r.doctor_email,
+          'doctor_name',      r.doctor_name,
+          'days_left',        r.days_left
+        )
+      );
+    end if;
   end loop;
 end;
 $$;
 
-select cron.schedule(
-  'send_trial_ending_emails_daily',
-  '30 7 * * *', -- 7:30am UTC
-  $$select public.send_trial_ending_emails()$$
-);
+do $$ begin
+  perform cron.schedule(
+    'send_trial_ending_emails_daily',
+    '30 7 * * *',
+    'select public.send_trial_ending_emails()'
+  );
+exception when others then
+  raise notice '[cron] pg_cron no disponible: %. Habilítalo en Supabase → Database → Extensions.', sqlerrm;
+end $$;
 
--- Agrega el secreto de email a app_config
+-- C-01: El secreto de email real NO se guarda aquí. Insertarlo manualmente desde
+-- el Supabase SQL Editor. El valor debe coincidir con RESEND_EMAIL_SECRET en Vercel.
 insert into public.app_config (key, value) values
-  ('resend_email_secret', '183492765')
+  ('resend_email_secret', 'REEMPLAZAR_CON_RESEND_EMAIL_SECRET')
 on conflict (key) do update
   set value = excluded.value, updated_at = now();
 
@@ -1295,17 +1377,20 @@ commit;
 
 
 -- ====================================================================================
--- 15. SYSTEM EXTENSIONS AND MAINTENANCE JOBS
+-- 15. MAINTENANCE JOBS
 -- ====================================================================================
+-- pg_cron ya fue referenciado arriba con DO/EXCEPTION. No se repite CREATE EXTENSION.
 
-CREATE EXTENSION IF NOT EXISTS pg_cron;
-
--- Automatically delete audit_logs older than 90 days every midnight
-SELECT cron.schedule(
-  'cleanup-audit-logs',
-  '0 0 * * *',
-  $$ DELETE FROM public.audit_logs WHERE created_at < now() - interval '90 days' $$
-);
+-- Limpieza de audit_logs mayores de 90 días (medianoche UTC)
+do $$ begin
+  perform cron.schedule(
+    'cleanup-audit-logs',
+    '0 0 * * *',
+    'DELETE FROM public.audit_logs WHERE created_at < now() - interval ''90 days'''
+  );
+exception when others then
+  raise notice '[cron] pg_cron no disponible para cleanup-audit-logs: %.', sqlerrm;
+end $$;
 
 -- ====================================================================================
 -- 16. SUPABASE REALTIME — Publicaciones para sincronización en tiempo real
@@ -1353,3 +1438,256 @@ BEGIN
   END IF;
 END $$;
 
+-- ════════════════════════════════════════════════════════════
+-- SPRINT 1 SEMANA 2 — Fixes críticos de datos y billing
+-- ════════════════════════════════════════════════════════════
+
+-- ── C-02: Idempotencia de webhooks Stripe ─────────────────────────────────────
+-- Stripe garantiza entrega at-least-once, no exactly-once.
+-- Esta tabla registra cada event.id procesado. El webhook handler intenta
+-- INSERT; si hay unique_violation (23505) el evento ya fue procesado y se ignora.
+-- ⚠️  ACCIÓN MANUAL: ejecutar este bloque en Supabase SQL Editor.
+create table if not exists public.stripe_webhook_events (
+  stripe_event_id text        primary key,
+  processed_at    timestamptz not null default now()
+);
+
+-- Solo el service_role puede escribir (el webhook usa service_role key)
+alter table public.stripe_webhook_events enable row level security;
+-- Sin policies públicas → acceso solo vía service_role o SECURITY DEFINER
+
+-- Limpiar eventos viejos automáticamente (90 días de retención)
+do $$ begin
+  perform cron.schedule(
+    'cleanup-stripe-webhook-events',
+    '0 2 * * *',
+    'delete from public.stripe_webhook_events where processed_at < now() - interval ''90 days'''
+  );
+exception when others then
+  raise notice '[cron] pg_cron no disponible para cleanup-stripe-webhook-events: %.', sqlerrm;
+end $$;
+
+-- ── C-03: Trigger sync_follow_up_task ─────────────────────────────────────────
+-- Los seguimientos se guardan en specialty_data->>'next_follow_up_date' (JSONB)
+-- pero los cron jobs de push/email leen de follow_up_tasks.
+-- Este trigger sincroniza automáticamente al guardar/actualizar un clinical_record.
+-- ⚠️  ACCIÓN MANUAL: ejecutar este bloque en Supabase SQL Editor.
+create or replace function public.sync_follow_up_task()
+returns trigger language plpgsql as $$
+declare
+  v_due_date date;
+begin
+  -- Leer la fecha del campo JSONB
+  v_due_date := (new.specialty_data->>'next_follow_up_date')::date;
+
+  if v_due_date is not null then
+    insert into public.follow_up_tasks (
+      clinic_id, doctor_id, patient_id, clinical_record_id, due_date, status
+    )
+    values (
+      new.clinic_id, new.doctor_id, new.patient_id, new.id, v_due_date, 'pending'
+    )
+    on conflict (clinical_record_id) do update
+      set due_date   = excluded.due_date,
+          status     = 'pending',
+          updated_at = now()
+      where follow_up_tasks.status <> 'completed';
+  else
+    -- Si se borró la fecha de seguimiento, cancelar la tarea pendiente
+    update public.follow_up_tasks
+      set status = 'cancelled', updated_at = now()
+    where clinical_record_id = new.id
+      and status = 'pending';
+  end if;
+
+  return new;
+end;
+$$;
+
+-- Aplicar el trigger en INSERT y UPDATE de clinical_records
+drop trigger if exists trg_sync_follow_up_task on public.clinical_records;
+create trigger trg_sync_follow_up_task
+  after insert or update of specialty_data
+  on public.clinical_records
+  for each row
+  execute function public.sync_follow_up_task();
+
+-- Índice de soporte para la FK en clinical_record_id
+-- (necesario para el ON CONFLICT y el UPDATE eficientes)
+create unique index if not exists idx_follow_up_tasks_clinical_record_id
+  on public.follow_up_tasks (clinical_record_id)
+  where clinical_record_id is not null;
+
+-- ── A-03: notification_log — deduplicar envíos de cron jobs ──────────────────
+-- Los cron jobs de pg_cron pueden ejecutarse dos veces ante fallos o reinicios.
+-- Esta tabla garantiza que un médico no reciba doble notificación en el mismo día.
+-- ⚠️  ACCIÓN MANUAL: ejecutar este bloque en Supabase SQL Editor.
+create table if not exists public.notification_log (
+  doctor_id         uuid        not null references auth.users(id) on delete cascade,
+  notification_date date        not null default current_date,
+  type              text        not null, -- 'push_followup' | 'email_followup' | 'trial_ending'
+  sent_at           timestamptz not null default now(),
+  primary key (doctor_id, notification_date, type)
+);
+
+-- Sin policies públicas → solo funciones SECURITY DEFINER acceden
+alter table public.notification_log enable row level security;
+
+-- Limpiar logs viejos (30 días de retención es suficiente para deduplicación)
+do $$ begin
+  perform cron.schedule(
+    'cleanup-notification-log',
+    '0 3 * * *',
+    'delete from public.notification_log where notification_date < current_date - 30'
+  );
+exception when others then
+  raise notice '[cron] pg_cron no disponible para cleanup-notification-log: %.', sqlerrm;
+end $$;
+
+-- Actualizar send_followup_push_notifications para usar notification_log
+create or replace function public.send_followup_push_notifications() returns void
+language plpgsql security definer as $$
+declare
+  v_site_url    text;
+  v_push_secret text;
+  r record;
+begin
+  select value into v_site_url    from public.app_config where key = 'site_url';
+  select value into v_push_secret from public.app_config where key = 'push_send_secret';
+
+  if v_site_url is null or v_push_secret is null
+     or v_site_url like 'REEMPLAZAR%' or v_push_secret like 'REEMPLAZAR%' then
+    raise warning '[push_cron] app_config no configurada.';
+    return;
+  end if;
+
+  for r in
+    select ft.doctor_id, count(*) as due_count
+    from public.follow_up_tasks ft
+    inner join public.push_subscriptions ps on ps.doctor_id = ft.doctor_id
+    where ft.due_date = current_date and ft.status = 'pending'
+    group by ft.doctor_id
+  loop
+    -- A-03: Deduplicar — omitir si ya se envió hoy
+    insert into public.notification_log (doctor_id, notification_date, type)
+    values (r.doctor_id, current_date, 'push_followup')
+    on conflict do nothing;
+
+    if found then
+      perform public.notify_followup_due_today(
+        r.doctor_id, r.due_count::integer, v_site_url, v_push_secret
+      );
+    end if;
+  end loop;
+end;
+$$;
+
+-- Actualizar send_followup_emails para usar notification_log
+create or replace function public.send_followup_emails() returns void
+language plpgsql security definer as $$
+declare
+  v_site_url     text;
+  v_email_secret text;
+  r record;
+begin
+  select value into v_site_url      from public.app_config where key = 'site_url';
+  select value into v_email_secret  from public.app_config where key = 'resend_email_secret';
+
+  if v_site_url is null or v_email_secret is null
+     or v_site_url like 'REEMPLAZAR%' or v_email_secret like 'REEMPLAZAR%' then
+    raise warning '[email_cron] app_config no configurada.';
+    return;
+  end if;
+
+  for r in
+    select ft.doctor_id, u.email as doctor_email, p.full_name as doctor_name,
+           count(*) as due_count
+    from public.follow_up_tasks ft
+    inner join auth.users     u on u.id          = ft.doctor_id
+    inner join public.profiles p on p.doctor_id  = ft.doctor_id
+    where ft.due_date = current_date and ft.status = 'pending'
+    group by ft.doctor_id, u.email, p.full_name
+    having u.email is not null
+  loop
+    -- A-03: Deduplicar — omitir si ya se envió hoy
+    insert into public.notification_log (doctor_id, notification_date, type)
+    values (r.doctor_id, current_date, 'email_followup')
+    on conflict do nothing;
+
+    if found then
+      perform net.http_post(
+        url     := v_site_url || '/api/email/followup',
+        headers := jsonb_build_object(
+          'Content-Type',   'application/json',
+          'x-email-secret', v_email_secret
+        ),
+        body    := jsonb_build_object(
+          'target_doctor_id', r.doctor_id,
+          'doctor_email',     r.doctor_email,
+          'doctor_name',      r.doctor_name,
+          'due_count',        r.due_count
+        )
+      );
+    end if;
+  end loop;
+end;
+$$;
+
+
+-- ════════════════════════════════════════════════════════════
+-- SPRINT 2 — Actualizaciones 2026-05-18
+-- ════════════════════════════════════════════════════════════
+
+-- ── A-01: Índices GIN para FTS (search_global) ───────────────
+-- Usamos DROP + CREATE (sin IF NOT EXISTS) para garantizar que
+-- las columnas correctas estén indexadas. Versión anterior usaba
+-- first_name/last_name que no existen en el schema real.
+drop index if exists public.idx_patients_fts;
+create index idx_patients_fts
+  on public.patients
+  using gin (
+    to_tsvector('spanish',
+      coalesce(full_name,'')       || ' ' ||
+      coalesce(document_number,'')
+    )
+  );
+
+drop index if exists public.idx_clinical_records_fts;
+create index idx_clinical_records_fts
+  on public.clinical_records
+  using gin (
+    to_tsvector('spanish', coalesce(chief_complaint,''))
+  );
+
+-- ── DB-2.3: Índice de performance para queries de dashboard ──
+create index if not exists idx_clinical_records_created_at
+  on public.clinical_records (created_at desc);
+
+-- ── DB-2.2: Índice parcial para follow_up_tasks pendientes ───
+create index if not exists idx_follow_up_tasks_due_pending
+  on public.follow_up_tasks (due_date)
+  where status = 'pending';
+
+-- ── M-18: Validar que specialty_data siempre sea objeto JSON ─
+-- Previene arrays, strings o nulls JSON que rompen el wizard
+-- y los triggers de follow_up_tasks.
+alter table public.clinical_records
+  add constraint if not exists chk_specialty_data_is_object
+  check (
+    specialty_data is null
+    or jsonb_typeof(specialty_data) = 'object'
+  );
+
+-- ── M-19: Campos de aceptación de términos (compliance LATAM) ─
+alter table public.profiles
+  add column if not exists terms_accepted_version text,
+  add column if not exists terms_accepted_at       timestamptz;
+
+comment on column public.profiles.terms_accepted_version is
+  'M-19: Versión del ToS aceptada (ej. "2026-05-01"). NULL = no aceptado.';
+comment on column public.profiles.terms_accepted_at is
+  'M-19: Timestamp exacto de aceptación. NULL = pendiente.';
+
+create index if not exists idx_profiles_terms_pending
+  on public.profiles (doctor_id)
+  where terms_accepted_at is null;

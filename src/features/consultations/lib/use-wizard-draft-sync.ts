@@ -60,19 +60,28 @@ export function useWizardDraftSync<TForm>({
     setWizardOpen,
   ]);
 
-  // Removemos el useEffect que sincronizaba refs redundantes.
-
+  // M-11: Guardar borrador inmediatamente cuando el usuario:
+  //   1. Cierra/recarga la pestaña (beforeunload)
+  //   2. Cambia de pestaña o minimiza (visibilitychange → hidden)
+  // Esto previene pérdida del borrador si el debounce de 300ms no alcanzó a dispararse.
   useEffect(() => {
-    // Si no está abierto o no se ha restaurado aún, no sobrescribir el borrador
-    if (!wizardOpen || !draftRestoredRef.current) {
-      return;
-    }
+    if (!wizardOpen || !draftRestoredRef.current) return;
 
-    // Debounce nativo simple: programamos el guardado y capturamos directamente por closure
-    const timer = window.setTimeout(() => {
+    const flushNow = () => {
       context.saveWizardDraft(form, step);
-    }, 300);
+    };
 
-    return () => window.clearTimeout(timer);
+    const onBeforeUnload = () => flushNow();
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "hidden") flushNow();
+    };
+
+    window.addEventListener("beforeunload", onBeforeUnload);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    return () => {
+      window.removeEventListener("beforeunload", onBeforeUnload);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
   }, [context, draftRestoredRef, form, step, wizardOpen]);
 }

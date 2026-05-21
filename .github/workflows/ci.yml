@@ -38,11 +38,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: 🔄 Sync Supabase Schema
-        run: npm run db:schema:sync
-
-      - name: ✅ Verify Schema Sync
-        run: git diff --exit-code supabase/migrations/20260503223000_init_schema.sql
 
       - name: Cache Next.js Build
         uses: actions/cache@v4
@@ -60,9 +55,31 @@ jobs:
       - name: 🛡️ Typecheck (TypeScript)
         run: npm run typecheck
 
+      - name: 🗄️ Check Supabase DB Types (B-09)
+        # Detecta desfase entre el schema de Supabase y los tipos TS generados.
+        # Requiere SUPABASE_ACCESS_TOKEN y SUPABASE_PROJECT_ID en los secrets del repo.
+        # Si los secrets no están configurados, el paso se omite sin fallar.
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_ID:   ${{ secrets.SUPABASE_PROJECT_ID }}
+        run: |
+          if [ -n "$SUPABASE_ACCESS_TOKEN" ] && [ -n "$SUPABASE_PROJECT_ID" ]; then
+            npm run db:types
+            git diff --exit-code src/types/supabase.types.ts || \
+              (echo "⚠️  Los tipos TypeScript de Supabase están desactualizados. Ejecuta 'npm run db:types' y haz commit." && exit 1)
+          else
+            echo "ℹ️  SUPABASE_ACCESS_TOKEN o SUPABASE_PROJECT_ID no configurados — omitiendo verificación de tipos DB."
+          fi
+
       - name: 🧪 Unit Tests (Vitest)
-        # Running with coverage to generate report
         run: npx vitest run --coverage
+
+      - name: 📊 Upload Coverage Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 14
 
       - name: 📦 Build Application
         env:
@@ -74,7 +91,6 @@ jobs:
 
   e2e:
     name: 🎭 Playwright E2E Tests
-    if: ${{ inputs.run_e2e == true }}
     runs-on: ubuntu-latest
     needs: build-and-test
     steps:

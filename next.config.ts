@@ -6,7 +6,9 @@ const allowedDevOrigins =
     .map((origin) => origin.trim())
     .filter(Boolean) ?? [];
 
-const withPWA = withPWAInit({
+// M-21: runtimeCaching es una opción válida de next-pwa@5 pero no está en sus tipos.
+// Se usa type assertion para evitar el error TS sin perder la funcionalidad.
+const pwaOptions = {
   dest: "public",
   register: true,
   skipWaiting: true,
@@ -14,7 +16,19 @@ const withPWA = withPWAInit({
   fallbacks: {
     document: "/offline",
   },
-});
+  // M-21: NetworkOnly para /api/* — las respuestas de API nunca se cachean
+  runtimeCaching: [
+    {
+      urlPattern: /^\/api\//,
+      handler: "NetworkOnly" as const,
+      options: {
+        networkTimeoutSeconds: 10,
+      },
+    },
+  ],
+} as Parameters<typeof withPWAInit>[0];
+
+const withPWA = withPWAInit(pwaOptions);
 
 const securityHeaders = [
   {

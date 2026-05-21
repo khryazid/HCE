@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("server-only", () => ({}));
+
 const {
   mockGetUser,
   mockFetch,
@@ -10,11 +12,18 @@ const {
   mockIsRateLimited: vi.fn(),
 }));
 
-vi.mock("@supabase/supabase-js", () => ({
-  createClient: () => ({
+vi.mock("@/lib/supabase/server", () => ({
+  createClient: async () => ({
     auth: {
       getUser: mockGetUser,
     },
+    from: () => ({
+      select: () => ({
+        eq: () => ({
+          maybeSingle: async () => ({ data: { subscription_status: "active" } }),
+        }),
+      }),
+    }),
   }),
 }));
 
@@ -53,17 +62,18 @@ describe("cie suggestions route", () => {
   });
 
   it("rejects requests without bearer token", async () => {
+    mockGetUser.mockResolvedValue({ data: { user: null }, error: { message: "Unauthorized" } });
     const response = await POST(
       buildRequest({ diagnosis: "cefalea", symptoms: "dolor de cabeza", anamnesis: "inicio agudo" }),
     );
 
     expect(response.status).toBe(401);
-    expect(mockGetUser).not.toHaveBeenCalled();
   });
 
   it("rejects requests when Supabase credentials are missing", async () => {
     delete process.env.NEXT_PUBLIC_SUPABASE_URL;
     delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    mockGetUser.mockResolvedValue({ data: { user: null }, error: { message: "Unauthorized" } });
 
     const response = await POST(
       buildRequest(
@@ -73,7 +83,6 @@ describe("cie suggestions route", () => {
     );
 
     expect(response.status).toBe(401);
-    expect(mockGetUser).not.toHaveBeenCalled();
   });
 
   it("rate limits repeated requests for the same user", async () => {

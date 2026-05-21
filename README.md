@@ -35,9 +35,9 @@ Con arquitectura multi-tenant de grado empresarial, Glyph automatiza la facturac
 
 ---
 
-## ✅ Estado Actual del Proyecto *(2026-05-15)*
+## ✅ Estado Actual del Proyecto *(2026-05-21)*
 
-> Build limpio · 0 errores TypeScript · Build de producción OK · 176 archivos fuente
+> Build limpio · 0 errores TypeScript · Build de producción OK · **Versión 1.0.0 (Producción)**
 
 ### Features entregadas
 
@@ -64,9 +64,9 @@ Con arquitectura multi-tenant de grado empresarial, Glyph automatiza la facturac
 | **Validación de Fechas** | Utilidad `toISODateString` — previene error PostgreSQL 22008 en todos los formularios |
 | **UX/UI Refinada** | Animaciones fluidas, Skeletons, búsqueda global (Ctrl+K) categorizada, y alertas urgentes contextuales. |
 
-### Próxima feature mayor
+### Sprint 3 completado
 
-**Onboarding Sin Fricción y Sync Transparente**: Trial gratuito 7 días sin tarjeta, sincronización silenciosa, Core Web Vitals. Ver `docs/BACKLOG.md`.
+**El motor base y toda la funcionalidad técnica han sido completados exitosamente.** La aplicación es totalmente estable, cuenta con sincronización invisible offline-first, notificaciones push/email automáticas e integridad de datos.
 
 ---
 
@@ -323,10 +323,8 @@ tests/
 │   └── helpers/login.ts    # Helper compartido de autenticación
 └── *.test.ts               # Vitest: 85 tests unitarios/integración
 docs/
-├── BACKLOG.md              # Sprint actual + bugs + próximas features
-├── SUPABASE_MIGRATIONS.md  # Guía para añadir tablas y regenerar tipos
-├── DESIGN_SYSTEM.md        # Tokens de diseño y componentes UI
-└── 001-ADR-arquitectura-base.md
+├── BACKLOG.md              # Bugs y checklist de despliegue
+└── AUDITORIA_2026.md       # Auditoría técnica detallada
 ```
 
 ---
@@ -346,16 +344,10 @@ docs/
 
 ---
 
-## 🗺️ Próximas Features
+El backlog técnico principal **ha sido finalizado al 100%**. 
+Actualmente el proyecto se encuentra en fase de mantenimiento en producción y acciones manuales de configuración externa (DNS, Stripe, Resend).
 
-Ver el tasklist completo con prioridades en **[docs/BACKLOG.md](docs/BACKLOG.md)**.
-
-Las siguientes prioridades de desarrollo:
-
-- **Trial 7 días**: Free Trial automático sin tarjeta de crédito al registrarse.
-- **Notificaciones de trial**: Alertas automáticas de fin de plan por correo y dashboard.
-- **Sync invisible**: Motor de sincronización background zero-UI para IndexedDB ↔ Supabase.
-- **SEO Avanzado**: Core Web Vitals y metadatos para posicionamiento orgánico.
+Para ver los pendientes administrativos, revisa el **[docs/BACKLOG.md](docs/BACKLOG.md)**.
 
 ---
 

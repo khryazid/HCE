@@ -34,7 +34,7 @@ function SkeletonCard({ lines = 3 }: { lines?: number }) {
 
 export function DashboardSkeleton() {
   return (
-    <section className="space-y-6" role="status" aria-busy="true" aria-label="Cargando panel principal...">
+    <section className="space-y-6" role="status" aria-busy="true" aria-label="Cargando panel principal..." style={{ minHeight: "70vh" }}>
       {/* Header */}
       <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--card)] p-5 shadow-sm sm:p-6 space-y-4">
         <SkeletonLine width="8rem" height="0.75rem" />
@@ -68,7 +68,7 @@ export function DashboardSkeleton() {
 
 export function ConsultasSkeleton() {
   return (
-    <section className="space-y-6" role="status" aria-busy="true" aria-label="Cargando modulo de consultas...">
+    <section className="space-y-6" role="status" aria-busy="true" aria-label="Cargando modulo de consultas..." style={{ minHeight: "70vh" }}>
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-2">
@@ -103,7 +103,7 @@ export function ConsultasSkeleton() {
 
 export function PacientesSkeleton() {
   return (
-    <section className="space-y-6" role="status" aria-busy="true" aria-label="Cargando lista de pacientes...">
+    <section className="space-y-6" role="status" aria-busy="true" aria-label="Cargando lista de pacientes..." style={{ minHeight: "70vh" }}>
       {/* Header */}
       <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--card)] p-5 shadow-sm sm:p-6 space-y-3">
         <SkeletonLine width="10rem" height="0.65rem" />

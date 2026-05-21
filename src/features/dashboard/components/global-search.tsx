@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useMemo } from "react";
+import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import SearchInput from "@/components/ui/search-input";
 import { useRouter } from "next/navigation";
 import { useTenant } from "@/lib/supabase/tenant-context";
@@ -65,6 +65,9 @@ export function GlobalSearch() {
 
   const debouncedQuery = useDebounced(query.trim(), 280);
 
+  // M-12: Ref para el contenedor del diálogo (focus trap WCAG 2.1 2.4.3)
+  const dialogRef = useRef<HTMLElement>(null);
+
   // ── Ctrl/Cmd+K to open ──────────────────────────────────────
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -76,6 +79,49 @@ export function GlobalSearch() {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
+
+  // ── M-12: Focus trap — mantiene el foco dentro del diálogo ──────────────
+  useEffect(() => {
+    if (!open || !dialogRef.current) return;
+
+    const dialog = dialogRef.current;
+    const FOCUSABLE_SELECTORS =
+      'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])';
+
+    // Enfocar el primer elemento focusable al abrir
+    const firstFocusable = dialog.querySelector<HTMLElement>(FOCUSABLE_SELECTORS);
+    firstFocusable?.focus();
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "Tab") return;
+
+      const focusables = Array.from(
+        dialog.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTORS)
+      ).filter((el) => !el.closest('[aria-hidden="true"]'));
+
+      if (focusables.length === 0) return;
+
+      const first = focusables[0];
+      const last  = focusables[focusables.length - 1];
+
+      if (e.shiftKey) {
+        // Shift+Tab: si estamos en el primero, saltar al último
+        if (document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else {
+        // Tab: si estamos en el último, saltar al primero
+        if (document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
+
+    dialog.addEventListener("keydown", onKeyDown);
+    return () => dialog.removeEventListener("keydown", onKeyDown);
+  }, [open]);
 
   // ── Escape to close ──────────────────────────────────────────
   useEffect(() => {
@@ -318,6 +364,7 @@ export function GlobalSearch() {
           onClick={() => setOpen(false)}
         >
           <section
+            ref={dialogRef}
             id="global-search-dialog"
             role="dialog"
             aria-modal="true"

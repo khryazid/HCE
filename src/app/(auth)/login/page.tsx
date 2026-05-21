@@ -2,18 +2,19 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { AuthForm } from "@/features/auth/components/auth-form";
 import { AuthRouteShell } from "@/features/auth/components/auth-route-shell";
+import { APP_NAME } from "@/lib/constants/app";
 
 export const metadata: Metadata = {
-  title: "Iniciar sesión — Glyph",
+  title: `Iniciar sesión — ${APP_NAME}`,
   description:
-    "Accede a tu espacio clínico en Glyph. Historia clínica electrónica, consultas y sincronización offline-first para médicos.",
+    `Accede a tu espacio clínico en ${APP_NAME}. Historia clínica electrónica, consultas y sincronización offline-first para médicos.`,
 };
 
 export default function LoginPage() {
   return (
     <AuthRouteShell
       variant="login"
-      kicker="Glyph · Inicio de sesión"
+      kicker={`${APP_NAME} · Inicio de sesión`}
       title="Vuelve a tu espacio clínico y retoma donde lo dejaste."
       lead="Accede a tus pacientes, consultas y seguimientos. Todo sincronizado, incluso si trabajaste sin conexión."
       highlights={[

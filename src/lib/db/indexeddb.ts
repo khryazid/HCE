@@ -8,6 +8,7 @@ import type {
 } from "@/features/consultations/types";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { MAX_RETRY_DELAY_MS, BASE_RETRY_DELAY_MS } from "@/lib/constants/sync";
+import { APP_EVENT_SYNC_ERROR, emitAppEvent } from "@/lib/observability/app-events";
 
 /**
  * Opción B de cifrado: sin cifrado local de PHI.
@@ -23,16 +24,32 @@ let cryptoKey: CryptoKey | null = null;
 let activeDbUserId: string | null = null;
 let dbPromise: Promise<IDBPDatabase<HceOfflineSchema>> | null = null;
 
+/**
+ * C-05: Promise compartida de inicialización de crypto.
+ * Múltiples llamadas concurrentes a ensureCrypto() aguardarán
+ * la misma promise en lugar de derivar claves en paralelo.
+ */
+let cryptoInitPromise: Promise<CryptoKey> | null = null;
+
 export async function initDbCrypto(userId: string) {
-  cryptoKey = await deriveKey(userId);
+  // C-05: Crear una sola promise y compartirla
+  cryptoInitPromise = deriveKey(userId);
+  cryptoKey = await cryptoInitPromise;
 }
 
 async function ensureCrypto() {
+  // C-05: Si hay una init en curso (o completa), aguardar esa misma promise
+  if (cryptoInitPromise) {
+    cryptoKey = await cryptoInitPromise;
+    return cryptoKey;
+  }
   if (!cryptoKey) {
     const supabase = getSupabaseClient();
     const { data: { session } } = await supabase.auth.getSession();
     if (session?.user.id) {
-      cryptoKey = await deriveKey(session.user.id);
+      // C-05: Serializar via la promise compartida
+      cryptoInitPromise = deriveKey(session.user.id);
+      cryptoKey = await cryptoInitPromise;
     } else {
       throw new Error("DB Crypto Key not initialized and no session found");
     }
@@ -155,7 +172,7 @@ export async function clearOfflineDb() {
   
   const { deleteDB } = await import("idb");
   await deleteDB(dbName);
-  activeDbUserId = null;
+  cryptoInitPromise = null; // C-05: Limpiar para el próximo usuario
   cryptoKey = null;
 }
 
@@ -173,6 +190,30 @@ export async function getOfflineDb() {
         // vuelven a descargar en la próxima carga online.
         if (oldVersion < 2) {
           const stores = ["profiles", "patients", "clinical_records", "specialty_data", "sync_queue"] as const;
+
+          // M-10: El callback upgrade() es síncrono (restricción nativa IDB).
+          // Si sync_queue existe, emitir aviso antes de destruirla.
+          if (db.objectStoreNames.contains("sync_queue")) {
+            console.warn(
+              "[IDB M-10] Migración v1→v2: stores locales recreados. " +
+              "Si había cambios en la cola de sync, conéctate para re-sincronizarlos.",
+            );
+            queueMicrotask(() => {
+              if (typeof window !== "undefined") {
+                window.dispatchEvent(
+                  new CustomEvent(APP_EVENT_SYNC_ERROR, {
+                    detail: {
+                      source: "idb-upgrade",
+                      message:
+                        "Base de datos local actualizada. Si tenías cambios pendientes, " +
+                        "conecta a internet para que se re-sincronicen automáticamente.",
+                    },
+                  }),
+                );
+              }
+            });
+          }
+
           for (const s of stores) {
             if (db.objectStoreNames.contains(s)) {
               db.deleteObjectStore(s);
@@ -224,6 +265,29 @@ export async function getOfflineDb() {
 // ─── Sync Queue ───────────────────────────────────────────────────────────────
 
 export async function enqueueSyncItem(item: SyncQueueItem) {
+  // A-07: Guardia pre-enqueue — si el patient está 'abandoned', no encolar
+  // el clinical_record (tendría FK violation garantizada en el flush).
+  if (item.table_name === "clinical_records") {
+    const payload = item.payload as Record<string, unknown>;
+    const patientId = typeof payload.patient_id === "string" ? payload.patient_id : null;
+    if (patientId) {
+      const db = await getOfflineDb();
+      const allItemsRaw = await db.getAll("sync_queue");
+      // unwrapData puede fallar si crypto no está listo; en ese caso propagamos el error
+      const allItems = await Promise.all(allItemsRaw.map(unwrapData));
+      const patientAbandoned = allItems.some(
+        (q) => q.table_name === "patients" &&
+               q.record_id === patientId &&
+               q.status === "abandoned",
+      );
+      if (patientAbandoned) {
+        throw new Error(
+          `A-07: No se puede encolar la consulta — el paciente ${patientId} falló permanentemente en la cola de sync. Contacta soporte.`,
+        );
+      }
+    }
+  }
+
   const db = await getOfflineDb();
   
   const payloadToEncrypt = {
@@ -377,11 +441,55 @@ export async function purgeAbandonedSyncItems(): Promise<number> {
   return toDelete.length;
 }
 
+/**
+ * Removes old sync queue items based on a TTL.
+ * Default TTL is 7 days.
+ * Only removes items that are 'abandoned', 'conflicted' or 'done'. 
+ * It also removes 'failed' items if they have exceeded a secondary longer TTL (e.g., 30 days) 
+ * to prevent indefinite growth of items that were never explicitly abandoned.
+ */
+export async function pruneOldSyncQueueItems(
+  ttlDays: number = 7,
+  failedTtlDays: number = 30,
+): Promise<number> {
+  const db = await getOfflineDb();
+  const allItemsRaw = await db.getAll("sync_queue");
+  const allItems = await Promise.all(allItemsRaw.map(unwrapData));
+
+  const now = Date.now();
+  const ttlMs = ttlDays * 24 * 60 * 60 * 1000;
+  const failedTtlMs = failedTtlDays * 24 * 60 * 60 * 1000;
+
+  const toDelete = allItems.filter((i) => {
+    const ageMs = now - i.client_timestamp;
+    if (i.status === "abandoned" || i.status === "conflicted" || i.status === "done") {
+      return ageMs > ttlMs;
+    }
+    if (i.status === "failed") {
+      return ageMs > failedTtlMs;
+    }
+    return false;
+  });
+
+  if (toDelete.length === 0) return 0;
+
+  const tx = db.transaction("sync_queue", "readwrite");
+  await Promise.all(toDelete.map((i) => tx.store.delete(i.id)));
+  await tx.done;
+
+  return toDelete.length;
+}
+
 // ─── Patients ─────────────────────────────────────────────────────────────────
 
 /**
  * Helper to prevent remote refresh from overwriting local un-synced changes
  * or resurrecting locally deleted items.
+ */
+/**
+ * C-04: Si unwrapData falla por crypto, Promise.all rechaza y la excepción
+ * se propaga al llamador. Los callers (refreshPatients*, etc.) deben
+ * capturar solo errores de red, no crypto. Ver refreshPatientsFromRemote.
  */
 async function getPendingRecordIds(tableName: string): Promise<Set<string>> {
   const db = await getOfflineDb();
@@ -459,19 +567,32 @@ export async function listPatientsByTenant(clinicId: string) {
 }
 
 export async function savePatientLocal(patient: PatientRecord) {
-  const db = await getOfflineDb();
-  const payload = {
-    ...patient,
-    status: patient.status ?? "activo",
-  };
-  const wrapped = await wrapData(payload, {
-    id: patient.id,
-    clinic_id: patient.clinic_id,
-    doctor_id: patient.doctor_id,
-    updated_at: patient.updated_at,
-  });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await db.put("patients", wrapped as any);
+  // A-08: Envolver escritura IDB en try/catch + emitir evento de error
+  try {
+    const db = await getOfflineDb();
+    const payload = {
+      ...patient,
+      status: patient.status ?? "activo",
+    };
+    const wrapped = await wrapData(payload, {
+      id: patient.id,
+      clinic_id: patient.clinic_id,
+      doctor_id: patient.doctor_id,
+      updated_at: patient.updated_at,
+    });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await db.put("patients", wrapped as any);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "IDB write error (patients)";
+    emitAppEvent(APP_EVENT_SYNC_ERROR, {
+      itemId: patient.id,
+      tableName: "patients",
+      recordId: patient.id,
+      message: `Error al guardar paciente localmente: ${message}`,
+      retryCount: 0,
+    });
+    throw err; // Reraise so callers know the write failed
+  }
 }
 
 export async function deletePatientLocal(id: string) {
@@ -569,15 +690,28 @@ export async function listClinicalRecordsByTenant(doctorId: string, clinicId: st
 }
 
 export async function saveClinicalRecordLocal(record: ClinicalRecordRecord) {
-  const db = await getOfflineDb();
-  const wrapped = await wrapData(record, {
-    id: record.id,
-    patient_id: record.patient_id,
-    doctor_id: record.doctor_id,
-    updated_at: record.updated_at,
-  });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await db.put("clinical_records", wrapped as any);
+  // A-08: Envolver escritura IDB en try/catch + emitir evento de error
+  try {
+    const db = await getOfflineDb();
+    const wrapped = await wrapData(record, {
+      id: record.id,
+      patient_id: record.patient_id,
+      doctor_id: record.doctor_id,
+      updated_at: record.updated_at,
+    });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await db.put("clinical_records", wrapped as any);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "IDB write error (clinical_records)";
+    emitAppEvent(APP_EVENT_SYNC_ERROR, {
+      itemId: record.id,
+      tableName: "clinical_records",
+      recordId: record.id,
+      message: `Error al guardar consulta localmente: ${message}`,
+      retryCount: 0,
+    });
+    throw err; // Reraise so callers know the write failed
+  }
 }
 
 export async function deleteClinicalRecordLocal(id: string) {

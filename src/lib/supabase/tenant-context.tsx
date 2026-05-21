@@ -10,7 +10,7 @@ import {
 import { useRouter } from "next/navigation";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { loadTenantProfile, type TenantProfile } from "@/lib/supabase/profile";
-import { initDbCrypto } from "@/lib/db/indexeddb";
+import { initDbCrypto, clearOfflineDb } from "@/lib/db/indexeddb";
 import type { Session } from "@supabase/supabase-js";
 
 type TenantState = {
@@ -87,11 +87,16 @@ export function TenantProvider({ children }: { children: ReactNode }) {
 
     // Listen for session events. SIGNED_OUT fires when the refresh token
     // is invalid/expired — redirect instead of logging uncaught errors.
+    // M-01: clearOfflineDb() purges local IDB data on automatic sign-out
+    // (token expiry), not just on manual logout via the button.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event) => {
         if (event === "SIGNED_OUT") {
           if (active) {
             setState({ tenant: null, session: null, loading: false, error: null });
+            clearOfflineDb().catch((e) =>
+              console.warn("[TenantProvider] clearOfflineDb on SIGNED_OUT failed:", e)
+            );
             router.replace("/login");
           }
         }

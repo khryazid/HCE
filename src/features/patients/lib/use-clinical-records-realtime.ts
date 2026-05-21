@@ -1,52 +1,56 @@
 /**
- * use-clinical-records-realtime.ts
+ * use-clinical-records-realtime.ts — Sync-3.4
  *
  * Supabase Realtime for clinical_records and specialty_data.
  * Triggers a re-sync of local IndexedDB and invalidates React Query
  * so the patient history timeline updates without page reload.
+ *
+ * Sync-3.4: usa realtimeChannelManager para no duplicar canales en re-mounts.
  */
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { getSupabaseClient } from "@/lib/supabase/client";
 import {
   refreshClinicalRecordsFromRemote,
   refreshSpecialtyDataFromRemote,
 } from "@/lib/db/indexeddb";
 import type { TenantProfile } from "@/lib/supabase/profile";
 import { recordKeys } from "./use-patients-queries";
+import { realtimeChannelManager } from "@/lib/supabase/realtime-channel-manager";
 
 export function useClinicalRecordsRealtime(tenant: TenantProfile | null) {
   const queryClient = useQueryClient();
+  const queryClientRef = useRef(queryClient);
+  queryClientRef.current = queryClient;
 
   useEffect(() => {
     if (!tenant?.clinic_id || !tenant?.doctor_id) return;
 
-    const supabase = getSupabaseClient();
     const { clinic_id, doctor_id } = tenant;
+    const key = `clinical_records:doctor:${doctor_id}`;
 
-    const channel = supabase
-      .channel(`clinical_records:clinic:${clinic_id}`)
-      .on(
+    realtimeChannelManager.acquire(key, (ch) =>
+      ch.on(
         "postgres_changes",
         {
           event: "*",
           schema: "public",
           table: "clinical_records",
-          filter: `clinic_id=eq.${clinic_id}`,
+          // M-07: Filtrar por doctor_id además de clinic_id.
+          filter: `clinic_id=eq.${clinic_id}&doctor_id=eq.${doctor_id}`,
         },
         async () => {
           await refreshClinicalRecordsFromRemote(clinic_id, doctor_id);
           await refreshSpecialtyDataFromRemote(clinic_id, doctor_id);
-          queryClient.invalidateQueries({ queryKey: recordKeys.tenant(clinic_id) });
+          queryClientRef.current.invalidateQueries({ queryKey: recordKeys.tenant(clinic_id) });
         },
-      )
-      .subscribe();
+      ),
+    );
 
     return () => {
-      supabase.removeChannel(channel);
+      realtimeChannelManager.release(key);
     };
   // tenant object ref changes on every render; we only care about the IDs
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tenant?.clinic_id, tenant?.doctor_id, queryClient]);
+  }, [tenant?.clinic_id, tenant?.doctor_id]);
 }

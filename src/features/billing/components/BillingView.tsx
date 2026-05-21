@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { APP_NAME } from "@/lib/constants/app";
 
 const STRIPE_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_PRICE_ID ?? null;
 
@@ -43,7 +44,7 @@ export default function BillingView({ proPrice = 29 }: { proPrice?: number }) {
     <div className="mx-auto mt-10 max-w-2xl hce-surface">
       <h1 className="hce-page-title">Activa tu suscripción</h1>
       <p className="mt-2 hce-page-lead">
-        Para continuar utilizando Glyph y acceder a todas las funcionalidades del motor clínico,
+        Para continuar utilizando {APP_NAME} y acceder a todas las funcionalidades del motor clínico,
         necesitas una suscripción activa.
       </p>
 

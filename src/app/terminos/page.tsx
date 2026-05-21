@@ -1,5 +1,12 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+
+export const metadata: Metadata = {
+  title: "Términos y Condiciones — Glyphix",
+  description:
+    "Lee los términos y condiciones de uso de Glyphix, la plataforma de historia clínica electrónica para profesionales de la salud.",
+};
 
 export default function TerminosPage() {
   return (
@@ -13,13 +20,13 @@ export default function TerminosPage() {
         <div className="prose prose-slate prose-blue max-w-none text-slate-600 space-y-4">
           <p>Última actualización: Mayo 2026</p>
           <p>
-            Al utilizar la plataforma HCE, usted acepta estos Términos y Condiciones. 
+            Al utilizar Glyphix, usted acepta estos Términos y Condiciones.
             El servicio está destinado exclusivamente a profesionales e instituciones de la salud acreditados.
           </p>
 
           <h2 className="text-xl font-semibold text-slate-800 mt-6">1. Responsabilidad Profesional</h2>
           <p>
-            HCE es una herramienta de asistencia administrativa y documental. No reemplaza el criterio médico, 
+            Glyphix es una herramienta de asistencia administrativa y documental. No reemplaza el criterio médico, 
             el diagnóstico ni el tratamiento. Toda la información ingresada y las decisiones clínicas derivadas 
             son responsabilidad exclusiva del profesional tratante.
           </p>
