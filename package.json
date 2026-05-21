@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "predev":   "tsx scripts/validate-env.ts",
-    "prebuild": "tsx scripts/validate-env.ts",
+    "predev": "npx tsx scripts/validate-env.ts",
+    "prebuild": "npx tsx scripts/validate-env.ts",
     "dev": "next dev --webpack",
     "build": "next build --webpack",
     "_webpack_note": "Turbopack (default in Next 16) has known incompatibilities with next-pwa and the Web Worker bundling used by the sync system. Switch to Turbopack once those are resolved.",
@@ -67,6 +67,7 @@
     "husky": "^8.0.0",
     "lint-staged": "^13.0.0",
     "tailwindcss": "^4",
+    "tsx": "^4.22.3",
     "typescript": "^5",
     "vitest": "^4.1.4"
   },
