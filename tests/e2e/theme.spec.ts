@@ -19,6 +19,16 @@ test.describe("Flujo E2E: Dark Mode / Theme Toggle", () => {
     await expect(html).toHaveAttribute("data-theme", "dark");
   });
 
+  test("la landing page no debe tener regresiones visuales (captura base)", async ({ page }) => {
+    // Prueba de regresión visual para la landing page (default light mode)
+    await page.goto("/");
+    // Esperar a que la página esté estable antes de capturar
+    await page.waitForLoadState("networkidle");
+    await expect(page).toHaveScreenshot("landing-page-visual.png", {
+      fullPage: true,
+    });
+  });
+
   test("el toggle en Ajustes cambia a modo oscuro y persiste en localStorage", async ({ page, context }) => {
     // Empezar sin preferencia guardada (sistema)
     await context.clearCookies();

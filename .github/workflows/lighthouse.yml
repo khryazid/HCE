@@ -1,0 +1,65 @@
+name: Lighthouse CI Performance & Accessibility
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  lighthouse:
+    name: 💡 Lighthouse CI
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Next.js App
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: "https://dummy.supabase.co"
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: "dummy_anon_key"
+          NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: "pk_test_dummy"
+          NEXT_PUBLIC_VAPID_PUBLIC_KEY: "dummy_vapid_key"
+          SUPABASE_SERVICE_ROLE_KEY: "dummy"
+          STRIPE_SECRET_KEY: "dummy"
+          STRIPE_WEBHOOK_SECRET: "dummy"
+          GEMINI_API_KEY: "dummy"
+          VAPID_PRIVATE_KEY: "dummy"
+          VAPID_MAILTO: "dummy"
+          ADMIN_EMAIL: "dummy"
+          PUSH_SEND_SECRET: "dummy"
+          NEXT_PUBLIC_SITE_URL: "http://127.0.0.1:3000"
+        run: npm run build
+
+      - name: Run Lighthouse CI
+        uses: treosh/lighthouse-ci-action@v12
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: "https://dummy.supabase.co"
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: "dummy_anon_key"
+          NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: "pk_test_dummy"
+          NEXT_PUBLIC_VAPID_PUBLIC_KEY: "dummy_vapid_key"
+          SUPABASE_SERVICE_ROLE_KEY: "dummy"
+          STRIPE_SECRET_KEY: "dummy"
+          STRIPE_WEBHOOK_SECRET: "dummy"
+          GEMINI_API_KEY: "dummy"
+          VAPID_PRIVATE_KEY: "dummy"
+          VAPID_MAILTO: "dummy"
+          ADMIN_EMAIL: "dummy"
+          PUSH_SEND_SECRET: "dummy"
+          NEXT_PUBLIC_SITE_URL: "http://127.0.0.1:3000"
+        with:
+          urls: |
+            http://127.0.0.1:3000/
+          budgetPath: ./lighthouserc.json
+          uploadArtifacts: true
+          temporaryPublicStorage: true
+          serverCommand: npm run start
