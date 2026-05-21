@@ -957,12 +957,15 @@ group by clinic_id, doctor_id, date_trunc('day', created_at)::date;
 create index if not exists idx_mv_dashboard_kpis_daily
   on public.mv_dashboard_kpis_daily (clinic_id, doctor_id, report_date desc);
 
--- M-04: Habilitar RLS en la vista materializada para aislar datos por tenant.
-alter table public.mv_dashboard_kpis_daily enable row level security;
-drop policy if exists "kpis_tenant_select" on public.mv_dashboard_kpis_daily;
-create policy "kpis_tenant_select"
-  on public.mv_dashboard_kpis_daily for select to authenticated
-  using (doctor_id = auth.uid());
+-- M-04: MVs no soportan RLS en Postgres. Revocamos acceso directo y creamos una vista segura.
+revoke all on public.mv_dashboard_kpis_daily from authenticated, anon;
+
+drop view if exists public.v_dashboard_kpis_daily;
+create view public.v_dashboard_kpis_daily with (security_invoker = on) as
+select * from public.mv_dashboard_kpis_daily
+where doctor_id = auth.uid();
+
+grant select on public.v_dashboard_kpis_daily to authenticated;
 
 -- ════════════════════════════════════════════════════════════
 -- 7. CRON JOBS (requiere pg_cron activada en Supabase)
@@ -1672,7 +1675,10 @@ create index if not exists idx_follow_up_tasks_due_pending
 -- Previene arrays, strings o nulls JSON que rompen el wizard
 -- y los triggers de follow_up_tasks.
 alter table public.clinical_records
-  add constraint if not exists chk_specialty_data_is_object
+  drop constraint if exists chk_specialty_data_is_object;
+
+alter table public.clinical_records
+  add constraint chk_specialty_data_is_object
   check (
     specialty_data is null
     or jsonb_typeof(specialty_data) = 'object'
