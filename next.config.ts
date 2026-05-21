@@ -21,6 +21,7 @@ const pwaOptions = {
     {
       urlPattern: /^\/api\//,
       handler: "NetworkOnly" as const,
+      options: {},
     },
   ],
 } as Parameters<typeof withPWAInit>[0];
