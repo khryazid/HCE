@@ -499,7 +499,13 @@ async function getPendingRecordIds(tableName: string): Promise<Set<string>> {
   const allItems = await Promise.all(allItemsRaw.map(unwrapData));
   const pendingIds = new Set<string>();
   for (const item of allItems) {
-    if (item.table_name === tableName && (item.status === "pending" || item.status === "failed")) {
+    // Sync-2.3: Also protect "syncing" items — they are mid-flight in an active
+    // flush. Excluding them would let a concurrent Realtime refresh delete the
+    // local record before the upsert is confirmed, causing data loss.
+    if (
+      item.table_name === tableName &&
+      (item.status === "pending" || item.status === "failed" || item.status === "syncing")
+    ) {
       pendingIds.add(item.record_id);
     }
   }

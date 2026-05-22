@@ -2,11 +2,11 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { verifySuperAdmin, getAllUsersWithProfiles, getAbandonedSyncItems } from "@/features/admin/actions";
 import { AdminPanelClient } from "./admin-client";
-
+import { APP_NAME } from "@/lib/constants/app";
 import { getPublicPricing } from "@/lib/config";
 
 export const metadata = {
-  title: "Admin Panel | HCE",
+  title: `Admin Panel | ${APP_NAME}`,
   robots: { index: false, follow: false },
 };
 

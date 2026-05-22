@@ -3,8 +3,10 @@
  *
  * M-16: Validación de Origin header para endpoints sensibles.
  * A-13: Schemas Zod reutilizables para los endpoints de API.
+ * HAL-08: Comparación de secretos con timingSafeEqual (resistente a timing attacks).
  */
 
+import { timingSafeEqual } from "crypto";
 import { z } from "zod";
 
 // ── M-16: Validación de Origin ────────────────────────────────────────────────
@@ -47,6 +49,25 @@ export function isValidOrigin(req: Request): boolean {
   }
 }
 
+// ── HAL-08: Comparación de secretos resistente a timing attacks ───────────────
+
+/**
+ * Compara dos secretos en tiempo constante para prevenir timing attacks.
+ * Usar en lugar de `===` para comparar headers x-push-secret, x-email-secret, etc.
+ */
+export function isSecretValid(incoming: string | null, expected: string): boolean {
+  if (!incoming) return false;
+  try {
+    const a = Buffer.from(incoming);
+    const b = Buffer.from(expected);
+    // timingSafeEqual requiere buffers del mismo tamaño
+    if (a.length !== b.length) return false;
+    return timingSafeEqual(a, b);
+  } catch {
+    return false;
+  }
+}
+
 // ── A-13: Schemas Zod para endpoints de API ───────────────────────────────────
 
 /** POST /api/clinic/invite */
@@ -77,4 +98,20 @@ export const pushSendBodySchema = z.object({
   body:             z.string().max(500).optional(),
   target_doctor_id: z.string().uuid().optional(),
   url:              z.string().max(500).optional(),
+});
+
+/** POST /api/email/followup — HAL-03 */
+export const emailFollowupBodySchema = z.object({
+  target_doctor_id: z.string().uuid("target_doctor_id debe ser un UUID válido"),
+  doctor_email:     z.string().email("doctor_email debe ser un email válido"),
+  doctor_name:      z.string().max(200).optional(),
+  due_count:        z.number().int().min(0).max(9999).optional(),
+});
+
+/** POST /api/email/trial-ending — HAL-03 */
+export const emailTrialEndingBodySchema = z.object({
+  target_doctor_id: z.string().uuid("target_doctor_id debe ser un UUID válido"),
+  doctor_email:     z.string().email("doctor_email debe ser un email válido"),
+  doctor_name:      z.string().max(200).optional(),
+  days_left:        z.number().int().min(0).max(365).optional(),
 });

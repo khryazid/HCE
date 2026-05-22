@@ -26,8 +26,8 @@ export const metadata: Metadata = {
     "Historia clínica electrónica multiespecialidad con IA, trabajo offline y sincronización automática. Diseñado para médicos modernos.",
   manifest: "/manifest.json",
   keywords: [
-    "historia clínica electrónica", "HCE", "software médico", "CIE-10",
-    "consulta médica", "offline-first", "médicos", "salud digital",
+    "historia clínica electrónica", "software médico", "CIE-10",
+    "consulta médica", "offline-first", "médicos", "salud digital", "Glyphix",
   ],
   robots: {
     index: true,
@@ -41,8 +41,11 @@ export const metadata: Metadata = {
     },
   },
   icons: {
-    icon: "/icon.png",
-    apple: "/icon.png",
+    icon: [
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: "/apple-touch-icon.png",
   },
   openGraph: {
     type: "website",
@@ -51,21 +54,21 @@ export const metadata: Metadata = {
     description:
       "Historia clínica multiespecialidad, sincronización offline-first y sugerencias CIE-10 con IA. Documentá cada consulta en menos de 3 minutos.",
     siteName: APP_NAME,
-    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: `${APP_FULL_NAME}` }],
+    images: [{ url: "/og-image.webp", width: 1200, height: 630, alt: `${APP_FULL_NAME}` }],
   },
   twitter: {
     card: "summary_large_image",
     title: `${APP_FULL_NAME} para médicos modernos`,
     description:
       "Historia clínica multiespecialidad, sincronización offline-first y sugerencias CIE-10 con IA.",
-    images: ["/og-image.png"],
+    images: ["/og-image.webp"],
   },
-  // M-14: hreflang para locales es/en (mejora SEO internacional)
+  // M-14: hreflang — la app usa locale via cookie (no rutas prefijadas /en/...)
+  // Solo se declara 'es' canónico y x-default para evitar hreflang a URL inexistente.
   alternates: {
     canonical: "/",
     languages: {
       "es": "/",
-      "en": "/en",
       "x-default": "/",
     },
   },

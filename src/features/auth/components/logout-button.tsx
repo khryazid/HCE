@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { clearOfflineDb } from "@/lib/db/indexeddb";
+import { realtimeChannelManager } from "@/lib/supabase/realtime-channel-manager";
 
 type ModalPhase = "closed" | "confirm" | "leaving";
 
@@ -31,6 +32,10 @@ export function LogoutButton({ mode = "full" }: LogoutButtonProps) {
 
     // Purge local database before signing out to ensure data isolation
     await clearOfflineDb().catch(e => console.error("Failed to clear offline DB:", e));
+
+    // Sync-3.2: Release all Realtime channels before signOut so no WebSocket
+    // callbacks fire with the outgoing user's data after the session is gone.
+    realtimeChannelManager.releaseAll();
 
     const supabase = getSupabaseClient();
     await supabase.auth.signOut();

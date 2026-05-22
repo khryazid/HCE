@@ -26,7 +26,24 @@ self.addEventListener("push", (event) => {
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
-  const url = event.notification.data?.url || "/";
+  // HAL-15: Validar que la URL de la notificación sea del mismo origen.
+  // Previene que un payload push malicioso abra URLs de phishing externas.
+  const rawUrl: string = event.notification.data?.url || "/";
+  let safeUrl = "/";
+
+  try {
+    const parsed = new URL(rawUrl, self.registration.scope);
+    const scope = new URL(self.registration.scope);
+    // Solo permitir URLs del mismo origen
+    if (parsed.origin === scope.origin) {
+      safeUrl = parsed.pathname + parsed.search + parsed.hash;
+    } else {
+      console.warn("[SW] Blocked external URL from push notification:", rawUrl);
+    }
+  } catch {
+    // URL malformada — usar fallback
+    safeUrl = "/";
+  }
 
   // Check if there is already a window/tab open with the target URL
   event.waitUntil(
@@ -35,13 +52,14 @@ self.addEventListener("notificationclick", (event) => {
       .then((windowClients) => {
         for (let i = 0; i < windowClients.length; i++) {
           const client = windowClients[i];
-          if (client.url === url && "focus" in client) {
+          if (client.url.endsWith(safeUrl) && "focus" in client) {
             return client.focus();
           }
         }
         if (self.clients.openWindow) {
-          return self.clients.openWindow(url);
+          return self.clients.openWindow(safeUrl);
         }
       })
   );
 });
+

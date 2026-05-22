@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +11,7 @@ export const dynamic = "force-dynamic";
  * A-01: La función SQL usa websearch_to_tsquery + índices GIN — sin ILIKE con wildcard.
  * A-06: La función SQL deriva clinic_id desde auth.uid() internamente.
  *       Este endpoint ya NO pasa p_clinic_id → elimina el vector IDOR.
+ * R-06: Usa createClient() centralizado (server.ts) — elimina non-null assertions inline.
  *
  * Responde con hasta 40 resultados (20 pacientes + 20 consultas) ordenados por ts_rank.
  */
@@ -24,25 +24,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ results: [] });
   }
 
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() { return cookieStore.getAll(); },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options),
-            );
-          } catch {
-            // Ignore in API routes — cookies are read-only in some Next.js contexts
-          }
-        },
-      },
-    },
-  );
+  const supabase = await createClient();
 
   // Validate session
   const { data: { user } } = await supabase.auth.getUser();
@@ -52,9 +34,13 @@ export async function GET(req: Request) {
 
   // A-06: NO pasamos p_clinic_id — la función SQL lo deriva desde auth.uid().
   // Esto elimina el vector IDOR donde un cliente podría pasar un clinic_id ajeno.
-  const { data, error } = await supabase.rpc("search_global", {
-    p_query: q,
-  });
+  // Nota: los tipos generados tienen la firma antigua con p_clinic_id.
+  // Actualizar con `npm run db:types` para eliminar este cast.
+  const { data, error } = await supabase.rpc(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    "search_global" as any,
+    { p_query: q }
+  );
 
   if (error) {
     console.error("[search] RPC error:", error.message);

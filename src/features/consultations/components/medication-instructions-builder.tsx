@@ -243,8 +243,15 @@ export function MedicationInstructionsBuilder({ treatmentPlanText, value, onChan
               {/* Frequency + Duration */}
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-ink-soft">Frecuencia</label>
+                  {/* AUDIT FIX A-1: htmlFor vinculado al id del select */}
+                  <label
+                    htmlFor={`freq-${inst.medId}`}
+                    className="text-[10px] font-bold uppercase tracking-wider text-ink-soft"
+                  >
+                    Frecuencia
+                  </label>
                   <select
+                    id={`freq-${inst.medId}`}
                     className="hce-input text-sm"
                     value={inst.frequencyPreset}
                     onChange={(e) => updateInstruction(inst.medId, { frequencyPreset: e.target.value, frequencyCustom: "" })}
@@ -253,16 +260,25 @@ export function MedicationInstructionsBuilder({ treatmentPlanText, value, onChan
                   </select>
                   {inst.frequencyPreset === "custom" && (
                     <input
+                      id={`freq-custom-${inst.medId}`}
                       className="hce-input text-sm mt-1"
                       placeholder="Ej: Cada 48 horas"
                       value={inst.frequencyCustom}
                       onChange={(e) => updateInstruction(inst.medId, { frequencyCustom: e.target.value })}
+                      aria-label="Frecuencia personalizada"
                     />
                   )}
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-ink-soft">Duración</label>
+                  {/* AUDIT FIX A-1: htmlFor vinculado al id del select */}
+                  <label
+                    htmlFor={`dur-${inst.medId}`}
+                    className="text-[10px] font-bold uppercase tracking-wider text-ink-soft"
+                  >
+                    Duración
+                  </label>
                   <select
+                    id={`dur-${inst.medId}`}
                     className="hce-input text-sm"
                     value={inst.durationPreset}
                     onChange={(e) => updateInstruction(inst.medId, { durationPreset: e.target.value, durationCustom: "" })}
@@ -271,10 +287,12 @@ export function MedicationInstructionsBuilder({ treatmentPlanText, value, onChan
                   </select>
                   {inst.durationPreset === "custom" && (
                     <input
+                      id={`dur-custom-${inst.medId}`}
                       className="hce-input text-sm mt-1"
                       placeholder="Ej: 3 semanas"
                       value={inst.durationCustom}
                       onChange={(e) => updateInstruction(inst.medId, { durationCustom: e.target.value })}
+                      aria-label="Duración personalizada"
                     />
                   )}
                 </div>

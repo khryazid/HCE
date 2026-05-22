@@ -35,20 +35,38 @@ export async function verifySuperAdmin() {
   }
 
   const adminEmail = getAdminEmail();
-  const { data: isSuperAdmin, error } = await supabase.rpc("is_super_admin" as never);
 
-  // Allow if the database RPC says true OR if the user's email matches the ADMIN_EMAIL env var.
-  const isAuthorized = (!error && isSuperAdmin === true) || (adminEmail && user.email === adminEmail);
+  // F-41: Fix — is_super_admin() ahora existe en el schema SQL.
+  // Usar el client del servidor (que viaja con las cookies del usuario) para
+  // invocar la RPC — la funcion internamente verifica auth.uid().
+  // Nota: los tipos generados se actualizan con `npm run db:types` tras aplicar
+  // el SQL de is_super_admin() en el dashboard de Supabase. Hasta entonces,
+  // se usa `as any` para evitar error de compilacion en el tipo de la RPC.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: isSuperAdmin, error: rpcError } = await (supabase as any).rpc("is_super_admin");
 
-  if (!isAuthorized) {
-    throw new Error("Unauthorized");
+  // Permitir si la RPC confirma super-admin
+  if (!rpcError && isSuperAdmin === true) {
+    return user;
   }
 
-  if (adminEmail && user.email !== adminEmail) {
-    console.warn(`[Admin Audit] Admin access granted to ${user.email} (does not match ADMIN_EMAIL)`);
+  // Fallback secundario: ADMIN_EMAIL como respaldo de emergencia.
+  // NOTA: Esto es menos seguro que la RPC porque depende del email como identidad.
+  // Se mantiene solo para compatibilidad mientras se migra a custom claims.
+  const isEmailAdmin = adminEmail != null && user.email === adminEmail;
+  if (isEmailAdmin) {
+    console.warn(
+      `[Admin Audit] Admin access via ADMIN_EMAIL fallback for ${user.email}. ` +
+      `Migrate to raw_user_meta_data.role='super_admin' for stronger guarantees.`
+    );
+    return user;
   }
 
-  return user;
+  if (rpcError) {
+    console.error("[Admin] is_super_admin RPC error:", rpcError.message);
+  }
+
+  throw new Error("Unauthorized");
 }
 
 // ─── TYPES ─────────────────────────────────────────────────────────────────────

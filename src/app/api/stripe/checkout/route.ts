@@ -1,14 +1,24 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
 import { serverEnv } from "@/lib/env";
 import { isValidOrigin } from "@/lib/api/guards";
+import { createClient } from "@/lib/supabase/server";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
 
-// A-13: Schema Zod para el body del checkout
+// A-13: Schema Zod para el body del checkout.
+// Fix B-12: priceId se valida contra una whitelist de price IDs permitidos
+// para evitar que un usuario autenticado suscriba a cualquier precio de Stripe.
+function getAllowedPriceIds(): Set<string> {
+  return new Set(
+    [
+      process.env.NEXT_PUBLIC_STRIPE_PRICE_ID,
+      process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_CLINIC,
+    ].filter((id): id is string => typeof id === "string" && id.length > 0)
+  );
+}
+
 const checkoutBodySchema = z.object({
   priceId: z.string().min(1, "priceId requerido"),
 });
@@ -24,27 +34,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Origen no permitido" }, { status: 403 });
     }
 
-    const cookieStore = await cookies();
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll();
-          },
-          setAll(cookiesToSet) {
-            try {
-              cookiesToSet.forEach(({ name, value, options }) =>
-                cookieStore.set(name, value, options)
-              );
-            } catch {
-              // Ignore setAll error in API routes
-            }
-          },
-        },
-      }
-    );
+    // S-02: Usar createClient() centralizado con validación de env vars
+    const supabase = await createClient();
 
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -76,6 +67,16 @@ export async function POST(req: Request) {
       );
     }
     const { priceId } = parsed.data;
+
+    // Fix B-12: Validar que el priceId sea uno de los precios permitidos por la app.
+    // Evita que un usuario autenticado suscriba a cualquier precio de la cuenta Stripe.
+    const allowedPriceIds = getAllowedPriceIds();
+    if (allowedPriceIds.size > 0 && !allowedPriceIds.has(priceId)) {
+      return NextResponse.json(
+        { error: "Plan no válido. Selecciona un plan disponible." },
+        { status: 400 },
+      );
+    }
 
     // Get the user's profile to see if they already have a customer ID
     const { data: profile } = await supabase

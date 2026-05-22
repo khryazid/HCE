@@ -1,14 +1,27 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+// S-03: Helpers de validación — no pueden importar desde @/lib/env
+// porque el middleware corre en el Edge runtime (bundle separado).
+function getSupabaseUrl(): string {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!url) throw new Error("Missing env var: NEXT_PUBLIC_SUPABASE_URL");
+  return url;
+}
+function getSupabaseAnonKey(): string {
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!key) throw new Error("Missing env var: NEXT_PUBLIC_SUPABASE_ANON_KEY");
+  return key;
+}
+
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
   });
 
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    getSupabaseUrl(),
+    getSupabaseAnonKey(),
     {
       cookies: {
         getAll() {
@@ -55,19 +68,32 @@ export async function updateSession(request: NextRequest) {
     // Network error — let the request continue; middleware should be resilient.
   }
 
+  // AUDIT FIX H-4: Allowlist de rutas públicas en vez de blocklist de rutas privadas.
+  // Ventaja: cualquier ruta nueva queda protegida automáticamente sin tener que
+  // acordarse de añadirla aquí (antes /agenda y /onboarding quedaban expuestas).
+  const PUBLIC_PATHS = [
+    "/",
+    "/login",
+    "/registro",
+    "/terminos",
+    "/privacidad",
+    "/offline",
+  ];
+
+  // Una ruta es pública si coincide exactamente con un path de la allowlist
+  // o si empieza con un prefijo de ruta pública con sub-rutas.
+  const isPublicRoute =
+    PUBLIC_PATHS.includes(request.nextUrl.pathname) ||
+    request.nextUrl.pathname.startsWith("/login/") ||
+    request.nextUrl.pathname.startsWith("/registro/") ||
+    request.nextUrl.pathname.startsWith("/terminos/") ||
+    request.nextUrl.pathname.startsWith("/privacidad/");
+
   const isAuthRoute =
     request.nextUrl.pathname.startsWith("/login") ||
     request.nextUrl.pathname.startsWith("/registro");
-  const isProtectedRoute =
-    request.nextUrl.pathname.startsWith("/dashboard") ||
-    request.nextUrl.pathname.startsWith("/pacientes") ||
-    request.nextUrl.pathname.startsWith("/consultas") ||
-    request.nextUrl.pathname.startsWith("/tratamientos") ||
-    request.nextUrl.pathname.startsWith("/ajustes") ||
-    request.nextUrl.pathname.startsWith("/billing") ||
-    request.nextUrl.pathname.startsWith("/admin");
 
-  if (!user && isProtectedRoute) {
+  if (!user && !isPublicRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);

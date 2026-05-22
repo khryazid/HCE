@@ -6,6 +6,7 @@ export const metadata: Metadata = {
   title: "Términos y Condiciones — Glyphix",
   description:
     "Lee los términos y condiciones de uso de Glyphix, la plataforma de historia clínica electrónica para profesionales de la salud.",
+  alternates: { canonical: "/terminos" },
 };
 
 export default function TerminosPage() {

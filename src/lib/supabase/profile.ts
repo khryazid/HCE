@@ -136,8 +136,9 @@ export async function ensureTenantProfile(
       full_name: fullName,
       specialty: specialties,
       plan: input.plan || "basic",
-      subscription_status: "trialing",
-      subscription_expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      // HAL-13.1: subscription_status y subscription_expires_at NO se asignan
+      // desde el cliente. Solo createTenantProfileWithTrial (service_role) puede
+      // asignarlos. Esto previene que un usuario manipule su propio trial status.
     } satisfies ProfileInsert)
     .select("doctor_id, clinic_id, full_name, specialty, subscription_status, subscription_expires_at, plan, ui_preferences")
     .single();

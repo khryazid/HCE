@@ -32,16 +32,26 @@ async function getAuthorizedUserId() {
     .eq("doctor_id", userId)
     .maybeSingle();
 
-  const validStatuses = ["active", "trialing", "lifetime", "past_due"];
+  const validStatuses = ["active", "trialing", "lifetime", "past_due", "paused"];
   const status = profile?.subscription_status ?? "";
 
   if (!validStatuses.includes(status)) {
     return null; // Treated as unauthorized
   }
 
-  // For active/trialing: check expiration
-  if ((status === "active" || status === "trialing") && profile?.subscription_expires_at) {
-    if (new Date(profile.subscription_expires_at).getTime() < Date.now()) {
+  // F-40: Fix — verificar expires_at para todos los estados expirables,
+  // no solo active/trialing. past_due recibe 7 dias de gracia (ventana de
+  // reintentos de Stripe). paused no recibe gracia adicional.
+  const GRACE_MS: Record<string, number> = {
+    active:   0,
+    trialing: 0,
+    past_due: 7 * 24 * 60 * 60 * 1000, // 7 days grace
+    paused:   0,
+  };
+
+  if (status in GRACE_MS && profile?.subscription_expires_at) {
+    const graceMs = GRACE_MS[status] ?? 0;
+    if (new Date(profile.subscription_expires_at).getTime() + graceMs < Date.now()) {
       return null;
     }
   }

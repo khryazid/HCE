@@ -1,43 +1,25 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { serverEnv } from "@/lib/env";
+import { isValidOrigin } from "@/lib/api/guards";
+import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
 function getStripe() {
-  const key = process.env.STRIPE_SECRET_KEY;
-  if (!key) {
-    throw new Error(
-      "Missing env var: STRIPE_SECRET_KEY is required for the Stripe billing portal."
-    );
-  }
-  return new Stripe(key, { apiVersion: "2026-04-22.dahlia" });
+  // Fix B-13: usar serverEnv (validado en startup) igual que checkout/route.ts
+  return new Stripe(serverEnv.STRIPE_SECRET_KEY, { apiVersion: "2026-04-22.dahlia" });
 }
 
-export async function POST() {
+export async function POST(req: Request) {
   try {
-    const cookieStore = await cookies();
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll();
-          },
-          setAll(cookiesToSet) {
-            try {
-              cookiesToSet.forEach(({ name, value, options }) =>
-                cookieStore.set(name, value, options)
-              );
-            } catch {
-              // Ignore setAll error in API routes
-            }
-          },
-        },
-      }
-    );
+    // Fix B-13: Validar Origin para prevenir CSRF, igual que en /api/stripe/checkout
+    if (!isValidOrigin(req)) {
+      return NextResponse.json({ error: "Origen no permitido" }, { status: 403 });
+    }
+
+    // S-02: Usar createClient() centralizado con validación de env vars
+    const supabase = await createClient();
 
     const { data: { user } } = await supabase.auth.getUser();
 

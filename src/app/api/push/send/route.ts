@@ -3,7 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import webpush from "web-push";
 import type { Database } from "@/types/supabase.types";
 import { serverEnv } from "@/lib/env";
-import { pushSendBodySchema } from "@/lib/api/guards";
+import { pushSendBodySchema, isSecretValid } from "@/lib/api/guards";
+import { APP_NAME } from "@/lib/constants/app";
 
 type PushSubscriptionRow =
   Database["public"]["Tables"]["push_subscriptions"]["Row"];
@@ -21,9 +22,11 @@ const PUSH_RATE_WINDOW = 60;
 
 export async function POST(req: Request) {
   try {
+    const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+    if (!vapidPublicKey) throw new Error("Missing env var: NEXT_PUBLIC_VAPID_PUBLIC_KEY");
     webpush.setVapidDetails(
       serverEnv.VAPID_MAILTO,
-      process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
+      vapidPublicKey,
       serverEnv.VAPID_PRIVATE_KEY,
     );
 
@@ -32,7 +35,8 @@ export async function POST(req: Request) {
 
     // Auth: Accept EITHER a logged-in user OR a trusted system secret header.
     const incomingSecret = req.headers.get("x-push-secret");
-    const isSystemRequest = incomingSecret === serverEnv.PUSH_SEND_SECRET;
+    // HAL-08: Comparación de secretos en tiempo constante
+    const isSystemRequest = isSecretValid(incomingSecret, serverEnv.PUSH_SEND_SECRET);
 
     if (!user && !isSystemRequest) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
@@ -86,7 +90,7 @@ export async function POST(req: Request) {
     }
 
     const payload = JSON.stringify({
-      title: title || "Notificación HCE",
+      title: title || `Notificación ${APP_NAME}`,
       body: message || "Tienes una nueva actualización",
       url: url || "/dashboard",
     });

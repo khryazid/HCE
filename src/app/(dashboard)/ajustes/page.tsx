@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { APP_NAME } from "@/lib/constants/app";
 import { ProfessionalProfileForm } from "@/features/dashboard/components/professional-profile-form";
 import { SyncQueuePanel } from "@/features/sync/components/sync-queue-panel";
 import { ErrorLogPanel } from "@/components/ui/error-log-panel";
@@ -7,6 +9,10 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { TeamPanel } from "@/features/dashboard/components/team-panel";
 import { PaymentSettingsPanel } from "@/features/dashboard/components/payment-settings-panel";
 import { ClinicalFormBuilderPanel } from "@/features/dashboard/components/clinical-form-builder-panel";
+
+export const metadata: Metadata = {
+  title: `Ajustes | ${APP_NAME}`,
+};
 
 export default function AjustesPage() {
   return (

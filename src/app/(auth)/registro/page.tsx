@@ -8,6 +8,7 @@ export const metadata: Metadata = {
   title: `Crear cuenta — ${APP_NAME}`,
   description:
     `Crea tu cuenta en ${APP_NAME} y empieza a gestionar tu historia clínica electrónica. Configuración en 2 minutos.`,
+  alternates: { canonical: "/registro" },
 };
 
 export default function RegisterPage() {

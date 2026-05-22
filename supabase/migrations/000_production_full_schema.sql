@@ -642,23 +642,15 @@ create policy "clinic_members_select"
     ) or public.is_clinic_member(public.clinic_members.clinic_id)
   );
 
+-- F-01: Fix — clinic_members_write debe exigir is_clinic_admin() solamente.
+-- La versión anterior tenía un OR que permitía a cualquier médico con perfil
+-- en la clínica (sin ser admin) hacer INSERT/UPDATE/DELETE en clinic_members,
+-- lo que habilitaba auto-escalada de privilegios.
 drop policy if exists "clinic_members_write" on public.clinic_members;
 create policy "clinic_members_write"
   on public.clinic_members for all to authenticated
-  using (
-    exists (
-      select 1 from public.profiles p
-      where p.doctor_id = auth.uid()
-        and p.clinic_id = public.clinic_members.clinic_id
-    ) or public.is_clinic_admin(public.clinic_members.clinic_id)
-  )
-  with check (
-    exists (
-      select 1 from public.profiles p
-      where p.doctor_id = auth.uid()
-        and p.clinic_id = public.clinic_members.clinic_id
-    ) or public.is_clinic_admin(public.clinic_members.clinic_id)
-  );
+  using  (public.is_clinic_admin(public.clinic_members.clinic_id))
+  with check (public.is_clinic_admin(public.clinic_members.clinic_id));
 
 -- ════════════════════════════════════════════════════════════
 -- 5. FUNCIONES Y TRIGGERS
@@ -724,7 +716,7 @@ create or replace function public.log_audit_event(
   p_changes       jsonb,
   p_metadata      jsonb default '{}'::jsonb
 )
-returns bigint language plpgsql security definer as $$
+returns bigint language plpgsql security definer set search_path = public as $$
 declare
   v_prev_hash text;
   v_seq       bigint;
@@ -881,6 +873,13 @@ begin
     end;
   end if;
 
+  -- F-21: Fix — verificar que el tsquery tampoco esté vacío tras el fallback.
+  -- plainto_tsquery('spanish', 'el') devuelve '' (stopword) y sin este check
+  -- la función devolvería hasta 40 filas aleatorias de la clínica.
+  if v_tsquery is null or v_tsquery::text = '' then
+    return;
+  end if;
+
   -- Pacientes (full_name es la columna real del schema — no first_name/last_name)
   return query
     select
@@ -1008,7 +1007,7 @@ create or replace function public.notify_followup_due_today(
   p_due_count    integer,
   p_site_url     text,
   p_push_secret  text
-) returns void language plpgsql security definer as $$
+) returns void language plpgsql security definer set search_path = public as $$
 begin
   perform net.http_post(
     url     := p_site_url || '/api/push/send',
@@ -1029,7 +1028,7 @@ $$;
 -- Wrapper que itera sobre todos los doctores con seguimientos hoy.
 -- Lee app.site_url y app.push_send_secret desde public.app_config.
 create or replace function public.send_followup_push_notifications() returns void
-language plpgsql security definer as $$
+language plpgsql security definer set search_path = public as $$
 declare
   v_site_url    text;
   v_push_secret text;
@@ -1114,14 +1113,14 @@ on conflict (key) do update
 -- Para verificar que se guardaron correctamente (ejecutar desde SQL Editor):
 --   select key, value from public.app_config;
 
--- â”€â”€ send_followup_emails â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- ── send_followup_emails ─────────────────────────────────────────────────────
 -- Envia recordatorios por email a doctores con seguimientos hoy.
 -- Llama a POST /api/email/followup con doctor_id, email y nombre.
 -- Lee site_url y resend_email_secret desde public.app_config.
 -- Corre a las 7:00am UTC (1 hora antes del push de las 8am).
 
 create or replace function public.send_followup_emails() returns void
-language plpgsql security definer as $$
+language plpgsql security definer set search_path = public as $$
 declare
   v_site_url     text;
   v_email_secret text;
@@ -1183,7 +1182,7 @@ end $$;
 -- Llama a POST /api/email/trial-ending.
 
 create or replace function public.send_trial_ending_emails() returns void
-language plpgsql security definer as $$
+language plpgsql security definer set search_path = public as $$
 declare
   v_site_url     text;
   v_email_secret text;
@@ -1256,7 +1255,12 @@ on conflict (key) do update
 -- SPRINT 2 UPDATES: User by Email, Subscription RLS, and Storage Bucket
 -- ─────────────────────────────────────────────────────────────────────────────
 
--- Function to allow service role to get a user ID by email securely without exposing auth.users
+-- F-41: is_super_admin() esta definida en la seccion HAL-15 mas adelante.
+-- El REVOKE correcto esta en esa misma seccion.
+
+-- S-04: Funcion solo accesible desde service_role (admin client del invite route).
+-- Revocar EXECUTE para authenticated y anon previene que un médico autenticado
+-- use la función como oracle email→UUID contra auth.users desde el cliente.
 CREATE OR REPLACE FUNCTION get_user_id_by_email(email_input TEXT)
 RETURNS UUID
 LANGUAGE plpgsql
@@ -1271,22 +1275,58 @@ BEGIN
 END;
 $$;
 
--- Enforce subscription expiration check in RLS write policies
+-- Revocar permisos para roles de usuario; solo service_role puede invocarla
+REVOKE EXECUTE ON FUNCTION public.get_user_id_by_email(TEXT) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.get_user_id_by_email(TEXT) FROM anon;
+
+-- Fix B-05: has_active_subscription ahora prioriza el perfil del admin de la clínica
+-- (el que tiene stripe_customer_id o el role='admin' en clinic_members)
+-- en lugar de asumir que el primer perfil creado es el owner.
+-- Estrategia de lookup (en orden):
+--   1. El perfil del doctor con role='admin' en clinic_members para esa clínica.
+--   2. Cualquier perfil de esa clínica con stripe_customer_id NOT NULL (tiene billing).
+--   3. Fallback: el perfil más antiguo (comportamiento anterior).
 CREATE OR REPLACE FUNCTION has_active_subscription(c_id UUID)
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE
-  sub_status TEXT;
+  sub_status  TEXT;
   sub_expires TIMESTAMPTZ;
 BEGIN
-  -- Obtener el estado del plan principal de la clinica (del owner o del primer perfil)
-  SELECT subscription_status, subscription_expires_at INTO sub_status, sub_expires
-  FROM public.profiles
-  WHERE clinic_id = c_id
-  ORDER BY created_at ASC
+  -- 1. Intentar obtener el perfil del admin de la clínica
+  SELECT p.subscription_status, p.subscription_expires_at
+    INTO sub_status, sub_expires
+  FROM public.profiles p
+  INNER JOIN public.clinic_members cm
+    ON cm.clinic_id = c_id
+   AND cm.doctor_id = p.doctor_id
+   AND cm.role = 'admin'
+  WHERE p.clinic_id = c_id
   LIMIT 1;
+
+  -- 2. Si no hay admin en clinic_members, usar el perfil con stripe_customer_id
+  IF sub_status IS NULL THEN
+    SELECT subscription_status, subscription_expires_at
+      INTO sub_status, sub_expires
+    FROM public.profiles
+    WHERE clinic_id = c_id
+      AND stripe_customer_id IS NOT NULL
+    ORDER BY created_at ASC
+    LIMIT 1;
+  END IF;
+
+  -- 3. Fallback: primer perfil creado (comportamiento original)
+  IF sub_status IS NULL THEN
+    SELECT subscription_status, subscription_expires_at
+      INTO sub_status, sub_expires
+    FROM public.profiles
+    WHERE clinic_id = c_id
+    ORDER BY created_at ASC
+    LIMIT 1;
+  END IF;
 
   IF sub_status = 'lifetime' THEN
     RETURN TRUE;
@@ -1355,6 +1395,11 @@ VALUES ('clinic_assets', 'clinic_assets', true)
 ON CONFLICT (id) DO NOTHING;
 
 -- RLS para clinic_assets
+-- HAL-09: Corrige el aislamiento de tenant. Las políticas anteriores permitían
+-- a cualquier usuario autenticado sobrescribir/borrar archivos de otras clínicas.
+-- Ahora el path DEBE comenzar con el clinic_id del usuario autenticado:
+--   clinic_assets/{clinic_id}/logo.png
+--   clinic_assets/{clinic_id}/firma.png
 DROP POLICY IF EXISTS "clinic_assets_select" ON storage.objects;
 CREATE POLICY "clinic_assets_select"
   ON storage.objects FOR SELECT TO public
@@ -1363,18 +1408,67 @@ CREATE POLICY "clinic_assets_select"
 DROP POLICY IF EXISTS "clinic_assets_insert" ON storage.objects;
 CREATE POLICY "clinic_assets_insert"
   ON storage.objects FOR INSERT TO authenticated
-  WITH CHECK (bucket_id = 'clinic_assets');
+  WITH CHECK (
+    bucket_id = 'clinic_assets'
+    AND (storage.foldername(name))[1] IN (
+      SELECT p.clinic_id::text
+      FROM public.profiles p
+      WHERE p.doctor_id = auth.uid()
+      UNION
+      SELECT cm.clinic_id::text
+      FROM public.clinic_members cm
+      WHERE cm.doctor_id = auth.uid()
+        AND cm.role IN ('admin', 'doctor')
+    )
+  );
 
 DROP POLICY IF EXISTS "clinic_assets_update" ON storage.objects;
 CREATE POLICY "clinic_assets_update"
   ON storage.objects FOR UPDATE TO authenticated
-  USING (bucket_id = 'clinic_assets')
-  WITH CHECK (bucket_id = 'clinic_assets');
+  USING (
+    bucket_id = 'clinic_assets'
+    AND (storage.foldername(name))[1] IN (
+      SELECT p.clinic_id::text
+      FROM public.profiles p
+      WHERE p.doctor_id = auth.uid()
+      UNION
+      SELECT cm.clinic_id::text
+      FROM public.clinic_members cm
+      WHERE cm.doctor_id = auth.uid()
+        AND cm.role IN ('admin', 'doctor')
+    )
+  )
+  WITH CHECK (
+    bucket_id = 'clinic_assets'
+    AND (storage.foldername(name))[1] IN (
+      SELECT p.clinic_id::text
+      FROM public.profiles p
+      WHERE p.doctor_id = auth.uid()
+      UNION
+      SELECT cm.clinic_id::text
+      FROM public.clinic_members cm
+      WHERE cm.doctor_id = auth.uid()
+        AND cm.role IN ('admin', 'doctor')
+    )
+  );
 
 DROP POLICY IF EXISTS "clinic_assets_delete" ON storage.objects;
 CREATE POLICY "clinic_assets_delete"
   ON storage.objects FOR DELETE TO authenticated
-  USING (bucket_id = 'clinic_assets');
+  USING (
+    bucket_id = 'clinic_assets'
+    AND (storage.foldername(name))[1] IN (
+      SELECT p.clinic_id::text
+      FROM public.profiles p
+      WHERE p.doctor_id = auth.uid()
+      UNION
+      SELECT cm.clinic_id::text
+      FROM public.clinic_members cm
+      WHERE cm.doctor_id = auth.uid()
+        AND cm.role IN ('admin', 'doctor')
+    )
+  );
+
 
 commit;
 
@@ -1549,7 +1643,7 @@ end $$;
 
 -- Actualizar send_followup_push_notifications para usar notification_log
 create or replace function public.send_followup_push_notifications() returns void
-language plpgsql security definer as $$
+language plpgsql security definer set search_path = public as $$
 declare
   v_site_url    text;
   v_push_secret text;
@@ -1587,7 +1681,7 @@ $$;
 
 -- Actualizar send_followup_emails para usar notification_log
 create or replace function public.send_followup_emails() returns void
-language plpgsql security definer as $$
+language plpgsql security definer set search_path = public as $$
 declare
   v_site_url     text;
   v_email_secret text;
@@ -1697,3 +1791,129 @@ comment on column public.profiles.terms_accepted_at is
 create index if not exists idx_profiles_terms_pending
   on public.profiles (doctor_id)
   where terms_accepted_at is null;
+
+-- ════════════════════════════════════════════════════════════
+-- BILLING FIXES (Auditoría 2026-05-22)
+-- ════════════════════════════════════════════════════════════
+
+-- ── Fix B-11: Limpiar trials expirados → 'canceled' ──────────
+-- Los perfiles con subscription_status = 'trialing' cuya
+-- subscription_expires_at ya pasó quedan en estado inconsistente:
+-- el RLS has_active_subscription() bloquea el acceso correctamente
+-- pero el estado visible en el admin panel sigue siendo 'trialing'.
+-- Este cron diario reconcilia la BD con la realidad.
+create or replace function public.expire_stale_trials()
+returns void language plpgsql security definer set search_path = public as $$
+declare
+  v_count integer;
+begin
+  update public.profiles
+     set subscription_status = 'canceled'
+   where subscription_status = 'trialing'
+     and subscription_expires_at is not null
+     and subscription_expires_at < now();
+
+  get diagnostics v_count = row_count;
+
+  if v_count > 0 then
+    raise notice '[billing:expire_stale_trials] Moved % expired trial(s) to canceled.', v_count;
+  end if;
+end;
+$$;
+
+do $$ begin
+  perform cron.schedule(
+    'expire-stale-trials',
+    '0 0 * * *',   -- medianoche UTC todos los días
+    'select public.expire_stale_trials()'
+  );
+exception when others then
+  raise notice '[cron] pg_cron no disponible para expire-stale-trials: %. Habilítalo en Supabase → Database → Extensions.', sqlerrm;
+end $$;
+
+
+-- ════════════════════════════════════════════════════════════
+-- SECURITY HARDENING — Auditoría 2026-05-22
+-- ════════════════════════════════════════════════════════════
+
+-- ── HAL-13.1: Profiles — separar INSERT de UPDATE, bloquear subscription ──────
+-- La policy anterior "profiles_tenant_write" (FOR ALL) permitía que el cliente
+-- escribiera subscription_status y subscription_expires_at directamente.
+-- Ahora: INSERT bloqueado para campos de billing; UPDATE libre para datos del perfil.
+-- Solo createTenantProfileWithTrial (service_role) puede asignar subscription.
+
+DROP POLICY IF EXISTS "profiles_tenant_write" ON public.profiles;
+
+CREATE POLICY "profiles_tenant_insert"
+  ON public.profiles FOR INSERT TO authenticated
+  WITH CHECK (
+    doctor_id = auth.uid()
+    AND subscription_status IS NULL
+    AND subscription_expires_at IS NULL
+    AND stripe_customer_id IS NULL
+  );
+
+CREATE POLICY "profiles_tenant_update"
+  ON public.profiles FOR UPDATE TO authenticated
+  USING (doctor_id = auth.uid())
+  WITH CHECK (doctor_id = auth.uid());
+
+-- ── HAL-14: audit_logs SELECT para admins de clínica ─────────────────────────
+-- Un admin de clínica puede supervisar los audit logs de su clínica completa.
+
+DROP POLICY IF EXISTS "audit_tenant_select" ON public.audit_logs;
+CREATE POLICY "audit_tenant_select"
+  ON public.audit_logs FOR SELECT TO authenticated
+  USING (
+    doctor_id = auth.uid()
+    OR public.is_clinic_admin(clinic_id)
+  );
+
+-- ── HAL-15: is_super_admin() — función RPC que admin/actions.ts ya llama ──────
+-- Antes la función no existía y había un fallback a comparación de email.
+-- Ahora la función existe y es la autoridad principal.
+
+CREATE OR REPLACE FUNCTION public.is_super_admin()
+RETURNS BOOLEAN
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM auth.users
+    WHERE id = auth.uid()
+      AND email = current_setting('app.admin_email', true)
+      AND email IS NOT NULL
+      AND email <> ''
+  );
+$$;
+
+-- F-41: REVOKE de anon y grant a authenticated.
+-- is_super_admin() es invocada por admin/actions.ts usando el server client
+-- (que viaja con las cookies del usuario autenticado bajo el rol 'authenticated').
+-- La funcion internamente llama auth.uid() y lo compara con app.admin_email,
+-- por lo que solo el admin real obtendra true. Revocar de 'anon' evita
+-- que usuarios no autenticados la llamen, pero 'authenticated' debe conservar EXECUTE.
+REVOKE EXECUTE ON FUNCTION public.is_super_admin() FROM anon;
+GRANT EXECUTE ON FUNCTION public.is_super_admin() TO authenticated;
+
+-- Para que la función lea el setting correctamente, ejecutar en producción:
+-- ALTER DATABASE postgres SET app.admin_email = 'tu-email@glyphmed.app';
+COMMENT ON FUNCTION public.is_super_admin() IS
+  'HAL-15: Verifica si el usuario actual es super admin. Requiere app.admin_email configurado con: ALTER DATABASE postgres SET app.admin_email = ''email@dominio.com'';';
+
+-- ── HAL-05: Deshabilitar cleanup-audit-logs ───────────────────────────────────
+-- Los audit_logs no deben eliminarse. Son el registro de auditoría clínica.
+-- El cron fue creado en el bloque 15 (MAINTENANCE JOBS). Lo desactivamos aquí.
+DO $$ BEGIN
+  PERFORM cron.unschedule('cleanup-audit-logs');
+  RAISE NOTICE '[HAL-05] cleanup-audit-logs deshabilitado. Los audit_logs son inmutables.';
+EXCEPTION WHEN others THEN
+  RAISE NOTICE '[HAL-05] No se pudo deshabilitar cleanup-audit-logs: %. Ejecutar manualmente: SELECT cron.unschedule(''cleanup-audit-logs'');', sqlerrm;
+END $$;
+
+-- ════════════════════════════════════════════════════════════
+-- FIN SECURITY HARDENING
+-- ════════════════════════════════════════════════════════════
+

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { getSyncQueueStats } from "@/lib/db/indexeddb";
 import Link from "next/link";
-import { APP_EVENT_SUBSCRIPTION_EXPIRED } from "@/lib/sync/sync-worker";
+import { APP_EVENT_SUBSCRIPTION_EXPIRED, SYNC_FINISHED_EVENT } from "@/lib/sync/sync-worker";
 import {
   APP_EVENT_REALTIME_DISCONNECTED,
   APP_EVENT_REALTIME_RECONNECTED,
@@ -59,7 +59,9 @@ export function SyncStatusBanner() {
     const handleRealtimeUp   = () => { if (active) setIsRealtimeError(false); };
 
     window.addEventListener("visibilitychange", handleVisibility);
-    window.addEventListener("hce:sync_finished", handleSyncFinished);
+    // Sync-5.2: Use the exported constant — the literal "hce:sync_finished" had
+    // an underscore vs the worker's hyphen, so the banner never refreshed.
+    window.addEventListener(SYNC_FINISHED_EVENT, handleSyncFinished);
     window.addEventListener(APP_EVENT_SUBSCRIPTION_EXPIRED, handleSubscriptionExpired);
     window.addEventListener("online",  handleOnline);
     window.addEventListener("offline", handleOffline);
@@ -69,7 +71,7 @@ export function SyncStatusBanner() {
     return () => {
       active = false;
       window.removeEventListener("visibilitychange", handleVisibility);
-      window.removeEventListener("hce:sync_finished", handleSyncFinished);
+      window.removeEventListener(SYNC_FINISHED_EVENT, handleSyncFinished);
       window.removeEventListener(APP_EVENT_SUBSCRIPTION_EXPIRED, handleSubscriptionExpired);
       window.removeEventListener("online",  handleOnline);
       window.removeEventListener("offline", handleOffline);
