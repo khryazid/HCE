@@ -114,8 +114,11 @@ function readJsonValue(value: unknown): Json {
   return value as Json;
 }
 
-function logAuditEvent(supabase: SupabaseClient<Database>, args: LogAuditEventArgs) {
-  return supabase.rpc("log_audit_event", args);
+async function logAuditEvent(_supabase: SupabaseClient<Database>, _args: LogAuditEventArgs) {
+  // TODO: Re-enable when `log_audit_event` RPC is created in Supabase.
+  // The function was declared in supabase.types.ts but never created in the DB.
+  // Calling it produces 404 errors that spam the browser console.
+  // void _supabase.rpc("log_audit_event", _args);
 }
 
 /**
