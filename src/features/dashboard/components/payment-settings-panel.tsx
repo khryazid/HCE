@@ -26,7 +26,7 @@ export function PaymentSettingsPanel() {
         .from("profiles")
         .select("payment_config")
         .eq("doctor_id", user.id)
-        .single();
+        .maybeSingle();
 
       if (!error && data?.payment_config) {
         const conf = data.payment_config as Record<string, unknown>;

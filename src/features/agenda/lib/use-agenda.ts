@@ -24,7 +24,7 @@ export function useAgenda() {
         .from("profiles")
         .select("payment_config")
         .eq("doctor_id", user.id)
-        .single();
+        .maybeSingle();
         
       const conf = (data?.payment_config as Record<string, unknown>) || {};
       let methods = [{ name: "Efectivo", details: "" }, { name: "Transferencia", details: "" }];
