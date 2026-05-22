@@ -1,5 +1,5 @@
 import type { NextConfig } from "next";
-import withPWAInit from "next-pwa";
+import withPWAInit from "@ducanh2912/next-pwa";
 
 const allowedDevOrigins =
   process.env.NEXT_ALLOWED_DEV_ORIGINS?.split(",")
@@ -24,6 +24,13 @@ const pwaOptions = {
       options: {},
     },
   ],
+  cacheOnFrontEndNav: true,
+  aggressiveFrontEndNavCaching: true,
+  reloadOnOnline: true,
+  swcMinify: true,
+  workboxOptions: {
+    disableDevLogs: true,
+  },
 } as Parameters<typeof withPWAInit>[0];
 
 const withPWA = withPWAInit(pwaOptions);
