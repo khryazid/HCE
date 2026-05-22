@@ -374,13 +374,6 @@ export async function flushSyncQueue(options?: { forceRetry?: boolean }) {
   if (isFlushing) return;
   isFlushing = true;
 
-  try {
-    // Sync-1.2: Prune old items before processing
-    await pruneOldSyncQueueItems(7, 30);
-  } catch (err) {
-    console.error("[sync-worker] Failed to prune old sync queue items:", err);
-  }
-
   if (typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent(SYNC_STARTED_EVENT));
   }
@@ -412,6 +405,13 @@ export async function flushSyncQueue(options?: { forceRetry?: boolean }) {
   }
 
   const currentDoctorId = user.id;
+
+  try {
+    // Sync-1.2: Prune old items before processing
+    await pruneOldSyncQueueItems(7, 30);
+  } catch (err) {
+    console.error("[sync-worker] Failed to prune old sync queue items:", err);
+  }
 
   const pending = await getSyncQueueItemsByStatus(["pending", "failed"], {
     includeDelayed: options?.forceRetry ?? false,
