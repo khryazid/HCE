@@ -14,8 +14,6 @@ import {
   Settings,
   PanelLeftClose,
   PanelLeftOpen,
-  Cloudy,
-  CloudLightning
 } from "lucide-react";
 import { SYNC_STARTED_EVENT, SYNC_FINISHED_EVENT } from "@/lib/sync/sync-worker";
 import { APP_NAME } from "@/lib/constants/app";

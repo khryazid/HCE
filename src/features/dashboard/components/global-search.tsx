@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useMemo, useCallback } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import SearchInput from "@/components/ui/search-input";
 import { useRouter } from "next/navigation";
 import { useTenant } from "@/lib/supabase/tenant-context";

@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { format, isSameDay, differenceInMinutes, startOfDay, addHours } from 'date-fns';
-import { es } from 'date-fns/locale';
 import { CalendarEvent } from '../types';
 
 interface DayViewProps {

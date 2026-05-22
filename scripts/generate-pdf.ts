@@ -29,7 +29,6 @@ function generateManualPDF() {
   const bottomThreshold = 270; // Break page if y > 270
 
   let y = margin;
-  let pageNumber = 1;
 
   // Professional color palette matching Glyph's HSL (Teal, slate)
   const colors = {
@@ -95,7 +94,6 @@ function generateManualPDF() {
   // Add the first content page
   doc.addPage();
   y = margin;
-  pageNumber++;
 
   // Process Markdown Line-by-Line
   let inList = false;
@@ -116,7 +114,6 @@ function generateManualPDF() {
     // Page overflow safety check
     if (y > bottomThreshold) {
       doc.addPage();
-      pageNumber++;
       y = margin;
     }
 
