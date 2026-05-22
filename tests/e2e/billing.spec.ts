@@ -17,8 +17,8 @@ test.describe("Flujo E2E: Billing y Stripe", () => {
     // Usamos waitForNavigation porque la app hara un window.location.href = data.url
     const responsePromise = page.waitForNavigation({ url: /stripe\.com/ });
     
-    // El boton puede decir "Actualizar plan", "Suscribirme" o "Gestionar mi plan en Stripe"
-    const billingButton = page.getByRole("button", { name: /suscribirme|gestionar|actualizar/i }).first();
+    // El boton puede decir "Actualizar plan", "Comenzar ahora" o "Gestionar mi plan en Stripe"
+    const billingButton = page.getByRole("button", { name: /comenzar|gestionar|actualizar/i }).first();
     await expect(billingButton).toBeVisible();
     await billingButton.click();
 
