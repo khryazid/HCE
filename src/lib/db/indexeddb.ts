@@ -546,7 +546,7 @@ export async function refreshPatientsFromRemote(clinicId: string): Promise<boole
           doctor_id: patient.doctor_id,
           updated_at: patient.updated_at,
         });
-      db.put("patients", wrapped);
+        return db.put("patients", wrapped);
       }),
       ...idsToDelete.map(id => db.delete("patients", id))
     ]);
@@ -675,7 +675,7 @@ export async function refreshClinicalRecordsFromRemote(clinicId: string, doctorI
           doctor_id: record.doctor_id,
           updated_at: record.updated_at,
         });
-      db.put("clinical_records", wrapped);
+        return db.put("clinical_records", wrapped);
       }),
       ...idsToDelete.map(id => db.delete("clinical_records", id))
     ]);
@@ -768,7 +768,7 @@ export async function refreshSpecialtyDataFromRemote(clinicId: string, doctorId:
           doctor_id: d.doctor_id,
           updated_at: d.updated_at,
         });
-      db.put("specialty_data", wrapped);
+        return db.put("specialty_data", wrapped);
       }),
       ...idsToDelete.map(id => db.delete("specialty_data", id))
     ]);
