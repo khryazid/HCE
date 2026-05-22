@@ -25,9 +25,10 @@ export async function createTenantProfileWithTrial(input: {
   specialties: string[];
   plan?: "basic" | "clinic";
 }): Promise<{ success: true } | { success: false; error: string }> {
-  // 1. Verify the caller is authenticated via their own session
-  const browserClient = await createBrowserClient();
-  const { data: { user }, error: authError } = await browserClient.auth.getUser();
+  try {
+    // 1. Verify the caller is authenticated via their own session
+    const browserClient = await createBrowserClient();
+    const { data: { user }, error: authError } = await browserClient.auth.getUser();
 
   if (authError || !user) {
     return { success: false, error: "No autenticado" };
@@ -68,14 +69,21 @@ export async function createTenantProfileWithTrial(input: {
       subscription_expires_at: trialExpiresAt,
     } satisfies ProfileInsert);
 
-  if (insertError) {
-    // Handle race condition: another request created the profile simultaneously
-    if (insertError.code === "23505") {
-      return { success: true };
+    if (insertError) {
+      // Handle race condition: another request created the profile simultaneously
+      if (insertError.code === "23505") {
+        return { success: true };
+      }
+      console.error("[createTenantProfileWithTrial] Insert failed:", insertError);
+      return { success: false, error: "Error al crear perfil" };
     }
-    console.error("[createTenantProfileWithTrial] Insert failed:", insertError);
-    return { success: false, error: "Error al crear perfil" };
-  }
 
-  return { success: true };
+    return { success: true };
+  } catch (error) {
+    console.error("[createTenantProfileWithTrial] Unhandled error:", error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? `Error interno: ${error.message}` : "Error interno desconocido" 
+    };
+  }
 }
