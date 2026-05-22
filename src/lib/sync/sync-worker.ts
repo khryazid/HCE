@@ -114,11 +114,12 @@ function readJsonValue(value: unknown): Json {
   return value as Json;
 }
 
-async function logAuditEvent(_supabase: SupabaseClient<Database>, _args: LogAuditEventArgs) {
-  // TODO: Re-enable when `log_audit_event` RPC is created in Supabase.
-  // The function was declared in supabase.types.ts but never created in the DB.
-  // Calling it produces 404 errors that spam the browser console.
-  // void _supabase.rpc("log_audit_event", _args);
+function logAuditEvent(supabase: SupabaseClient<Database>, args: LogAuditEventArgs) {
+  // Fire-and-forget: audit logging must never block sync operations.
+  // Errors are silently ignored (e.g. if the user's clinic_id is null).
+  void supabase.rpc("log_audit_event", args).then(({ error }) => {
+    if (error) console.warn("[Audit] log_audit_event:", error.message);
+  });
 }
 
 /**
