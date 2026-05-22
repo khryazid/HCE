@@ -93,29 +93,34 @@ export function useClinicalContext() {
 export function ClinicalProvider({ children }: { children: ReactNode }) {
   const [selectedPatientId, setSelectedPatientId] = useState("");
 
-  // Leemos localStorage UNA SOLA VEZ como variable local (no como state),
-  // y la usamos para inicializar los 3 estados derivados. Esto evita el
-  // antipatrón de "useState como valor inicial de otro useState", donde
-  // React podría re-ejecutar los lazy initializers de forma independiente.
-  const storedDraft = readDraftFromStorage();
+  const [wizardDraft, setWizardDraft] = useState<WizardForm | null>(null);
+  const [wizardDraftStep, setWizardDraftStep] = useState<number>(1);
+  const [wizardDraftOpen, setWizardDraftOpen] = useState<boolean>(false);
+  const [isHydrated, setIsHydrated] = useState(false);
 
-  const [wizardDraft, setWizardDraft] = useState<WizardForm | null>(
-    storedDraft?.form ?? null
-  );
-  const [wizardDraftStep, setWizardDraftStep] = useState<number>(
-    storedDraft?.step ?? 1
-  );
-  const [wizardDraftOpen, setWizardDraftOpen] = useState<boolean>(
-    storedDraft !== null
-  );
+  // Hydrate draft from storage ONLY on the client to prevent SSR mismatches
+  useEffect(() => {
+    const storedDraft = readDraftFromStorage();
+    if (storedDraft) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setWizardDraft(storedDraft.form);
+       
+      setWizardDraftStep(storedDraft.step);
+       
+      setWizardDraftOpen(true);
+    }
+     
+    setIsHydrated(true);
+  }, []);
 
   // Limpiar el draft de localStorage si ya no hay borrador en memoria
   // (ej. tras restaurar pero luego cancelar — clearWizardDraft lo maneja)
   useEffect(() => {
+    if (!isHydrated) return;
     if (!wizardDraftOpen && !wizardDraft) {
       clearDraftFromStorage();
     }
-  }, [wizardDraftOpen, wizardDraft]);
+  }, [wizardDraftOpen, wizardDraft, isHydrated]);
 
   const saveWizardDraft = useCallback((form: WizardForm, step: number) => {
     // Persistir en localStorage primero (sobrevive crashes)

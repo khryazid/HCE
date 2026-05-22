@@ -22,13 +22,19 @@ export function DashboardOnboardingGuard() {
       return () => clearTimeout(t);
     }
 
+    const isBillingPage = pathname === "/billing";
+    const isProfileSetupPage = pathname === "/ajustes";
+
     if (!tenant) {
-      router.replace("/login");
+      if (isProfileSetupPage) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setReady(true);
+      } else {
+        router.replace("/ajustes");
+      }
       return;
     }
 
-    const isBillingPage = pathname === "/billing";
-    const isProfileSetupPage = pathname === "/ajustes";
 
     // 1. Check Subscription Status
     // "lifetime", "active" y "trialing" con fecha válida otorgan acceso.

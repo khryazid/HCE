@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { clearOfflineDb } from "@/lib/db/indexeddb";
 import { realtimeChannelManager } from "@/lib/supabase/realtime-channel-manager";
+import { flushSyncQueue } from "@/lib/sync/sync-worker";
 
 type ModalPhase = "closed" | "confirm" | "leaving";
 
@@ -29,6 +30,9 @@ export function LogoutButton({ mode = "full" }: LogoutButtonProps) {
 
     // Show farewell animation for 1.2s before actually signing out
     await new Promise((resolve) => setTimeout(resolve, 1200));
+
+    // Wait for any pending syncs to finish before wiping the DB
+    await flushSyncQueue({ forceRetry: true }).catch(e => console.error("Failed to flush sync queue before logout:", e));
 
     // Purge local database before signing out to ensure data isolation
     await clearOfflineDb().catch(e => console.error("Failed to clear offline DB:", e));
