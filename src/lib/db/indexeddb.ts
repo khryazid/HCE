@@ -73,8 +73,14 @@ async function unwrapData<T>(record: T): Promise<T> {
   if (!record) return record;
   const r = record as Record<string, unknown>;
   if (!r.__encrypted_payload) return record; // Already plaintext (unmigrated)
-  const key = await ensureCrypto();
-  return (await decryptData(key, r.__encrypted_payload as string)) as T;
+  try {
+    const key = await ensureCrypto();
+    return (await decryptData(key, r.__encrypted_payload as string)) as T;
+  } catch (error) {
+    console.error("[IDB Crypto] Failed to decrypt record:", r.id ?? "unknown", error);
+    // Return a dummy/empty record or the original to avoid crashing Promise.all
+    return { ...r, __decryption_failed: true } as unknown as T;
+  }
 }
 
 interface HceOfflineSchema extends DBSchema {
@@ -551,7 +557,8 @@ export async function refreshPatientsFromRemote(clinicId: string): Promise<boole
       ...idsToDelete.map(id => db.delete("patients", id))
     ]);
     return true;
-  } catch {
+  } catch (error) {
+    console.error("[IDB] refreshPatientsFromRemote failed:", error);
     // Network error or IDB write failure — caller falls back to local cache.
     return false;
   }
@@ -680,7 +687,8 @@ export async function refreshClinicalRecordsFromRemote(clinicId: string, doctorI
       ...idsToDelete.map(id => db.delete("clinical_records", id))
     ]);
     return true;
-  } catch {
+  } catch (error) {
+    console.error("[IDB] refreshClinicalRecordsFromRemote failed:", error);
     return false;
   }
 }
