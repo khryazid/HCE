@@ -15,6 +15,10 @@
  * env.ts (which uses "server-only" and would break tsx).
  */
 
+import { loadEnvConfig } from "@next/env";
+const projectDir = process.cwd();
+loadEnvConfig(projectDir);
+
 const REQUIRED_VARS = [
   "SUPABASE_SERVICE_ROLE_KEY",
   "STRIPE_SECRET_KEY",

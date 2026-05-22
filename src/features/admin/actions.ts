@@ -116,15 +116,22 @@ export async function getAllUsersWithProfiles(page: number = 1, limit: number = 
 
   const userIds = authData.users.map((u) => u.id);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let profiles: any[] = [];
+  type ProfileRow = {
+    doctor_id: string;
+    full_name: string | null;
+    specialty: string | string[] | null;
+    subscription_status: string | null;
+    subscription_expires_at: string | null;
+    plan: string | null;
+  };
+  let profiles: ProfileRow[] = [];
   if (userIds.length > 0) {
     const { data, error: profError } = await admin
       .from("profiles")
       .select("doctor_id, full_name, specialty, subscription_status, subscription_expires_at, plan")
       .in("doctor_id", userIds);
     if (profError) throw profError;
-    profiles = data || [];
+    profiles = (data || []) as ProfileRow[];
   }
 
   const users: AdminUserRecord[] = authData.users

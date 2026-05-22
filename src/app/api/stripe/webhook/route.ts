@@ -56,11 +56,12 @@ export async function POST(req: Request) {
       case "customer.subscription.created":
       case "customer.subscription.updated":
       case "customer.subscription.deleted": {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const subscription = event.data.object as any;
+        const subscription = event.data.object as Stripe.Subscription;
         const customerId = subscription.customer as string;
         const status = subscription.status;
-        const expiresAt = new Date(subscription.current_period_end * 1000).toISOString();
+        // In Stripe v22, current_period_end is on each SubscriptionItem
+        const periodEnd = subscription.items.data[0]?.current_period_end ?? 0;
+        const expiresAt = new Date(periodEnd * 1000).toISOString();
         const plan = subscription.items.data[0]?.price.metadata?.plan || "basic";
 
         const { error: subUpdateError } = await supabaseAdmin
@@ -80,12 +81,16 @@ export async function POST(req: Request) {
         break;
       }
       case "invoice.payment_succeeded": {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const invoice = event.data.object as any;
-        if (invoice.subscription && invoice.customer) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const subscription = await getStripe().subscriptions.retrieve(invoice.subscription as string) as any;
-          const expiresAt = new Date(subscription.current_period_end * 1000).toISOString();
+        const invoice = event.data.object as Stripe.Invoice;
+        // In Stripe v22, subscription moved to invoice.parent.subscription_details.subscription
+        const rawSub = invoice.parent?.subscription_details?.subscription;
+        const invoiceSubId = typeof rawSub === "string" ? rawSub
+          : (rawSub as Stripe.Subscription | null | undefined)?.id ?? null;
+        if (invoiceSubId && invoice.customer) {
+          const subscription = await getStripe().subscriptions.retrieve(invoiceSubId);
+          // Stripe.Response<Subscription> extends Subscription — access item's period end
+          const periodEnd = subscription.items.data[0]?.current_period_end ?? 0;
+          const expiresAt = new Date(periodEnd * 1000).toISOString();
 
           await supabaseAdmin
             .from("profiles")
@@ -102,9 +107,12 @@ export async function POST(req: Request) {
         // Stripe retries up to 4 times over ~14 days. Access is suspended only when
         // subscription_status becomes "unpaid" or "canceled" via
         // the customer.subscription.updated/deleted events above.
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const invoice = event.data.object as any;
-        if (invoice.subscription && invoice.customer) {
+        const invoice = event.data.object as Stripe.Invoice;
+        // In Stripe v22, subscription moved to invoice.parent.subscription_details.subscription
+        const rawFailedSub = invoice.parent?.subscription_details?.subscription;
+        const failedSubId = typeof rawFailedSub === "string" ? rawFailedSub
+          : (rawFailedSub as Stripe.Subscription | null | undefined)?.id ?? null;
+        if (failedSubId && invoice.customer) {
           const gracePeriodExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
 
           await supabaseAdmin
@@ -129,9 +137,10 @@ export async function POST(req: Request) {
           const customerId = session.customer as string;
           const subscriptionId = session.subscription as string;
 
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const subscription = await getStripe().subscriptions.retrieve(subscriptionId) as any;
-          const expiresAt = new Date(subscription.current_period_end * 1000).toISOString();
+          const subscription = await getStripe().subscriptions.retrieve(subscriptionId);
+          // In Stripe v22, current_period_end is per SubscriptionItem
+          const periodEnd = subscription.items.data[0]?.current_period_end ?? 0;
+          const expiresAt = new Date(periodEnd * 1000).toISOString();
           const plan = subscription.items.data[0]?.price.metadata?.plan || "basic";
 
           const { error: sessionUpdateError } = await supabaseAdmin

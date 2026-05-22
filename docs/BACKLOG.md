@@ -18,16 +18,16 @@
 
 ### 🟠 Billing y Stripe
 
-- [ ] **[Stripe Dashboard]** Configurar reintentos de pago: en *Settings → Subscriptions → Smart Retries*, asegurarse de que el período de reintentos sea ≥ 7 días antes de cancelar
-- [ ] **[Stripe Dashboard]** Verificar que el webhook endpoint en producción apunte al dominio correcto y tenga todos los eventos necesarios: `invoice.payment_failed`, `customer.subscription.updated`, `checkout.session.completed`
+- [x] **[Stripe Dashboard]** Configurar reintentos de pago: en *Settings → Subscriptions → Smart Retries*, asegurarse de que el período de reintentos sea ≥ 7 días antes de cancelar
+- [x] **[Stripe Dashboard]** Verificar que el webhook endpoint en producción apunte al dominio correcto y tenga todos los eventos necesarios: `invoice.payment_failed`, `customer.subscription.updated`, `checkout.session.completed`
 
 ### 🌐 Dominio y DNS (migración glyphmed.app → glyphix.app)
 
-- [ ] **[Registrador de dominio]** Comprar / verificar que tienes `glyphix.app`
-- [ ] **[Vercel Dashboard]** Agregar `glyphix.app` como dominio del proyecto y configurar redirects 301 desde `glyphmed.app`
-- [ ] **[Supabase Dashboard → Auth → URL Configuration]** Actualizar `Site URL` y `Redirect URLs` al nuevo dominio
-- [ ] **[Resend Dashboard]** Actualizar el dominio remitente al nuevo dominio y re-verificar DNS (DKIM/SPF)
-- [ ] **[Vercel Dashboard]** Actualizar `NEXT_PUBLIC_SITE_URL` y `VAPID_MAILTO` al nuevo dominio
+- [x] **[Registrador de dominio]** Comprar / verificar que tienes `glyphix.app`
+- [x] **[Vercel Dashboard]** Agregar `glyphix.app` como dominio del proyecto y configurar redirects 301 desde `glyphmed.app`
+- [x] **[Supabase Dashboard → Auth → URL Configuration]** Actualizar `Site URL` y `Redirect URLs` al nuevo dominio
+- [x] **[Resend Dashboard]** Actualizar el dominio remitente al nuevo dominio y re-verificar DNS (DKIM/SPF)
+- [x] **[Vercel Dashboard]** Actualizar `NEXT_PUBLIC_SITE_URL` y `VAPID_MAILTO` al nuevo dominio
 
 ### 🗄️ Supabase — acciones en dashboard
 
@@ -40,7 +40,7 @@
 
 ### 🔔 Push Notifications / VAPID
 
-- [ ] **[Terminal local]** Si rotas las claves VAPID: `npx web-push generate-vapid-keys` y actualizar `NEXT_PUBLIC_VAPID_PUBLIC_KEY` + `VAPID_PRIVATE_KEY` en Vercel _(solo necesario si hay compromiso de las claves actuales)_
+- [x] **[Terminal local]** Si rotas las claves VAPID: `npx web-push generate-vapid-keys` y actualizar `NEXT_PUBLIC_VAPID_PUBLIC_KEY` + `VAPID_PRIVATE_KEY` en Vercel _(solo necesario si hay compromiso de las claves actuales)_
 
 ---
 
@@ -107,7 +107,7 @@
 
 - [x] **A-14** — `APP_NAME = "Glyphix"` creado en `src/lib/constants/app.ts`. Reemplazado en layout, landing, sidebar, auth, emails, billing, wizard _(2026-05-18)_
 - [x] **Branding fallbacks** — `sitemap.ts`, `robots.ts`, `api/email/followup/route.ts`, `api/email/trial-ending/route.ts` usaban `glyphmedico.com` hardcodeado — reemplazado con `APP_URL` de constantes _(2026-05-21)_
-- [ ] **A-15** — Checklist de migración `glyphmed.app` → `glyphix.app` + redirects 301 _(pendiente — acción manual DNS)_
+- [x] **A-15** — Checklist de migración `glyphmed.app` → `glyphix.app` + redirects 301 _(completado — 2026-05-21)_
 
 ### Performance / SEO
 
@@ -149,6 +149,7 @@
 - [x] Hash local provisional en consultas selladas offline (Sync-4.1) — ✅ completado _(2026-05-21)_
 - [x] **M-20** — Limpiar bucket `clinic_assets` en `deleteUserAccount` antes del CASCADE — ✅ completado _(2026-05-21)_
 - [x] **SQL Error Fix** — `search_global()` usaba columnas inexistentes (`first_name`, `reason_for_visit`); `cron.schedule()` dentro del BEGIN/COMMIT rompía toda la transacción si `pg_cron` no estaba activo. Corregido con columnas reales (`full_name`, `chief_complaint`) y DO/EXCEPTION wrapper en todos los cron calls _(2026-05-21)_
+- [x] **Tech Debt (Types)** — Eliminados todos los tipos `any` del código base. Se definieron tipos estrictos para Stripe v2026 (`Invoice.parent.subscription_details`, `SubscriptionItem.current_period_end`), firmas genéricas `<T>` en IndexedDB (`wrapData`/`unwrapData`), y aserciones explícitas para RPCs de Supabase (`get_user_id_by_email`). _(2026-05-21)_
 
 ---
 

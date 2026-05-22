@@ -118,8 +118,7 @@ export async function POST(req: Request) {
 
     if (inviteError) {
       // If user already exists, find their ID via RPC
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: foundId } = await (adminClient.rpc as any)('get_user_id_by_email', { email_input: email });
+      const { data: foundId } = await adminClient.rpc('get_user_id_by_email', { email_input: email });
       
       if (foundId) {
         invitedUserId = foundId as string;

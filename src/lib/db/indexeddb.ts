@@ -57,20 +57,24 @@ async function ensureCrypto() {
   return cryptoKey;
 }
 
-// Wrapper for encryption/decryption
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function wrapData(data: any, indexedFields: Record<string, unknown>) {
+// Wrapper for encryption/decryption.
+// wrapData is generic so callers can assert the result as `T` safely —
+// at runtime the encrypted store value always satisfies T's required indexed fields.
+async function wrapData<T extends Record<string, unknown>>(
+  data: unknown,
+  indexedFields: Record<string, unknown>,
+): Promise<T> {
   const key = await ensureCrypto();
   const encrypted = await encryptData(key, data);
-  return { ...indexedFields, __encrypted_payload: encrypted };
+  return { ...indexedFields, __encrypted_payload: encrypted } as unknown as T;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function unwrapData(record: any) {
+async function unwrapData<T>(record: T): Promise<T> {
   if (!record) return record;
-  if (!record.__encrypted_payload) return record; // Already plaintext (unmigrated)
+  const r = record as Record<string, unknown>;
+  if (!r.__encrypted_payload) return record; // Already plaintext (unmigrated)
   const key = await ensureCrypto();
-  return await decryptData(key, record.__encrypted_payload);
+  return (await decryptData(key, r.__encrypted_payload as string)) as T;
 }
 
 interface HceOfflineSchema extends DBSchema {
@@ -301,15 +305,14 @@ export async function enqueueSyncItem(item: SyncQueueItem) {
     next_retry_at: item.next_retry_at ?? Date.now(),
   };
 
-  const wrapped = await wrapData(payloadToEncrypt, {
+  const wrapped = await wrapData<SyncQueueItem>(payloadToEncrypt, {
     id: item.id,
     status: item.status,
     client_timestamp: item.client_timestamp,
     table_name_record_id: `${item.table_name}:${item.record_id}`,
   });
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await db.put("sync_queue", wrapped as any);
+        await db.put("sync_queue", wrapped);
 
   if (typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent("hce:sync-enqueued"));
@@ -371,15 +374,14 @@ export async function updateSyncItemStatus(
     next_retry_at: nextRetryAt,
   };
 
-  const wrapped = await wrapData(updatedItem, {
+  const wrapped = await wrapData<SyncQueueItem>(updatedItem, {
     id: updatedItem.id,
     status: updatedItem.status,
     client_timestamp: updatedItem.client_timestamp,
     table_name_record_id: updatedItem.table_name_record_id,
   });
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await db.put("sync_queue", wrapped as any);
+        await db.put("sync_queue", wrapped);
 }
 
 export async function deleteSyncQueueItem(id: string) {
@@ -532,14 +534,13 @@ export async function refreshPatientsFromRemote(clinicId: string): Promise<boole
 
     await Promise.all([
       ...typedPatients.map(async (patient) => {
-        const wrapped = await wrapData(patient, {
+        const wrapped = await wrapData<HceOfflineSchema["patients"]["value"]>(patient, {
           id: patient.id,
           clinic_id: patient.clinic_id,
           doctor_id: patient.doctor_id,
           updated_at: patient.updated_at,
         });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return db.put("patients", wrapped as any);
+      db.put("patients", wrapped);
       }),
       ...idsToDelete.map(id => db.delete("patients", id))
     ]);
@@ -574,14 +575,13 @@ export async function savePatientLocal(patient: PatientRecord) {
       ...patient,
       status: patient.status ?? "activo",
     };
-    const wrapped = await wrapData(payload, {
+    const wrapped = await wrapData<HceOfflineSchema["patients"]["value"]>(payload, {
       id: patient.id,
       clinic_id: patient.clinic_id,
       doctor_id: patient.doctor_id,
       updated_at: patient.updated_at,
     });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await db.put("patients", wrapped as any);
+        await db.put("patients", wrapped);
   } catch (err) {
     const message = err instanceof Error ? err.message : "IDB write error (patients)";
     emitAppEvent(APP_EVENT_SYNC_ERROR, {
@@ -621,15 +621,14 @@ export async function updatePatientStatusLocal(id: string, status: PatientStatus
     updated_at: new Date().toISOString(),
   };
 
-  const wrapped = await wrapData(updated, {
+  const wrapped = await wrapData<HceOfflineSchema["patients"]["value"]>(updated, {
     id: updated.id,
     clinic_id: updated.clinic_id,
     doctor_id: updated.doctor_id,
     updated_at: updated.updated_at,
   });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await db.put("patients", wrapped as any);
+      await db.put("patients", wrapped);
 }
 
 // ─── Clinical Records ─────────────────────────────────────────────────────────
@@ -662,14 +661,13 @@ export async function refreshClinicalRecordsFromRemote(clinicId: string, doctorI
 
     await Promise.all([
       ...typedRecords.map(async (record) => {
-        const wrapped = await wrapData(record, {
+        const wrapped = await wrapData<HceOfflineSchema["clinical_records"]["value"]>(record, {
           id: record.id,
           patient_id: record.patient_id,
           doctor_id: record.doctor_id,
           updated_at: record.updated_at,
         });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return db.put("clinical_records", wrapped as any);
+      db.put("clinical_records", wrapped);
       }),
       ...idsToDelete.map(id => db.delete("clinical_records", id))
     ]);
@@ -693,14 +691,13 @@ export async function saveClinicalRecordLocal(record: ClinicalRecordRecord) {
   // A-08: Envolver escritura IDB en try/catch + emitir evento de error
   try {
     const db = await getOfflineDb();
-    const wrapped = await wrapData(record, {
+    const wrapped = await wrapData<HceOfflineSchema["clinical_records"]["value"]>(record, {
       id: record.id,
       patient_id: record.patient_id,
       doctor_id: record.doctor_id,
       updated_at: record.updated_at,
     });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await db.put("clinical_records", wrapped as any);
+        await db.put("clinical_records", wrapped);
   } catch (err) {
     const message = err instanceof Error ? err.message : "IDB write error (clinical_records)";
     emitAppEvent(APP_EVENT_SYNC_ERROR, {
@@ -754,14 +751,13 @@ export async function refreshSpecialtyDataFromRemote(clinicId: string, doctorId:
 
     await Promise.all([
       ...typedData.map(async (d) => {
-        const wrapped = await wrapData(d, {
+        const wrapped = await wrapData<HceOfflineSchema["specialty_data"]["value"]>(d, {
           id: d.id,
           clinical_record_id: d.clinical_record_id,
           doctor_id: d.doctor_id,
           updated_at: d.updated_at,
         });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return db.put("specialty_data", wrapped as any);
+      db.put("specialty_data", wrapped);
       }),
       ...idsToDelete.map(id => db.delete("specialty_data", id))
     ]);
@@ -773,14 +769,13 @@ export async function refreshSpecialtyDataFromRemote(clinicId: string, doctorId:
 
 export async function saveSpecialtyDataLocal(row: SpecialtyDataRow) {
   const db = await getOfflineDb();
-  const wrapped = await wrapData(row, {
+  const wrapped = await wrapData<HceOfflineSchema["specialty_data"]["value"]>(row, {
     id: row.id,
     clinical_record_id: row.clinical_record_id,
     doctor_id: row.doctor_id,
     updated_at: row.updated_at,
   });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await db.put("specialty_data", wrapped as any);
+      await db.put("specialty_data", wrapped);
 }
 
 // ─── Test Utilities ───────────────────────────────────────────────────────────

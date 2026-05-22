@@ -10,8 +10,8 @@ export interface CalendarEvent {
   status?: string;
   /** "walk-in" = cita por orden de llegada, sin hora fija */
   consultation_type?: string | null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [key: string]: any;
+  /** Campos extra del servidor (color, notas, etc.) — acceder con narrowing de tipo */
+  [key: string]: unknown;
 }
 
 export interface CalendarState {

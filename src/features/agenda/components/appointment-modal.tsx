@@ -112,8 +112,7 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
         // Modo Edición
         const startD = new Date(initialData.start_time);
         const endD = new Date(initialData.end_time);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const wasWalkIn = (initialData as any).consultation_type === 'walk-in';
+        const wasWalkIn = initialData.consultation_type === 'walk-in';
         setIsWalkIn(wasWalkIn);
         form.reset({
           patient_name: initialData.patient_name,
@@ -126,8 +125,7 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
           status: initialData.status as AppointmentFormValues["status"],
           payment_status: (initialData.payment_status as AppointmentFormValues["payment_status"]) || "pending",
           payment_method: initialData.payment_method || "",
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          consultation_type: wasWalkIn ? 'walk-in' : ((initialData as any).consultation_type || ""),
+          consultation_type: wasWalkIn ? 'walk-in' : (initialData.consultation_type || ""),
           amount: initialData.amount?.toString() || "",
           notes: initialData.notes || "",
         });
