@@ -13,8 +13,15 @@ export function SyncStatusBanner() {
   const [hasErrors, setHasErrors] = useState(false);
   const [hasPending, setHasPending] = useState(false);
 
-  // C-06: Banner dedicado para suscripción expirada — persiste hasta navegar a /billing
-  const [subscriptionExpired, setSubscriptionExpired] = useState(false);
+  // C-06 / Sync-4.2: Banner dedicado para suscripción expirada.
+  // Persisted in localStorage so the banner survives page reloads — without
+  // this, closing and reopening the browser would hide the warning even though
+  // "conflicted" items still sit in the sync queue.
+  const SUBSCRIPTION_EXPIRED_KEY = "hce:subscription-expired";
+  const [subscriptionExpired, setSubscriptionExpired] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem(SUBSCRIPTION_EXPIRED_KEY) === "true";
+  });
 
   // Sync-3.1: Estado de conectividad (red + Realtime)
   const [isOffline, setIsOffline] = useState(
@@ -31,6 +38,13 @@ export function SyncStatusBanner() {
         if (active) {
           setHasErrors(stats.failed > 0 || stats.conflicted > 0);
           setHasPending(stats.pending > 0);
+
+          // Sync-4.2: Auto-clear the persisted flag once all conflicted items
+          // are gone (i.e. the user renewed their plan and everything synced).
+          if (stats.conflicted === 0 && stats.failed === 0) {
+            window.localStorage.removeItem(SUBSCRIPTION_EXPIRED_KEY);
+            if (active) setSubscriptionExpired(false);
+          }
         }
       } catch {
         // ignore — IDB puede no estar disponible aún
@@ -47,7 +61,10 @@ export function SyncStatusBanner() {
 
     // C-06: Escuchar evento de suscripción expirada emitido por el sync worker
     const handleSubscriptionExpired = () => {
-      if (active) setSubscriptionExpired(true);
+      if (active) {
+        window.localStorage.setItem(SUBSCRIPTION_EXPIRED_KEY, "true");
+        setSubscriptionExpired(true);
+      }
     };
 
     // Sync-3.1: Red online/offline

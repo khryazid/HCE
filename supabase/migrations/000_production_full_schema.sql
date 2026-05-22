@@ -1853,10 +1853,24 @@ CREATE POLICY "profiles_tenant_insert"
     AND stripe_customer_id IS NULL
   );
 
+-- Fix repaso: profiles_tenant_update ahora bloquea la escritura de campos de billing.
+-- El UPDATE de datos del perfil (nombre, especialidad, clinic_id, etc.) sigue permitido.
+-- Los campos de billing (subscription_status, subscription_expires_at,
+-- stripe_customer_id, stripe_subscription_id) son inmutables desde el cliente:
+-- solo service_role puede modificarlos (webhook handler y createTenantProfileWithTrial).
 CREATE POLICY "profiles_tenant_update"
   ON public.profiles FOR UPDATE TO authenticated
   USING (doctor_id = auth.uid())
-  WITH CHECK (doctor_id = auth.uid());
+  WITH CHECK (
+    doctor_id = auth.uid()
+    -- Los campos de billing no pueden cambiar desde el cliente autenticado.
+    -- Los subselects leen la snapshot PRE-update (MVCC statement-level) = valor OLD.
+    -- LIMIT 1 es defensivo: la PK garantiza una sola fila, pero evita errores futuros.
+    AND subscription_status      IS NOT DISTINCT FROM (SELECT subscription_status      FROM public.profiles WHERE doctor_id = auth.uid() LIMIT 1)
+    AND subscription_expires_at  IS NOT DISTINCT FROM (SELECT subscription_expires_at  FROM public.profiles WHERE doctor_id = auth.uid() LIMIT 1)
+    AND stripe_customer_id       IS NOT DISTINCT FROM (SELECT stripe_customer_id       FROM public.profiles WHERE doctor_id = auth.uid() LIMIT 1)
+    AND stripe_subscription_id   IS NOT DISTINCT FROM (SELECT stripe_subscription_id   FROM public.profiles WHERE doctor_id = auth.uid() LIMIT 1)
+  );
 
 -- ── HAL-14: audit_logs SELECT para admins de clínica ─────────────────────────
 -- Un admin de clínica puede supervisar los audit logs de su clínica completa.

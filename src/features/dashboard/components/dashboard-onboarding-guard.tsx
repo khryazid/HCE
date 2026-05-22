@@ -31,21 +31,33 @@ export function DashboardOnboardingGuard() {
     const isProfileSetupPage = pathname === "/ajustes";
 
     // 1. Check Subscription Status
-    // "lifetime" and "active" and "trialing" all grant access.
+    // "lifetime", "active" y "trialing" con fecha válida otorgan acceso.
     const validSubscriptionStatuses = ["active", "trialing", "lifetime"];
     const status = tenant.subscription_status;
     let hasActiveSub = validSubscriptionStatuses.includes(status ?? "incomplete");
+
+    // Fix B-10: determinar la razón exacta por la que se pierde el acceso
+    // para mostrar un mensaje claro en /billing en lugar de un redirect silencioso.
+    let expiryReason: "trial_expired" | "subscription_expired" | "inactive" | null = null;
 
     // Enforce expiration check
     if (hasActiveSub && (status === "active" || status === "trialing") && tenant.subscription_expires_at) {
       const expiresAt = new Date(tenant.subscription_expires_at).getTime();
       if (expiresAt < Date.now()) {
-        hasActiveSub = false; // Expirado
+        hasActiveSub = false;
+        expiryReason = status === "trialing" ? "trial_expired" : "subscription_expired";
       }
+    } else if (!hasActiveSub) {
+      expiryReason = "inactive";
     }
 
     if (!hasActiveSub && !isBillingPage) {
-      router.replace("/billing");
+      // Persistir la razón en sessionStorage para que BillingView la lea y muestre
+      // un mensaje contextual ("Tu prueba de 7 días ha terminado" vs "Tu suscripción expiró").
+      if (expiryReason) {
+        try { sessionStorage.setItem("billing_redirect_reason", expiryReason); } catch { /* ignore */ }
+      }
+      router.replace(`/billing${expiryReason ? `?reason=${expiryReason}` : ""}`);
       return;
     }
 

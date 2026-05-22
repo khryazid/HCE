@@ -566,11 +566,13 @@ export async function refreshPatientsFromRemote(clinicId: string): Promise<boole
  */
 export async function listPatientsByTenant(clinicId: string) {
   const db = await getOfflineDb();
-  const allPatientsRaw = await db.getAll("patients");
-  const allPatients = await Promise.all(allPatientsRaw.map(unwrapData));
-  return allPatients
-    .filter((p) => p.clinic_id === clinicId)
-    .sort((a, b) => b.updated_at.localeCompare(a.updated_at)) as PatientRecord[];
+  // Sync-2.1: Use the by_clinic index instead of a full-table scan so we
+  // only decrypt and return records for the active clinic — O(clinic) not O(all).
+  // Note: the IDB index holds plaintext clinic_id as an indexed field (set in
+  // wrapData), so getAllFromIndex works even though the payload is encrypted.
+  const rowsRaw = await db.getAllFromIndex("patients", "by_clinic", clinicId);
+  const patients = await Promise.all(rowsRaw.map(unwrapData));
+  return patients.sort((a, b) => b.updated_at.localeCompare(a.updated_at)) as PatientRecord[];
 }
 
 export async function savePatientLocal(patient: PatientRecord) {
@@ -685,11 +687,14 @@ export async function refreshClinicalRecordsFromRemote(clinicId: string, doctorI
 
 export async function listClinicalRecordsByTenant(doctorId: string, clinicId: string) {
   const db = await getOfflineDb();
-  const allRecordsRaw = await db.getAll("clinical_records");
-  const allRecords = await Promise.all(allRecordsRaw.map(unwrapData));
-
-  return allRecords
-    .filter((r) => r.doctor_id === doctorId && r.clinic_id === clinicId)
+  // Sync-2.1: Use the by_doctor index then filter by clinic_id in memory.
+  // clinical_records lacks a compound (clinic_id, doctor_id) index, so we use
+  // the existing by_doctor index (most selective in single-doctor tenants) and
+  // post-filter by clinicId — still far better than a full-table scan.
+  const rowsRaw = await db.getAllFromIndex("clinical_records", "by_doctor", doctorId);
+  const records = await Promise.all(rowsRaw.map(unwrapData));
+  return records
+    .filter((r) => r.clinic_id === clinicId)
     .sort((a, b) => b.updated_at.localeCompare(a.updated_at)) as ClinicalRecordRecord[];
 }
 
@@ -774,14 +779,29 @@ export async function refreshSpecialtyDataFromRemote(clinicId: string, doctorId:
 }
 
 export async function saveSpecialtyDataLocal(row: SpecialtyDataRow) {
-  const db = await getOfflineDb();
-  const wrapped = await wrapData<HceOfflineSchema["specialty_data"]["value"]>(row, {
-    id: row.id,
-    clinical_record_id: row.clinical_record_id,
-    doctor_id: row.doctor_id,
-    updated_at: row.updated_at,
-  });
-      await db.put("specialty_data", wrapped);
+  // Sync-2.2: Wrap in try/catch + emit sync error, matching savePatientLocal
+  // and saveClinicalRecordLocal. Without this, an IDB full/crypto error would
+  // propagate silently with no user-visible feedback.
+  try {
+    const db = await getOfflineDb();
+    const wrapped = await wrapData<HceOfflineSchema["specialty_data"]["value"]>(row, {
+      id: row.id,
+      clinical_record_id: row.clinical_record_id,
+      doctor_id: row.doctor_id,
+      updated_at: row.updated_at,
+    });
+    await db.put("specialty_data", wrapped);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "IDB write error (specialty_data)";
+    emitAppEvent(APP_EVENT_SYNC_ERROR, {
+      itemId: row.id,
+      tableName: "specialty_data",
+      recordId: row.id,
+      message: `Error al guardar datos de especialidad localmente: ${message}`,
+      retryCount: 0,
+    });
+    throw err; // Reraise so callers know the write failed
+  }
 }
 
 // ─── Test Utilities ───────────────────────────────────────────────────────────

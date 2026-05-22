@@ -1,6 +1,6 @@
 # BACKLOG — Glyphix HCE
-**Última revisión:** 2026-05-22 (Repaso final — build fix + REVOKE corregido en is_super_admin)
-**Estado:** Build ✅ limpio. Pendientes: acciones manuales en Supabase SQL Editor y Vercel.
+**Última revisión:** 2026-05-22 (Auditoría Billing Stripe completada — 8 fixes aplicados)
+**Estado:** Build ✅ limpio · TypeScript ✅ sin errores. Pendientes: acciones manuales en Supabase SQL Editor.
 
 > Fuente de verdad: `docs/AUDITORIA_2026.md` (50 hallazgos · 13 críticos · 10 altos · 21 medios · 6 bajos · todos corregidos)
 
@@ -27,7 +27,7 @@
 - [x] **[Vercel Dashboard]** Agregar `glyphix.app` como dominio del proyecto y configurar redirects 301 desde `glyphmed.app`
 - [x] **[Supabase Dashboard → Auth → URL Configuration]** Actualizar `Site URL` y `Redirect URLs` al nuevo dominio
 - [x] **[Resend Dashboard]** Actualizar el dominio remitente al nuevo dominio y re-verificar DNS (DKIM/SPF)
-- [x] **[Vercel Dashboard]** Actualizar `NEXT_PUBLIC_SITE_URL` y `VAPID_MAILTO` al nuevo dominio
+- [x] **[Vercel Dashboard]** actualizar `NEXT_PUBLIC_SITE_URL` y `VAPID_MAILTO` al nuevo dominio
 
 ### 🗄️ Supabase — acciones en dashboard
 
@@ -168,6 +168,17 @@
 - [x] **SQL Error Fix** — `search_global()` usaba columnas inexistentes (`first_name`, `reason_for_visit`); `cron.schedule()` dentro del BEGIN/COMMIT rompía toda la transacción si `pg_cron` no estaba activo. Corregido con columnas reales (`full_name`, `chief_complaint`) y DO/EXCEPTION wrapper en todos los cron calls _(2026-05-21)_
 - [x] **Tech Debt (Types)** — Eliminados todos los tipos `any` del código base. _(2026-05-21)_
 
+### Auditoría Motor de Sync (2026-05-22)
+
+- [x] **Sync-2.5** — Eliminado fallback hardcodeado `"glyph_hce_fallback_master_key_2026"` en `crypto.ts`: ahora lanza error explícito si `NEXT_PUBLIC_IDB_MASTER_KEY` no está definida. PHI ya no puede quedar cifrada con clave pública conocida. _(2026-05-22)_
+- [x] **Sync-2.3** — `getPendingRecordIds` ahora incluye estado `"syncing"` en la protección del cache. Evita race condition donde un refresh de Realtime concurrente borraba registros mid-flight antes de confirmar el upsert en Supabase. _(2026-05-22)_
+- [x] **Sync-5.2** — Fix typo crítico: `SyncStatusBanner` escuchaba `"hce:sync_finished"` (guión bajo) pero el worker emitía `"hce:sync-finished"` (guión). El banner nunca refrescaba el estado tras sincronizar. Corregido usando la constante `SYNC_FINISHED_EVENT`. _(2026-05-22)_
+- [x] **Sync-1.3** — Clock-drift conflict: cambios locales ya no se descartan silenciosamente. Ahora se marcan como `conflicted` con mensaje descriptivo y se emite `APP_EVENT_SYNC_ABANDONED` para que el médico los vea en el `SyncQueuePanel` y decida. _(2026-05-22)_
+- [x] **Sync-3.2** — `realtimeChannelManager.releaseAll()` se llama en logout manual (`LogoutButton`) y automático (`TenantProvider` → `SIGNED_OUT`). Cierra todos los canales WebSocket antes de que la sesión quede inválida. _(2026-05-22)_
+- [x] **Sync-2.1** — Eliminados full-scans en `listPatientsByTenant` y `listClinicalRecordsByTenant`. Ahora usan `getAllFromIndex` con los índices `by_clinic` / `by_doctor` ya existentes. Reducción de O(total) a O(tenant). _(2026-05-22)_
+- [x] **Sync-2.2** — `saveSpecialtyDataLocal` envuelto en try/catch + emite `APP_EVENT_SYNC_ERROR`. Consistente con `savePatientLocal` y `saveClinicalRecordLocal`. _(2026-05-22)_
+- [x] **Sync-4.2** — Flag `hce:subscription-expired` persistido en `localStorage`. El banner de suscripción expirada sobrevive recargas y se auto-limpia cuando los ítems `conflicted` desaparecen de la cola. _(2026-05-22)_
+
 ### Seguridad Backend — Auditoría 2026-05-22
 
 > Auditoría completa del backend: API Routes, Supabase RLS, SQL functions, middleware de Edge, y headers HTTP. 23 hallazgos corregidos en 3 pasadas.
@@ -222,6 +233,32 @@
 > 2. Ejecutar `ALTER DATABASE postgres SET app.admin_email = 'tu-email@glyphmed.app';` para que `is_super_admin()` funcione.
 > 3. Verificar en Supabase Dashboard → Auth → Settings que `enable_confirmations = true` en producción.
 > 4. Subir a Vercel Env Vars: `NEXT_PUBLIC_IDB_MASTER_KEY` con valor generado por `openssl rand -base64 32`.
+
+---
+
+### Auditoría Billing Stripe (2026-05-22)
+
+> Auditoría completa del sistema de pagos: webhook handler, checkout, portal, multi-seat, trial y UX. 8 fixes aplicados.
+
+#### 🔴 Críticos
+- [x] **B-03** — Mismatch `"clinica"` vs `"clinic"` en `PLAN_LIMITS` de `clinic/invite/route.ts`: el plan Clínica siempre caía al límite del plan Basic (0 doctores adicionales). Clave corregida a `"clinic"`. _(2026-05-22)_
+
+#### 🟠 Altos
+- [x] **B-05** — `has_active_subscription()` usaba el primer perfil creado como "owner". Reescrita con lookup en 3 pasos: (1) admin en `clinic_members`, (2) perfil con `stripe_customer_id`, (3) fallback al más antiguo. _(2026-05-22)_
+- [x] **B-09** — Downgrade de plan vía portal de Stripe no retiraba doctors de `clinic_members`. Añadida lógica en `customer.subscription.updated`: si `plan === "basic"`, elimina miembros con `role = "doctor"`. _(2026-05-22)_
+- [x] **B-12** — `priceId` sin whitelist: usuario autenticado podía suscribirse a cualquier precio de Stripe. Añadida `getAllowedPriceIds()` que valida contra env vars. _(2026-05-22)_
+
+#### 🟡 Medios
+- [x] **B-10** — Redirect silencioso a `/billing` sin explicación. Guard detecta razón (`trial_expired` / `subscription_expired` / `inactive`) y la pasa via `sessionStorage + ?reason=`. `BillingView` muestra banner contextual. _(2026-05-22)_
+- [x] **B-11** — Trials expirados permanecían en estado `"trialing"`. Añadido `expire_stale_trials()` + cron diario a medianoche. _(2026-05-22)_
+- [x] **B-01** — Inconsistencia transaccional entre INSERT en `stripe_webhook_events` y UPDATE en `profiles`. Documentado como deuda técnica aceptada (riesgo real muy bajo). _(2026-05-22)_
+- [x] **B-08** — Race condition en validación de seats al invitar simultáneamente. Documentado; aceptado como riesgo bajo dado el uso real. _(2026-05-22)_
+
+#### 🟢 Bajos
+- [x] **B-13** — Portal de Stripe sin validación de Origin. Añadido `isValidOrigin(req)` + unificado a `serverEnv` y `createClient()` centralizado. _(2026-05-22)_
+- [x] **Webhook default case** — Eventos no reconocidos de Stripe sin log. Añadido `default` case con `log.info`. _(2026-05-22)_
+
+> ⚠️ **Acción manual**: ejecutar en Supabase SQL Editor el bloque `-- BILLING FIXES (Auditoría 2026-05-22)` al final de `000_production_full_schema.sql` para activar `has_active_subscription()` mejorada, `expire_stale_trials()` y el cron de cleanup.
 
 ---
 

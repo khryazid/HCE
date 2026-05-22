@@ -1,8 +1,58 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { APP_NAME } from "@/lib/constants/app";
+
+type ExpiryReason = "trial_expired" | "subscription_expired" | "inactive" | null;
+
+const REASON_MESSAGES: Record<NonNullable<ExpiryReason>, { title: string; body: string }> = {
+  trial_expired: {
+    title: "Tu prueba gratuita de 7 días ha terminado",
+    body: "Activa tu suscripción para seguir usando el motor clínico. Todos tus datos están intactos.",
+  },
+  subscription_expired: {
+    title: "Tu suscripción ha expirado",
+    body: "Renueva tu plan para recuperar el acceso completo. Tus pacientes y consultas siguen guardados.",
+  },
+  inactive: {
+    title: "Tu cuenta no tiene una suscripción activa",
+    body: "Selecciona un plan para comenzar a usar Glyphix.",
+  },
+};
+
+/**
+ * ExpiryBannerInner: componente interno que usa useSearchParams.
+ * Debe estar dentro de <Suspense> para evitar el bail-out de prerender en Next.js.
+ * Ver: https://nextjs.org/docs/app/api-reference/functions/use-search-params
+ */
+function ExpiryBannerInner() {
+  const searchParams = useSearchParams();
+  const [expiryReason, setExpiryReason] = useState<ExpiryReason>(null);
+
+  useEffect(() => {
+    const fromUrl = searchParams.get("reason") as ExpiryReason | null;
+    const fromStorage = (() => {
+      try { return sessionStorage.getItem("billing_redirect_reason") as ExpiryReason | null; }
+      catch { return null; }
+    })();
+    const reason = fromUrl ?? fromStorage;
+    if (reason && reason in REASON_MESSAGES) {
+      setTimeout(() => setExpiryReason(reason), 0);
+      try { sessionStorage.removeItem("billing_redirect_reason"); } catch { /* ignore */ }
+    }
+  }, [searchParams]);
+
+  if (!expiryReason || !REASON_MESSAGES[expiryReason]) return null;
+
+  return (
+    <div className="mt-4 rounded-xl border border-accent/30 bg-accent/5 px-4 py-3" role="alert">
+      <p className="text-sm font-semibold text-accent">{REASON_MESSAGES[expiryReason].title}</p>
+      <p className="mt-0.5 text-sm text-ink-soft">{REASON_MESSAGES[expiryReason].body}</p>
+    </div>
+  );
+}
 
 const PRO_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_PRICE_ID ?? null;
 const CLINIC_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_CLINIC ?? null;
@@ -39,6 +89,12 @@ export default function BillingView({ proPrice = 29, clinicPrice = 99 }: { proPr
         Para continuar utilizando {APP_NAME} y acceder a todas las funcionalidades del motor clínico,
         necesitas una suscripción activa.
       </p>
+
+      {/* Fix B-10: banner contextual según la razón del redirect.
+           Envuelto en Suspense para que useSearchParams no cause bail-out de prerender. */}
+      <Suspense fallback={null}>
+        <ExpiryBannerInner />
+      </Suspense>
 
       {error && (
         <p className="mt-4 rounded bg-red-100 px-3 py-2 text-sm text-red-800">{error}</p>

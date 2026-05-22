@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { serverEnv } from "@/lib/env";
 import { isValidOrigin } from "@/lib/api/guards";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -71,21 +71,37 @@ export async function POST(req: Request) {
     // Fix B-12: Validar que el priceId sea uno de los precios permitidos por la app.
     // Evita que un usuario autenticado suscriba a cualquier precio de la cuenta Stripe.
     const allowedPriceIds = getAllowedPriceIds();
-    if (allowedPriceIds.size > 0 && !allowedPriceIds.has(priceId)) {
+    if (allowedPriceIds.size === 0) {
+      // Las env vars de precio no están configuradas — error de despliegue, no del usuario.
+      console.error("[stripe:checkout] NEXT_PUBLIC_STRIPE_PRICE_ID y CLINIC no configurados — whitelist vacía");
+      return NextResponse.json(
+        { error: "El sistema de pagos no está configurado correctamente. Contacta al administrador." },
+        { status: 500 },
+      );
+    }
+    if (!allowedPriceIds.has(priceId)) {
       return NextResponse.json(
         { error: "Plan no válido. Selecciona un plan disponible." },
         { status: 400 },
       );
     }
 
-    // Get the user's profile to see if they already have a customer ID
+    // Get the user's profile to see if they already have a customer ID.
+    // Also validates the profile exists — if not, the user hasn't completed onboarding.
     const { data: profile } = await supabase
       .from("profiles")
       .select("stripe_customer_id")
       .eq("doctor_id", user.id)
       .single();
 
-    let customerId = profile?.stripe_customer_id;
+    if (!profile) {
+      return NextResponse.json(
+        { error: "Perfil no encontrado. Completa el proceso de registro antes de suscribirte." },
+        { status: 404 },
+      );
+    }
+
+    let customerId = profile.stripe_customer_id;
 
     if (!customerId) {
       // Create a new customer in Stripe
@@ -97,12 +113,19 @@ export async function POST(req: Request) {
       });
       customerId = customer.id;
 
-      // Ensure the service role key is used to update the profile if RLS blocks it
-      // Wait, the user can update their own profile since `doctor_id = auth.uid()`
-      await supabase
+      // HAL-13.1: stripe_customer_id es un campo de billing — la policy profiles_tenant_update
+      // bloquea su escritura desde el cliente autenticado. Usar service_role (createAdminClient)
+      // que bypasea RLS, igual que el webhook handler para todos los writes de billing.
+      const supabaseAdmin = createAdminClient();
+      const { error: customerIdError } = await supabaseAdmin
         .from("profiles")
         .update({ stripe_customer_id: customerId })
         .eq("doctor_id", user.id);
+
+      if (customerIdError) {
+        // No bloquear el checkout si falla — webhook lo corregir\u00e1 en checkout.session.completed.
+        console.error("[stripe:checkout] No se pudo guardar stripe_customer_id:", customerIdError.message);
+      }
     }
 
     // Create Checkout Session

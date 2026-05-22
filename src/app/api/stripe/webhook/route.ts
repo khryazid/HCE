@@ -75,6 +75,20 @@ export async function POST(req: Request) {
         const expiresAt = new Date(periodEnd * 1000).toISOString();
         const plan = subscription.items.data[0]?.price.metadata?.plan || "basic";
 
+        // Fix B-09: leer el plan PREVIO antes del UPDATE.
+        // Si se leyera después, profile.plan ya tendría el nuevo valor "basic".
+        let previousPlan: string | null = null;
+        let clinicId: string | null = null;
+        if (event.type === "customer.subscription.updated" && plan === "basic") {
+          const { data: preProfile } = await supabaseAdmin
+            .from("profiles")
+            .select("clinic_id, plan")
+            .eq("stripe_customer_id", customerId)
+            .single();
+          previousPlan = preProfile?.plan ?? null;
+          clinicId = preProfile?.clinic_id ?? null;
+        }
+
         const { error: subUpdateError } = await supabaseAdmin
           .from("profiles")
           .update({
@@ -95,6 +109,29 @@ export async function POST(req: Request) {
           return NextResponse.json({ error: "Database update failed" }, { status: 500 });
         }
         log.info("stripe:webhook", `Suscripción ${event.type}`, { customerId, status, plan });
+
+        // Fix B-09 (continuación): actuar solo si hubo downgrade REAL clinic → basic.
+        // previousPlan fue leído antes del UPDATE — es el valor real anterior.
+        if (event.type === "customer.subscription.updated" && plan === "basic") {
+          if (previousPlan === "clinic" && clinicId) {
+            const { data: extraDoctors } = await supabaseAdmin
+              .from("clinic_members")
+              .select("id")
+              .eq("clinic_id", clinicId)
+              .eq("role", "doctor");
+
+            if (extraDoctors && extraDoctors.length > 0) {
+              const ids = extraDoctors.map((m: { id: string }) => m.id);
+              await supabaseAdmin.from("clinic_members").delete().in("id", ids);
+              log.warn("stripe:webhook", "Downgrade clinic→basic confirmado: doctores retirados", {
+                clinicId,
+                removedCount: ids.length,
+              });
+            }
+          } else {
+            log.info("stripe:webhook", "subscription.updated plan=basic pero sin downgrade real (previo: " + previousPlan + ")", { customerId });
+          }
+        }
         break;
       }
       case "invoice.payment_succeeded": {
@@ -178,6 +215,12 @@ export async function POST(req: Request) {
           }
           log.info("stripe:webhook", "checkout.session.completed procesado", { customerId, plan });
         }
+        break;
+      }
+      default: {
+        // Evento de Stripe no manejado — loguear para visibilidad sin retornar error.
+        // Stripe recomienda retornar 200 para eventos desconocidos y procesarlos selectivamente.
+        log.info("stripe:webhook", `Evento no manejado recibido: ${event.type}`, { eventId: event.id });
         break;
       }
     }
