@@ -657,8 +657,7 @@ export async function refreshClinicalRecordsFromRemote(clinicId: string, doctorI
     const { data: remoteRecords, error } = await supabase
       .from("clinical_records")
       .select("*")
-      .eq("clinic_id", clinicId)
-      .eq("doctor_id", doctorId);
+      .eq("clinic_id", clinicId);
 
     if (error || !remoteRecords) return false;
 
@@ -669,10 +668,10 @@ export async function refreshClinicalRecordsFromRemote(clinicId: string, doctorI
     
     const allLocalRaw = await db.getAll("clinical_records");
     const allLocal = await Promise.all(allLocalRaw.map(unwrapData)) as ClinicalRecordRecord[];
-    const localForDoctor = allLocal.filter(r => r.clinic_id === clinicId && r.doctor_id === doctorId);
+    const localForClinic = allLocal.filter(r => r.clinic_id === clinicId);
     
     const remoteIds = new Set(remoteRecords.map(r => r.id));
-    const idsToDelete = localForDoctor.map(r => r.id).filter(id => !remoteIds.has(id) && !pendingIds.has(id));
+    const idsToDelete = localForClinic.map(r => r.id).filter(id => !remoteIds.has(id) && !pendingIds.has(id));
 
     await Promise.all([
       ...typedRecords.map(async (record) => {
@@ -699,7 +698,7 @@ export async function listClinicalRecordsByTenant(doctorId: string, clinicId: st
   // clinical_records lacks a compound (clinic_id, doctor_id) index, so we use
   // the existing by_doctor index (most selective in single-doctor tenants) and
   // post-filter by clinicId — still far better than a full-table scan.
-  const rowsRaw = await db.getAllFromIndex("clinical_records", "by_doctor", doctorId);
+  const rowsRaw = await db.getAll("clinical_records");
   const records = await Promise.all(rowsRaw.map(unwrapData));
   return records
     .filter((r) => r.clinic_id === clinicId)
@@ -751,8 +750,7 @@ export async function refreshSpecialtyDataFromRemote(clinicId: string, doctorId:
     const { data: remoteData, error } = await supabase
       .from("specialty_data")
       .select("*")
-      .eq("clinic_id", clinicId)
-      .eq("doctor_id", doctorId);
+      .eq("clinic_id", clinicId);
 
     if (error || !remoteData) return false;
 
@@ -763,10 +761,10 @@ export async function refreshSpecialtyDataFromRemote(clinicId: string, doctorId:
     
     const allLocalRaw = await db.getAll("specialty_data");
     const allLocal = await Promise.all(allLocalRaw.map(unwrapData)) as SpecialtyDataRow[];
-    const localForDoctor = allLocal.filter(d => d.doctor_id === doctorId);
+    const localForClinic = allLocal.filter(d => d.clinic_id === clinicId);
     
     const remoteIds = new Set(remoteData.map(d => d.id));
-    const idsToDelete = localForDoctor.map(d => d.id).filter(id => !remoteIds.has(id) && !pendingIds.has(id));
+    const idsToDelete = localForClinic.map(d => d.id).filter(id => !remoteIds.has(id) && !pendingIds.has(id));
 
     await Promise.all([
       ...typedData.map(async (d) => {
