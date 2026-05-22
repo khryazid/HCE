@@ -47,10 +47,39 @@ function loadFromSession(): StructuredError[] {
   }
 }
 
+// ─── PHI sanitization ──────────────────────────────────────────────────────────
+
+/** Campos que pueden contener PHI y deben redactarse antes de persistir. */
+const PHI_KEYS = new Set([
+  "full_name", "fullName", "name", "patient_name", "patientName",
+  "document_number", "documentNumber", "cedula", "email", "phone",
+  "address", "chief_complaint", "chiefComplaint", "diagnosis",
+  "treatment", "notes", "anamnesis", "physical_exam",
+]);
+
+function sanitizeDetail(
+  detail?: Record<string, unknown>,
+): Record<string, unknown> | undefined {
+  if (!detail) return undefined;
+  const sanitized: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(detail)) {
+    if (PHI_KEYS.has(key)) {
+      sanitized[key] = "[REDACTED]";
+    } else {
+      sanitized[key] = value;
+    }
+  }
+  return sanitized;
+}
+
+// ─── Session persistence ───────────────────────────────────────────────────────
+
 function persistToSession(errors: StructuredError[]): void {
   if (typeof window === "undefined") return;
   try {
-    window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(errors));
+    // Sanitize PHI before writing to sessionStorage
+    const safe = errors.map((e) => ({ ...e, detail: sanitizeDetail(e.detail) }));
+    window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(safe));
   } catch {
     // sessionStorage lleno — no bloquear
   }

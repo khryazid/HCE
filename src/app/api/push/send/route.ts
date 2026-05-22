@@ -44,13 +44,14 @@ export async function POST(req: Request) {
 
     // Rate limit per user (skip for cron/system requests — they're already authenticated by secret)
     if (user && !isSystemRequest) {
-      const { data: allowed, error: rateLimitError } = await supabase.rpc("claim_api_rate_limit", {
+      // claim_api_rate_limit returns TRUE when the limit is EXCEEDED
+      const { data: rateLimited, error: rateLimitError } = await supabase.rpc("claim_api_rate_limit", {
         p_scope: "push-send",
         p_identifier: user.id,
         p_window_seconds: PUSH_RATE_WINDOW,
         p_max_requests: PUSH_RATE_LIMIT,
       });
-      if (rateLimitError || !allowed) {
+      if (rateLimitError || rateLimited) {
         return NextResponse.json(
           { error: "Demasiadas solicitudes. Intenta en un momento." },
           { status: 429 },
