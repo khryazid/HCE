@@ -34,9 +34,13 @@ export async function verifySuperAdmin() {
     throw new Error("Unauthorized");
   }
 
+  const adminEmail = getAdminEmail();
   const { data: isSuperAdmin, error } = await supabase.rpc("is_super_admin" as never);
 
-  if (error || !isSuperAdmin) {
+  // Allow if the database RPC says true OR if the user's email matches the ADMIN_EMAIL env var.
+  const isAuthorized = (!error && isSuperAdmin === true) || (adminEmail && user.email === adminEmail);
+
+  if (!isAuthorized) {
     throw new Error("Unauthorized");
   }
 
