@@ -57,9 +57,6 @@ jobs:
           PUSH_SEND_SECRET: "dummy"
           NEXT_PUBLIC_SITE_URL: "http://127.0.0.1:3000"
         with:
-          urls: |
-            http://127.0.0.1:3000/
-          budgetPath: ./lighthouserc.json
+          configPath: ./lighthouserc.json
           uploadArtifacts: true
           temporaryPublicStorage: true
-          serverCommand: npm run start
