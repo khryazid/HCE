@@ -16,11 +16,17 @@ function injectRequestId(request: NextRequest, response: NextResponse): NextResp
   const existingId = request.headers.get("x-request-id");
   const requestId = existingId ?? crypto.randomUUID();
 
-  // Clonar los headers del request y agregar x-request-id
+  // Si la response es un redirect (302, 307, 308), preservarla intacta.
+  // Solo agregar el header x-request-id sin destruir el redirect.
+  if (response.headers.get("location")) {
+    response.headers.set("x-request-id", requestId);
+    return response;
+  }
+
+  // Para responses normales (NextResponse.next), clonar headers y propagar
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-request-id", requestId);
 
-  // Crear una nueva response que propague los headers modificados al handler
   const newResponse = NextResponse.next({
     request: { headers: requestHeaders },
   });
