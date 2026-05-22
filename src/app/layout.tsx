@@ -105,7 +105,7 @@ export default async function RootLayout({
         />
       </head>
 
-      <body className={`${spaceGrotesk.variable} ${outfit.variable} min-h-full flex flex-col bg-bg text-ink font-sans`}>
+      <body className={`${spaceGrotesk.variable} ${outfit.variable} min-h-full flex flex-col bg-bg text-ink font-sans`} suppressHydrationWarning>
         <NextIntlClientProvider messages={messages}>
           <QueryProvider>
             <SyncBootstrap />
