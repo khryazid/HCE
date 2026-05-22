@@ -1,8 +1,6 @@
 "use server";
 
-import { createClient } from "@supabase/supabase-js";
-import { createClient as createBrowserClient } from "@/lib/supabase/server";
-import { serverEnv } from "@/lib/env";
+import { createClient as createBrowserClient, createAdminClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/supabase.types";
 
 type ProfileInsert = Database["public"]["Tables"]["profiles"]["Insert"];
@@ -37,10 +35,8 @@ export async function createTenantProfileWithTrial(input: {
   const userId = user.id;
 
   // 2. Use service_role to bypass RLS for the insert
-  const adminClient = createClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    serverEnv.SUPABASE_SERVICE_ROLE_KEY
-  );
+  // R-07: Usar createAdminClient() centralizado en lugar de createClient inline
+  const adminClient = createAdminClient();
 
   // 3. Check if profile already exists — prevent trial manipulation
   const { data: existing } = await adminClient

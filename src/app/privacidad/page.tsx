@@ -6,6 +6,7 @@ export const metadata: Metadata = {
   title: "Política de Privacidad — Glyphix",
   description:
     "Conoce cómo Glyphix recopila, protege y gestiona los datos clínicos y personales de los profesionales de salud que usan nuestra plataforma.",
+  alternates: { canonical: "/privacidad" },
 };
 
 export default function PrivacidadPage() {

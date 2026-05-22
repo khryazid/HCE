@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { PanelErrorBoundary } from "@/components/ui/panel-error-boundary";
 import { DashboardOnboardingGuard } from "@/features/dashboard/components/dashboard-onboarding-guard";
 import { GlobalSearch } from "@/features/dashboard/components/global-search";
@@ -7,6 +8,15 @@ import { TenantProvider } from "@/lib/supabase/tenant-context";
 import { ClinicalProvider } from "@/features/consultations/context/clinical-context";
 import Link from "next/link";
 import { Plus } from "lucide-react";
+
+/**
+ * Todas las páginas privadas del dashboard heredan noindex de este layout.
+ * Evita que Google indexe URLs que requieren autenticación.
+ */
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
+
 
 export default function DashboardLayout({
   children,
@@ -49,12 +59,13 @@ export default function DashboardLayout({
             </main>
           </div>
 
-          {/* Mobile FAB */}
+          {/* Mobile FAB — AUDIT FIX A-3: aria-label para screen readers */}
           <Link
             href="/consultas"
+            aria-label="Nueva consulta"
             className="fixed bottom-20 right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-accent text-white shadow-lg transition-transform hover:scale-105 active:scale-95 lg:hidden"
           >
-            <Plus className="h-6 w-6" />
+            <Plus className="h-6 w-6" aria-hidden="true" />
           </Link>
 
           {/* Mobile bottom nav */}

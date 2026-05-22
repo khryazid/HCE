@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { loadTenantProfile, type TenantProfile } from "@/lib/supabase/profile";
 import { initDbCrypto, clearOfflineDb } from "@/lib/db/indexeddb";
+import { realtimeChannelManager } from "@/lib/supabase/realtime-channel-manager";
 import type { Session } from "@supabase/supabase-js";
 
 type TenantState = {
@@ -93,6 +94,9 @@ export function TenantProvider({ children }: { children: ReactNode }) {
       (event) => {
         if (event === "SIGNED_OUT") {
           if (active) {
+            // Sync-3.2: Release all Realtime channels before redirecting so no
+            // WebSocket callback fires with the signed-out user's data.
+            realtimeChannelManager.releaseAll();
             setState({ tenant: null, session: null, loading: false, error: null });
             clearOfflineDb().catch((e) =>
               console.warn("[TenantProvider] clearOfflineDb on SIGNED_OUT failed:", e)

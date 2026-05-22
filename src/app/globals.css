@@ -335,6 +335,21 @@ html {
 }
 
 /* ── Alertas — sistema de color clínico (no semáforo) */
+/* ── Clinical state badges (small pills for vital signs, BMI, PAM) */
+@utility hce-badge-ok {
+  color: color-mix(in srgb, var(--state-ok) 90%, var(--ink));
+  background: color-mix(in srgb, var(--state-ok) 12%, var(--card));
+}
+@utility hce-badge-warn {
+  color: color-mix(in srgb, var(--state-warn) 90%, var(--ink));
+  background: color-mix(in srgb, var(--state-warn) 12%, var(--card));
+}
+@utility hce-badge-alert {
+  color: color-mix(in srgb, var(--state-alert) 90%, var(--ink));
+  background: color-mix(in srgb, var(--state-alert) 12%, var(--card));
+}
+
+/* ── Full-width alert boxes */
 @utility hce-alert {
   @apply border p-4 text-sm;
   border-radius: var(--radius-lg);

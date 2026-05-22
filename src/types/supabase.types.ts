@@ -66,11 +66,11 @@ export type Database = {
           end_time: string
           id: string
           notes: string | null
+          patient_birth_date: string | null
+          patient_document: string | null
           patient_id: string | null
           patient_name: string
           patient_phone: string | null
-          patient_document: string | null
-          patient_birth_date: string | null
           payment_method: string | null
           payment_status: string
           start_time: string
@@ -86,11 +86,11 @@ export type Database = {
           end_time: string
           id?: string
           notes?: string | null
+          patient_birth_date?: string | null
+          patient_document?: string | null
           patient_id?: string | null
           patient_name: string
           patient_phone?: string | null
-          patient_document?: string | null
-          patient_birth_date?: string | null
           payment_method?: string | null
           payment_status?: string
           start_time: string
@@ -106,11 +106,11 @@ export type Database = {
           end_time?: string
           id?: string
           notes?: string | null
+          patient_birth_date?: string | null
+          patient_document?: string | null
           patient_id?: string | null
           patient_name?: string
           patient_phone?: string | null
-          patient_document?: string | null
-          patient_birth_date?: string | null
           payment_method?: string | null
           payment_status?: string
           start_time?: string
@@ -303,6 +303,27 @@ export type Database = {
           },
         ]
       }
+      notification_log: {
+        Row: {
+          doctor_id: string
+          notification_date: string
+          sent_at: string
+          type: string
+        }
+        Insert: {
+          doctor_id: string
+          notification_date?: string
+          sent_at?: string
+          type: string
+        }
+        Update: {
+          doctor_id?: string
+          notification_date?: string
+          sent_at?: string
+          type?: string
+        }
+        Relationships: []
+      }
       patients: {
         Row: {
           birth_date: string | null
@@ -353,6 +374,8 @@ export type Database = {
           stripe_subscription_id: string | null
           subscription_expires_at: string | null
           subscription_status: string | null
+          terms_accepted_at: string | null
+          terms_accepted_version: string | null
           ui_preferences: Json
           updated_at: string
         }
@@ -364,11 +387,13 @@ export type Database = {
           id?: string
           payment_config?: Json
           plan?: string
-          specialty: string[]
+          specialty?: string[]
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_expires_at?: string | null
           subscription_status?: string | null
+          terms_accepted_at?: string | null
+          terms_accepted_version?: string | null
           ui_preferences?: Json
           updated_at?: string
         }
@@ -385,6 +410,8 @@ export type Database = {
           stripe_subscription_id?: string | null
           subscription_expires_at?: string | null
           subscription_status?: string | null
+          terms_accepted_at?: string | null
+          terms_accepted_version?: string | null
           ui_preferences?: Json
           updated_at?: string
         }
@@ -461,51 +488,76 @@ export type Database = {
           },
         ]
       }
+      stripe_webhook_events: {
+        Row: {
+          processed_at: string
+          stripe_event_id: string
+        }
+        Insert: {
+          processed_at?: string
+          stripe_event_id: string
+        }
+        Update: {
+          processed_at?: string
+          stripe_event_id?: string
+        }
+        Relationships: []
+      }
       treatment_templates: {
         Row: {
           clinic_id: string
           created_at: string
           current_version: number
           doctor_id: string
+          extra_sections: Json
           id: string
           title: string
           treatment: string
           trigger: string
           updated_at: string
           versions: Json
-          extra_sections: Json
         }
         Insert: {
           clinic_id: string
           created_at?: string
           current_version?: number
           doctor_id: string
+          extra_sections?: Json
           id?: string
           title: string
           treatment: string
           trigger: string
           updated_at?: string
           versions?: Json
-          extra_sections?: Json
         }
         Update: {
           clinic_id?: string
           created_at?: string
           current_version?: number
           doctor_id?: string
+          extra_sections?: Json
           id?: string
           title?: string
           treatment?: string
           trigger?: string
           updated_at?: string
           versions?: Json
-          extra_sections?: Json
         }
         Relationships: []
       }
     }
     Views: {
       mv_dashboard_kpis_daily: {
+        Row: {
+          clinic_id: string | null
+          consultations_created: number | null
+          doctor_id: string | null
+          patients_created: number | null
+          report_date: string | null
+        }
+        Relationships: []
+      }
+      v_dashboard_kpis_daily: {
         Row: {
           clinic_id: string | null
           consultations_created: number | null
@@ -552,7 +604,7 @@ export type Database = {
         Returns: undefined
       }
       search_global: {
-        Args: { p_clinic_id: string; p_query: string }
+        Args: { p_query: string }
         Returns: {
           id: string
           kind: string

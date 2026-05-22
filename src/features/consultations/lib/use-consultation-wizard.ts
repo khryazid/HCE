@@ -301,9 +301,12 @@ export function useConsultationWizard(tenant: TenantProfile | null) {
       });
 
       if (firstCode) {
+        // AUDIT FIX W-5: usar mergeCieCodeList para no destruir los códigos
+        // CIE que el médico ya ingresó manualmente. La IA sugiere el primero
+        // más relevante, pero se añade al conjunto existente.
         setForm((current) => ({
           ...current,
-          cieCodes: firstCode,
+          cieCodes: mergeCieCodeList(current.cieCodes, firstCode),
         }));
       }
     } catch (e) {

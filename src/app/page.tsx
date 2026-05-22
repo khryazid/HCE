@@ -1,5 +1,6 @@
 import LandingClient from "./landing-client";
 import { getPublicPricing } from "@/lib/config";
+import { APP_URL, APP_NAME } from "@/lib/constants/app";
 
 export const revalidate = 3600; // ISR: Revalidate pricing every hour without forcing dynamic rendering
 
@@ -9,7 +10,9 @@ export default async function Page() {
   const schemaData = {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
-    "name": "Glyphix",
+    "name": APP_NAME,
+    "url": APP_URL,
+    "image": `${APP_URL}/og-image.webp`,
     "operatingSystem": "Web, Windows, macOS, iOS, Android",
     "applicationCategory": "HealthApplication",
     "offers": {
@@ -18,6 +21,11 @@ export default async function Page() {
       "priceCurrency": "USD"
     },
     "description": "Historia clínica electrónica multiespecialidad con IA, trabajo offline y sincronización automática. Diseñado para médicos modernos.",
+    "provider": {
+      "@type": "Organization",
+      "name": APP_NAME,
+      "url": APP_URL,
+    },
   };
 
   return (

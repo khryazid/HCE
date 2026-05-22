@@ -1,5 +1,40 @@
+/**
+ * lib/db/crypto.ts
+ *
+ * Cifrado AES-GCM-256 para datos PHI almacenados en IndexedDB (offline).
+ *
+ * ⚠️  R-05 — RIESGO DE DISEÑO: Clave maestra compartida
+ * ─────────────────────────────────────────────────────────────
+ * NEXT_PUBLIC_IDB_MASTER_KEY es la misma clave para TODOS los usuarios del
+ * despliegue. Si se compromete o rota:
+ *
+ *   - Todos los usuarios pierden acceso a sus datos IndexedDB cifrados.
+ *   - No hay mecanismo de re-encriptación automática.
+ *
+ * Estrategia recomendada para rotación:
+ *   1. Agregar NEXT_PUBLIC_IDB_MASTER_KEY_PREV con la clave anterior.
+ *   2. En decryptData: intentar con la clave nueva, si falla, intentar con la anterior.
+ *   3. En encryptData: usar siempre la clave nueva.
+ *   4. Tras 1 ciclo de sync, eliminar NEXT_PUBLIC_IDB_MASTER_KEY_PREV.
+ *
+ * Alternativa superior (largo plazo): derivar la clave desde el JWT del usuario
+ * en lugar de una variable de entorno compartida — así cada usuario tiene su
+ * propia clave y la rotación no afecta a otros.
+ * ─────────────────────────────────────────────────────────────
+ */
+
 export async function deriveKey(userId: string): Promise<CryptoKey> {
-  const masterKey = process.env.NEXT_PUBLIC_IDB_MASTER_KEY || "glyph_hce_fallback_master_key_2026";
+  const masterKey = process.env.NEXT_PUBLIC_IDB_MASTER_KEY;
+  // Sync-2.5: Fail loudly if the master key is missing.
+  // A silent fallback to a hardcoded string would encrypt all local PHI with
+  // a publicly-known key, rendering the encryption meaningless.
+  if (!masterKey) {
+    throw new Error(
+      "[IDB Crypto] NEXT_PUBLIC_IDB_MASTER_KEY is not set. " +
+      "Add it to your .env.local (development) or Vercel environment variables (production). " +
+      "Do NOT use a hardcoded fallback — that would expose local patient data.",
+    );
+  }
   const enc = new TextEncoder();
   const keyMaterial = await crypto.subtle.importKey(
     "raw",

@@ -54,7 +54,7 @@ export const serverEnv = {
     return requireEnv("GEMINI_API_KEY");
   },
   get GEMINI_MODEL() {
-    return optionalEnv("GEMINI_MODEL", "gemini-3.5-flash");
+    return optionalEnv("GEMINI_MODEL", "gemini-2.0-flash");
   },
 
   // ── Web Push / VAPID ───────────────────────────────────────────────────────
@@ -73,6 +73,16 @@ export const serverEnv = {
   // ── Push Notifications (cron jobs / webhooks) ──────────────────────────────
   get PUSH_SEND_SECRET() {
     return requireEnv("PUSH_SEND_SECRET");
+  },
+
+  // ── Resend (email) ───────────────────────────────────────────────────────────
+  // HAL-10: Estas variables no estaban en serverEnv — un deploy sin ellas
+  // pasaba el build y fallaía silenciosamente al primer cron/email.
+  get RESEND_API_KEY() {
+    return requireEnv("RESEND_API_KEY");
+  },
+  get RESEND_EMAIL_SECRET() {
+    return requireEnv("RESEND_EMAIL_SECRET");
   },
 
   // ── App URL ────────────────────────────────────────────────────────────────

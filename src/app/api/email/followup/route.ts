@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
-import { createClient as createSupabaseAdmin } from "@supabase/supabase-js";
+import { createAdminClient } from "@/lib/supabase/server";
 import { APP_NAME, APP_FROM_EMAIL, APP_URL } from "@/lib/constants/app";
+import { isSecretValid, emailFollowupBodySchema } from "@/lib/api/guards";
+import { serverEnv } from "@/lib/env";
 
 /**
  * POST /api/email/followup
@@ -20,43 +22,33 @@ import { APP_NAME, APP_FROM_EMAIL, APP_URL } from "@/lib/constants/app";
  */
 export async function POST(req: Request) {
   const incomingSecret = req.headers.get("x-email-secret");
-  const expectedSecret = process.env.RESEND_EMAIL_SECRET;
 
-  if (!expectedSecret || incomingSecret !== expectedSecret) {
+  // HAL-08: Comparación de secretos en tiempo constante
+  // HAL-10: RESEND_EMAIL_SECRET desde serverEnv (falla en startup si no está configurado)
+  if (!isSecretValid(incomingSecret, serverEnv.RESEND_EMAIL_SECRET)) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
-  const resendKey = process.env.RESEND_API_KEY;
-  if (!resendKey) {
-    console.error("[email/followup] RESEND_API_KEY not configured");
-    return NextResponse.json({ error: "Email no configurado" }, { status: 503 });
+  const resend = new Resend(serverEnv.RESEND_API_KEY);
+
+  // HAL-03: Validar body con Zod en lugar de cast manual
+  const rawBody = await req.json();
+  const parsed = emailFollowupBodySchema.safeParse(rawBody);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: parsed.error.issues[0]?.message ?? "Payload inválido" },
+      { status: 400 },
+    );
   }
-
-  const body = await req.json() as {
-    target_doctor_id?: string;
-    doctor_email?: string;
-    doctor_name?: string;
-    due_count?: number;
-  };
-
-  const { target_doctor_id, doctor_email, doctor_name, due_count = 1 } = body;
-
-  if (!target_doctor_id || !doctor_email) {
-    return NextResponse.json({ error: "target_doctor_id y doctor_email son requeridos" }, { status: 400 });
-  }
+  const { target_doctor_id, doctor_email, doctor_name, due_count = 1 } = parsed.data;
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? APP_URL;
   const fromAddress = process.env.RESEND_FROM_EMAIL ?? APP_FROM_EMAIL;
   const name = doctor_name ?? "Doctor";
 
-  const resend = new Resend(resendKey);
-
-  // Fetch the count of today's tasks from Supabase (double-check)
-  const admin = createSupabaseAdmin(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { autoRefreshToken: false, persistSession: false } },
-  );
+  // R-07: Usar createAdminClient() centralizado (server.ts) en lugar de
+  // instanciar inline con process.env!. Elimina non-null assertions.
+  const admin = createAdminClient();
 
   const today = new Date().toISOString().split("T")[0];
   const { count } = await admin

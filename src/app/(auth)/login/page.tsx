@@ -8,6 +8,7 @@ export const metadata: Metadata = {
   title: `Iniciar sesión — ${APP_NAME}`,
   description:
     `Accede a tu espacio clínico en ${APP_NAME}. Historia clínica electrónica, consultas y sincronización offline-first para médicos.`,
+  alternates: { canonical: "/login" },
 };
 
 export default function LoginPage() {

@@ -285,18 +285,25 @@ async function syncItem(item: SyncQueueItem): Promise<"synced" | "conflicted"> {
     : Number.NEGATIVE_INFINITY;
 
   if (remoteTime > item.client_timestamp) {
-    // A-10: No operar en silencio — notificar al usuario que su cambio local fue
-    // descartado porque el servidor tenía una versión más reciente (clock drift).
-    emitAppEvent(APP_EVENT_SYNC_ERROR, {
+    // Sync-1.3: A-10 upgrade — instead of silently deleting the local change,
+    // mark it as "conflicted" so the doctor can see it in the SyncQueuePanel
+    // and decide whether to discard or retry manually. Also emit the abandoned
+    // event (higher UI prominence than sync_error) so the banner turns red.
+    const conflictMessage =
+      `Conflicto en "${tableName}": el servidor tiene una versión más reciente (clock drift). ` +
+      "Tu cambio local está guardado como conflicto — revísalo en Ajustes › Sincronización.";
+
+    await updateSyncItemStatus(item.id, "conflicted", conflictMessage, item.retry_count);
+
+    emitAppEvent(APP_EVENT_SYNC_ABANDONED, {
       source: "clock-drift",
-      message:
-        `Cambio local en "${tableName}" descartado: el servidor tiene una versión más reciente. ` +
-        "Recarga la página para ver los datos actualizados.",
-      record_id: item.record_id,
-      table: tableName,
+      itemId: item.id,
+      tableName,
+      recordId: item.record_id,
+      message: conflictMessage,
+      retryCount: item.retry_count,
     });
-    await deleteSyncQueueItem(item.id);
-    return "synced";
+    return "conflicted";
   }
 
   if (item.action === "delete") {

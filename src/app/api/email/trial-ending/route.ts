@@ -1,39 +1,34 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { APP_NAME, APP_FROM_EMAIL, APP_URL } from "@/lib/constants/app";
+import { isSecretValid, emailTrialEndingBodySchema } from "@/lib/api/guards";
+import { serverEnv } from "@/lib/env";
 
 export async function POST(req: Request) {
   const incomingSecret = req.headers.get("x-email-secret");
-  const expectedSecret = process.env.RESEND_EMAIL_SECRET;
 
-  if (!expectedSecret || incomingSecret !== expectedSecret) {
+  // HAL-08: Comparación de secretos en tiempo constante
+  // HAL-10: RESEND_EMAIL_SECRET desde serverEnv
+  if (!isSecretValid(incomingSecret, serverEnv.RESEND_EMAIL_SECRET)) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
-  const resendKey = process.env.RESEND_API_KEY;
-  if (!resendKey) {
-    console.error("[email/trial-ending] RESEND_API_KEY not configured");
-    return NextResponse.json({ error: "Email no configurado" }, { status: 503 });
+  // HAL-03: Validar body con Zod en lugar de cast manual
+  const rawBody = await req.json();
+  const parsed = emailTrialEndingBodySchema.safeParse(rawBody);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: parsed.error.issues[0]?.message ?? "Payload inválido" },
+      { status: 400 },
+    );
   }
-
-  const body = await req.json() as {
-    target_doctor_id?: string;
-    doctor_email?: string;
-    doctor_name?: string;
-    days_left?: number;
-  };
-
-  const { target_doctor_id, doctor_email, doctor_name, days_left = 0 } = body;
-
-  if (!target_doctor_id || !doctor_email) {
-    return NextResponse.json({ error: "target_doctor_id y doctor_email son requeridos" }, { status: 400 });
-  }
+  const { doctor_email, doctor_name, days_left = 0 } = parsed.data;
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? APP_URL;
   const fromAddress = process.env.RESEND_FROM_EMAIL ?? APP_FROM_EMAIL;
   const name = doctor_name ?? "Doctor";
 
-  const resend = new Resend(resendKey);
+  const resend = new Resend(serverEnv.RESEND_API_KEY);
 
   const subject = days_left === 0 
     ? `🚨 Tu prueba gratuita de ${APP_NAME} finaliza hoy` 

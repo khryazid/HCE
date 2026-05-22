@@ -1,8 +1,44 @@
-import { type NextRequest } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 
+/**
+ * HAL-11 / S-01: Inyecta un X-Request-ID único en cada request.
+ * Permite correlacionar acciones del usuario con logs del servidor en Vercel Logs.
+ *
+ * En el Edge runtime los headers del request son INMUTABLES — no se puede usar
+ * request.headers.set(). La única forma de propagarlos al handler es clonar los
+ * headers y pasarlos via NextResponse.next({ request: { headers } }).
+ *
+ * Los API Routes leen este header con: req.headers.get("x-request-id")
+ * y lo pasan a serverLog.withRequestId() para trazabilidad end-to-end.
+ */
+function injectRequestId(request: NextRequest, response: NextResponse): NextResponse {
+  const existingId = request.headers.get("x-request-id");
+  const requestId = existingId ?? crypto.randomUUID();
+
+  // Clonar los headers del request y agregar x-request-id
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-request-id", requestId);
+
+  // Crear una nueva response que propague los headers modificados al handler
+  const newResponse = NextResponse.next({
+    request: { headers: requestHeaders },
+  });
+
+  // Copiar cookies de la response de Supabase SSR (token refresh, etc.)
+  response.cookies.getAll().forEach((cookie) => {
+    newResponse.cookies.set(cookie);
+  });
+
+  // Exponer el requestId en el response header (útil para debug desde el cliente)
+  newResponse.headers.set("x-request-id", requestId);
+
+  return newResponse;
+}
+
 export async function proxy(request: NextRequest) {
-  return await updateSession(request);
+  const response = await updateSession(request);
+  return injectRequestId(request, response);
 }
 
 export const config = {

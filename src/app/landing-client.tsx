@@ -224,7 +224,7 @@ export default function LandingClient({ proPrice, clinicPrice }: { proPrice: num
                 <div className="l-card-icon" aria-hidden>💊</div>
                 <h3 id="feat-posology" className="l-card-title">Posología Inteligente</h3>
                 <p className="l-card-body">
-                  Escribe la receta médica en texto libre y Glyph generará automáticamente tarjetas estructuradas 
+                  Escribe la receta médica en texto libre y {APP_NAME} generará automáticamente tarjetas estructuradas 
                   de indicaciones para la hoja del paciente.
                 </p>
                 <span className="l-card-tag">Generación automática</span>
@@ -282,7 +282,7 @@ export default function LandingClient({ proPrice, clinicPrice }: { proPrice: num
                     <span className="l-mock-dot r" />
                     <span className="l-mock-dot y" />
                     <span className="l-mock-dot g" />
-                    glyph — consultas offline
+                    {APP_NAME} — consultas offline
                   </div>
                   <div className="l-mock-body">
                     {[
@@ -314,7 +314,7 @@ export default function LandingClient({ proPrice, clinicPrice }: { proPrice: num
                   Trabaja sin internet.<br /><em>Siempre.</em>
                 </h2>
                 <p style={{color:"var(--lt2)", marginTop:"16px", lineHeight:1.7, fontSize:".95rem"}}>
-                  Glyph corre completamente en tu navegador usando IndexedDB.
+                  {APP_NAME} corre completamente en tu navegador usando IndexedDB.
                   Sin conexión, la app sigue funcionando a la perfección.
                   Cuando vuelve el internet, sincroniza sola.
                 </p>

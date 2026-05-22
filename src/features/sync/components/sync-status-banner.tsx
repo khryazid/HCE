@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { getSyncQueueStats } from "@/lib/db/indexeddb";
 import Link from "next/link";
-import { APP_EVENT_SUBSCRIPTION_EXPIRED } from "@/lib/sync/sync-worker";
+import { APP_EVENT_SUBSCRIPTION_EXPIRED, SYNC_FINISHED_EVENT } from "@/lib/sync/sync-worker";
 import {
   APP_EVENT_REALTIME_DISCONNECTED,
   APP_EVENT_REALTIME_RECONNECTED,
@@ -13,8 +13,15 @@ export function SyncStatusBanner() {
   const [hasErrors, setHasErrors] = useState(false);
   const [hasPending, setHasPending] = useState(false);
 
-  // C-06: Banner dedicado para suscripción expirada — persiste hasta navegar a /billing
-  const [subscriptionExpired, setSubscriptionExpired] = useState(false);
+  // C-06 / Sync-4.2: Banner dedicado para suscripción expirada.
+  // Persisted in localStorage so the banner survives page reloads — without
+  // this, closing and reopening the browser would hide the warning even though
+  // "conflicted" items still sit in the sync queue.
+  const SUBSCRIPTION_EXPIRED_KEY = "hce:subscription-expired";
+  const [subscriptionExpired, setSubscriptionExpired] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem(SUBSCRIPTION_EXPIRED_KEY) === "true";
+  });
 
   // Sync-3.1: Estado de conectividad (red + Realtime)
   const [isOffline, setIsOffline] = useState(
@@ -31,6 +38,13 @@ export function SyncStatusBanner() {
         if (active) {
           setHasErrors(stats.failed > 0 || stats.conflicted > 0);
           setHasPending(stats.pending > 0);
+
+          // Sync-4.2: Auto-clear the persisted flag once all conflicted items
+          // are gone (i.e. the user renewed their plan and everything synced).
+          if (stats.conflicted === 0 && stats.failed === 0) {
+            window.localStorage.removeItem(SUBSCRIPTION_EXPIRED_KEY);
+            if (active) setSubscriptionExpired(false);
+          }
         }
       } catch {
         // ignore — IDB puede no estar disponible aún
@@ -47,7 +61,10 @@ export function SyncStatusBanner() {
 
     // C-06: Escuchar evento de suscripción expirada emitido por el sync worker
     const handleSubscriptionExpired = () => {
-      if (active) setSubscriptionExpired(true);
+      if (active) {
+        window.localStorage.setItem(SUBSCRIPTION_EXPIRED_KEY, "true");
+        setSubscriptionExpired(true);
+      }
     };
 
     // Sync-3.1: Red online/offline
@@ -59,7 +76,9 @@ export function SyncStatusBanner() {
     const handleRealtimeUp   = () => { if (active) setIsRealtimeError(false); };
 
     window.addEventListener("visibilitychange", handleVisibility);
-    window.addEventListener("hce:sync_finished", handleSyncFinished);
+    // Sync-5.2: Use the exported constant — the literal "hce:sync_finished" had
+    // an underscore vs the worker's hyphen, so the banner never refreshed.
+    window.addEventListener(SYNC_FINISHED_EVENT, handleSyncFinished);
     window.addEventListener(APP_EVENT_SUBSCRIPTION_EXPIRED, handleSubscriptionExpired);
     window.addEventListener("online",  handleOnline);
     window.addEventListener("offline", handleOffline);
@@ -69,7 +88,7 @@ export function SyncStatusBanner() {
     return () => {
       active = false;
       window.removeEventListener("visibilitychange", handleVisibility);
-      window.removeEventListener("hce:sync_finished", handleSyncFinished);
+      window.removeEventListener(SYNC_FINISHED_EVENT, handleSyncFinished);
       window.removeEventListener(APP_EVENT_SUBSCRIPTION_EXPIRED, handleSubscriptionExpired);
       window.removeEventListener("online",  handleOnline);
       window.removeEventListener("offline", handleOffline);

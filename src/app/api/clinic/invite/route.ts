@@ -60,10 +60,12 @@ export async function POST(req: Request) {
 
     const plan = ownerProfile?.plan ?? "basic";
 
-    // Límites de seats por plan
+    // Límites de seats por plan.
+    // IMPORTANTE: las keys deben coincidir exactamente con los valores de profiles.plan
+    // (escrito por el webhook handler desde Stripe price metadata: "basic" | "clinic").
     const PLAN_LIMITS: Record<string, { maxDoctors: number; maxAssistants: number }> = {
       basic:      { maxDoctors: 0,   maxAssistants: 2  }, // sin doctores adicionales
-      clinica:    { maxDoctors: 5,   maxAssistants: 10 },
+      clinic:     { maxDoctors: 5,   maxAssistants: 10 }, // Fix B-03: era "clinica", debe ser "clinic"
       enterprise: { maxDoctors: 999, maxAssistants: 999 },
     };
     const limits = PLAN_LIMITS[plan] ?? PLAN_LIMITS.basic;
@@ -123,7 +125,9 @@ export async function POST(req: Request) {
       if (foundId) {
         invitedUserId = foundId as string;
       } else {
-        return NextResponse.json({ error: inviteError.message }, { status: 400 });
+        // R-01: No exponer inviteError.message — puede contener detalles internos de Supabase Auth
+        console.error("[clinic/invite] inviteUserByEmail failed:", inviteError.message);
+        return NextResponse.json({ error: "No se pudo enviar la invitación" }, { status: 400 });
       }
     } else {
       invitedUserId = inviteData.user.id;
@@ -151,8 +155,9 @@ export async function POST(req: Request) {
     
     return NextResponse.json({ success: true, user_id: invitedUserId });
   } catch (err) {
+    console.error("[clinic/invite] Unhandled error:", err);
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error interno del servidor" },
+      { error: "Error interno del servidor" },
       { status: 500 }
     );
   }

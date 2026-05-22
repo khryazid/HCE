@@ -99,7 +99,7 @@ export function WizardStepPhysicalExam({ form, setForm, tenantSpecialties = [], 
         </h4>
         <div className="space-y-1.5">
           <div className="flex items-center gap-2">
-            <label className="text-xs font-semibold text-ink flex-1">Descripción del estado general</label>
+            <label htmlFor="field-general-condition" className="text-xs font-semibold text-ink flex-1">Descripción del estado general</label>
             {NORMAL_TEXT["🧍 General"] && (
               <button
                 type="button"
@@ -120,6 +120,7 @@ export function WizardStepPhysicalExam({ form, setForm, tenantSpecialties = [], 
             )}
           </div>
           <textarea
+            id="field-general-condition"
             className="hce-input min-h-16"
             placeholder="Paciente consciente, orientado en tiempo, lugar y persona, en regulares/buenas condiciones generales..."
             value={form.generalCondition}
@@ -138,8 +139,9 @@ export function WizardStepPhysicalExam({ form, setForm, tenantSpecialties = [], 
           <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-3">
             {/* T.A. con PAM */}
             <div className="space-y-1 sm:col-span-2">
-              <label className="text-[10px] font-medium text-ink-soft uppercase">T.A. (mmHg)</label>
+              <label htmlFor="field-blood-pressure" className="text-[10px] font-medium text-ink-soft uppercase">T.A. (mmHg)</label>
               <input
+                id="field-blood-pressure"
                 inputMode="decimal"
                 pattern="[0-9.,]*"
                 className="hce-input text-sm text-center px-2"
@@ -173,10 +175,10 @@ export function WizardStepPhysicalExam({ form, setForm, tenantSpecialties = [], 
                   <span className="text-[10px] font-semibold text-ink-soft">PAM:</span>
                   <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold ${
                     parseInt(form.vitalSigns.mean_arterial_pressure) < 65
-                      ? "bg-red-100 text-red-700"
+                      ? "hce-badge-alert"
                       : parseInt(form.vitalSigns.mean_arterial_pressure) > 110
-                      ? "bg-amber-100 text-amber-700"
-                      : "bg-emerald-100 text-emerald-800"
+                      ? "hce-badge-warn"
+                      : "hce-badge-ok"
                   }`}>
                     {form.vitalSigns.mean_arterial_pressure} mmHg
                   </span>
@@ -185,43 +187,44 @@ export function WizardStepPhysicalExam({ form, setForm, tenantSpecialties = [], 
             </div>
 
             <div className="space-y-1">
-              <label className="text-[10px] font-medium text-ink-soft uppercase">F.C. (lpm)</label>
-              <input inputMode="decimal" pattern="[0-9.,]*" className="hce-input text-sm text-center px-2" placeholder="80"
+              <label htmlFor="field-heart-rate" className="text-[10px] font-medium text-ink-soft uppercase">F.C. (lpm)</label>
+              <input id="field-heart-rate" inputMode="decimal" pattern="[0-9.,]*" className="hce-input text-sm text-center px-2" placeholder="80"
                 value={form.vitalSigns.heartRate}
                 onChange={(e) => setForm((c) => ({ ...c, vitalSigns: { ...c.vitalSigns, heartRate: e.target.value } }))}
               />
             </div>
             <div className="space-y-1">
-              <label className="text-[10px] font-medium text-ink-soft uppercase">F.R. (rpm)</label>
-              <input inputMode="decimal" pattern="[0-9.,]*" className="hce-input text-sm text-center px-2" placeholder="16"
+              <label htmlFor="field-respiratory-rate" className="text-[10px] font-medium text-ink-soft uppercase">F.R. (rpm)</label>
+              <input id="field-respiratory-rate" inputMode="decimal" pattern="[0-9.,]*" className="hce-input text-sm text-center px-2" placeholder="16"
                 value={form.vitalSigns.respiratoryRate}
                 onChange={(e) => setForm((c) => ({ ...c, vitalSigns: { ...c.vitalSigns, respiratoryRate: e.target.value } }))}
               />
             </div>
             <div className="space-y-1">
-              <label className="text-[10px] font-medium text-ink-soft uppercase">Temp. (°C)</label>
-              <input inputMode="decimal" pattern="[0-9.,]*" className="hce-input text-sm text-center px-2" placeholder="36.5"
+              <label htmlFor="field-temperature" className="text-[10px] font-medium text-ink-soft uppercase">Temp. (°C)</label>
+              <input id="field-temperature" inputMode="decimal" pattern="[0-9.,]*" className="hce-input text-sm text-center px-2" placeholder="36.5"
                 value={form.vitalSigns.temperature}
                 onChange={(e) => setForm((c) => ({ ...c, vitalSigns: { ...c.vitalSigns, temperature: e.target.value } }))}
               />
             </div>
             <div className="space-y-1">
-              <label className="text-[10px] font-medium text-ink-soft uppercase">SatO2 (%)</label>
-              <input inputMode="decimal" pattern="[0-9.,]*" className="hce-input text-sm text-center px-2" placeholder="98"
+              <label htmlFor="field-oxygen-saturation" className="text-[10px] font-medium text-ink-soft uppercase">SatO2 (%)</label>
+              <input id="field-oxygen-saturation" inputMode="decimal" pattern="[0-9.,]*" className="hce-input text-sm text-center px-2" placeholder="98"
                 value={form.vitalSigns.oxygenSaturation}
                 onChange={(e) => setForm((c) => ({ ...c, vitalSigns: { ...c.vitalSigns, oxygenSaturation: e.target.value } }))}
               />
             </div>
             <div className="space-y-1">
-              <label className="text-[10px] font-medium text-ink-soft uppercase">Peso (kg)</label>
-              <input inputMode="decimal" pattern="[0-9.,]*" className="hce-input text-sm text-center px-2" placeholder="70.5"
+              <label htmlFor="field-weight" className="text-[10px] font-medium text-ink-soft uppercase">Peso (kg)</label>
+              <input id="field-weight" inputMode="decimal" pattern="[0-9.,]*" className="hce-input text-sm text-center px-2" placeholder="70.5"
                 value={form.vitalSigns.weight}
                 onChange={(e) => setForm((c) => ({ ...c, vitalSigns: { ...c.vitalSigns, weight: e.target.value } }))}
               />
             </div>
             <div className="space-y-1">
-              <label className="text-[10px] font-medium text-ink-soft uppercase">Talla (m)</label>
+              <label htmlFor="field-height" className="text-[10px] font-medium text-ink-soft uppercase">Talla (m)</label>
               <input
+                id="field-height"
                 inputMode="decimal"
                 pattern="[0-9.,]*"
                 className="hce-input text-sm text-center px-2"
@@ -239,8 +242,8 @@ export function WizardStepPhysicalExam({ form, setForm, tenantSpecialties = [], 
                 Escala de Dolor EVA
               </label>
               <span className={`text-sm font-bold ${
-                (form.painScale ?? 0) >= 7 ? "text-red-600" :
-                (form.painScale ?? 0) >= 4 ? "text-amber-600" : "text-emerald-600"
+                (form.painScale ?? 0) >= 7 ? "text-[var(--state-alert)]" :
+                (form.painScale ?? 0) >= 4 ? "text-[var(--state-warn)]" : "text-[var(--state-ok)]"
               }`}>
                 {form.painScale !== null ? `${form.painScale}/10` : "Sin evaluar"}
               </span>
@@ -275,14 +278,14 @@ export function WizardStepPhysicalExam({ form, setForm, tenantSpecialties = [], 
             if (!isNaN(w) && !isNaN(h) && h > 0.5 && h < 3) {
               const bmi = w / (h * h);
               let label = "Normal";
-              let color = "bg-emerald-100 text-emerald-800";
-              if (bmi < 18.5) { label = "Bajo peso"; color = "bg-amber-100 text-amber-800"; }
-              else if (bmi >= 25 && bmi < 30) { label = "Sobrepeso"; color = "bg-amber-100 text-amber-800"; }
-              else if (bmi >= 30) { label = "Obesidad"; color = "bg-red-100 text-red-800"; }
+              let badgeClass = "hce-badge-ok";
+              if (bmi < 18.5) { label = "Bajo peso"; badgeClass = "hce-badge-warn"; }
+              else if (bmi >= 25 && bmi < 30) { label = "Sobrepeso"; badgeClass = "hce-badge-warn"; }
+              else if (bmi >= 30) { label = "Obesidad"; badgeClass = "hce-badge-alert"; }
               return (
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-semibold text-ink-soft">IMC:</span>
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold ${color}`}>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold ${badgeClass}`}>
                     {bmi.toFixed(1)} — {label}
                   </span>
                 </div>
@@ -313,8 +316,8 @@ export function WizardStepPhysicalExam({ form, setForm, tenantSpecialties = [], 
 
             if (alerts.length === 0) return null;
             return (
-              <div className="mt-2 rounded-xl border border-red-200 bg-red-50 p-3">
-                <p className="text-xs font-bold uppercase tracking-wider text-red-800 flex items-center gap-1.5 mb-1.5">
+              <div className="mt-2 hce-alert-error">
+                <p className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 mb-1.5">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
                     <path d="M12 9v4" />
@@ -322,7 +325,7 @@ export function WizardStepPhysicalExam({ form, setForm, tenantSpecialties = [], 
                   </svg>
                   Alerta Médica: Valores Críticos
                 </p>
-                <ul className="list-disc pl-5 text-sm text-red-700 space-y-0.5">
+                <ul className="list-disc pl-5 text-sm space-y-0.5">
                   {alerts.map((alert, i) => <li key={i}>{alert}</li>)}
                 </ul>
               </div>
@@ -407,22 +410,22 @@ export function WizardStepPhysicalExam({ form, setForm, tenantSpecialties = [], 
             </h5>
             <div className="grid gap-3 sm:grid-cols-3">
               <div className="space-y-1">
-                <label className="text-[10px] font-medium text-ink-soft uppercase">Perímetro Cefálico (cm)</label>
-                <input className="hce-input text-sm" placeholder="34.5"
+                <label htmlFor="field-head-circumference" className="text-[10px] font-medium text-ink-soft uppercase">Perímetro Cefálico (cm)</label>
+                <input id="field-head-circumference" className="hce-input text-sm" placeholder="34.5"
                   value={form.pediatricData.headCircumference}
                   onChange={(e) => setForm((c) => ({ ...c, pediatricData: { ...c.pediatricData, headCircumference: e.target.value } }))}
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-medium text-ink-soft uppercase">Estadio de Desarrollo</label>
-                <input className="hce-input text-sm" placeholder="Acorde a edad / Tanner II..."
+                <label htmlFor="field-development-stage" className="text-[10px] font-medium text-ink-soft uppercase">Estadio de Desarrollo</label>
+                <input id="field-development-stage" className="hce-input text-sm" placeholder="Acorde a edad / Tanner II..."
                   value={form.pediatricData.developmentStage}
                   onChange={(e) => setForm((c) => ({ ...c, pediatricData: { ...c.pediatricData, developmentStage: e.target.value } }))}
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-medium text-ink-soft uppercase">Estado Vacunal</label>
-                <input className="hce-input text-sm" placeholder="Completo / Incompleto / Sin datos"
+                <label htmlFor="field-vaccine-status" className="text-[10px] font-medium text-ink-soft uppercase">Estado Vacunal</label>
+                <input id="field-vaccine-status" className="hce-input text-sm" placeholder="Completo / Incompleto / Sin datos"
                   value={form.pediatricData.vaccineStatus}
                   onChange={(e) => setForm((c) => ({ ...c, pediatricData: { ...c.pediatricData, vaccineStatus: e.target.value } }))}
                 />
