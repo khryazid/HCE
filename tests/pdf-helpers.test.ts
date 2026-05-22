@@ -9,7 +9,8 @@ import {
   drawBlock,
 } from "@/features/consultations/lib/pdf/pdf-helpers";
 import type { jsPDF } from "jspdf";
-import type { PdfContext } from "@/features/consultations/lib/pdf/pdf-types";
+import type { PdfContext, ConsultationPdfData } from "@/features/consultations/lib/pdf/pdf-types";
+import type { LetterheadSettings } from "@/features/dashboard/lib/letterhead";
 
 describe("pdf-helpers", () => {
   describe("resolveImageFormat", () => {
@@ -58,6 +59,16 @@ describe("pdf-helpers", () => {
         splitTextToSize: vi.fn((text) => [text]), // Return single line by default
       };
 
+      const mockLetterhead: LetterheadSettings = {
+        doctor_name: "Dr. Test",
+        professional_title: "Médico General",
+        specialties: "Medicina General",
+        address: "",
+        phone_primary: "",
+      };
+
+      const mockData = {} as ConsultationPdfData;
+
       mockCtx = {
         doc: mockDoc as unknown as jsPDF,
         y: 100,
@@ -65,18 +76,18 @@ describe("pdf-helpers", () => {
         contentWidth: 170,
         pageHeight: 297,
         pageWidth: 210,
-        watermarkUrl: "",
-        hasWatermark: false,
+        letterhead: mockLetterhead,
+        data: mockData,
       };
     });
 
     describe("setColor & setFill", () => {
       it("parses hex correctly for setColor", () => {
-        setColor(mockDoc, "#FF00AA");
+        setColor(mockDoc as unknown as jsPDF, "#FF00AA");
         expect(mockDoc.setTextColor).toHaveBeenCalledWith(255, 0, 170);
       });
       it("parses hex correctly for setFill", () => {
-        setFill(mockDoc, "#00FF00");
+        setFill(mockDoc as unknown as jsPDF, "#00FF00");
         expect(mockDoc.setFillColor).toHaveBeenCalledWith(0, 255, 0);
       });
     });
