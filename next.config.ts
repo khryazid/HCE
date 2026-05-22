@@ -53,7 +53,7 @@ const securityHeaders = [
   // S-05: Permissions-Policy — deshabilitar APIs del navegador no utilizadas
   {
     key: "Permissions-Policy",
-    value: "camera=(), microphone=(), geolocation=(), payment=(self https://js.stripe.com)",
+    value: 'camera=(), microphone=(), geolocation=(), payment=(self "https://js.stripe.com")',
   },
   {
     // S-05: unsafe-inline y unsafe-eval son necesarios para Next.js (inline styles/scripts)
