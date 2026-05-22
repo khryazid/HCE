@@ -44,7 +44,6 @@ export async function verifySuperAdmin() {
     throw new Error("Unauthorized");
   }
 
-  const adminEmail = getAdminEmail();
   if (adminEmail && user.email !== adminEmail) {
     console.warn(`[Admin Audit] Admin access granted to ${user.email} (does not match ADMIN_EMAIL)`);
   }
