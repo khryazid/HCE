@@ -262,6 +262,28 @@ end $$;
 --    Estas líneas son no-ops en una instalación nueva.
 -- ════════════════════════════════════════════════════════════
 
+-- Parche para migraciones: agregar columna deleted_at (Soft Delete) si no existe
+do $$
+begin
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public'
+      and table_name   = 'patients'
+      and column_name  = 'deleted_at'
+  ) then
+    alter table public.patients add column deleted_at timestamptz;
+  end if;
+
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public'
+      and table_name   = 'clinical_records'
+      and column_name  = 'deleted_at'
+  ) then
+    alter table public.clinical_records add column deleted_at timestamptz;
+  end if;
+end $$;
+
 -- Migrar IDs de clinics existentes para no romper FKs
 do $$
 begin
