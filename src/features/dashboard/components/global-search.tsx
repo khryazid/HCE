@@ -302,6 +302,9 @@ export function GlobalSearch() {
           return (
             <button
               key={item.id}
+              id={`search-result-${globalIndex}`}
+              role="option"
+              aria-selected={globalIndex === activeIndex}
               type="button"
               onClick={() => selectItem(item)}
               onMouseEnter={() => setActiveIndex(globalIndex)}
@@ -375,9 +378,17 @@ export function GlobalSearch() {
             <div className="border-b border-border p-3">
               <SearchInput
                 value={query}
-                onChange={(value) => setQuery(value)}
+                onChange={(value) => {
+                  const val = typeof value === "string" ? value : (value as React.ChangeEvent<HTMLInputElement>).target.value;
+                  setQuery(val);
+                }}
                 placeholder="Escribe nombre, documento, diagnóstico o tratamiento"
                 open={open}
+                role="combobox"
+                aria-expanded={open}
+                aria-controls="global-search-listbox"
+                aria-activedescendant={filteredItems.length > 0 ? `search-result-${activeIndex}` : undefined}
+                aria-autocomplete="list"
               />
               <p className="mt-2 text-xs text-ink-soft">
                 Usa flechas para navegar y Enter para abrir.
@@ -387,7 +398,7 @@ export function GlobalSearch() {
               </p>
             </div>
 
-            <div className="max-h-[60vh] overflow-auto p-2">
+            <div className="max-h-[60vh] overflow-auto p-2" role="listbox" id="global-search-listbox">
               {loading ? (
                 <div className="flex items-center gap-2 rounded-xl bg-bg-soft p-3 text-sm text-ink-soft">
                   <span className="inline-block w-3 h-3 rounded-full border-2 border-accent border-t-transparent animate-spin" />
@@ -400,7 +411,7 @@ export function GlobalSearch() {
               ) : filteredItems.length === 0 ? (
                 <p className="rounded-xl bg-bg-soft p-3 text-sm text-ink-soft">
                   {debouncedQuery.length >= 2
-                    ? "No hay resultados para tu búsqueda."
+                    ? "No hay resultados para tu búsqueda. ¿Necesitas ayuda? Revisa el Manual."
                     : "Empieza a escribir para buscar…"}
                 </p>
               ) : (

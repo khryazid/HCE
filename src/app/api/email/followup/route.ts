@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { APP_NAME, APP_FROM_EMAIL, APP_URL } from "@/lib/constants/app";
 import { isSecretValid, emailFollowupBodySchema } from "@/lib/api/guards";
 import { serverEnv } from "@/lib/env";
+import { serverLog } from "@/lib/observability/server-logger";
 
 /**
  * POST /api/email/followup
@@ -31,8 +32,16 @@ export async function POST(req: Request) {
 
   const resend = new Resend(serverEnv.RESEND_API_KEY);
 
+  const reqId = req.headers.get("x-request-id") ?? "";
+  const log = serverLog.withRequestId(reqId);
+
   // HAL-03: Validar body con Zod en lugar de cast manual
-  const rawBody = await req.json();
+  let rawBody;
+  try {
+    rawBody = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
   const parsed = emailFollowupBodySchema.safeParse(rawBody);
   if (!parsed.success) {
     return NextResponse.json(
@@ -68,7 +77,7 @@ export async function POST(req: Request) {
   });
 
   if (error) {
-    console.error("[email/followup] Resend error:", error);
+    log.error("email:followup", "Resend error", { error });
     return NextResponse.json({ error: "Error al enviar email" }, { status: 500 });
   }
 

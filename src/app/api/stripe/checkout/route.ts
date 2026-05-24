@@ -4,6 +4,7 @@ import { serverEnv } from "@/lib/env";
 import { isValidOrigin } from "@/lib/api/guards";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { z } from "zod";
+import { serverLog } from "@/lib/observability/server-logger";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +29,9 @@ function getStripe() {
 }
 
 export async function POST(req: Request) {
+  const reqId = req.headers.get("x-request-id") ?? "";
+  const log = serverLog.withRequestId(reqId);
+
   try {
     // M-16: Validar Origin para prevenir CSRF en operaciones de pago
     if (!isValidOrigin(req)) {
@@ -74,7 +78,7 @@ export async function POST(req: Request) {
     const allowedPriceIds = getAllowedPriceIds();
     if (allowedPriceIds.size === 0) {
       // Las env vars de precio no están configuradas — error de despliegue, no del usuario.
-      console.error("[stripe:checkout] NEXT_PUBLIC_STRIPE_PRICE_ID y CLINIC no configurados — whitelist vacía");
+      log.error("stripe:checkout", "NEXT_PUBLIC_STRIPE_PRICE_ID y CLINIC no configurados — whitelist vacía", {});
       return NextResponse.json(
         { error: "El sistema de pagos no está configurado correctamente. Contacta al administrador." },
         { status: 500 },
@@ -91,7 +95,7 @@ export async function POST(req: Request) {
     // Also validates the profile exists — if not, the user hasn't completed onboarding.
     const { data: profile } = await supabase
       .from("profiles")
-      .select("stripe_customer_id")
+      .select("stripe_customer_id, clinic_id")
       .eq("doctor_id", user.id)
       .single();
 
@@ -100,6 +104,31 @@ export async function POST(req: Request) {
         { error: "Perfil no encontrado. Completa el proceso de registro antes de suscribirte." },
         { status: 404 },
       );
+    }
+
+    if (profile.clinic_id) {
+      const { data: ownerRow } = await supabase
+        .from("profiles")
+        .select("doctor_id")
+        .eq("clinic_id", profile.clinic_id)
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+        
+      const { data: memberRow } = await supabase
+        .from("clinic_members")
+        .select("role")
+        .eq("clinic_id", profile.clinic_id)
+        .eq("doctor_id", user.id)
+        .maybeSingle();
+        
+      const isAdmin = (ownerRow?.doctor_id === user.id) || (memberRow?.role === "admin");
+      if (!isAdmin) {
+        return NextResponse.json(
+          { error: "Solo los administradores de la clínica pueden modificar la suscripción." },
+          { status: 403 }
+        );
+      }
     }
 
     let customerId = profile.stripe_customer_id;
@@ -125,7 +154,7 @@ export async function POST(req: Request) {
 
       if (customerIdError) {
         // No bloquear el checkout si falla — webhook lo corregir\u00e1 en checkout.session.completed.
-        console.error("[stripe:checkout] No se pudo guardar stripe_customer_id:", customerIdError.message);
+        log.error("stripe:checkout", "No se pudo guardar stripe_customer_id", { error: customerIdError.message });
       }
     }
 
@@ -153,7 +182,7 @@ export async function POST(req: Request) {
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Error interno del servidor.";
-    console.error("Stripe Checkout Error:", error);
+    log.error("stripe:checkout", "Stripe Checkout Error", { error });
     return NextResponse.json(
       { error: process.env.NODE_ENV === "development" ? message : "Error al procesar el pago. Intenta de nuevo." },
       { status: 500 }

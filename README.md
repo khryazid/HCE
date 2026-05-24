@@ -1,6 +1,6 @@
 <div align="center">
-  <img src="public/android-chrome-192x192.png" alt="Glyph Logo" width="120" />
-  <h1>Glyph — Motor Clínico Inteligente ⚕️</h1>
+  <img src="public/android-chrome-192x192.png" alt="Glyphix Logo" width="120" />
+  <h1>Glyphix — Motor Clínico Inteligente ⚕️</h1>
   
   <p>
     <strong>Historia clínica electrónica SaaS: Offline-First, IA-Powered y Multi-tenant.</strong>
@@ -29,9 +29,9 @@
 
 ## 🌟 Visión General
 
-**Glyph** es un **Motor Clínico Inteligente** para médicos modernos que exigen rapidez, seguridad y resiliencia tecnológica. Construido desde cero para funcionar en condiciones extremas: trabaja perfectamente sin conexión a internet y sincroniza automáticamente en la nube cuando la red vuelve.
+**Glyphix** es un **Motor Clínico Inteligente** para médicos modernos que exigen rapidez, seguridad y resiliencia tecnológica. Construido desde cero para funcionar en condiciones extremas: trabaja perfectamente sin conexión a internet y sincroniza automáticamente en la nube cuando la red vuelve.
 
-Con arquitectura multi-tenant de grado empresarial, Glyph automatiza la facturación, los seguimientos y la codificación de enfermedades — devolviendo a los médicos su recurso más valioso: **el tiempo**.
+Con arquitectura multi-tenant de grado empresarial, Glyphix automatiza la facturación, los seguimientos y la codificación de enfermedades — devolviendo a los médicos su recurso más valioso: **el tiempo**.
 
 ---
 
@@ -164,91 +164,10 @@ graph TD
 
 ## 💻 Guía Rápida de Instalación
 
-### 1. Clonar e instalar
-```bash
-git clone https://github.com/khryazid/HCE.git
-cd HCE
-npm install
-```
+La guía de instalación paso a paso, configuración de variables de entorno, base de datos local y directrices de despliegue se ha movido a la documentación interna para desarrolladores.
 
-### 2. Variables de Entorno (`.env.local`)
-Duplica `.env.example` → `.env.local`. Variables requeridas:
-
-```bash
-# Supabase
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
-
-# Stripe
-STRIPE_SECRET_KEY=
-STRIPE_WEBHOOK_SECRET=
-NEXT_PUBLIC_STRIPE_PRICE_ID=
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
-NEXT_PUBLIC_SITE_URL=
-
-# Gemini IA
-GEMINI_API_KEY=
-GEMINI_MODEL=gemini-2.0-flash
-
-# VAPID (Push Notifications)
-NEXT_PUBLIC_VAPID_PUBLIC_KEY=
-VAPID_PRIVATE_KEY=
-VAPID_MAILTO=mailto:soporte@tu-dominio.com
-PUSH_SEND_SECRET=          # openssl rand -hex 32
-
-# Email (Resend)
-RESEND_API_KEY=             # re_xxxx desde resend.com
-RESEND_EMAIL_SECRET=        # mismo valor que app_config.resend_email_secret
-RESEND_FROM_EMAIL=          # Glyph <no-reply@tudominio.com>
-
-# Admin Panel
-ADMIN_EMAIL=tu-email@ejemplo.com
-
-# Solo local — no va en Vercel
-SUPABASE_ACCESS_TOKEN=sbp_xxxx
-```
-
-> ⚠️ `SUPABASE_SERVICE_ROLE_KEY`, `PUSH_SEND_SECRET` y `RESEND_EMAIL_SECRET` son exclusivos del servidor.
-
-### 3. Base de Datos
-
-El schema completo vive en un **único archivo SQL** (fuente de verdad):
-
-```
-supabase/migrations/000_production_full_schema.sql
-```
-
-**Aplicar en Supabase SQL Editor:**
-1. Pegar el archivo completo → Run.
-2. Actualizar `app_config` con valores reales:
-
-```sql
-insert into public.app_config (key, value) values
-  ('site_url',           'https://TU-APP.vercel.app'),
-  ('push_send_secret',   'TU_PUSH_SEND_SECRET'),
-  ('resend_email_secret','TU_RESEND_EMAIL_SECRET')
-on conflict (key) do update set value = excluded.value, updated_at = now();
-```
-
-3. Activar extensión `pg_cron` en Supabase → Database → Extensions.
-
-**Regenerar tipos TypeScript** tras cualquier cambio de schema:
-```bash
-npm run db:types
-```
-
-### 4. Claves VAPID (primera vez)
-```bash
-npx web-push generate-vapid-keys
-```
-
-### 5. Lanzar en desarrollo
-```bash
-npm run dev
-```
-
-> **Nota:** `--webpack` en `npm run dev` es intencional. Turbopack tiene incompatibilidades con `next-pwa` y el sync worker.
+Por favor, para iniciar localmente en menos de 30 minutos consulta:
+👉 **[docs/SETUP.md](docs/SETUP.md)**
 
 ---
 
@@ -323,8 +242,12 @@ tests/
 │   └── helpers/login.ts    # Helper compartido de autenticación
 └── *.test.ts               # Vitest: 85 tests unitarios/integración
 docs/
-├── BACKLOG.md              # Bugs y checklist de despliegue
-└── AUDITORIA_2026.md       # Auditoría técnica detallada
+├── AUDITORIA_GLYPHIX.md    # (En raíz) Auditoría y estado
+├── SETUP.md                # Guía de instalación
+├── ARCHITECTURE.md         # Decisiones de arquitectura
+├── DEPLOYMENT.md           # Guía de despliegue
+├── INTEGRATIONS.md         # Stripe, Resend, Gemini
+└── DATABASE.md             # Migraciones y esquema
 ```
 
 ---
@@ -345,9 +268,9 @@ docs/
 ---
 
 El backlog técnico principal **ha sido finalizado al 100%**. 
-Actualmente el proyecto se encuentra en fase de mantenimiento en producción y acciones manuales de configuración externa (DNS, Stripe, Resend).
+Actualmente el proyecto se encuentra en fase de mantenimiento, QA final y coordinación técnica.
 
-Para ver los pendientes administrativos, revisa el **[docs/BACKLOG.md](docs/BACKLOG.md)**.
+Para ver el estado detallado de las tareas y la auditoría global, revisa **[AUDITORIA_GLYPHIX.md](AUDITORIA_GLYPHIX.md)**.
 
 ---
 

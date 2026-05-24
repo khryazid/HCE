@@ -29,6 +29,7 @@ import {
 } from "@/features/patients/lib/use-patients-queries";
 import { usePatientsRealtime } from "@/features/patients/lib/use-patients-realtime";
 import { useClinicalRecordsRealtime } from "@/features/patients/lib/use-clinical-records-realtime";
+import { usePatientReadAudit } from "@/features/patients/lib/use-patient-read-audit";
 
 // ─── Estado de borrado ─────────────────────────────────────────────────────────
 
@@ -60,6 +61,10 @@ export default function PatientsView() {
   const [selectedPatientId, setSelectedPatientIdLocal] = useState<string>(
     clinical.selectedPatientId || "",
   );
+  
+  // ─── HIPAA Audit Logging ─────────────────────────────────────────────────────
+  usePatientReadAudit(selectedPatientId);
+
   const [search, setSearch] = useState("");
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [expandedRecordIds, setExpandedRecordIds] = useState<string[]>([]);

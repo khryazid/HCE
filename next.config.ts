@@ -62,13 +62,6 @@ const securityHeaders = [
     key: "Permissions-Policy",
     value: 'camera=(), microphone=(), geolocation=(), payment=(self "https://js.stripe.com")',
   },
-  {
-    // S-05: unsafe-inline y unsafe-eval son necesarios para Next.js (inline styles/scripts)
-    // y Stripe.js. Para eliminarlos en el futuro usar nonce-based CSP via middleware.
-    // Ver: https://nextjs.org/docs/app/building-your-application/configuring/content-security-policy
-    key: "Content-Security-Policy",
-    value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://vitals.vercel-insights.com; frame-src 'self' https://js.stripe.com https://hooks.stripe.com;",
-  },
 ];
 
 

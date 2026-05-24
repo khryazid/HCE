@@ -247,9 +247,11 @@ export function WizardStepTreatment({
             onFocus={(e) => handleBulletFocus(e, "treatmentPlan")}
             onKeyDown={(e) => handleBulletKeyDown(e, "treatmentPlan")}
             onChange={(event) => updateField("treatmentPlan", event.target.value)}
+            aria-invalid={!!validationErrors.treatmentPlan}
+            aria-describedby={validationErrors.treatmentPlan ? "error-treatmentPlan" : undefined}
           />
           {validationErrors.treatmentPlan ? (
-            <p className="text-sm font-medium text-red-600">{validationErrors.treatmentPlan}</p>
+            <p id="error-treatmentPlan" className="text-sm font-medium text-red-600">{validationErrors.treatmentPlan}</p>
           ) : null}
         </div>
 
@@ -388,13 +390,15 @@ export function WizardStepTreatment({
                           return next;
                         });
                       }}
+                      aria-invalid={key === "soapSubjective" ? !!validationErrors.evolutionStatus : undefined}
+                      aria-describedby={key === "soapSubjective" && validationErrors.evolutionStatus ? "error-evolutionStatus" : undefined}
                     />
                   </div>
                 </div>
               ))}
             </div>
             {validationErrors.evolutionStatus ? (
-              <p className="text-sm font-medium text-red-600">{validationErrors.evolutionStatus}</p>
+              <p id="error-evolutionStatus" className="text-sm font-medium text-red-600">{validationErrors.evolutionStatus}</p>
             ) : null}
           </div>
         </div>

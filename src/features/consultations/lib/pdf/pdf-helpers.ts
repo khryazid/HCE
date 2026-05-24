@@ -67,7 +67,7 @@ export function drawSectionHeader(ctx: PdfContext, title: string) {
   doc.line(margin, yPos, margin + contentWidth, yPos);
   doc.line(margin, yPos + 22, margin + contentWidth, yPos + 22);
 
-  doc.setFont("helvetica", "bold");
+  doc.setFont("SpaceGrotesk", "bold");
   doc.setFontSize(10);
   setColor(doc, PDF_COLORS.DARK_BLUE);
   doc.text(title.toUpperCase(), margin + 14, yPos + 15);
@@ -82,12 +82,12 @@ export function drawBlock(ctx: PdfContext, label: string, text: string) {
 
   const hasBullets = text.includes("\n") || text.includes("•") || text.length > 80;
   if (hasBullets) {
-    doc.setFont("helvetica", "bold");
+    doc.setFont("SpaceGrotesk", "bold");
     doc.setFontSize(9);
     setColor(doc, PDF_COLORS.DARK_BLUE);
     doc.text(label.toUpperCase(), margin, ctx.y);
     ctx.y += 13;
-    doc.setFont("helvetica", "normal");
+    doc.setFont("SpaceGrotesk", "normal");
     doc.setFontSize(10);
     setColor(doc, PDF_COLORS.TEXT);
     const lines = doc.splitTextToSize(text, contentWidth - 10);
@@ -98,11 +98,11 @@ export function drawBlock(ctx: PdfContext, label: string, text: string) {
     }
     ctx.y += 8;
   } else {
-    doc.setFont("helvetica", "bold");
+    doc.setFont("SpaceGrotesk", "bold");
     doc.setFontSize(10);
     setColor(doc, PDF_COLORS.TEXT);
     doc.text(label + ":", margin, ctx.y);
-    doc.setFont("helvetica", "normal");
+    doc.setFont("SpaceGrotesk", "normal");
     const lw = doc.getTextWidth(label + ":");
     const lines = doc.splitTextToSize(text, contentWidth - lw - 6);
     for (let i = 0; i < lines.length; i++) {

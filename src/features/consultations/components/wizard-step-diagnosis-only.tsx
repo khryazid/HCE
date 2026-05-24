@@ -47,9 +47,11 @@ export function WizardStepDiagnosisOnly({
             value={form.diagnosis}
             onChange={(e) => setForm((c) => ({ ...c, diagnosis: e.target.value }))}
             onBlur={triggerMagicCieFill}
+            aria-invalid={!!validationErrors.diagnosis}
+            aria-describedby={validationErrors.diagnosis ? "error-diagnosis" : undefined}
           />
           {validationErrors.diagnosis ? (
-            <p className="text-sm font-medium text-red-600">{validationErrors.diagnosis}</p>
+            <p id="error-diagnosis" className="text-sm font-medium text-red-600">{validationErrors.diagnosis}</p>
           ) : null}
           <p className="text-[10px] text-ink-soft">
             Al perder el foco, {APP_NAME} intentará sugerir el código CIE-10 automáticamente.

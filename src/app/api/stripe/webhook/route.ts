@@ -44,22 +44,16 @@ export async function POST(req: Request) {
   const supabaseAdmin = createClient(supabaseUrl, serverEnv.SUPABASE_SERVICE_ROLE_KEY);
 
   // C-02: Idempotency check — Stripe guarantees at-least-once delivery, not exactly-once.
-  // If this event was already processed (e.g. Vercel timeout retry), skip it silently.
-  const { error: idempotencyError } = await supabaseAdmin
+  // Buscamos si el evento ya fue procesado con éxito.
+  const { data: existingEvent } = await supabaseAdmin
     .from("stripe_webhook_events")
-    .insert({ stripe_event_id: event.id });
+    .select("stripe_event_id")
+    .eq("stripe_event_id", event.id)
+    .maybeSingle();
 
-  if (idempotencyError) {
-    if (idempotencyError.code === "23505") {
-      log.info("stripe:webhook", "Evento duplicado ignorado", { eventId: event.id, type: event.type });
-      return NextResponse.json({ received: true, duplicate: true });
-    }
-    log.error("stripe:webhook", "Error de idempotencia en DB", {
-      eventId: event.id,
-      code: idempotencyError.code,
-      message: idempotencyError.message,
-    });
-    return NextResponse.json({ error: "Database error" }, { status: 500 });
+  if (existingEvent) {
+    log.info("stripe:webhook", "Evento duplicado ignorado (ya procesado)", { eventId: event.id, type: event.type });
+    return NextResponse.json({ received: true, duplicate: true });
   }
 
   try {
@@ -75,18 +69,26 @@ export async function POST(req: Request) {
         const expiresAt = new Date(periodEnd * 1000).toISOString();
         const plan = subscription.items.data[0]?.price.metadata?.plan || "basic";
 
-        // Fix B-09: leer el plan PREVIO antes del UPDATE.
-        // Si se leyera después, profile.plan ya tendría el nuevo valor "basic".
+        // Fix B-09: leer el plan PREVIO para actuar solo si hubo downgrade REAL clinic → basic.
         let previousPlan: string | null = null;
         let clinicId: string | null = null;
         if (event.type === "customer.subscription.updated" && plan === "basic") {
-          const { data: preProfile } = await supabaseAdmin
-            .from("profiles")
-            .select("clinic_id, plan")
-            .eq("stripe_customer_id", customerId)
-            .single();
-          previousPlan = preProfile?.plan ?? null;
-          clinicId = preProfile?.clinic_id ?? null;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const prevAttr = event.data.previous_attributes as any;
+          if (prevAttr?.items?.data?.[0]?.price?.metadata?.plan) {
+            previousPlan = prevAttr.items.data[0].price.metadata.plan;
+          } else if (prevAttr?.metadata?.plan) {
+            previousPlan = prevAttr.metadata.plan;
+          }
+
+          if (previousPlan === "clinic") {
+            const { data: preProfile } = await supabaseAdmin
+              .from("profiles")
+              .select("clinic_id")
+              .eq("stripe_customer_id", customerId)
+              .maybeSingle();
+            clinicId = preProfile?.clinic_id ?? null;
+          }
         }
 
         const { error: subUpdateError } = await supabaseAdmin
@@ -217,12 +219,27 @@ export async function POST(req: Request) {
         }
         break;
       }
+      case "customer.subscription.trial_will_end": {
+        const subscription = event.data.object as Stripe.Subscription;
+        log.info("stripe:webhook", "Trial finalizando pronto (Resend email pendiente)", {
+          customerId: subscription.customer as string,
+        });
+        break;
+      }
       default: {
         // Evento de Stripe no manejado — loguear para visibilidad sin retornar error.
         // Stripe recomienda retornar 200 para eventos desconocidos y procesarlos selectivamente.
         log.info("stripe:webhook", `Evento no manejado recibido: ${event.type}`, { eventId: event.id });
         break;
       }
+    }
+
+    const { error: insertIdempotencyError } = await supabaseAdmin
+      .from("stripe_webhook_events")
+      .insert({ stripe_event_id: event.id });
+    
+    if (insertIdempotencyError && insertIdempotencyError.code !== "23505") {
+      log.error("stripe:webhook", "Fallo al guardar registro de idempotencia al final", { error: insertIdempotencyError.message });
     }
 
     return NextResponse.json({ received: true });

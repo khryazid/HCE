@@ -78,6 +78,7 @@ export async function updateSession(request: NextRequest) {
     "/terminos",
     "/privacidad",
     "/offline",
+    "/docs",
   ];
 
   // Una ruta es pública si coincide exactamente con un path de la allowlist
@@ -87,7 +88,8 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/login/") ||
     request.nextUrl.pathname.startsWith("/registro/") ||
     request.nextUrl.pathname.startsWith("/terminos/") ||
-    request.nextUrl.pathname.startsWith("/privacidad/");
+    request.nextUrl.pathname.startsWith("/privacidad/") ||
+    request.nextUrl.pathname.startsWith("/docs/");
 
   const isAuthRoute =
     request.nextUrl.pathname.startsWith("/login") ||

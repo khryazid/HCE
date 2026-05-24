@@ -57,7 +57,7 @@ function ExpiryBannerInner() {
 const PRO_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_PRICE_ID ?? null;
 const CLINIC_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_CLINIC ?? null;
 
-export default function BillingView({ proPrice = 29, clinicPrice = 99 }: { proPrice?: number; clinicPrice?: number }) {
+export default function BillingView({ proPrice = 29, clinicPrice = 99, isAdmin = true }: { proPrice?: number; clinicPrice?: number; isAdmin?: boolean }) {
   const [loadingPlan, setLoadingPlan] = useState<"pro" | "clinic" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -121,13 +121,19 @@ export default function BillingView({ proPrice = 29, clinicPrice = 99 }: { proPr
               Plan no configurado. Contacta al administrador.
             </p>
           )}
-          <Button
-            onClick={() => handleCheckout("pro")}
-            disabled={loadingPlan !== null || !PRO_PRICE_ID}
-            className="mt-6 w-full py-5 text-base hce-btn-primary"
-          >
-            {loadingPlan === "pro" ? "Procesando..." : "Comenzar ahora"}
-          </Button>
+          {isAdmin ? (
+            <Button
+              onClick={() => handleCheckout("pro")}
+              disabled={loadingPlan !== null || !PRO_PRICE_ID}
+              className="mt-6 w-full py-5 text-base hce-btn-primary"
+            >
+              {loadingPlan === "pro" ? "Procesando..." : "Comenzar ahora"}
+            </Button>
+          ) : (
+            <div className="mt-6 rounded border border-accent/20 bg-accent/5 p-3 text-center text-sm text-accent">
+              Solo el administrador de la clínica puede suscribirse
+            </div>
+          )}
         </div>
 
         {/* ── Plan Clínica ── */}
@@ -149,13 +155,19 @@ export default function BillingView({ proPrice = 29, clinicPrice = 99 }: { proPr
               Plan no configurado. Contacta al administrador.
             </p>
           )}
-          <Button
-            onClick={() => handleCheckout("clinic")}
-            disabled={loadingPlan !== null || !CLINIC_PRICE_ID}
-            className="mt-6 w-full py-5 text-base hce-btn-secondary"
-          >
-            {loadingPlan === "clinic" ? "Procesando..." : "Comenzar ahora"}
-          </Button>
+          {isAdmin ? (
+            <Button
+              onClick={() => handleCheckout("clinic")}
+              disabled={loadingPlan !== null || !CLINIC_PRICE_ID}
+              className="mt-6 w-full py-5 text-base hce-btn-secondary"
+            >
+              {loadingPlan === "clinic" ? "Procesando..." : "Comenzar ahora"}
+            </Button>
+          ) : (
+            <div className="mt-6 rounded border border-accent/20 bg-accent/5 p-3 text-center text-sm text-accent">
+              Solo el administrador de la clínica puede suscribirse
+            </div>
+          )}
         </div>
       </div>
 

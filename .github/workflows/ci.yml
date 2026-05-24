@@ -22,8 +22,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-and-test:
-    name: 🏗️ Build & Unit Tests
+  static-checks:
+    name: 🧹 Lint & TypeCheck
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -38,17 +38,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-
-      - name: Cache Next.js Build
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.npm
-            ${{ github.workspace }}/.next/cache
-          key: ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/*.js', '**/*.jsx', '**/*.ts', '**/*.tsx') }}
-          restore-keys: |
-            ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-
-
       - name: 🧹 Linting (ESLint)
         run: npm run lint
 
@@ -56,9 +45,6 @@ jobs:
         run: npm run typecheck
 
       - name: 🗄️ Check Supabase DB Types (B-09)
-        # Detecta desfase entre el schema de Supabase y los tipos TS generados.
-        # Requiere SUPABASE_ACCESS_TOKEN y SUPABASE_PROJECT_ID en los secrets del repo.
-        # Si los secrets no están configurados, el paso se omite sin fallar.
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_ID:   ${{ secrets.SUPABASE_PROJECT_ID }}
@@ -71,39 +57,9 @@ jobs:
             echo "ℹ️  SUPABASE_ACCESS_TOKEN o SUPABASE_PROJECT_ID no configurados — omitiendo verificación de tipos DB."
           fi
 
-      - name: 🧪 Unit Tests (Vitest)
-        run: npx vitest run --coverage
-
-      - name: 📊 Upload Coverage Report
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report
-          path: coverage/
-          retention-days: 14
-
-      - name: 📦 Build Application
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: "https://dummy.supabase.co"
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: "dummy_anon_key"
-          NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: "pk_test_dummy"
-          NEXT_PUBLIC_STRIPE_PRICE_ID: "price_dummy"
-          NEXT_PUBLIC_STRIPE_PRICE_ID_CLINIC: "price_dummy_clinic"
-          NEXT_PUBLIC_VAPID_PUBLIC_KEY: "dummy_vapid_key"
-          SUPABASE_SERVICE_ROLE_KEY: "dummy"
-          STRIPE_SECRET_KEY: "dummy"
-          STRIPE_WEBHOOK_SECRET: "dummy"
-          GEMINI_API_KEY: "dummy"
-          VAPID_PRIVATE_KEY: "dummy"
-          VAPID_MAILTO: "dummy"
-          ADMIN_EMAIL: "dummy"
-          PUSH_SEND_SECRET: "dummy"
-          NEXT_PUBLIC_SITE_URL: "http://127.0.0.1:3000"
-        run: npm run build
-
-  e2e:
-    name: 🎭 Playwright E2E Tests
+  unit-tests:
+    name: 🧪 Unit Tests
     runs-on: ubuntu-latest
-    needs: build-and-test
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -116,7 +72,92 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-        
+
+      - name: 🧪 Unit Tests (Vitest)
+        run: npx vitest run --coverage
+
+      - name: 📊 Upload Coverage Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 14
+
+  build:
+    name: 📦 Build Next.js
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Cache Next.js Build
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/*.js', '**/*.jsx', '**/*.ts', '**/*.tsx') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-
+
+      - name: 📦 Build Application
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: "https://dummy.supabase.co"
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: "dummy_anon_key"
+          NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: "pk_test_dummy"
+          NEXT_PUBLIC_STRIPE_PRICE_ID: "price_dummy"
+          NEXT_PUBLIC_STRIPE_PRICE_ID_CLINIC: "price_dummy_clinic"
+          NEXT_PUBLIC_VAPID_PUBLIC_KEY: "dummy_vapid_key"
+          NEXT_PUBLIC_IDB_MASTER_KEY: "dummy_idb_key"
+          SUPABASE_SERVICE_ROLE_KEY: "dummy"
+          STRIPE_SECRET_KEY: "dummy"
+          STRIPE_WEBHOOK_SECRET: "dummy"
+          GEMINI_API_KEY: "dummy"
+          VAPID_PRIVATE_KEY: "dummy"
+          VAPID_MAILTO: "dummy"
+          ADMIN_EMAIL: "dummy"
+          PUSH_SEND_SECRET: "dummy"
+          NEXT_PUBLIC_SITE_URL: "http://127.0.0.1:3000"
+        run: npm run build
+
+      - name: Archive Next.js Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: next-build
+          path: .next/
+          retention-days: 1
+
+  e2e:
+    name: 🎭 Playwright E2E Tests
+    needs: [build, unit-tests, static-checks]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download Build Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: next-build
+          path: .next
+
       - name: Cache Playwright Browsers
         id: playwright-cache
         uses: actions/cache@v4
@@ -142,6 +183,8 @@ jobs:
           NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY }}
           NEXT_PUBLIC_STRIPE_PRICE_ID: ${{ secrets.NEXT_PUBLIC_STRIPE_PRICE_ID }}
           NEXT_PUBLIC_STRIPE_PRICE_ID_CLINIC: ${{ secrets.NEXT_PUBLIC_STRIPE_PRICE_ID_CLINIC }}
+          NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${{ secrets.NEXT_PUBLIC_VAPID_PUBLIC_KEY }}
+          NEXT_PUBLIC_IDB_MASTER_KEY: ${{ secrets.NEXT_PUBLIC_IDB_MASTER_KEY }}
           NEXT_PUBLIC_SITE_URL: http://127.0.0.1:3000
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
@@ -151,11 +194,7 @@ jobs:
           VAPID_MAILTO: ${{ secrets.VAPID_MAILTO }}
           ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
           PUSH_SEND_SECRET: ${{ secrets.PUSH_SEND_SECRET }}
-        run: |
-          npm run build
-          npm run start &
-          sleep 5
-          npm run test:e2e
+        run: npm run test:e2e
           
       - name: 📂 Upload Playwright Artifacts
         if: always()

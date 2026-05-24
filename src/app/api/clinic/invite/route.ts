@@ -3,8 +3,13 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { serverEnv } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 import { inviteBodySchema } from "@/lib/api/guards";
+import { serverLog } from "@/lib/observability/server-logger";
+import Stripe from "stripe";
 
 export async function POST(req: Request) {
+  const reqId = req.headers.get("x-request-id") ?? "";
+  const log = serverLog.withRequestId(reqId);
+
   try {
     // A-13: Validar body con Zod — email, role y clinic_id en una sola pasada
     const rawBody = await req.json();
@@ -52,7 +57,7 @@ export async function POST(req: Request) {
     // Obtener el plan del dueño de la clínica (primer perfil creado)
     const { data: ownerProfile } = await supabase
       .from("profiles")
-      .select("plan")
+      .select("plan, stripe_subscription_id")
       .eq("clinic_id", clinic_id)
       .order("created_at", { ascending: true })
       .limit(1)
@@ -123,14 +128,42 @@ export async function POST(req: Request) {
       const { data: foundId } = await adminClient.rpc('get_user_id_by_email', { email_input: email });
       
       if (foundId) {
-        invitedUserId = foundId as string;
+        return NextResponse.json({ 
+          error: "El usuario ya existe en la plataforma. Para asociarlo a tu clínica, este debe aceptar la invitación desde su panel de control.",
+          status: "pending_acceptance"
+        }, { status: 409 });
       } else {
         // R-01: No exponer inviteError.message — puede contener detalles internos de Supabase Auth
-        console.error("[clinic/invite] inviteUserByEmail failed:", inviteError.message);
+        log.error("clinic:invite", "inviteUserByEmail failed", { error: inviteError.message });
         return NextResponse.json({ error: "No se pudo enviar la invitación" }, { status: 400 });
       }
     } else {
       invitedUserId = inviteData.user.id;
+    }
+
+    // Metered Billing: Actualizar cantidad en Stripe si es un doctor
+    let doctorCount = 0;
+    if (role === "doctor" && plan === "clinic" && ownerProfile?.stripe_subscription_id) {
+      const { count } = await supabase
+        .from("clinic_members")
+        .select("*", { count: "exact", head: true })
+        .eq("clinic_id", clinic_id)
+        .eq("role", "doctor");
+      doctorCount = count ?? 0;
+
+      const stripe = new Stripe(serverEnv.STRIPE_SECRET_KEY, { apiVersion: "2026-04-22.dahlia" });
+      try {
+        const subscription = await stripe.subscriptions.retrieve(ownerProfile.stripe_subscription_id);
+        const itemId = subscription.items.data[0]?.id;
+        if (itemId) {
+          // Total quantity = existing members + new member (1) + owner (1)
+          const newQuantity = doctorCount + 2; 
+          await stripe.subscriptionItems.update(itemId, { quantity: newQuantity });
+        }
+      } catch (stripeErr) {
+        log.error("clinic:invite", "Fallo al actualizar cantidad en Stripe", { error: stripeErr });
+        return NextResponse.json({ error: "Fallo al actualizar la suscripción en Stripe." }, { status: 500 });
+      }
     }
 
     // Add to clinic_members
@@ -155,7 +188,7 @@ export async function POST(req: Request) {
     
     return NextResponse.json({ success: true, user_id: invitedUserId });
   } catch (err) {
-    console.error("[clinic/invite] Unhandled error:", err);
+    log.error("clinic:invite", "Unhandled error", { error: err });
     return NextResponse.json(
       { error: "Error interno del servidor" },
       { status: 500 }

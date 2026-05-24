@@ -2,14 +2,14 @@
 
 import { useEffect, useRef } from "react";
 
-type Props = {
+type Props = React.InputHTMLAttributes<HTMLInputElement> & {
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
   open?: boolean;
 };
 
-export default function SearchInput({ value, onChange, placeholder, open }: Props) {
+export default function SearchInput({ value, onChange, placeholder, open, ...rest }: Props) {
   const ref = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -26,6 +26,7 @@ export default function SearchInput({ value, onChange, placeholder, open }: Prop
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       className="hce-input"
+      {...rest}
     />
   );
 }

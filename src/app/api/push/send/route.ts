@@ -5,6 +5,7 @@ import type { Database } from "@/types/supabase.types";
 import { serverEnv } from "@/lib/env";
 import { pushSendBodySchema, isSecretValid } from "@/lib/api/guards";
 import { APP_NAME } from "@/lib/constants/app";
+import { serverLog } from "@/lib/observability/server-logger";
 
 type PushSubscriptionRow =
   Database["public"]["Tables"]["push_subscriptions"]["Row"];
@@ -21,6 +22,9 @@ const PUSH_RATE_LIMIT = 10;
 const PUSH_RATE_WINDOW = 60;
 
 export async function POST(req: Request) {
+  const reqId = req.headers.get("x-request-id") ?? "";
+  const log = serverLog.withRequestId(reqId);
+
   try {
     const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
     if (!vapidPublicKey) throw new Error("Missing env var: NEXT_PUBLIC_VAPID_PUBLIC_KEY");
@@ -60,7 +64,12 @@ export async function POST(req: Request) {
     }
 
     // A-13: Validar body con Zod
-    const rawBody = await req.json();
+    let rawBody;
+    try {
+      rawBody = await req.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    }
     const parsedBody = pushSendBodySchema.safeParse(rawBody);
     if (!parsedBody.success) {
       return NextResponse.json(
@@ -117,7 +126,7 @@ export async function POST(req: Request) {
             .delete()
             .eq("id", sub.id);
         } else {
-          console.error("Push send error:", e);
+          log.error("push:send", "Push send error", { error: e });
         }
       }
     });
@@ -126,7 +135,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, count: subs.length });
   } catch (err) {
-    console.error("Send Push Error:", err);
+    log.error("push:send", "Send Push Error", { error: err });
     return NextResponse.json({ error: "Error desconocido" }, { status: 500 });
   }
 }

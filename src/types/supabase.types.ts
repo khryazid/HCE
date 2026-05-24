@@ -578,10 +578,12 @@ export type Database = {
         }
         Returns: boolean
       }
+      expire_stale_trials: { Args: never; Returns: undefined }
       get_user_id_by_email: { Args: { email_input: string }; Returns: string }
       has_active_subscription: { Args: { c_id: string }; Returns: boolean }
       is_clinic_admin: { Args: { check_clinic_id: string }; Returns: boolean }
       is_clinic_member: { Args: { check_clinic_id: string }; Returns: boolean }
+      is_super_admin: { Args: never; Returns: boolean }
       log_audit_event: {
         Args: {
           p_changes: Json

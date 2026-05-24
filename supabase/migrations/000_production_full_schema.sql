@@ -32,6 +32,15 @@ create extension if not exists "pgcrypto";
 -- 1. TABLAS
 -- ════════════════════════════════════════════════════════════
 
+-- ── clinics ──────────────────────────────────────────────────
+-- Catálogo principal de clínicas para integridad referencial.
+create table if not exists public.clinics (
+  id          uuid        primary key default gen_random_uuid(),
+  name        text        not null default 'Clínica',
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now()
+);
+
 -- ── profiles ─────────────────────────────────────────────────
 -- Una fila por médico. doctor_id = auth.uid().
 -- clinic_id agrupa médicos dentro de una misma clínica.
@@ -89,6 +98,7 @@ create table if not exists public.patients (
   birth_date      date,
   status          text        not null default 'activo'
     check (status in ('activo', 'inactivo', 'en-seguimiento', 'alta')),
+  deleted_at      timestamptz,
   created_at      timestamptz not null default now(),
   updated_at      timestamptz not null default now(),
   unique (clinic_id, document_number)
@@ -106,6 +116,7 @@ create table if not exists public.clinical_records (
   cie_codes       text[]      not null default '{}',
   specialty_kind  text        not null,
   specialty_data  jsonb       not null default '{}'::jsonb,
+  deleted_at      timestamptz,
   created_at      timestamptz not null default now(),
   updated_at      timestamptz not null default now()
 );
@@ -251,6 +262,68 @@ end $$;
 --    Estas líneas son no-ops en una instalación nueva.
 -- ════════════════════════════════════════════════════════════
 
+-- Migrar IDs de clinics existentes para no romper FKs
+do $$
+begin
+  if not exists (
+    select 1 from information_schema.table_constraints
+    where constraint_name = 'profiles_clinic_id_fkey'
+  ) then
+    insert into public.clinics (id)
+    select distinct clinic_id from public.profiles where clinic_id is not null
+    union
+    select distinct clinic_id from public.patients where clinic_id is not null
+    union
+    select distinct clinic_id from public.clinical_records where clinic_id is not null
+    union
+    select distinct clinic_id from public.specialty_data where clinic_id is not null
+    union
+    select distinct clinic_id from public.audit_logs where clinic_id is not null
+    union
+    select distinct clinic_id from public.follow_up_tasks where clinic_id is not null
+    union
+    select distinct clinic_id from public.appointments where clinic_id is not null
+    union
+    select distinct clinic_id from public.push_subscriptions where clinic_id is not null
+    union
+    select distinct clinic_id from public.treatment_templates where clinic_id is not null
+    union
+    select distinct clinic_id from public.clinic_members where clinic_id is not null
+    on conflict (id) do nothing;
+  end if;
+end $$;
+
+-- Asegurar Foreign Keys de clinic_id en todas las tablas
+alter table public.profiles drop constraint if exists profiles_clinic_id_fkey;
+alter table public.profiles add constraint profiles_clinic_id_fkey foreign key (clinic_id) references public.clinics (id) on delete cascade;
+
+alter table public.patients drop constraint if exists patients_clinic_id_fkey;
+alter table public.patients add constraint patients_clinic_id_fkey foreign key (clinic_id) references public.clinics (id) on delete cascade;
+
+alter table public.clinical_records drop constraint if exists clinical_records_clinic_id_fkey;
+alter table public.clinical_records add constraint clinical_records_clinic_id_fkey foreign key (clinic_id) references public.clinics (id) on delete cascade;
+
+alter table public.specialty_data drop constraint if exists specialty_data_clinic_id_fkey;
+alter table public.specialty_data add constraint specialty_data_clinic_id_fkey foreign key (clinic_id) references public.clinics (id) on delete cascade;
+
+alter table public.audit_logs drop constraint if exists audit_logs_clinic_id_fkey;
+alter table public.audit_logs add constraint audit_logs_clinic_id_fkey foreign key (clinic_id) references public.clinics (id) on delete cascade;
+
+alter table public.follow_up_tasks drop constraint if exists follow_up_tasks_clinic_id_fkey;
+alter table public.follow_up_tasks add constraint follow_up_tasks_clinic_id_fkey foreign key (clinic_id) references public.clinics (id) on delete cascade;
+
+alter table public.appointments drop constraint if exists appointments_clinic_id_fkey;
+alter table public.appointments add constraint appointments_clinic_id_fkey foreign key (clinic_id) references public.clinics (id) on delete cascade;
+
+alter table public.push_subscriptions drop constraint if exists push_subscriptions_clinic_id_fkey;
+alter table public.push_subscriptions add constraint push_subscriptions_clinic_id_fkey foreign key (clinic_id) references public.clinics (id) on delete cascade;
+
+alter table public.treatment_templates drop constraint if exists treatment_templates_clinic_id_fkey;
+alter table public.treatment_templates add constraint treatment_templates_clinic_id_fkey foreign key (clinic_id) references public.clinics (id) on delete cascade;
+
+alter table public.clinic_members drop constraint if exists clinic_members_clinic_id_fkey;
+alter table public.clinic_members add constraint clinic_members_clinic_id_fkey foreign key (clinic_id) references public.clinics (id) on delete cascade;
+
 alter table public.profiles
   add column if not exists payment_config jsonb not null default '{}'::jsonb;
 
@@ -309,6 +382,9 @@ create index if not exists idx_patients_tenant
 create index if not exists idx_records_tenant
   on public.clinical_records (clinic_id, doctor_id);
 
+create index if not exists idx_records_patient
+  on public.clinical_records (patient_id, created_at desc);
+
 create index if not exists idx_specialty_tenant
   on public.specialty_data (clinic_id, doctor_id);
 
@@ -353,6 +429,17 @@ create index if not exists idx_clinical_records_fts
   on public.clinical_records
   using gin (to_tsvector('spanish', coalesce(chief_complaint, '')));
 
+-- ── Índices parciales para Soft-Delete ────────────────────────
+-- Las políticas RLS filtran deleted_at IS NULL en patients y clinical_records.
+-- Estos índices parciales aceleran drásticamente esas queries.
+create index if not exists idx_patients_active
+  on public.patients (clinic_id, doctor_id, updated_at desc)
+  where deleted_at is null;
+
+create index if not exists idx_records_active
+  on public.clinical_records (patient_id, created_at desc)
+  where deleted_at is null;
+
 
 -- ════════════════════════════════════════════════════════════
 -- FUNCIONES DE AYUDA PARA RLS (SECURITY DEFINER)
@@ -389,6 +476,7 @@ $$;
 -- 4. ROW LEVEL SECURITY (RLS)
 -- ════════════════════════════════════════════════════════════
 
+alter table public.clinics              enable row level security;
 alter table public.profiles             enable row level security;
 alter table public.patients             enable row level security;
 alter table public.clinical_records     enable row level security;
@@ -400,6 +488,20 @@ alter table public.push_subscriptions   enable row level security;
 alter table public.treatment_templates  enable row level security;
 alter table public.clinic_members       enable row level security;
 alter table public.appointments         enable row level security;
+
+-- ── clinics ──────────────────────────────────────────────────
+-- Cualquier médico puede leer la clínica a la que pertenece.
+-- Solo el service_role puede crear/modificar clínicas (sin policies de escritura para authenticated).
+drop policy if exists "clinics_select" on public.clinics;
+create policy "clinics_select"
+  on public.clinics for select to authenticated
+  using (
+    id in (
+      select clinic_id from public.profiles where doctor_id = auth.uid()
+      union
+      select clinic_id from public.clinic_members where doctor_id = auth.uid()
+    )
+  );
 
 -- ── profiles ─────────────────────────────────────────────────
 -- Solo el propio médico puede leer/escribir su perfil.
@@ -421,6 +523,18 @@ drop policy if exists "patients_tenant_select" on public.patients;
 create policy "patients_tenant_select"
   on public.patients for select to authenticated
   using (
+    deleted_at is null and
+    (exists (
+      select 1 from public.profiles p
+      where p.doctor_id = auth.uid()
+        and p.clinic_id = public.patients.clinic_id
+    ) or public.is_clinic_member(public.patients.clinic_id))
+  );
+
+drop policy if exists "patients_tenant_insert" on public.patients;
+create policy "patients_tenant_insert"
+  on public.patients for insert to authenticated
+  with check (
     exists (
       select 1 from public.profiles p
       where p.doctor_id = auth.uid()
@@ -428,9 +542,9 @@ create policy "patients_tenant_select"
     ) or public.is_clinic_member(public.patients.clinic_id)
   );
 
-drop policy if exists "patients_tenant_write" on public.patients;
-create policy "patients_tenant_write"
-  on public.patients for all to authenticated
+drop policy if exists "patients_tenant_update" on public.patients;
+create policy "patients_tenant_update"
+  on public.patients for update to authenticated
   using (
     exists (
       select 1 from public.profiles p
@@ -451,6 +565,18 @@ drop policy if exists "records_tenant_select" on public.clinical_records;
 create policy "records_tenant_select"
   on public.clinical_records for select to authenticated
   using (
+    deleted_at is null and
+    (exists (
+      select 1 from public.profiles p
+      where p.doctor_id = auth.uid()
+        and p.clinic_id = public.clinical_records.clinic_id
+    ) or public.is_clinic_member(public.clinical_records.clinic_id))
+  );
+
+drop policy if exists "records_tenant_insert" on public.clinical_records;
+create policy "records_tenant_insert"
+  on public.clinical_records for insert to authenticated
+  with check (
     exists (
       select 1 from public.profiles p
       where p.doctor_id = auth.uid()
@@ -458,9 +584,9 @@ create policy "records_tenant_select"
     ) or public.is_clinic_member(public.clinical_records.clinic_id)
   );
 
-drop policy if exists "records_tenant_write" on public.clinical_records;
-create policy "records_tenant_write"
-  on public.clinical_records for all to authenticated
+drop policy if exists "records_tenant_update" on public.clinical_records;
+create policy "records_tenant_update"
+  on public.clinical_records for update to authenticated
   using (
     exists (
       select 1 from public.profiles p
@@ -667,6 +793,11 @@ begin
 end;
 $$;
 
+drop trigger if exists trg_clinics_updated_at             on public.clinics;
+create trigger trg_clinics_updated_at
+  before update on public.clinics
+  for each row execute function public.bump_updated_at();
+
 drop trigger if exists trg_profiles_updated_at          on public.profiles;
 create trigger trg_profiles_updated_at
   before update on public.profiles
@@ -714,7 +845,8 @@ create or replace function public.log_audit_event(
   p_resource_type text,
   p_resource_id   uuid,
   p_changes       jsonb,
-  p_metadata      jsonb default '{}'::jsonb
+  p_metadata      jsonb default '{}'::jsonb,
+  p_client_timestamp bigint default null
 )
 returns bigint language plpgsql security definer set search_path = public as $$
 declare
@@ -754,6 +886,10 @@ begin
     ),
     'hex'
   );
+
+  if p_client_timestamp is not null then
+    p_metadata := p_metadata || jsonb_build_object('client_timestamp', p_client_timestamp);
+  end if;
 
   insert into public.audit_logs (
     clinic_id, doctor_id, event_type, resource_type, resource_id,
@@ -1106,7 +1242,8 @@ insert into public.app_config (key, value) values
   ('site_url',         'REEMPLAZAR_CON_NEXT_PUBLIC_SITE_URL'),
   ('push_send_secret', 'REEMPLAZAR_CON_PUSH_SEND_SECRET'),
   ('plan_pro_price',   '29'),
-  ('plan_clinic_price','99')
+  ('plan_clinic_price','99'),
+  ('admin_email',      'tu-email@dominio.com')
 on conflict (key) do update
   set value = excluded.value, updated_at = now();
 
@@ -1345,9 +1482,18 @@ $$;
 -- Actualizar politicas de escritura para verificar suscripcion
 
 -- patients
-DROP POLICY IF EXISTS "patients_tenant_write" ON public.patients;
-CREATE POLICY "patients_tenant_write"
-  ON public.patients FOR ALL TO authenticated
+DROP POLICY IF EXISTS "patients_tenant_insert" ON public.patients;
+CREATE POLICY "patients_tenant_insert"
+  ON public.patients FOR INSERT TO authenticated
+  WITH CHECK (
+    (exists (select 1 from public.profiles p where p.doctor_id = auth.uid() and p.clinic_id = public.patients.clinic_id)
+     or public.is_clinic_member(public.patients.clinic_id))
+    AND has_active_subscription(public.patients.clinic_id)
+  );
+
+DROP POLICY IF EXISTS "patients_tenant_update" ON public.patients;
+CREATE POLICY "patients_tenant_update"
+  ON public.patients FOR UPDATE TO authenticated
   USING (
     (exists (select 1 from public.profiles p where p.doctor_id = auth.uid() and p.clinic_id = public.patients.clinic_id)
      or public.is_clinic_member(public.patients.clinic_id))
@@ -1360,9 +1506,18 @@ CREATE POLICY "patients_tenant_write"
   );
 
 -- clinical_records
-DROP POLICY IF EXISTS "records_tenant_write" ON public.clinical_records;
-CREATE POLICY "records_tenant_write"
-  ON public.clinical_records FOR ALL TO authenticated
+DROP POLICY IF EXISTS "records_tenant_insert" ON public.clinical_records;
+CREATE POLICY "records_tenant_insert"
+  ON public.clinical_records FOR INSERT TO authenticated
+  WITH CHECK (
+    (exists (select 1 from public.profiles p where p.doctor_id = auth.uid() and p.clinic_id = public.clinical_records.clinic_id)
+     or public.is_clinic_member(public.clinical_records.clinic_id))
+    AND has_active_subscription(public.clinical_records.clinic_id)
+  );
+
+DROP POLICY IF EXISTS "records_tenant_update" ON public.clinical_records;
+CREATE POLICY "records_tenant_update"
+  ON public.clinical_records FOR UPDATE TO authenticated
   USING (
     (exists (select 1 from public.profiles p where p.doctor_id = auth.uid() and p.clinic_id = public.clinical_records.clinic_id)
      or public.is_clinic_member(public.clinical_records.clinic_id))
@@ -1843,6 +1998,7 @@ end $$;
 -- Solo createTenantProfileWithTrial (service_role) puede asignar subscription.
 
 DROP POLICY IF EXISTS "profiles_tenant_write" ON public.profiles;
+DROP POLICY IF EXISTS "profiles_tenant_insert" ON public.profiles;
 
 CREATE POLICY "profiles_tenant_insert"
   ON public.profiles FOR INSERT TO authenticated
@@ -1858,6 +2014,7 @@ CREATE POLICY "profiles_tenant_insert"
 -- Los campos de billing (subscription_status, subscription_expires_at,
 -- stripe_customer_id, stripe_subscription_id) son inmutables desde el cliente:
 -- solo service_role puede modificarlos (webhook handler y createTenantProfileWithTrial).
+DROP POLICY IF EXISTS "profiles_tenant_update" ON public.profiles;
 CREATE POLICY "profiles_tenant_update"
   ON public.profiles FOR UPDATE TO authenticated
   USING (doctor_id = auth.uid())
@@ -1885,7 +2042,7 @@ CREATE POLICY "audit_tenant_select"
 
 -- ── HAL-15: is_super_admin() — función RPC que admin/actions.ts ya llama ──────
 -- Antes la función no existía y había un fallback a comparación de email.
--- Ahora la función existe y es la autoridad principal.
+-- Ahora la función existe y es la autoridad principal (lee de app_config).
 
 CREATE OR REPLACE FUNCTION public.is_super_admin()
 RETURNS BOOLEAN
@@ -1897,7 +2054,7 @@ AS $$
     SELECT 1
     FROM auth.users
     WHERE id = auth.uid()
-      AND email = current_setting('app.admin_email', true)
+      AND email = (SELECT value FROM public.app_config WHERE key = 'admin_email' LIMIT 1)
       AND email IS NOT NULL
       AND email <> ''
   );
@@ -1906,16 +2063,16 @@ $$;
 -- F-41: REVOKE de anon y grant a authenticated.
 -- is_super_admin() es invocada por admin/actions.ts usando el server client
 -- (que viaja con las cookies del usuario autenticado bajo el rol 'authenticated').
--- La funcion internamente llama auth.uid() y lo compara con app.admin_email,
+-- La funcion internamente llama auth.uid() y lo compara con app_config.admin_email,
 -- por lo que solo el admin real obtendra true. Revocar de 'anon' evita
 -- que usuarios no autenticados la llamen, pero 'authenticated' debe conservar EXECUTE.
 REVOKE EXECUTE ON FUNCTION public.is_super_admin() FROM anon;
 GRANT EXECUTE ON FUNCTION public.is_super_admin() TO authenticated;
 
--- Para que la función lea el setting correctamente, ejecutar en producción:
--- ALTER DATABASE postgres SET app.admin_email = 'tu-email@glyphmed.app';
+-- Para configurar el admin, actualiza la tabla app_config en Supabase:
+-- UPDATE public.app_config SET value = 'tu-email@dominio.com' WHERE key = 'admin_email';
 COMMENT ON FUNCTION public.is_super_admin() IS
-  'HAL-15: Verifica si el usuario actual es super admin. Requiere app.admin_email configurado con: ALTER DATABASE postgres SET app.admin_email = ''email@dominio.com'';';
+  'HAL-15: Verifica si el usuario actual es super admin leyendo la clave admin_email de la tabla app_config.';
 
 -- ── HAL-05: Deshabilitar cleanup-audit-logs ───────────────────────────────────
 -- Los audit_logs no deben eliminarse. Son el registro de auditoría clínica.

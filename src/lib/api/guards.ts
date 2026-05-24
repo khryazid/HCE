@@ -6,7 +6,7 @@
  * HAL-08: Comparación de secretos con timingSafeEqual (resistente a timing attacks).
  */
 
-import { timingSafeEqual } from "crypto";
+import { timingSafeEqual, createHash } from "crypto";
 import { z } from "zod";
 
 // ── M-16: Validación de Origin ────────────────────────────────────────────────
@@ -58,10 +58,8 @@ export function isValidOrigin(req: Request): boolean {
 export function isSecretValid(incoming: string | null, expected: string): boolean {
   if (!incoming) return false;
   try {
-    const a = Buffer.from(incoming);
-    const b = Buffer.from(expected);
-    // timingSafeEqual requiere buffers del mismo tamaño
-    if (a.length !== b.length) return false;
+    const a = createHash("sha256").update(incoming).digest();
+    const b = createHash("sha256").update(expected).digest();
     return timingSafeEqual(a, b);
   } catch {
     return false;

@@ -42,10 +42,21 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
-      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+      { url: "/icons/android-chrome-192x192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/android-chrome-512x512.png", sizes: "512x512", type: "image/png" },
     ],
     apple: "/apple-touch-icon.png",
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: APP_NAME,
+    startupImage: [
+      {
+        url: "/apple-splash-screen-1170x2532.png",
+        media: "(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)",
+      },
+    ],
   },
   openGraph: {
     type: "website",
@@ -54,24 +65,18 @@ export const metadata: Metadata = {
     description:
       "Historia clínica multiespecialidad, sincronización offline-first y sugerencias CIE-10 con IA. Documentá cada consulta en menos de 3 minutos.",
     siteName: APP_NAME,
-    images: [{ url: "/og-image.webp", width: 1200, height: 630, alt: `${APP_FULL_NAME}` }],
+    images: [{ url: "/og-image.jpg", width: 1200, height: 630, alt: `${APP_FULL_NAME}` }],
   },
   twitter: {
     card: "summary_large_image",
     title: `${APP_FULL_NAME} para médicos modernos`,
     description:
       "Historia clínica multiespecialidad, sincronización offline-first y sugerencias CIE-10 con IA.",
-    images: ["/og-image.webp"],
+    images: ["/og-image.jpg"],
   },
   // M-14: hreflang — la app usa locale via cookie (no rutas prefijadas /en/...)
-  // Solo se declara 'es' canónico y x-default para evitar hreflang a URL inexistente.
-  alternates: {
-    canonical: "/",
-    languages: {
-      "es": "/",
-      "x-default": "/",
-    },
-  },
+  // Se ha removido la configuración global de canonical: "/" para evitar canibalización SEO
+  // de subpáginas. Cada página debe definir su propio canonical.
 };
 
 import { NextIntlClientProvider } from 'next-intl';

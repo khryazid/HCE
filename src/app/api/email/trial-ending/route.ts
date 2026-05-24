@@ -3,6 +3,7 @@ import { Resend } from "resend";
 import { APP_NAME, APP_FROM_EMAIL, APP_URL } from "@/lib/constants/app";
 import { isSecretValid, emailTrialEndingBodySchema } from "@/lib/api/guards";
 import { serverEnv } from "@/lib/env";
+import { serverLog } from "@/lib/observability/server-logger";
 
 export async function POST(req: Request) {
   const incomingSecret = req.headers.get("x-email-secret");
@@ -13,8 +14,16 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
+  const reqId = req.headers.get("x-request-id") ?? "";
+  const log = serverLog.withRequestId(reqId);
+
   // HAL-03: Validar body con Zod en lugar de cast manual
-  const rawBody = await req.json();
+  let rawBody;
+  try {
+    rawBody = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
   const parsed = emailTrialEndingBodySchema.safeParse(rawBody);
   if (!parsed.success) {
     return NextResponse.json(
@@ -42,7 +51,7 @@ export async function POST(req: Request) {
   });
 
   if (error) {
-    console.error("[email/trial-ending] Resend error:", error);
+    log.error("email:trial-ending", "Resend error", { error });
     return NextResponse.json({ error: "Error al enviar email" }, { status: 500 });
   }
 
