@@ -10,6 +10,17 @@ import { isCieSuggestionRateLimited } from "@/features/consultations/lib/ai/cie-
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+import { z } from "zod";
+import { serverEnv } from "@/lib/env";
+import { serverLog } from "@/lib/observability/server-logger";
+
+const cieSuggestionBodySchema = z.object({
+  diagnosis: z.string().optional(),
+  symptoms: z.string().optional(),
+  anamnesis: z.string().optional(),
+  specialtyKind: z.string().optional()
+});
+
 type RequestBody = CieSuggestionInput;
 const MAX_INPUT_LENGTH = 1200;
 
@@ -61,14 +72,11 @@ async function getAuthorizedUserId() {
 
 import { GoogleGenAI } from "@google/genai";
 
-// Initialize the client once outside the request handler
-// It automatically picks up process.env.GEMINI_API_KEY
-const ai = new GoogleGenAI({});
+const ai = new GoogleGenAI({ apiKey: serverEnv.GEMINI_API_KEY });
 
-async function requestGeminiSuggestions(input: RequestBody): Promise<ReturnType<typeof extractGeminiSuggestions> | null> {
-  if (!process.env.GEMINI_API_KEY) return null;
-
-  const model = process.env.GEMINI_MODEL || "gemini-3.5-flash";
+async function requestGeminiSuggestions(input: RequestBody, reqId: string): Promise<ReturnType<typeof extractGeminiSuggestions> | null> {
+  const model = serverEnv.GEMINI_MODEL || "gemini-3.5-flash";
+  const log = serverLog.withRequestId(reqId);
 
   // Reintentar una vez si Gemini devuelve 503 (sobrecarga temporal)
   for (let attempt = 0; attempt < 2; attempt++) {
@@ -76,42 +84,46 @@ async function requestGeminiSuggestions(input: RequestBody): Promise<ReturnType<
       await new Promise((resolve) => setTimeout(resolve, 1200));
     }
 
-    try {
-      const response = await ai.models.generateContent({
-        model,
-        contents: buildCieSuggestionPrompt(input),
-        config: {
-          // As per 2026 best practices: default temperature/topP/topK is optimal for 3.x series
-          responseMimeType: "application/json",
-        },
-      });
+      const abortController = new AbortController();
+      const timeoutId = setTimeout(() => abortController.abort(), 8000);
 
-      const text = response.text;
-      if (!text) return null;
+      try {
+        const response = await ai.models.generateContent({
+          model,
+          contents: buildCieSuggestionPrompt(input),
+          config: {
+            responseMimeType: "application/json",
+          },
+        });
+        clearTimeout(timeoutId);
 
-      const suggestions = extractGeminiSuggestions(text);
-      return suggestions.length > 0 ? suggestions : null;
-    } catch (error: unknown) {
-      // @google/genai throws errors with .status for HTTP errors
-      const err = error as { status?: number; message?: string };
-      const status = err?.status;
-      
-      if (status === 503) {
-        console.warn("[HCE:cie-api] Gemini 503 — reintentando...", { attempt: attempt + 1, model });
-        continue;
-      }
-      
-      console.warn("[HCE:cie-api] Gemini API Error", {
-        status,
-        message: err?.message,
-        model,
-        specialtyKind: input.specialtyKind,
-      });
-      return null;
+        const text = response.text;
+        if (!text) return null;
+
+        const suggestions = extractGeminiSuggestions(text);
+        return suggestions.length > 0 ? suggestions : null;
+      } catch (error: unknown) {
+        clearTimeout(timeoutId);
+        // @google/genai throws errors with .status for HTTP errors
+        const err = error as { status?: number; message?: string };
+        const status = err?.status;
+        
+        if (status === 503) {
+          log.warn("cie-api", "Gemini 503 — reintentando...", { attempt: attempt + 1, model });
+          continue;
+        }
+        
+        log.warn("cie-api", "Gemini API Error", {
+          status,
+          message: err?.message,
+          model,
+          specialtyKind: input.specialtyKind,
+        });
+        return null;
     }
   }
 
-  console.warn("[HCE:cie-api] Gemini 503 tras reintentos", { model, specialtyKind: input.specialtyKind });
+  log.warn("cie-api", "Gemini 503 tras reintentos", { model, specialtyKind: input.specialtyKind });
   return null;
 }
 
@@ -133,7 +145,22 @@ export async function POST(request: Request) {
       );
     }
 
-    const body = (await request.json()) as Partial<RequestBody>;
+    const reqId = request.headers.get("x-request-id") ?? "";
+    const log = serverLog.withRequestId(reqId);
+
+    let rawBody;
+    try {
+      rawBody = await request.json();
+    } catch {
+      return NextResponse.json({ source: "gemini", suggestions: [], error: "Invalid JSON" }, { status: 400 });
+    }
+
+    const parsed = cieSuggestionBodySchema.safeParse(rawBody);
+    if (!parsed.success) {
+      return NextResponse.json({ source: "gemini", suggestions: [], error: "Invalid Payload" }, { status: 400 });
+    }
+
+    const body = parsed.data;
     const diagnosis = readRequestText(body.diagnosis);
     const symptoms = readRequestText(body.symptoms);
     const anamnesis = readRequestText(body.anamnesis);
@@ -145,7 +172,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ source: "gemini", suggestions: [] });
     }
 
-    const geminiSuggestions = await requestGeminiSuggestions({ diagnosis, symptoms, anamnesis, specialtyKind });
+    const geminiSuggestions = await requestGeminiSuggestions({ diagnosis, symptoms, anamnesis, specialtyKind }, reqId);
 
     if (geminiSuggestions && geminiSuggestions.length > 0) {
       return NextResponse.json({ source: "gemini", suggestions: geminiSuggestions });

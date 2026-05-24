@@ -1,4 +1,5 @@
 import { isSameDay, parseISO, format } from "date-fns";
+import Link from "next/link";
 import type { Database } from "@/types/supabase.types";
 
 type AppointmentRow = Database["public"]["Tables"]["appointments"]["Row"];
@@ -121,12 +122,12 @@ export function DashboardAgendaPanel({
                   {/* Botón Iniciar Consulta */}
                   {app.status === "scheduled" && (
                     <div className="shrink-0">
-                      <a 
+                      <Link 
                         href={`/consultas?appointmentId=${app.id}&patientName=${encodeURIComponent(app.patient_name || "")}${app.patient_document ? `&patientDoc=${encodeURIComponent(app.patient_document)}` : ""}${app.patient_birth_date ? `&patientBirth=${encodeURIComponent(app.patient_birth_date)}` : ""}`}
                         className="flex items-center justify-center rounded-lg bg-teal-500 px-3 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-teal-600 transition-colors"
                       >
                         Iniciar
-                      </a>
+                      </Link>
                     </div>
                   )}
                 </li>

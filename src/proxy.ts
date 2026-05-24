@@ -12,9 +12,31 @@ import { updateSession } from "@/lib/supabase/middleware";
  * Los API Routes leen este header con: req.headers.get("x-request-id")
  * y lo pasan a serverLog.withRequestId() para trazabilidad end-to-end.
  */
-function injectRequestId(request: NextRequest, response: NextResponse): NextResponse {
+function injectRequestIdAndCSP(request: NextRequest, response: NextResponse): NextResponse {
   const existingId = request.headers.get("x-request-id");
   const requestId = existingId ?? crypto.randomUUID();
+
+  // CSP Nonce generation
+  const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
+  const cspHeader = `
+    default-src 'self';
+    script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://js.stripe.com https://va.vercel-scripts.com ${
+      process.env.NODE_ENV === "development" ? "'unsafe-eval'" : ""
+    };
+    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+    img-src 'self' data: blob: https:;
+    font-src 'self' data: https://fonts.gstatic.com;
+    connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://vitals.vercel-insights.com;
+    frame-src 'self' https://js.stripe.com https://hooks.stripe.com;
+    object-src 'none';
+    base-uri 'self';
+    form-action 'self';
+    frame-ancestors 'none';
+    upgrade-insecure-requests;
+  `;
+  const contentSecurityPolicyHeaderValue = cspHeader
+    .replace(/\s{2,}/g, " ")
+    .trim();
 
   // Si la response es un redirect (302, 307, 308), preservarla intacta.
   // Solo agregar el header x-request-id sin destruir el redirect.
@@ -26,6 +48,8 @@ function injectRequestId(request: NextRequest, response: NextResponse): NextResp
   // Para responses normales (NextResponse.next), clonar headers y propagar
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-request-id", requestId);
+  requestHeaders.set("x-nonce", nonce);
+  requestHeaders.set("Content-Security-Policy", contentSecurityPolicyHeaderValue);
 
   const newResponse = NextResponse.next({
     request: { headers: requestHeaders },
@@ -36,15 +60,16 @@ function injectRequestId(request: NextRequest, response: NextResponse): NextResp
     newResponse.cookies.set(cookie);
   });
 
-  // Exponer el requestId en el response header (útil para debug desde el cliente)
+  // Exponer headers en la response
   newResponse.headers.set("x-request-id", requestId);
+  newResponse.headers.set("Content-Security-Policy", contentSecurityPolicyHeaderValue);
 
   return newResponse;
 }
 
 export async function proxy(request: NextRequest) {
   const response = await updateSession(request);
-  return injectRequestId(request, response);
+  return injectRequestIdAndCSP(request, response);
 }
 
 export const config = {

@@ -5,6 +5,7 @@ import { drawSummaryPage } from "./pdf-sections/summary";
 import { drawPrescriptionPage } from "./pdf-sections/prescription";
 import { drawInstructionsPage } from "./pdf-sections/instructions";
 import { drawOrdersPage } from "./pdf-sections/orders";
+import { SpaceGroteskBase64 } from "./fonts/SpaceGrotesk";
 
 export async function generateConsultationPdf(
   letterhead: LetterheadSettings,
@@ -13,6 +14,11 @@ export async function generateConsultationPdf(
 ) {
   const { jsPDF } = await import("jspdf");
   const doc = new jsPDF({ unit: "pt", format: "a4" });
+  
+  doc.addFileToVFS("SpaceGrotesk.ttf", SpaceGroteskBase64);
+  doc.addFont("SpaceGrotesk.ttf", "SpaceGrotesk", "normal");
+  doc.addFont("SpaceGrotesk.ttf", "SpaceGrotesk", "bold");
+  doc.addFont("SpaceGrotesk.ttf", "SpaceGrotesk", "italic");
   
   const ctx: PdfContext = {
     doc,

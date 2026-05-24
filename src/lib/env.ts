@@ -84,6 +84,9 @@ export const serverEnv = {
   get RESEND_EMAIL_SECRET() {
     return requireEnv("RESEND_EMAIL_SECRET");
   },
+  get RESEND_FROM_EMAIL() {
+    return optionalEnv("RESEND_FROM_EMAIL", "onboarding@resend.dev");
+  },
 
   // ── App URL ────────────────────────────────────────────────────────────────
   get NEXT_PUBLIC_SITE_URL() {

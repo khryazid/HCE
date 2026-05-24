@@ -448,6 +448,8 @@ export function WizardStepPatient({
                     setShowSuggestions(true);
                   }}
                   onFocus={() => setShowSuggestions(true)}
+                  aria-invalid={!!validationErrors.patientId}
+                  aria-describedby={validationErrors.patientId ? "error-patientId" : undefined}
                 />
 
                 {showSuggestions && suggestions.length > 0 ? (
@@ -490,7 +492,7 @@ export function WizardStepPatient({
               </div>
 
               {validationErrors.patientId ? (
-                <p className="text-sm font-medium text-red-600">{validationErrors.patientId}</p>
+                <p id="error-patientId" className="text-sm font-medium text-red-600">{validationErrors.patientId}</p>
               ) : null}
             </div>
           )}

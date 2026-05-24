@@ -53,7 +53,7 @@ function generateManualPDF() {
     doc.line(margin, 280, pageWidth - margin, 280);
 
     // Left text
-    doc.text("Glyph — Motor Clínico Inteligente ⚕️", margin, 285);
+    doc.text("Glyphix — Motor Clínico Inteligente ⚕️", margin, 285);
     // Right text
     doc.text(`Página ${pageIdx}`, pageWidth - margin, 285, { align: "right" });
   }
@@ -70,7 +70,7 @@ function generateManualPDF() {
   doc.setFont("Helvetica", "bold");
   doc.setFontSize(36);
   doc.setTextColor(255, 255, 255);
-  doc.text("Glyph", margin + 15, 70);
+  doc.text("Glyphix", margin + 15, 70);
 
   doc.setFontSize(20);
   doc.setTextColor(colors.primary[0], colors.primary[1], colors.primary[2]);
@@ -118,7 +118,7 @@ function generateManualPDF() {
     }
 
     // Parse H1 Heading: # Heading Title (Skip cover heading if repeating)
-    if (line.startsWith("# ") && !line.includes("Manual de Usuario — Glyph HCE")) {
+    if (line.startsWith("# ") && !line.includes("Manual de Usuario — Glyphix HCE")) {
       const titleText = line.substring(2).trim();
       y += 6;
       doc.setFont("Helvetica", "bold");

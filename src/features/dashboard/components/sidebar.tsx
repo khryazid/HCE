@@ -14,6 +14,7 @@ import {
   Settings,
   PanelLeftClose,
   PanelLeftOpen,
+  HelpCircle,
 } from "lucide-react";
 import { SYNC_STARTED_EVENT, SYNC_FINISHED_EVENT } from "@/lib/sync/sync-worker";
 import { APP_NAME } from "@/lib/constants/app";
@@ -31,6 +32,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/pacientes",    label: "Pacientes",    icon: <Users        className="h-[18px] w-[18px]" /> },
   { href: "/tratamientos", label: "Tratamientos", icon: <Pill         className="h-[18px] w-[18px]" /> },
   { href: "/ajustes",      label: "Ajustes",      icon: <Settings     className="h-[18px] w-[18px]" /> },
+  { href: "/docs",         label: "Manual",       icon: <HelpCircle   className="h-[18px] w-[18px]" /> },
 ];
 
 /* ── Logo mark — sello de cobre ─────────────────────────────── */

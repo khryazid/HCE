@@ -1,14 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { mockGenerateContent } from "./setup";
 
 vi.mock("server-only", () => ({}));
 
 const {
   mockGetUser,
-  mockFetch,
   mockIsRateLimited,
 } = vi.hoisted(() => ({
   mockGetUser: vi.fn(),
-  mockFetch: vi.fn(),
   mockIsRateLimited: vi.fn(),
 }));
 
@@ -31,8 +30,6 @@ vi.mock("@/features/consultations/lib/ai/cie-rate-limit", () => ({
   isCieSuggestionRateLimited: mockIsRateLimited,
 }));
 
-vi.stubGlobal("fetch", mockFetch);
-
 import { POST } from "@/app/api/cie-suggestions/route";
 
 function buildRequest(body: Record<string, unknown>, token?: string) {
@@ -54,6 +51,11 @@ describe("cie suggestions route", () => {
       error: null,
     });
     mockIsRateLimited.mockResolvedValue(false);
+    mockGenerateContent.mockResolvedValue({
+      text: JSON.stringify([
+        { code: "A09", rationale: "Mocked rationale", confidence: 0.9 },
+      ]),
+    });
 
     process.env.NEXT_PUBLIC_SUPABASE_URL = "https://supabase.test";
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-key";
@@ -112,7 +114,8 @@ describe("cie suggestions route", () => {
       data: { user: { id: "doctor-gemini" } },
       error: null,
     });
-    mockFetch.mockResolvedValue({ ok: false, status: 503 });
+    // Simular error 503 de @google/genai
+    mockGenerateContent.mockRejectedValue({ status: 503, message: "Service Unavailable" });
 
     const response = await POST(
       buildRequest(

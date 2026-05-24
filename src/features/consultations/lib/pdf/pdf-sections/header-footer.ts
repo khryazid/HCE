@@ -14,13 +14,13 @@ export function drawPageHeader(ctx: PdfContext) {
     }
   }
 
-  doc.setFont("helvetica", "bold");
+  doc.setFont("SpaceGrotesk", "bold");
   doc.setFontSize(20);
   setColor(doc, PDF_COLORS.DARK_BLUE);
   const nameWidth = doc.getTextWidth(letterhead.doctor_name || "Dr.");
   doc.text(letterhead.doctor_name || "Dr.", pageWidth - margin - nameWidth, y + 16);
 
-  doc.setFont("helvetica", "normal");
+  doc.setFont("SpaceGrotesk", "normal");
   doc.setFontSize(10);
   setColor(doc, PDF_COLORS.LIGHT_TEXT);
   const infoLines = [
@@ -49,7 +49,7 @@ export function drawPageFooter(ctx: PdfContext, text: string) {
   doc.setLineWidth(0.3);
   doc.line(margin, y, pageWidth - margin, y);
   
-  doc.setFont("helvetica", "italic");
+  doc.setFont("SpaceGrotesk", "italic");
   doc.setFontSize(8);
   setColor(doc, PDF_COLORS.LIGHT_TEXT);
   doc.text(text, pageWidth / 2 - doc.getTextWidth(text) / 2, y + 16);
@@ -79,12 +79,12 @@ export function drawSignatureLine(ctx: PdfContext, fixedY?: number) {
   doc.setLineWidth(0.5);
   doc.line(sigX - 10, sigY, sigX + 110, sigY);
   
-  doc.setFont("helvetica", "normal");
+  doc.setFont("SpaceGrotesk", "normal");
   doc.setFontSize(8);
   setColor(doc, PDF_COLORS.TEXT);
   doc.text("Firma del Profesional Médico", sigX + 50 - doc.getTextWidth("Firma del Profesional Médico") / 2, sigY + 12);
   
-  doc.setFont("helvetica", "bold");
+  doc.setFont("SpaceGrotesk", "bold");
   doc.setFontSize(10);
   const docName = `Dr. ${letterhead.doctor_name || ""}`;
   doc.text(docName, sigX + 50 - doc.getTextWidth(docName) / 2, sigY + 24);

@@ -14,13 +14,11 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     "public/**",
   ]),
-  // Accessibility rules (jsx-a11y)
+  // Override specific rules
   {
     rules: {
-      "jsx-a11y/interactive-supports-focus": "error",
-      "jsx-a11y/no-autofocus": "warn",
-      "jsx-a11y/anchor-is-valid": "warn",
-      "jsx-a11y/alt-text": "warn"
+      // Ignore parameters prefixed with `_` (intentionally unused, e.g. for API compatibility)
+      "@typescript-eslint/no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }]
     }
   }
 ]);

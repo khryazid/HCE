@@ -199,29 +199,12 @@ export async function getOfflineDb() {
         // así que los descartamos. Los datos canónicos viven en Supabase y se
         // vuelven a descargar en la próxima carga online.
         if (oldVersion < 2) {
-          const stores = ["profiles", "patients", "clinical_records", "specialty_data", "sync_queue"] as const;
+          const stores = ["profiles", "patients", "clinical_records", "specialty_data"] as const; // sync_queue preservado
 
           // M-10: El callback upgrade() es síncrono (restricción nativa IDB).
-          // Si sync_queue existe, emitir aviso antes de destruirla.
+          // Hemos modificado esto para NO destruir sync_queue y evitar pérdida de datos médicos.
           if (db.objectStoreNames.contains("sync_queue")) {
-            console.warn(
-              "[IDB M-10] Migración v1→v2: stores locales recreados. " +
-              "Si había cambios en la cola de sync, conéctate para re-sincronizarlos.",
-            );
-            queueMicrotask(() => {
-              if (typeof window !== "undefined") {
-                window.dispatchEvent(
-                  new CustomEvent(APP_EVENT_SYNC_ERROR, {
-                    detail: {
-                      source: "idb-upgrade",
-                      message:
-                        "Base de datos local actualizada. Si tenías cambios pendientes, " +
-                        "conecta a internet para que se re-sincronicen automáticamente.",
-                    },
-                  }),
-                );
-              }
-            });
+            console.warn("[IDB] Migración v1→v2: Conservando sync_queue para no perder trabajo offline.");
           }
 
           for (const s of stores) {
@@ -264,6 +247,36 @@ export async function getOfflineDb() {
           store.createIndex("by_status", "status");
           store.createIndex("by_timestamp", "client_timestamp");
           store.createIndex("by_table_record", "table_name_record_id");
+        }
+      },
+      blocked(currentVersion, blockedVersion, event) {
+        console.warn(`[IDB] Upgrade a v${blockedVersion} bloqueado por otra pestaña (v${currentVersion})`);
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(
+            new CustomEvent(APP_EVENT_SYNC_ERROR, {
+              detail: {
+                source: "idb-blocked",
+                message: "Hay otra pestaña abierta que impide actualizar la base de datos local. Por favor, cierra las otras pestañas de la aplicación.",
+              },
+            }),
+          );
+        }
+      },
+      blocking(currentVersion, blockedVersion, event) {
+        console.warn(`[IDB] Esta pestaña está bloqueando un upgrade a v${blockedVersion}. Cerrando conexión...`);
+        if (dbPromise) {
+          dbPromise.then((db) => db.close()).catch(console.error);
+          dbPromise = null;
+        }
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(
+            new CustomEvent(APP_EVENT_SYNC_ERROR, {
+              detail: {
+                source: "idb-blocking",
+                message: "Hay una nueva versión de la aplicación disponible. Esta pestaña ha cerrado su conexión local para permitir la actualización.",
+              },
+            }),
+          );
         }
       },
     });
@@ -648,7 +661,7 @@ export async function updatePatientStatusLocal(id: string, status: PatientStatus
 
 // ─── Clinical Records ─────────────────────────────────────────────────────────
 
-export async function refreshClinicalRecordsFromRemote(clinicId: string, doctorId: string): Promise<boolean> {
+export async function refreshClinicalRecordsFromRemote(clinicId: string, _doctorId: string): Promise<boolean> {
   try {
     const supabase = getSupabaseClient();
     const { data: { session } } = await supabase.auth.getSession();
@@ -741,7 +754,7 @@ export async function deleteClinicalRecordLocal(id: string) {
 
 // ─── Specialty Data ───────────────────────────────────────────────────────────
 
-export async function refreshSpecialtyDataFromRemote(clinicId: string, doctorId: string): Promise<boolean> {
+export async function refreshSpecialtyDataFromRemote(clinicId: string, _doctorId: string): Promise<boolean> {
   try {
     const supabase = getSupabaseClient();
     const { data: { session } } = await supabase.auth.getSession();

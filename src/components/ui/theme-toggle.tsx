@@ -1,6 +1,7 @@
 "use client";
 
 import { useTheme, type Theme } from "@/lib/hooks/use-theme";
+import { useEffect, useState } from "react";
 
 const OPTIONS: { value: Theme; label: string; icon: React.ReactNode }[] = [
   {
@@ -38,6 +39,24 @@ const OPTIONS: { value: Theme; label: string; icon: React.ReactNode }[] = [
 
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return (
+      <div className="flex flex-col gap-2">
+        <p className="text-sm font-medium text-ink">Apariencia</p>
+        <p className="text-xs text-ink-soft">
+          Elige entre claro, oscuro o usar la preferencia del sistema operativo.
+        </p>
+        <div className="mt-1 flex gap-2 flex-wrap h-10 opacity-50" aria-hidden="true" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-2">

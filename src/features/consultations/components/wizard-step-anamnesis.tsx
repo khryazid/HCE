@@ -90,9 +90,11 @@ export function WizardStepAnamnesis({ form, setForm, validationErrors, uiPrefere
             placeholder="¿Por qué viene hoy? Ej: Dolor abdominal intenso"
             value={form.chiefComplaint}
             onChange={(e) => setForm((c) => ({ ...c, chiefComplaint: e.target.value }))}
+            aria-invalid={!!validationErrors.chiefComplaint}
+            aria-describedby={validationErrors.chiefComplaint ? "error-chiefComplaint" : undefined}
           />
           {validationErrors.chiefComplaint ? (
-            <p className="text-sm font-medium text-red-600">{validationErrors.chiefComplaint}</p>
+            <p id="error-chiefComplaint" className="text-sm font-medium text-red-600">{validationErrors.chiefComplaint}</p>
           ) : null}
         </div>
 

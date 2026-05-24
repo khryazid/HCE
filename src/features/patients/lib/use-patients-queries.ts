@@ -112,40 +112,45 @@ export function useDeletePatient() {
       const totalSteps = patientRecords.length + 1;
       let done = 0;
 
+      const updatedAt = new Date().toISOString();
+
       for (const rec of patientRecords) {
         done++;
-        onProgress(`Eliminando consulta ${done} de ${patientRecords.length}…`, done, totalSteps);
+        onProgress(`Ocultando consulta ${done} de ${patientRecords.length}…`, done, totalSteps);
         
-        await deleteClinicalRecordLocal(rec.id);
+        const deletedRecord = { ...rec, deleted_at: updatedAt };
         await enqueueSyncItem({
           id: crypto.randomUUID(),
           table_name: "clinical_records",
           record_id: rec.id,
-          action: "delete",
-          payload: { id: rec.id },
+          action: "update",
+          payload: deletedRecord,
           doctor_id: tenant.doctor_id,
           clinic_id: tenant.clinic_id,
           client_timestamp: Date.now(),
           status: "pending",
           retry_count: 0,
         });
+        await deleteClinicalRecordLocal(rec.id);
       }
 
       done++;
-      onProgress("Eliminando datos del paciente…", done, totalSteps);
-      await deletePatientLocal(patient.id);
+      onProgress("Ocultando datos del paciente…", done, totalSteps);
+      
+      const deletedPatient = { ...patient, status: "inactivo", deleted_at: updatedAt };
       await enqueueSyncItem({
         id: crypto.randomUUID(),
         table_name: "patients",
         record_id: patient.id,
-        action: "delete",
-        payload: { id: patient.id },
+        action: "update",
+        payload: deletedPatient,
         doctor_id: tenant.doctor_id,
         clinic_id: tenant.clinic_id,
         client_timestamp: Date.now(),
         status: "pending",
         retry_count: 0,
       });
+      await deletePatientLocal(patient.id);
 
       return { patientId: patient.id, recordIds: patientRecords.map((r) => r.id) };
     },
@@ -173,19 +178,22 @@ export function useDeleteClinicalRecord() {
       recordId: string;
       tenant: TenantProfile;
     }) => {
-      await deleteClinicalRecordLocal(recordId);
+      const updatedAt = new Date().toISOString();
+      const deletedRecord = { id: recordId, deleted_at: updatedAt };
+      
       await enqueueSyncItem({
         id: crypto.randomUUID(),
         table_name: "clinical_records",
         record_id: recordId,
-        action: "delete",
-        payload: { id: recordId },
+        action: "update",
+        payload: deletedRecord,
         doctor_id: tenant.doctor_id,
         clinic_id: tenant.clinic_id,
         client_timestamp: Date.now(),
         status: "pending",
         retry_count: 0,
       });
+      await deleteClinicalRecordLocal(recordId);
 
       return recordId;
     },

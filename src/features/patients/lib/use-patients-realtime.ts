@@ -13,7 +13,8 @@
 
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { refreshPatientsFromRemote } from "@/lib/db/indexeddb";
+import { savePatientLocal, deletePatientLocal } from "@/lib/db/indexeddb";
+import type { PatientRecord } from "@/features/patients/types";
 import type { TenantProfile } from "@/lib/supabase/profile";
 import { patientKeys } from "./use-patients-queries";
 import {
@@ -42,8 +43,16 @@ export function usePatientsRealtime(tenant: TenantProfile | null) {
             table: "patients",
             filter: `clinic_id=eq.${clinicId}`,
           },
-          async () => {
-            await refreshPatientsFromRemote(clinicId);
+          async (payload) => {
+            if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+              if (payload.new) {
+                await savePatientLocal(payload.new as PatientRecord);
+              }
+            } else if (payload.eventType === 'DELETE') {
+              if (payload.old?.id) {
+                await deletePatientLocal(payload.old.id);
+              }
+            }
             queryClient.invalidateQueries({ queryKey: patientKeys.tenant(clinicId) });
           },
         )

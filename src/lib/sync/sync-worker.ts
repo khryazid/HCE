@@ -23,8 +23,6 @@ const MAX_RETRIES = 3;
 export const SYNC_STARTED_EVENT = "hce:sync-started";
 export const SYNC_FINISHED_EVENT = "hce:sync-finished";
 
-let isFlushing = false;
-
 export type SyncFlushSummary = {
   startedAt: number;
   finishedAt: number;
@@ -366,7 +364,6 @@ async function syncItem(item: SyncQueueItem): Promise<"synced" | "conflicted"> {
 
     // Determine event type based on action
     const eventType = item.action === "update" ? "update" : "create";
-
     await logAuditEvent(supabase, {
       p_clinic_id: item.clinic_id,
       p_doctor_id: item.doctor_id,
@@ -374,6 +371,8 @@ async function syncItem(item: SyncQueueItem): Promise<"synced" | "conflicted"> {
       p_resource_type: tableName,
       p_resource_id: item.record_id,
       p_changes: payload as unknown as import("@/types/supabase.types").Json,
+      // @ts-expect-error: schema modified but types not regenerated yet
+      p_client_timestamp: item.client_timestamp,
     });
   }
 
@@ -382,8 +381,24 @@ async function syncItem(item: SyncQueueItem): Promise<"synced" | "conflicted"> {
 }
 
 export async function flushSyncQueue(options?: { forceRetry?: boolean }) {
-  if (isFlushing) return;
-  isFlushing = true;
+  if (typeof window === "undefined") return;
+
+  // Usa Web Locks API para asegurar que solo una pestaña a la vez ejecuta el flush.
+  // Fallback a ejecución simple en entornos sin navigator.locks (ej. Safari muy antiguo).
+  if (navigator.locks) {
+    return navigator.locks.request("hce-sync-lock", { ifAvailable: true }, async (lock) => {
+      if (!lock) {
+        console.log("[sync-worker] Sincronización bloqueada por otra pestaña.");
+        return;
+      }
+      return _flushSyncQueueInner(options);
+    });
+  } else {
+    return _flushSyncQueueInner(options);
+  }
+}
+
+async function _flushSyncQueueInner(options?: { forceRetry?: boolean }) {
 
   if (typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent(SYNC_STARTED_EVENT));
@@ -404,7 +419,6 @@ export async function flushSyncQueue(options?: { forceRetry?: boolean }) {
       failed: 0,
       conflicted: 0,
     };
-    isFlushing = false;
     if (typeof window !== "undefined") {
       window.dispatchEvent(
         new CustomEvent<SyncFlushSummary>(SYNC_FINISHED_EVENT, {
@@ -443,7 +457,6 @@ export async function flushSyncQueue(options?: { forceRetry?: boolean }) {
         }),
       );
     }
-    isFlushing = false;
     return summary;
   }
 
@@ -650,14 +663,12 @@ export async function flushSyncQueue(options?: { forceRetry?: boolean }) {
     );
   }
 
-  isFlushing = false;
   return summary;
 }
 
 export function startSyncWorker() {
   const handleOnline = () => {
     void flushSyncQueue().catch((err) => {
-      isFlushing = false;
       logSyncError("flush_trigger", "Unhandled error starting flushSyncQueue", { error: String(err) });
     });
   };
@@ -668,7 +679,6 @@ export function startSyncWorker() {
 
     if (window.navigator.onLine) {
       void flushSyncQueue().catch((err) => {
-        isFlushing = false;
         logSyncError("flush_trigger", "Unhandled error on initial flushSyncQueue", { error: String(err) });
       });
     }

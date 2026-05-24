@@ -62,6 +62,7 @@ jobs:
           VAPID_MAILTO: ${{ secrets.VAPID_MAILTO }}
           ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
           PUSH_SEND_SECRET: ${{ secrets.PUSH_SEND_SECRET }}
+          PLAYWRIGHT_SKIP_WEBSERVER: "1"
         run: |
           npm run build
           npm run start &
@@ -75,3 +76,11 @@ jobs:
           name: playwright-nightly-report
           path: playwright-report/
           retention-days: 7
+
+      - name: 🔔 Notify Discord on Failure
+        if: failure()
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        uses: Ilshidur/action-discord@master
+        with:
+          args: '❌ Nightly E2E Pipeline Failed in Glyphix! Please check GitHub Actions logs.'
