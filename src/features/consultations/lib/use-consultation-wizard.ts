@@ -30,7 +30,10 @@ import { useConsultationPdfPreview } from "@/features/consultations/lib/use-cons
 import { useQuickPatientCreate } from "@/features/consultations/lib/use-quick-patient-create";
 import { logApiError } from "@/lib/observability/error-logger";
 import { usePatients, useClinicalRecords, patientKeys } from "@/features/patients/lib/use-patients-queries";
+import { usePatientsRealtime } from "@/features/patients/lib/use-patients-realtime";
+import { useClinicalRecordsRealtime } from "@/features/patients/lib/use-clinical-records-realtime";
 import { useTemplates } from "@/features/consultations/lib/use-consultation-queries";
+import { useTemplatesRealtime } from "@/features/consultations/lib/use-templates-realtime";
 
 import type {
   WizardForm,
@@ -59,6 +62,11 @@ export function useConsultationWizard(tenant: TenantProfile | null) {
   const { data: patients = [], isLoading: patientsLoading } = usePatients(tenant);
   const { data: records = [], isLoading: recordsLoading } = useClinicalRecords(tenant);
   const { data: templates = [], isLoading: templatesLoading } = useTemplates(tenant);
+
+  // M-23: Suscripción en tiempo real a pacientes, consultas y plantillas
+  usePatientsRealtime(tenant);
+  useClinicalRecordsRealtime(tenant);
+  useTemplatesRealtime(tenant);
 
   const dataLoading = patientsLoading || recordsLoading || templatesLoading;
 
@@ -247,6 +255,12 @@ export function useConsultationWizard(tenant: TenantProfile | null) {
     setMessage(null);
   }
 
+  function resumeWizard() {
+    setWizardOpen(true);
+    setError(null);
+    setMessage(null);
+  }
+
   function applyTemplate(templateId: string) {
     setForm((current) => {
       const selected = templates.find((item) => item.id === templateId);
@@ -348,7 +362,7 @@ export function useConsultationWizard(tenant: TenantProfile | null) {
         pendingFollowUp,
         patients,
         buildPdfPreviewData,
-        onSuccess: (successMessage) => {
+        onSuccess: (_successMessage) => {
           const savedPatientId = form.patientId;
           clinical.setSelectedPatientId(savedPatientId);
           resetWizard();
@@ -428,8 +442,13 @@ export function useConsultationWizard(tenant: TenantProfile | null) {
     cieSuggestionLoading,
     cieSuggestionError,
 
+    // Draft Support
+    wizardDraft: clinical.wizardDraft,
+    clearWizardDraft: clinical.clearWizardDraft,
+
     // Actions
     openWizard,
+    resumeWizard,
     resetWizard,
     applyTemplate,
     createQuickPatient,
