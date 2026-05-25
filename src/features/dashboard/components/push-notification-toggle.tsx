@@ -46,6 +46,10 @@ type PushState = "unsupported" | "loading" | "not-subscribed" | "subscribed";
 export function PushNotificationToggle() {
   const { tenant } = useTenant();
   const [state, setState] = useState<PushState>("loading");
+  const [reminderMins, setReminderMins] = useState<number>(() => {
+    const prefs = tenant?.ui_preferences as Record<string, unknown>;
+    return (prefs?.notification_time_minutes as number) || 30;
+  });
 
   // Check SW support and current subscription status on mount
   useEffect(() => {
@@ -169,36 +173,76 @@ export function PushNotificationToggle() {
   const isLoading = state === "loading";
   const isSubscribed = state === "subscribed";
 
+  const handleReminderChange = async (minutes: number) => {
+    setReminderMins(minutes);
+    if (!tenant?.doctor_id) return;
+    
+    const nextPrefs = {
+      ...(tenant.ui_preferences as object),
+      notification_time_minutes: minutes
+    };
+    
+    // Lazy import supabase client since this is a client component
+    const { getSupabaseClient } = await import("@/lib/supabase/client");
+    await getSupabaseClient()
+      .from("profiles")
+      .update({ ui_preferences: nextPrefs })
+      .eq("doctor_id", tenant.doctor_id);
+      
+    toast.success(`Recordatorios configurados para ${minutes} minutos antes de la cita.`);
+  };
+
   return (
-    <div className="flex items-center justify-between gap-4 rounded-xl border border-border bg-muted/30 p-4">
-      <div>
-        <h4 className="font-medium text-ink">Notificaciones en este dispositivo</h4>
-        <p className="text-sm text-ink-soft">
-          Recibe recordatorios de seguimientos vencidos directamente en tu pantalla o dispositivo.
-        </p>
+    <div className="flex flex-col gap-4 rounded-xl border border-border bg-muted/30 p-4">
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <h4 className="font-medium text-ink">Notificaciones en este dispositivo</h4>
+          <p className="text-sm text-ink-soft">
+            Recibe recordatorios de agenda y seguimientos directamente en tu pantalla o dispositivo.
+          </p>
+        </div>
+
+        <Button
+          id="push-toggle-btn"
+          variant={isSubscribed ? "secondary" : "default"}
+          onClick={isSubscribed ? handleUnsubscribe : handleSubscribe}
+          disabled={isLoading}
+          className="shrink-0"
+        >
+          {isLoading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : isSubscribed ? (
+            <>
+              <Bell className="mr-2 h-4 w-4 text-emerald-600" />
+              Activadas — Desactivar
+            </>
+          ) : (
+            <>
+              <BellOff className="mr-2 h-4 w-4" />
+              Activar Notificaciones
+            </>
+          )}
+        </Button>
       </div>
 
-      <Button
-        id="push-toggle-btn"
-        variant={isSubscribed ? "secondary" : "default"}
-        onClick={isSubscribed ? handleUnsubscribe : handleSubscribe}
-        disabled={isLoading}
-        className="shrink-0"
-      >
-        {isLoading ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : isSubscribed ? (
-          <>
-            <Bell className="mr-2 h-4 w-4 text-emerald-600" />
-            Activadas — Desactivar
-          </>
-        ) : (
-          <>
-            <BellOff className="mr-2 h-4 w-4" />
-            Activar Notificaciones
-          </>
-        )}
-      </Button>
+      {isSubscribed && (
+        <div className="flex items-center gap-4 border-t border-border pt-4">
+          <label htmlFor="reminder-select" className="text-sm font-medium text-ink">
+            Avisarme de mi próxima cita:
+          </label>
+          <select
+            id="reminder-select"
+            className="hce-input w-auto min-w-[150px] py-1.5 text-sm"
+            value={reminderMins}
+            onChange={(e) => handleReminderChange(Number(e.target.value))}
+          >
+            <option value={15}>15 minutos antes</option>
+            <option value={30}>30 minutos antes</option>
+            <option value={60}>1 hora antes</option>
+            <option value={120}>2 horas antes</option>
+          </select>
+        </div>
+      )}
     </div>
   );
 }

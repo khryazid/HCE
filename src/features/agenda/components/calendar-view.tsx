@@ -126,6 +126,7 @@ export function CalendarView() {
         selectedSlot={selectedSlot}
         tenantInfo={{ clinic_id: tenantProfile.clinic_id, doctor_id: tenantProfile.doctor_id }}
         config={config}
+        allAppointments={appointments}
       />
     </>
   );

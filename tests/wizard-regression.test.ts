@@ -129,7 +129,7 @@ describe("buildQuickPatientRecord", () => {
 
   it("builds a patient with correct full_name from firstName + lastName", () => {
     const patient = buildQuickPatientRecord(
-      { documentNumber: "1234567890", firstName: "Ana", lastName: "García", birthDate: "1990-05-10" },
+      { documentNumber: "1234567890", firstName: "Ana", lastName: "García", birthDate: "1990-05-10", phone: "" },
       tenant,
       timestamp,
       "uuid-1",
@@ -143,7 +143,7 @@ describe("buildQuickPatientRecord", () => {
 
   it("trims whitespace from firstName and lastName", () => {
     const patient = buildQuickPatientRecord(
-      { documentNumber: "  0001  ", firstName: "  Luis  ", lastName: "  Pérez  ", birthDate: "" },
+      { documentNumber: "  0001  ", firstName: "  Luis  ", lastName: "  Pérez  ", birthDate: "", phone: "" },
       tenant,
       timestamp,
       "uuid-2",
@@ -154,7 +154,7 @@ describe("buildQuickPatientRecord", () => {
 
   it("sets birth_date to null when empty string", () => {
     const patient = buildQuickPatientRecord(
-      { documentNumber: "0001", firstName: "X", lastName: "Y", birthDate: "" },
+      { documentNumber: "0001", firstName: "X", lastName: "Y", birthDate: "", phone: "" },
       tenant,
       timestamp,
       "uuid-3",
@@ -164,7 +164,7 @@ describe("buildQuickPatientRecord", () => {
 
   it("assigns clinic_id and doctor_id from tenant", () => {
     const patient = buildQuickPatientRecord(
-      { documentNumber: "0001", firstName: "X", lastName: "Y", birthDate: "" },
+      { documentNumber: "0001", firstName: "X", lastName: "Y", birthDate: "", phone: "" },
       tenant,
       timestamp,
       "uuid-4",

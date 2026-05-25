@@ -41,6 +41,7 @@ type QuickPatientInput = {
   documentNumber: string;
   firstName: string;
   lastName: string;
+  phone: string;
   birthDate: string;
 };
 
@@ -61,6 +62,7 @@ export function buildQuickPatientRecord(
     doctor_id: tenant.doctor_id,
     document_number: input.documentNumber.trim(),
     full_name: `${input.firstName.trim()} ${input.lastName.trim()}`,
+    phone: input.phone.trim() || null,
     birth_date: toISODateString(input.birthDate),
     status: "activo",
     created_at: timestamp,

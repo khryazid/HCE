@@ -69,6 +69,7 @@ export function PatientProfileCard({
           <p className="text-sm text-ink-soft">
             {patient.document_number}
             {patient.birth_date ? ` · ${formatDate(patient.birth_date)}` : ""}
+            {patient.phone ? ` · 📞 ${patient.phone}` : ""}
           </p>
         </div>
 
