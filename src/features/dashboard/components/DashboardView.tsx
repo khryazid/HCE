@@ -13,13 +13,10 @@ import { useEffect, useMemo, useState } from "react";
 import { isSameDay, parseISO } from "date-fns";
 import { useTenant } from "@/lib/supabase/tenant-context";
 import { DashboardSkeleton } from "@/components/ui/skeletons";
-import {
-  listClinicalRecordsByTenant,
-  listPatientsByTenant,
-  listSyncQueueItems,
-} from "@/lib/db/indexeddb";
-import type { ClinicalRecordRecord } from "@/features/consultations/types";
-import type { PatientRecord } from "@/features/patients/types";
+import { listSyncQueueItems } from "@/lib/db/indexeddb";
+import { usePatients, useClinicalRecords } from "@/features/patients/lib/use-patients-queries";
+import { usePatientsRealtime } from "@/features/patients/lib/use-patients-realtime";
+import { useClinicalRecordsRealtime } from "@/features/patients/lib/use-clinical-records-realtime";
 
 import {
   type DashboardMetrics,
@@ -48,10 +45,17 @@ export default function DashboardView() {
   const { appointments } = useAgenda();
   const [metrics, setMetrics] = useState<DashboardMetrics>(EMPTY_METRICS);
   const [activity, setActivity] = useState<ActivityItem[]>([]);
-  const [patientsData, setPatientsData] = useState<PatientRecord[]>([]);
-  const [recordsData, setRecordsData] = useState<ClinicalRecordRecord[]>([]);
   const [followUpFilter, setFollowUpFilter] = useState<FollowUpPanelFilter>("urgentes");
-  const [loading, setLoading] = useState(true);
+
+  // React Query fetch (cached, auto-invalidated)
+  const { data: patientsData = [], isLoading: patientsLoading } = usePatients(tenant);
+  const { data: recordsData = [], isLoading: recordsLoading } = useClinicalRecords(tenant);
+  
+  // Realtime subscriptions
+  usePatientsRealtime(tenant);
+  useClinicalRecordsRealtime(tenant);
+
+  const loading = patientsLoading || recordsLoading;
 
   const displayName =
     tenant?.full_name ||
@@ -61,40 +65,41 @@ export default function DashboardView() {
     session?.user.email ||
     null;
 
+  // Sync Queue is checked periodically for metrics since it's local only
   useEffect(() => {
-    if (tenantLoading || !tenant) return;
+    if (tenantLoading || !tenant || loading) return;
     let active = true;
 
-    const loadData = async () => {
+    const loadSyncQueue = async () => {
       try {
-        const [patients, records, queue] = await Promise.all([
-          listPatientsByTenant(tenant.clinic_id),
-          listClinicalRecordsByTenant(tenant.doctor_id, tenant.clinic_id),
-          listSyncQueueItems(),
-        ]);
-
+        const queue = await listSyncQueueItems();
         if (active) {
-          setPatientsData(patients);
-          setRecordsData(records);
-          setMetrics(calculateMetrics(patients, records, {
+          setMetrics(calculateMetrics(patientsData, recordsData, {
             conflicted: queue.filter((i) => i.status === "conflicted").length,
             failedOrAbandoned: queue.filter(
               (i) => i.status === "failed" || i.status === "abandoned",
             ).length,
           }));
-          setActivity(buildActivityFeed(patients, records));
+          setActivity(buildActivityFeed(patientsData, recordsData));
         }
-      } finally {
-        if (active) setLoading(false);
+      } catch (err) {
+        console.error("Error loading sync queue", err);
       }
     };
 
-    void loadData();
-    return () => { active = false; };
-  }, [tenant, tenantLoading]);
+    void loadSyncQueue();
+    // Refresh the sync queue every 10 seconds just for the indicator
+    const interval = setInterval(() => void loadSyncQueue(), 10000);
+    
+    return () => { 
+      active = false; 
+      clearInterval(interval);
+    };
+  }, [tenant, tenantLoading, loading, patientsData, recordsData]);
 
   const followUpItems = useMemo(() => {
     const patientById = new Map(patientsData.map((p) => [p.id, p]));
+    // eslint-disable-next-line react-hooks/purity
     const now = Date.now();
     const urgentWindowMs = 48 * 60 * 60 * 1000;
     const items: FollowUpPanelItem[] = [];
@@ -238,6 +243,7 @@ export default function DashboardView() {
       ) : null}
 
       {tenant?.subscription_status === "trialing" && tenant?.subscription_expires_at && (() => {
+        // eslint-disable-next-line react-hooks/purity
         const daysLeft = Math.floor((new Date(tenant.subscription_expires_at).getTime() - Date.now()) / 86_400_000);
         // Solo mostrar el banner si el trial sigue vigente (daysLeft >= 0).
         // Si ya expiró, el DashboardOnboardingGuard redirige a /billing.

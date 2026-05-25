@@ -308,30 +308,71 @@ export default function ConsultationsView() {
         </article>
       ) : (
         <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
-          <EmptyState
-            icon={<EmptyStateIconConsultations />}
-            title="Primera consulta del día"
-            description="Registra una atención en menos de 3 minutos con el flujo guiado. Los datos se guardan offline y se sincronizan automáticamente."
-            size="md"
-            action={
-              <div className="flex flex-col items-center gap-3">
-                <button
-                  type="button"
-                  onClick={wizard.openWizard}
-                  className="hce-btn-primary"
-                >
-                  Nueva consulta
-                </button>
-                <p className="text-xs text-ink-soft">
-                  o presiona{" "}
-                  <kbd className="inline-flex items-center rounded border border-border bg-bg-soft px-1.5 font-sans text-[10px] font-semibold text-ink-soft">
-                    Ctrl+K
-                  </kbd>{" "}
-                  para buscar un paciente existente
-                </p>
+          {wizard.wizardDraft ? (() => {
+            const draftPatient = wizard.patients.find(p => p.id === wizard.wizardDraft?.patientId);
+            const draftPatientName = draftPatient ? draftPatient.full_name : "Paciente sin asignar";
+            
+            return (
+              <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                <div className="flex items-start gap-4">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400">
+                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-ink">Consulta Abandonada (Borrador)</h3>
+                    <p className="mt-1 text-sm text-ink-soft">
+                      Tienes una consulta en curso para <strong>{draftPatientName}</strong>. 
+                      ¿Deseas retomarla o descartar el borrador para iniciar una nueva consulta?
+                    </p>
+                  </div>
+                </div>
+                <div className="flex w-full md:w-auto gap-3 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      wizard.clearWizardDraft();
+                      wizard.resetWizard();
+                    }}
+                    className="hce-btn-secondary flex-1 md:flex-none justify-center border-red-200 text-red-600 hover:bg-red-50 dark:border-red-900/30 dark:text-red-400 dark:hover:bg-red-900/20"
+                  >
+                    Descartar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={wizard.resumeWizard}
+                    className="hce-btn-primary flex-1 md:flex-none justify-center bg-amber-500 hover:bg-amber-600 border-amber-600"
+                  >
+                    Retomar consulta
+                  </button>
+                </div>
               </div>
-            }
-          />
+            );
+          })() : (
+            <EmptyState
+              icon={<EmptyStateIconConsultations />}
+              title="Primera consulta del día"
+              description="Registra una atención en menos de 3 minutos con el flujo guiado. Los datos se guardan offline y se sincronizan automáticamente."
+              size="md"
+              action={
+                <div className="flex flex-col items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={wizard.openWizard}
+                    className="hce-btn-primary"
+                  >
+                    Nueva consulta
+                  </button>
+                  <p className="text-xs text-ink-soft">
+                    o presiona{" "}
+                    <kbd className="inline-flex items-center rounded border border-border bg-bg-soft px-1.5 font-sans text-[10px] font-semibold text-ink-soft">
+                      Ctrl+K
+                    </kbd>{" "}
+                    para buscar un paciente existente
+                  </p>
+                </div>
+              }
+            />
+          )}
         </div>
       )}
     </section>

@@ -45,8 +45,8 @@ export function useWizardDraftSync<TForm>({
     if (context.wizardDraft && context.wizardDraftOpen) {
       setForm(context.wizardDraft);
       setStep(context.wizardDraftStep);
-      setWizardOpen(true);
-      setMessage("Borrador de consulta restaurado.");
+      // Removido: setWizardOpen(true) para evitar apertura automática.
+      // Se mostrará en una tarjeta de "Consulta Abandonada".
     }
   }, [
     context.wizardDraft,
@@ -60,13 +60,12 @@ export function useWizardDraftSync<TForm>({
     setWizardOpen,
   ]);
 
-  // M-11: Guardar borrador inmediatamente cuando el usuario:
-  //   1. Cierra/recarga la pestaña (beforeunload)
-  //   2. Cambia de pestaña o minimiza (visibilitychange → hidden)
-  // Esto previene pérdida del borrador si el debounce de 300ms no alcanzó a dispararse.
+  // M-11: Guardar borrador robustamente
+  // Guardamos en cada cambio de form/step con un debounce y al desmontar.
   useEffect(() => {
     if (!wizardOpen || !draftRestoredRef.current) return;
 
+    // Guardar inmediatamente si el usuario recarga la pestaña o minimiza
     const flushNow = () => {
       context.saveWizardDraft(form, step);
     };
@@ -79,9 +78,17 @@ export function useWizardDraftSync<TForm>({
     window.addEventListener("beforeunload", onBeforeUnload);
     document.addEventListener("visibilitychange", onVisibilityChange);
 
+    // Auto-guardado cada vez que cambia el form (con debounce en efecto)
+    const timeout = setTimeout(() => {
+      flushNow();
+    }, 1000);
+
     return () => {
+      clearTimeout(timeout);
       window.removeEventListener("beforeunload", onBeforeUnload);
       document.removeEventListener("visibilitychange", onVisibilityChange);
+      // Salvar el borrador cuando el componente se desmonta (ej. navegando por el sidebar)
+      flushNow();
     };
   }, [context, draftRestoredRef, form, step, wizardOpen]);
 }
