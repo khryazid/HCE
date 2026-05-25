@@ -13,7 +13,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useTenant } from "@/lib/supabase/tenant-context";
 import { Button } from "@/components/ui/button";
-import { Bell, BellOff, Loader2 } from "lucide-react";
+import { Loader2, Bell } from "lucide-react";
 import { toast } from "sonner";
 import { APP_NAME } from "@/lib/constants/app";
 
@@ -50,6 +50,7 @@ export function PushNotificationToggle() {
     const prefs = tenant?.ui_preferences as Record<string, unknown>;
     return (prefs?.notification_time_minutes as number) || 30;
   });
+  const [isTestingPush, setIsTestingPush] = useState(false);
 
   // Check SW support and current subscription status on mount
   useEffect(() => {
@@ -218,21 +219,50 @@ export function PushNotificationToggle() {
           disabled={isLoading}
           className="shrink-0"
         >
-          {isLoading ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : isSubscribed ? (
-            <>
-              <Bell className="mr-2 h-4 w-4 text-emerald-600" />
-              Activadas — Desactivar
-            </>
-          ) : (
-            <>
-              <BellOff className="mr-2 h-4 w-4" />
-              Activar Notificaciones
-            </>
-          )}
+          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          {isSubscribed ? "Desactivar" : "Activar en este equipo"}
         </Button>
       </div>
+
+      {isSubscribed && (
+        <div className="flex items-center justify-between gap-4 border-t border-border pt-4">
+          <div>
+            <h5 className="text-sm font-medium">Probar Notificación</h5>
+            <p className="text-xs text-ink-soft">Envía una notificación de prueba ahora mismo.</p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={isTestingPush}
+            onClick={async () => {
+              setIsTestingPush(true);
+              try {
+                const res = await fetch("/api/push/send", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    title: "Notificación de Prueba",
+                    body: "¡El sistema de notificaciones está funcionando!",
+                    url: "/dashboard"
+                  })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || "Fallo en el servidor");
+                toast.success("Notificación de prueba enviada");
+              } catch (err: unknown) {
+                const error = err as Error;
+                toast.error("Error al enviar: " + error.message);
+                console.error("Test Push Error:", error);
+              } finally {
+                setIsTestingPush(false);
+              }
+            }}
+          >
+            {isTestingPush ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Bell className="h-4 w-4 mr-2" />}
+            {isTestingPush ? "Enviando..." : "Enviar Prueba"}
+          </Button>
+        </div>
+      )}
 
       {isSubscribed && (
         <div className="flex items-center gap-4 border-t border-border pt-4">
