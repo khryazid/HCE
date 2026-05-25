@@ -362,6 +362,8 @@ El campo `"_webpack_note"` en `scripts` es una clave no estándar usada como com
 5. **Timing Attack en Guards** — Se resolvió el `isSecretValid` importando `createHash` de node:crypto para asegurar longitud uniforme de los buffers antes de `timingSafeEqual`.
 6. **Configuración Env** — Se agregó `RESEND_FROM_EMAIL` a `src/lib/env.ts` como propiedad opcional.
 7. **Uso de Resend (Reporte Diario)** — Se completó la implementación de `/api/email/daily-report/route.ts` que recopila la facturación del día y pacientes atendidos, enviando un correo usando Resend. Se actualizó el esquema de BD con la función `pg_cron` respectiva para que se dispare a las 02:00 UTC (22:00 local).
+8. **Bug de Notificaciones Push (Payload Keys)** — Se corrigió un bug en el payload del trigger `notify_appointment_change` en la base de datos (SQL), cambiando `message` por `body` y `targetDoctorId` por `target_doctor_id`, de forma que concuerden con el `pushSendBodySchema` esperado por la ruta de Next.js.
+9. **Botón de Test Push** — Se añadió un botón en la interfaz de configuración de Push (`push-notification-toggle.tsx`) para permitir al usuario forzar el envío de una notificación push saltándose el trigger SQL de la DB, aislando así los fallos de configuración en el servicio web.
 
 ### 📋 Tareas para el desarrollador
 
