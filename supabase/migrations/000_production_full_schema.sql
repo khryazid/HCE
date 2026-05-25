@@ -2192,7 +2192,7 @@ begin
     doc_id := NEW.doctor_id;
     pat_name := NEW.patient_name;
     msg_title := 'Nueva Cita Agendada';
-    msg_body := 'Paciente: ' || pat_name || '. Motivo: ' || coalesce(NEW.reason, 'Consulta médica');
+    msg_body := 'Paciente: ' || pat_name || '. Motivo: ' || coalesce(NEW.notes, 'Consulta médica');
   elsif TG_OP = 'UPDATE' then
     doc_id := NEW.doctor_id;
     pat_name := NEW.patient_name;
