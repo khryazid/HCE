@@ -349,8 +349,10 @@ export function useConsultationWizard(tenant: TenantProfile | null) {
         patients,
         buildPdfPreviewData,
         onSuccess: (successMessage) => {
+          const savedPatientId = form.patientId;
+          clinical.setSelectedPatientId(savedPatientId);
           resetWizard();
-          setMessage(successMessage);
+          router.push("/pacientes");
         },
       },
     );

@@ -13,12 +13,12 @@ export function drawOrdersPage(ctx: PdfContext) {
   ctx.y = margin;
 
   // Header mínimo: solo doctor y fecha
-  doc.setFont("SpaceGrotesk", "bold");
+  doc.setFont("helvetica", "bold");
   doc.setFontSize(14);
   setColor(doc, PDF_COLORS.DARK_BLUE);
   doc.text(letterhead.doctor_name || "", margin, ctx.y + 14);
   
-  doc.setFont("SpaceGrotesk", "normal");
+  doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   setColor(doc, PDF_COLORS.LIGHT_TEXT);
   const infoLines = [
@@ -41,7 +41,7 @@ export function drawOrdersPage(ctx: PdfContext) {
   // Banner naranja
   doc.setFillColor(154, 52, 18);
   doc.rect(margin, ctx.y, contentWidth, 26, "F");
-  doc.setFont("SpaceGrotesk", "bold");
+  doc.setFont("helvetica", "bold");
   doc.setFontSize(12);
   setColor(doc, PDF_COLORS.WHITE);
   const p4Title = "ORDEN DE ESTUDIOS PARACLÍNICOS";
@@ -49,11 +49,11 @@ export function drawOrdersPage(ctx: PdfContext) {
   ctx.y += 36;
 
   // Solo nombre del paciente
-  doc.setFont("SpaceGrotesk", "bold");
+  doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
   setColor(doc, PDF_COLORS.DARK_BLUE);
   doc.text(`Paciente: ${data.patientName}`, margin, ctx.y);
-  doc.setFont("SpaceGrotesk", "normal");
+  doc.setFont("helvetica", "normal");
   setColor(doc, PDF_COLORS.LIGHT_TEXT);
   doc.text(dateStr, pageWidth - margin - doc.getTextWidth(dateStr), ctx.y);
   ctx.y += 34;
@@ -71,13 +71,13 @@ export function drawOrdersPage(ctx: PdfContext) {
     doc.line(margin, ctx.y, margin + contentWidth, ctx.y);
     doc.line(margin, ctx.y + 22, margin + contentWidth, ctx.y + 22);
 
-    doc.setFont("SpaceGrotesk", "bold");
+    doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
     setColor(doc, PDF_COLORS.DARK_BLUE);
     doc.text(title, margin + 14, ctx.y + 15);
     ctx.y += 30;
     
-    doc.setFont("SpaceGrotesk", "normal");
+    doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
     setColor(doc, PDF_COLORS.TEXT);
     for (const item of items) {
