@@ -58,6 +58,7 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
   const router = useRouter();
 
   const form = useForm<AppointmentFormValues>({
@@ -110,6 +111,7 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
     if (isOpen) {
       if (initialData) {
         // Modo Edición
+        setIsEditing(false);
         const startD = new Date(initialData.start_time);
         const endD = new Date(initialData.end_time);
         const wasWalkIn = initialData.consultation_type === 'walk-in';
@@ -131,6 +133,7 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
         });
       } else if (selectedSlot) {
         // Modo Creación desde Calendario
+        setIsEditing(true);
         setIsWalkIn(false);
         form.reset({
           patient_name: "",
@@ -240,12 +243,110 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
         <div className="bg-bg-soft px-6 py-4 border-b border-border">
           <DialogTitle className="text-xl font-bold text-ink">
             <CalendarDays className="inline-block mr-2 h-5 w-5 text-teal-600" />
-            {initialData ? "Editar Cita" : "Nueva Cita"}
+            {initialData ? (isEditing ? "Editar Cita" : "Detalles de la Cita") : "Nueva Cita"}
           </DialogTitle>
         </div>
 
-        <form onSubmit={form.handleSubmit(onSubmit)} className="p-6 space-y-6 max-h-[80vh] overflow-y-auto">
-          {/* Datos del Paciente */}
+        {initialData && !isEditing ? (
+          <div className="p-6 space-y-6 max-h-[80vh] overflow-y-auto">
+            {/* Detalles de la cita (View Mode) */}
+            <div className="space-y-4">
+              <div className="rounded-xl border border-border bg-card p-4 space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 shrink-0 rounded-full bg-teal-100 dark:bg-teal-900/50 flex items-center justify-center text-teal-700 dark:text-teal-300 font-bold text-lg">
+                    {(initialData.patient_name || "?").charAt(0).toUpperCase()}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-bold text-ink text-lg truncate">{initialData.patient_name}</p>
+                    <div className="flex flex-wrap items-center gap-3 text-sm text-ink-soft">
+                      {initialData.patient_phone && (
+                        <span className="flex items-center gap-1"><Phone className="h-3 w-3" /> {initialData.patient_phone}</span>
+                      )}
+                      {initialData.patient_document && (
+                        <span className="flex items-center gap-1"><User className="h-3 w-3" /> {initialData.patient_document}</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4 pt-3 border-t border-border">
+                  <div>
+                    <p className="text-xs font-semibold text-ink-soft mb-1">Fecha y Hora</p>
+                    <p className="text-sm font-medium text-ink">
+                      {format(new Date(initialData.start_time), "dd/MM/yyyy")}
+                      {initialData.consultation_type === 'walk-in' ? ' (Llegada)' : ` a las ${format(new Date(initialData.start_time), "HH:mm")}`}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-ink-soft mb-1">Estado</p>
+                    <p className="text-sm font-medium text-ink">
+                      {initialData.status === 'scheduled' ? '🟢 Programada' :
+                       initialData.status === 'completed' ? '☑️ Completada' :
+                       initialData.status === 'no_show' ? '🔴 No asistió' : '🚫 Cancelada'}
+                    </p>
+                  </div>
+                  {initialData.consultation_type && initialData.consultation_type !== 'walk-in' && (
+                     <div>
+                       <p className="text-xs font-semibold text-ink-soft mb-1">Tipo de Consulta</p>
+                       <p className="text-sm font-medium text-ink">{initialData.consultation_type}</p>
+                     </div>
+                  )}
+                  <div>
+                    <p className="text-xs font-semibold text-ink-soft mb-1">Cobro</p>
+                    <p className="text-sm font-medium text-ink flex items-center gap-1.5">
+                      {initialData.payment_status === 'paid' ? '✅ Pagado' :
+                       initialData.payment_status === 'pending' ? '🟠 Pendiente' :
+                       initialData.payment_status === 'partial' ? '⏳ Parcial / Abono' : '🤝 Honoraria'}
+                      {initialData.amount ? ` ($${initialData.amount})` : ''}
+                    </p>
+                  </div>
+                </div>
+                
+                {initialData.notes && (
+                  <div className="pt-3 border-t border-border">
+                    <p className="text-xs font-semibold text-ink-soft mb-1">Motivo / Notas</p>
+                    <p className="text-sm text-ink">{initialData.notes}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4 pt-4 border-t border-border/50">
+              <div className="flex justify-center sm:justify-start order-last sm:order-first">
+                {onDelete && (
+                  <button
+                    type="button"
+                    onClick={() => setShowDeleteConfirm(true)}
+                    className="w-full sm:w-auto text-sm font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 px-3 py-2 rounded-xl transition-colors flex items-center justify-center gap-1.5"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Eliminar
+                  </button>
+                )}
+              </div>
+
+              <div className="flex flex-col sm:flex-row justify-end items-stretch gap-3 w-full sm:w-auto">
+                <button
+                  type="button"
+                  onClick={() => setIsEditing(true)}
+                  className="hce-btn-secondary w-full sm:w-auto justify-center"
+                >
+                  Modificar Cita
+                </button>
+                <button
+                  type="button"
+                  onClick={handleStartConsultation}
+                  className="hce-btn-primary gap-2 w-full sm:w-auto justify-center"
+                >
+                  <Check className="h-4 w-4" />
+                  Iniciar Consulta
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <form onSubmit={form.handleSubmit(onSubmit)} className="p-6 space-y-6 max-h-[80vh] overflow-y-auto">
+            {/* Datos del Paciente */}
           <div className="space-y-4">
             <h3 className="text-xs font-bold uppercase tracking-widest text-ink-soft">Datos del Paciente</h3>
             <div className="grid gap-4 sm:grid-cols-2">
@@ -487,34 +588,17 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
         {/* Botones */}
           <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4 pt-4 border-t border-border/50">
             <div className="flex justify-center sm:justify-start order-last sm:order-first">
-              {initialData && onDelete && (
-                <button
-                  type="button"
-                  onClick={() => setShowDeleteConfirm(true)}
-                  className="w-full sm:w-auto text-sm font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 px-3 py-2 rounded-xl transition-colors flex items-center justify-center gap-1.5"
-                  disabled={isSubmitting}
-                >
-                  <Trash2 className="h-4 w-4" />
-                  Eliminar Cita
-                </button>
-              )}
+              {/* Espacio para boton eliminar en modo edición si se desea, pero ya está en la vista */}
             </div>
 
             <div className="flex flex-col sm:flex-row justify-end items-stretch gap-3 w-full sm:w-auto">
-              {initialData && (
-                <button
-                  type="button"
-                  onClick={handleStartConsultation}
-                  className="hce-btn-secondary border-teal-500/30 text-teal-600 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-950/20 gap-2 w-full sm:w-auto justify-center"
-                  disabled={isSubmitting}
-                >
-                  <Check className="h-4 w-4" />
-                  Iniciar Consulta
-                </button>
-              )}
+              {/* El botón de Iniciar Consulta se pasa al modo vista */}
               <button
                 type="button"
-                onClick={onClose}
+                onClick={() => {
+                  if (initialData) setIsEditing(false);
+                  else onClose();
+                }}
                 className="hce-btn-secondary w-full sm:w-auto justify-center"
                 disabled={isSubmitting}
               >
@@ -542,6 +626,7 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
             </div>
           </div>
         </form>
+        )}
         
         <ConfirmModal
           open={showDeleteConfirm}
