@@ -52,7 +52,7 @@ export function ClinicalFormBuilderPanel() {
         const tenant = await loadTenantProfile(session.user.id);
         if (tenant) {
           setProfile(tenant);
-          setPreferences(tenant.ui_preferences || {});
+          setPreferences((tenant.ui_preferences as Record<string, boolean>) || {});
         }
       } catch (err) {
         console.error("Error loading profile", err);
