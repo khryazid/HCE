@@ -92,25 +92,27 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
   const watchConsultationType = form.watch("consultation_type");
   const isConsultationTypeDirty = form.formState.dirtyFields.consultation_type;
 
-  // Efecto para autocompletar precio y duración según el tipo de consulta
   const watchStartTime = form.watch("start_time");
+  const isStartTimeDirty = form.formState.dirtyFields.start_time;
   
   useEffect(() => {
-    if (watchConsultationType && isConsultationTypeDirty) {
+    if (watchConsultationType && (isConsultationTypeDirty || isStartTimeDirty)) {
       const found = config.consultationTypes.find(t => t.name === watchConsultationType);
       if (found) {
-        if (!isHonorary) {
+        if (!isHonorary && isConsultationTypeDirty) {
           form.setValue("amount", String(found.price), { shouldDirty: true });
         }
-        if (found.duration && watchStartTime) {
+        
+        if (watchStartTime) {
+          const durationMins = found.duration ? Number(found.duration) : 60;
           const [hours, minutes] = watchStartTime.split(':').map(Number);
           const endD = new Date();
-          endD.setHours(hours, minutes + found.duration, 0, 0);
+          endD.setHours(hours, minutes + durationMins, 0, 0);
           form.setValue("end_time", format(endD, "HH:mm"), { shouldDirty: true });
         }
       }
     }
-  }, [watchConsultationType, isHonorary, isConsultationTypeDirty, config.consultationTypes, form, watchStartTime]);
+  }, [watchConsultationType, isHonorary, isConsultationTypeDirty, isStartTimeDirty, config.consultationTypes, form, watchStartTime]);
 
   // Efecto para limpiar o resetear pagos si es honoraria
   useEffect(() => {
@@ -150,20 +152,38 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
         // Modo Creación desde Calendario
         setIsEditing(true);
         setIsWalkIn(false);
+        
+        let defaultConsultationType = "";
+        let defaultPrice = 0;
+        let defaultDuration = 30;
+        if (config.consultationTypes && config.consultationTypes.length > 0) {
+          defaultConsultationType = config.consultationTypes[0].name;
+          defaultPrice = config.consultationTypes[0].price;
+          defaultDuration = config.consultationTypes[0].duration ? Number(config.consultationTypes[0].duration) : 60;
+        }
+
+        let endD = selectedSlot.end;
+        const startD = selectedSlot.start;
+        
+        // Si fue un simple clic (RBC da 30 mins por defecto), o si la duración configurada es distinta:
+        if (selectedSlot.end.getTime() - selectedSlot.start.getTime() === 1800000) {
+          endD = new Date(startD.getTime() + defaultDuration * 60000);
+        }
+
         form.reset({
           patient_first_name: "",
           patient_last_name: "",
           patient_phone: "",
           patient_document: "",
           patient_birth_date: "",
-          start_date: format(selectedSlot.start, "yyyy-MM-dd"),
-          start_time: format(selectedSlot.start, "HH:mm"),
-          end_time: format(selectedSlot.end, "HH:mm"),
+          start_date: format(startD, "yyyy-MM-dd"),
+          start_time: format(startD, "HH:mm"),
+          end_time: format(endD, "HH:mm"),
           status: "scheduled",
           payment_status: "pending",
           payment_method: "",
-          consultation_type: "",
-          amount: "",
+          consultation_type: defaultConsultationType,
+          amount: String(defaultPrice),
           notes: "",
         });
       }
