@@ -20,7 +20,7 @@ function injectRequestIdAndCSP(request: NextRequest, response: NextResponse): Ne
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
   const cspHeader = `
     default-src 'self';
-    script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://js.stripe.com https://va.vercel-scripts.com ${
+    script-src 'self' 'nonce-${nonce}' 'strict-dynamic' 'sha256-jj0/4ASrTwP2lWpnckwjx++5wDVvLdSjF2M33LgIVnc=' https://js.stripe.com https://va.vercel-scripts.com ${
       process.env.NODE_ENV === "development" ? "'unsafe-eval'" : ""
     };
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
@@ -82,6 +82,6 @@ export const config = {
      * - favicon.ico (favicon file)
      * Feel free to modify this pattern to include more paths.
      */
-    "/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|js|json|webmanifest|txt|xml|woff|woff2|ttf|eot)$).*)",
   ],
 };
