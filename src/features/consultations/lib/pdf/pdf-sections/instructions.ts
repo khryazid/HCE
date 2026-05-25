@@ -18,12 +18,12 @@ export function drawInstructionsPage(ctx: PdfContext) {
   if (letterhead.logo_data_url) {
     try { doc.addImage(letterhead.logo_data_url, resolveImageFormat(letterhead.logo_data_url), margin, ctx.y, 55, 55); } catch {}
   }
-  doc.setFont("SpaceGrotesk", "bold");
+  doc.setFont("helvetica", "bold");
   doc.setFontSize(18);
   setColor(doc, PDF_COLORS.DARK_BLUE);
   doc.text(letterhead.doctor_name || "Dr.", pageWidth - margin - doc.getTextWidth(letterhead.doctor_name || "Dr."), ctx.y + 14);
   
-  doc.setFont("SpaceGrotesk", "normal");
+  doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   setColor(doc, PDF_COLORS.LIGHT_TEXT);
   const infoLines = [
@@ -43,7 +43,7 @@ export function drawInstructionsPage(ctx: PdfContext) {
   // Title banner verde
   doc.setFillColor(22, 101, 52);
   doc.rect(margin, ctx.y, contentWidth, 26, "F");
-  doc.setFont("SpaceGrotesk", "bold");
+  doc.setFont("helvetica", "bold");
   doc.setFontSize(12);
   setColor(doc, PDF_COLORS.WHITE);
   const p3Title = "HOJA DE INSTRUCCIONES PARA EL PACIENTE";
@@ -51,11 +51,11 @@ export function drawInstructionsPage(ctx: PdfContext) {
   ctx.y += 36;
 
   // Paciente + fecha
-  doc.setFont("SpaceGrotesk", "bold");
+  doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
   setColor(doc, PDF_COLORS.DARK_BLUE);
   doc.text(`Paciente: ${data.patientName}`, margin, ctx.y);
-  doc.setFont("SpaceGrotesk", "normal");
+  doc.setFont("helvetica", "normal");
   setColor(doc, PDF_COLORS.LIGHT_TEXT);
   const fechaStr = `Fecha: ${data.consultationDate.split(",")[0]}`;
   doc.text(fechaStr, pageWidth - margin - doc.getTextWidth(fechaStr), ctx.y);
@@ -74,14 +74,14 @@ export function drawInstructionsPage(ctx: PdfContext) {
     doc.line(margin, ctx.y, margin + contentWidth, ctx.y);
     doc.line(margin, ctx.y + 22, margin + contentWidth, ctx.y + 22);
 
-    doc.setFont("SpaceGrotesk", "bold");
+    doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
     setColor(doc, PDF_COLORS.DARK_BLUE);
     doc.text(title, margin + 14, ctx.y + 15);
     ctx.y += 30;
     
     const lines = doc.splitTextToSize(content, contentWidth - 18);
-    doc.setFont("SpaceGrotesk", "normal");
+    doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
     setColor(doc, PDF_COLORS.TEXT);
     for (const line of lines) {
@@ -115,12 +115,12 @@ export function drawInstructionsPage(ctx: PdfContext) {
     doc.line(margin, ctx.y, margin + contentWidth, ctx.y);
     doc.line(margin, ctx.y + wBox, margin + contentWidth, ctx.y + wBox);
     
-    doc.setFont("SpaceGrotesk", "bold");
+    doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
     setColor(doc, PDF_COLORS.RED);
     doc.text("! SIGNOS DE ALARMA - ACUDA A URGENCIAS SI PRESENTA:", margin + 14, ctx.y + 18);
     
-    doc.setFont("SpaceGrotesk", "normal");
+    doc.setFont("helvetica", "normal");
     doc.setTextColor(127, 29, 19);
     let wy = ctx.y + 34;
     for (const line of wLines) {
@@ -140,12 +140,12 @@ export function drawInstructionsPage(ctx: PdfContext) {
     doc.line(margin, ctx.y, margin + contentWidth, ctx.y);
     doc.line(margin, ctx.y + 40, margin + contentWidth, ctx.y + 40);
     
-    doc.setFont("SpaceGrotesk", "bold");
+    doc.setFont("helvetica", "bold");
     doc.setFontSize(11);
     doc.setTextColor(20, 83, 45);
     doc.text("PROXIMA CITA MEDICA:", margin + 14, ctx.y + 16);
     
-    doc.setFont("SpaceGrotesk", "normal");
+    doc.setFont("helvetica", "normal");
     doc.setFontSize(13);
     doc.text(data.followUpDate, margin + 14, ctx.y + 32);
     ctx.y += 54;

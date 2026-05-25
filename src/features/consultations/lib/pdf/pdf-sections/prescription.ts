@@ -13,15 +13,15 @@ export function drawPrescriptionPage(ctx: PdfContext) {
 
   // Patient mini-header for page 2
   setColor(doc, PDF_COLORS.DARK_BLUE);
-  doc.setFont("SpaceGrotesk", "bold");
+  doc.setFont("helvetica", "bold");
   doc.text(`Paciente: ${data.patientName}`, margin, ctx.y);
-  doc.setFont("SpaceGrotesk", "normal");
+  doc.setFont("helvetica", "normal");
   doc.text(`Fecha: ${data.consultationDate.split(",")[0]}`, pageWidth - margin - doc.getTextWidth(`Fecha: ${data.consultationDate.split(",")[0]}`), ctx.y);
   ctx.y += 20;
 
   drawSectionHeader(ctx, "PRESCRIPCIÓN MÉDICA");
 
-  doc.setFont("SpaceGrotesk", "normal");
+  doc.setFont("helvetica", "normal");
   setColor(doc, PDF_COLORS.TEXT);
   const tpLines = doc.splitTextToSize(data.treatmentPlan, contentWidth - 10);
   for (const line of tpLines) {
@@ -40,7 +40,7 @@ export function drawPrescriptionPage(ctx: PdfContext) {
   doc.setLineWidth(0.3);
   doc.line(margin, ctx.y - 10, pageWidth - margin, ctx.y - 10);
   
-  doc.setFont("SpaceGrotesk", "italic");
+  doc.setFont("helvetica", "italic");
   doc.setFontSize(8);
   setColor(doc, PDF_COLORS.LIGHT_TEXT);
   doc.text("Válido solo con firma y sello del médico. Documento confidencial — uso exclusivo para dispensación farmacéutica.", margin, ctx.y);

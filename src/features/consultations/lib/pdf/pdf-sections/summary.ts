@@ -8,7 +8,7 @@ export function drawSummaryPage(ctx: PdfContext) {
   // --- Title Banner ---
   setFill(doc, PDF_COLORS.DARK_BLUE);
   doc.rect(margin, ctx.y, contentWidth, 24, "F");
-  doc.setFont("SpaceGrotesk", "bold");
+  doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
   setColor(doc, PDF_COLORS.WHITE);
   const titleText = "HISTORIA CLÍNICA Y PLAN DE MANEJO";
@@ -27,7 +27,7 @@ export function drawSummaryPage(ctx: PdfContext) {
     const col4 = margin + 360;
 
     setColor(doc, PDF_COLORS.DARK_BLUE);
-    doc.setFont("SpaceGrotesk", "bold");
+    doc.setFont("helvetica", "bold");
     doc.text("Nombre Completo:", col1, ctx.y);
     doc.text("Edad:", col1, ctx.y + 20);
     doc.text("Ocupación:", col1, ctx.y + 40);
@@ -37,7 +37,7 @@ export function drawSummaryPage(ctx: PdfContext) {
     doc.text("Fecha/Hora:", col3, ctx.y + 40);
 
     setColor(doc, PDF_COLORS.TEXT);
-    doc.setFont("SpaceGrotesk", "normal");
+    doc.setFont("helvetica", "normal");
     doc.text(data.patientName, col2, ctx.y);
     doc.text(data.birthDate ? calculateAge(data.birthDate) : "N/A", col2, ctx.y + 20);
     doc.text(data.occupation ? data.occupation.charAt(0).toUpperCase() + data.occupation.slice(1).toLowerCase() : "No esp.", col2, ctx.y + 40);
@@ -130,7 +130,7 @@ export function drawSummaryPage(ctx: PdfContext) {
       doc.setLineWidth(0.4);
       doc.roundedRect(cx + cardPad, cy, cardW - cardPad * 2, cardH, 3, 3, "FD");
 
-      doc.setFont("SpaceGrotesk", "normal");
+      doc.setFont("helvetica", "normal");
       doc.setFontSize(8);
       setColor(doc, PDF_COLORS.LIGHT_TEXT);
       const lbl = vitals[i].label;
@@ -140,7 +140,7 @@ export function drawSummaryPage(ctx: PdfContext) {
       const displayVal = vitals[i].unit ? `${vitals[i].val} ${vitals[i].unit}` : vitals[i].val;
       if (vitals[i].isRed) setColor(doc, PDF_COLORS.RED);
       else setColor(doc, PDF_COLORS.TEXT);
-      doc.setFont("SpaceGrotesk", "bold");
+      doc.setFont("helvetica", "bold");
       doc.setFontSize(11);
       const valW = doc.getTextWidth(displayVal);
       doc.text(displayVal, cx + cardW / 2 - valW / 2, cy + 40);
@@ -178,10 +178,10 @@ export function drawSummaryPage(ctx: PdfContext) {
   doc.setLineDashPattern([], 0);
   
   ctx.y += 15;
-  doc.setFont("SpaceGrotesk", "bold");
+  doc.setFont("helvetica", "bold");
   setColor(doc, PDF_COLORS.TEXT);
   doc.text("CIE:", margin + 10, ctx.y);
-  doc.setFont("SpaceGrotesk", "normal");
+  doc.setFont("helvetica", "normal");
   
   const maxCieWidth = contentWidth - 45;
   const safeDiagLines = doc.splitTextToSize(`${data.cieCodes.join(", ") || "No espec."} - ${data.diagnosis}`, maxCieWidth);
@@ -189,9 +189,9 @@ export function drawSummaryPage(ctx: PdfContext) {
   ctx.y += safeDiagLines.length * 14 + 5;
 
   if (data.clinicalAnalysis) {
-    doc.setFont("SpaceGrotesk", "bold");
+    doc.setFont("helvetica", "bold");
     doc.text("Análisis:", margin + 10, ctx.y);
-    doc.setFont("SpaceGrotesk", "normal");
+    doc.setFont("helvetica", "normal");
     doc.text(analLines, margin + 55, ctx.y);
     ctx.y += analLines.length * 14;
   }
