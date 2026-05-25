@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
-import { Plus, Trash2, Check, Stethoscope, CreditCard } from "lucide-react";
+import { Plus, Trash2, Check, Stethoscope, CreditCard, Loader2, Mail } from "lucide-react";
 
 type PaymentMethod = { name: string; details: string };
 type ConsultationType = { name: string; price: number; duration?: number };
@@ -11,6 +11,7 @@ type ConsultationType = { name: string; price: number; duration?: number };
 export function PaymentSettingsPanel() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSendingReport, setIsSendingReport] = useState(false);
   
   const [methods, setMethods] = useState<PaymentMethod[]>([]);
   const [consultationTypes, setConsultationTypes] = useState<ConsultationType[]>([]);
@@ -235,7 +236,33 @@ export function PaymentSettingsPanel() {
         </div>
       </div>
 
-      <div className="flex justify-end border-t border-border/50 pt-6 mt-2">
+      <div className="mt-8 pt-6 border-t border-border/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h4 className="text-sm font-semibold text-ink flex items-center gap-2"><Mail className="w-4 h-4 text-ink-soft"/> Reporte Diario Manual</h4>
+          <p className="text-xs text-ink-soft">Envía a tu correo el reporte del día en cualquier momento.</p>
+        </div>
+        <button
+          type="button"
+          disabled={isSendingReport}
+          onClick={async () => {
+            setIsSendingReport(true);
+            try {
+              const res = await fetch("/api/email/daily-report", { method: "POST" });
+              if (!res.ok) throw new Error("Fallo al enviar reporte");
+              toast.success("Reporte diario enviado exitosamente");
+            } catch (err: unknown) {
+              toast.error(err instanceof Error ? err.message : "Error al enviar reporte");
+            } finally {
+              setIsSendingReport(false);
+            }
+          }}
+          className="hce-btn-secondary text-xs disabled:opacity-50 flex items-center gap-2 shrink-0"
+        >
+          {isSendingReport ? <Loader2 className="h-3 w-3 animate-spin" /> : "Enviar Reporte"}
+        </button>
+      </div>
+
+      <div className="flex justify-end border-t border-border/50 pt-6 mt-6">
         <button
           type="submit"
           disabled={isSaving}

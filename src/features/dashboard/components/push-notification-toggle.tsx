@@ -182,13 +182,22 @@ export function PushNotificationToggle() {
       notification_time_minutes: minutes
     };
     
-    // Lazy import supabase client since this is a client component
     const { getSupabaseClient } = await import("@/lib/supabase/client");
-    await getSupabaseClient()
+    const { error } = await getSupabaseClient()
       .from("profiles")
       .update({ ui_preferences: nextPrefs })
       .eq("doctor_id", tenant.doctor_id);
       
+    if (error) {
+      toast.error("Error al guardar preferencia: " + error.message);
+      return;
+    }
+      
+    // Update local state directly so it persists before reload
+    if (tenant) {
+      tenant.ui_preferences = nextPrefs;
+    }
+    
     toast.success(`Recordatorios configurados para ${minutes} minutos antes de la cita.`);
   };
 
