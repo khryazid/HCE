@@ -11,12 +11,14 @@ const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
   variable: "--font-display",
   display: "swap",
+  preload: false,
 });
 
 const outfit = Outfit({
   subsets: ["latin"],
   variable: "--font-ui",
   display: "swap",
+  preload: false,
 });
 
 export const metadata: Metadata = {
