@@ -248,7 +248,7 @@ export function PushNotificationToggle() {
                 });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error || "Fallo en el servidor");
-                toast.success("Notificación de prueba enviada");
+                toast.success(`Notificación de prueba enviada a ${data.count || 0} dispositivo(s)`);
               } catch (err: unknown) {
                 const error = err as Error;
                 toast.error("Error al enviar: " + error.message);
