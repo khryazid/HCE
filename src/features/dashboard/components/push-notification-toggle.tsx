@@ -51,6 +51,7 @@ export function PushNotificationToggle() {
     return (prefs?.notification_time_minutes as number) || 30;
   });
   const [isTestingPush, setIsTestingPush] = useState(false);
+  const [lastTestCount, setLastTestCount] = useState<number | null>(null);
 
   // Check SW support and current subscription status on mount
   useEffect(() => {
@@ -248,6 +249,7 @@ export function PushNotificationToggle() {
                 });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error || "Fallo en el servidor");
+                setLastTestCount(data.count || 0);
                 toast.success(`Notificación de prueba enviada a ${data.count || 0} dispositivo(s)`);
               } catch (err: unknown) {
                 const error = err as Error;
@@ -261,6 +263,12 @@ export function PushNotificationToggle() {
             {isTestingPush ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Bell className="h-4 w-4 mr-2" />}
             {isTestingPush ? "Enviando..." : "Enviar Prueba"}
           </Button>
+        </div>
+      )}
+      
+      {lastTestCount !== null && (
+        <div className="text-xs text-emerald-600 bg-emerald-50 p-2 rounded border border-emerald-200 mt-2">
+          La última prueba fue enviada a <b>{lastTestCount} dispositivo(s)</b> en tu cuenta.
         </div>
       )}
 
