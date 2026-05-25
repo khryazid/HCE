@@ -39,8 +39,8 @@ export function useClinicalRecordsRealtime(tenant: TenantProfile | null) {
           event: "*",
           schema: "public",
           table: "clinical_records",
-          // M-07: Filtrar por doctor_id además de clinic_id.
-          filter: `clinic_id=eq.${clinic_id}&doctor_id=eq.${doctor_id}`,
+          // M-07: Realtime solo soporta un filtro, la seguridad cruzada la maneja RLS
+          filter: `clinic_id=eq.${clinic_id}`,
         },
         async (payload) => {
           // Sync-3.5: Aplicar cambio granular en IDB en lugar de refetch completo.
