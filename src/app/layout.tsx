@@ -79,6 +79,7 @@ export const metadata: Metadata = {
   // de subpáginas. Cada página debe definir su propio canonical.
 };
 
+import { headers } from 'next/headers';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, getLocale } from 'next-intl/server';
 
@@ -89,6 +90,8 @@ export default async function RootLayout({
 }>) {
   const locale = await getLocale();
   const messages = await getMessages();
+  const headersList = await headers();
+  const nonce = headersList.get("x-nonce") || undefined;
 
   return (
     <html lang={locale} className="h-full antialiased" suppressHydrationWarning>
@@ -107,6 +110,7 @@ export default async function RootLayout({
           }
         `}</style>
         <script
+          nonce={nonce}
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var t=localStorage.getItem('hce:theme');if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}})();`,
           }}

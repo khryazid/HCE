@@ -145,6 +145,11 @@ export function AuthForm({ mode }: AuthFormProps) {
         : await supabase.auth.signInWithPassword({ email: data.email, password: data.password });
 
       if (action.error) {
+        if (action.error.message.includes("unexpected response")) {
+          // Clear broken session just in case
+          await supabase.auth.signOut();
+          throw new Error("El servidor bloqueó la solicitud por seguridad (posiblemente excediste el límite de intentos). Por favor, intenta de nuevo en un par de minutos.");
+        }
         throw action.error;
       }
 
