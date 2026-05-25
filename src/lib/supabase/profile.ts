@@ -10,7 +10,7 @@ export type TenantProfile = {
   subscription_expires_at?: string | null;
   plan: "basic" | "clinic";
   role: "admin" | "doctor" | "assistant";
-  ui_preferences?: Record<string, boolean>;
+  ui_preferences?: Record<string, unknown>;
 };
 
 type EnsureTenantProfileInput = {
@@ -52,7 +52,7 @@ function withSpecialties(profile: {
   subscription_status?: string | null;
   subscription_expires_at?: string | null;
   role?: "admin" | "doctor" | "assistant";
-  ui_preferences?: Record<string, boolean> | unknown;
+  ui_preferences?: Record<string, unknown> | unknown;
 }): TenantProfile {
   // Map the DB column name `specialty` to the canonical `specialties` field.
   const { specialty, role, ui_preferences, ...rest } = profile;
@@ -60,7 +60,7 @@ function withSpecialties(profile: {
     ...rest, 
     specialties: specialty, 
     role: role || "admin",
-    ui_preferences: (ui_preferences as Record<string, boolean>) || {}
+    ui_preferences: (ui_preferences as Record<string, unknown>) || {}
   };
 }
 
