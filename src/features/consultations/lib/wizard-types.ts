@@ -117,6 +117,7 @@ export type QuickPatientForm = {
   documentNumber: string;
   firstName: string;
   lastName: string;
+  phone: string;
   birthDate: string;
 };
 

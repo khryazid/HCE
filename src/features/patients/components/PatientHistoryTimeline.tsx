@@ -20,6 +20,8 @@ import {
   EmptyStateIconConsultations,
 } from "@/components/ui/empty-state";
 import { ExportZipButton } from "@/features/patients/components/ExportZipButton";
+import { formatMedicalReport, formatPrescription, getWhatsAppLink } from "@/lib/whatsapp/whatsapp-formatter";
+import { MessageCircle } from "lucide-react";
 import type { ClinicalRecordRecord } from "@/features/consultations/types";
 import type { TenantProfile } from "@/lib/supabase/profile";
 import type { PatientRecord } from "@/features/patients/types";
@@ -366,6 +368,36 @@ export function PatientHistoryTimeline({
                         </svg>
                         Generar PDF
                       </button>
+
+                      {selectedPatient?.phone && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const text = formatMedicalReport(record, selectedPatient.full_name, tenant?.full_name || "Doctor");
+                              window.open(getWhatsAppLink(selectedPatient.phone!, text), '_blank');
+                            }}
+                            className="inline-flex items-center gap-1 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100"
+                          >
+                            <MessageCircle className="h-3.5 w-3.5" />
+                            Enviar Informe
+                          </button>
+                          {details.treatmentPlan && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const text = formatPrescription(record, selectedPatient.full_name, tenant?.full_name || "Doctor");
+                                window.open(getWhatsAppLink(selectedPatient.phone!, text), '_blank');
+                              }}
+                              className="inline-flex items-center gap-1 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100"
+                            >
+                              <MessageCircle className="h-3.5 w-3.5" />
+                              Enviar Receta
+                            </button>
+                          )}
+                        </>
+                      )}
+
                       <button
                         type="button"
                         onClick={() => onDeleteRecordRequest(record)}

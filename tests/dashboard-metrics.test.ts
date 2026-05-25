@@ -34,6 +34,7 @@ function makePatient(overrides: Partial<PatientRecord> = {}): PatientRecord {
     doctor_id: "doc-1",
     document_number: "0000000001",
     full_name: "Juan Pérez",
+    phone: null,
     birth_date: "1990-01-15",
     status: "activo",
     created_at: new Date().toISOString(),

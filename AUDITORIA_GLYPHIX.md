@@ -300,6 +300,11 @@ El campo `"_webpack_note"` en `scripts` es una clave no estándar usada como com
 | 🟡 Media | Restringir pre-evaluación del `<ThemeToggle />` inicial | `use-theme.ts` / `theme-toggle.tsx` | Erradicar *Hydration Error* visual por diferencias entre SSR y persistencia local. |
 | 🟢 Baja | Analizar y empaquetar de-bouncing en TextAreas del Wizard | Componentes Wizard | Mejorar interactividad en dispositivos móviles aligerando re-renders. |
 
+### ✅ Acciones Completadas por Agente 1 (Sesión Actual)
+- Se añadió el campo `phone` faltante en el formulario de creación rápida de pacientes y se solucionaron errores de TypeScript asociados.
+- Se implementó la duración autocalculada en el modal de agenda (por defecto 60 min).
+- Se implementó prevención visual y lógica de choques (overlap) en la agenda para evitar citas superpuestas.
+
 ---
 
 ---
@@ -356,6 +361,7 @@ El campo `"_webpack_note"` en `scripts` es una clave no estándar usada como com
 4. **Idempotencia Emails** — El control total de idempotencia requiere cambios de schema por el Agente 4 (`last_reminded_at`), pero se envolvió el bloque en manejo de errores controlados.
 5. **Timing Attack en Guards** — Se resolvió el `isSecretValid` importando `createHash` de node:crypto para asegurar longitud uniforme de los buffers antes de `timingSafeEqual`.
 6. **Configuración Env** — Se agregó `RESEND_FROM_EMAIL` a `src/lib/env.ts` como propiedad opcional.
+7. **Uso de Resend (Reporte Diario)** — Se completó la implementación de `/api/email/daily-report/route.ts` que recopila la facturación del día y pacientes atendidos, enviando un correo usando Resend. Se actualizó el esquema de BD con la función `pg_cron` respectiva para que se dispare a las 02:00 UTC (22:00 local).
 
 ### 📋 Tareas para el desarrollador
 

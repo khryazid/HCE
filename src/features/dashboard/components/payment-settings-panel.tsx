@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Plus, Trash2, Check, Stethoscope, CreditCard } from "lucide-react";
 
 type PaymentMethod = { name: string; details: string };
-type ConsultationType = { name: string; price: number };
+type ConsultationType = { name: string; price: number; duration?: number };
 
 export function PaymentSettingsPanel() {
   const [isLoading, setIsLoading] = useState(true);
@@ -38,14 +38,14 @@ export function PaymentSettingsPanel() {
         }
 
         if (conf.consultationTypes && Array.isArray(conf.consultationTypes)) {
-          setConsultationTypes(conf.consultationTypes.map((c: unknown) => typeof c === "string" ? { name: c, price: 0 } : c as ConsultationType));
+          setConsultationTypes(conf.consultationTypes.map((c: unknown) => typeof c === "string" ? { name: c, price: 0, duration: 60 } : c as ConsultationType));
         } else {
-          setConsultationTypes([{ name: "Consulta General", price: 40 }]);
+          setConsultationTypes([{ name: "Consulta General", price: 40, duration: 60 }]);
         }
       } else {
         // Defaults
         setMethods([{ name: "Efectivo", details: "" }, { name: "Transferencia", details: "" }]);
-        setConsultationTypes([{ name: "Consulta General", price: 40 }]);
+        setConsultationTypes([{ name: "Consulta General", price: 40, duration: 60 }]);
       }
       setIsLoading(false);
     }
@@ -97,7 +97,7 @@ export function PaymentSettingsPanel() {
           </div>
           <button
             type="button"
-            onClick={() => setConsultationTypes([...consultationTypes, { name: "", price: 0 }])}
+            onClick={() => setConsultationTypes([...consultationTypes, { name: "", price: 0, duration: 60 }])}
             className="hce-btn-secondary text-xs h-8 px-3"
           >
             <Plus className="h-3 w-3 mr-1" /> Agregar Tipo
@@ -131,6 +131,20 @@ export function PaymentSettingsPanel() {
                   onChange={(e) => {
                     const copy = [...consultationTypes];
                     copy[i].price = parseFloat(e.target.value) || 0;
+                    setConsultationTypes(copy);
+                  }}
+                />
+              </div>
+              <div className="w-full sm:w-32 space-y-1">
+                <label className="text-[11px] font-semibold text-ink-soft uppercase tracking-wider">Duración (min)</label>
+                <input
+                  type="number"
+                  placeholder="60"
+                  className="hce-input bg-card"
+                  value={ctype.duration ?? 60}
+                  onChange={(e) => {
+                    const copy = [...consultationTypes];
+                    copy[i].duration = parseInt(e.target.value, 10) || 60;
                     setConsultationTypes(copy);
                   }}
                 />

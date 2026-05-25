@@ -28,13 +28,13 @@ export function useAgenda() {
         
       const conf = (data?.payment_config as Record<string, unknown>) || {};
       let methods = [{ name: "Efectivo", details: "" }, { name: "Transferencia", details: "" }];
-      let consultationTypes = [{ name: "Consulta General", price: 40 }];
+      let consultationTypes: { name: string; price: number; duration?: number }[] = [{ name: "Consulta General", price: 40, duration: 60 }];
 
       if (conf.methods && Array.isArray(conf.methods)) {
         methods = conf.methods.map((m: unknown) => typeof m === "string" ? { name: m, details: "" } : m as { name: string; details: string });
       }
       if (conf.consultationTypes && Array.isArray(conf.consultationTypes)) {
-        consultationTypes = conf.consultationTypes.map((c: unknown) => typeof c === "string" ? { name: c, price: 0 } : c as { name: string; price: number });
+        consultationTypes = conf.consultationTypes.map((c: unknown) => typeof c === "string" ? { name: c, price: 0, duration: 60 } : c as { name: string; price: number; duration?: number });
       }
 
       return { methods, consultationTypes };

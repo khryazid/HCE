@@ -5,13 +5,14 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { CalendarDays, User, Phone, CreditCard, DollarSign, Check, Trash2, Users } from "lucide-react";
+import { CalendarDays, User, Phone, CreditCard, DollarSign, Check, Trash2, Users, MessageCircle } from "lucide-react";
 import { format, formatISO, startOfDay, endOfDay } from "date-fns";
 import { useRouter } from "next/navigation";
 import { toISODateString, isValidDateString } from "@/lib/utils/date-utils";
 
 const appointmentSchema = z.object({
-  patient_name: z.string().min(2, "El nombre es requerido"),
+  patient_first_name: z.string().min(2, "El nombre es requerido"),
+  patient_last_name: z.string().min(2, "El apellido es requerido"),
   patient_phone: z.string().optional(),
   patient_document: z.string().optional(),
   patient_birth_date: z.string()
@@ -48,13 +49,14 @@ type Props = {
   tenantInfo: { clinic_id: string; doctor_id: string };
   config: { 
     methods: { name: string; details: string }[]; 
-    consultationTypes: { name: string; price: number }[] 
+    consultationTypes: { name: string; price: number; duration?: number }[] 
   };
+  allAppointments?: AppointmentRow[];
 };
 
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 
-export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialData, selectedSlot, tenantInfo, config }: Props) {
+export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialData, selectedSlot, tenantInfo, config, allAppointments = [] }: Props) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -64,7 +66,8 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
   const form = useForm<AppointmentFormValues>({
     resolver: zodResolver(appointmentSchema),
     defaultValues: {
-      patient_name: "",
+      patient_first_name: "",
+      patient_last_name: "",
       patient_phone: "",
       patient_document: "",
       patient_birth_date: "",
@@ -89,15 +92,25 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
   const watchConsultationType = form.watch("consultation_type");
   const isConsultationTypeDirty = form.formState.dirtyFields.consultation_type;
 
-  // Efecto para autocompletar precio según el tipo de consulta
+  // Efecto para autocompletar precio y duración según el tipo de consulta
+  const watchStartTime = form.watch("start_time");
+  
   useEffect(() => {
-    if (watchConsultationType && !isHonorary && isConsultationTypeDirty) {
+    if (watchConsultationType && isConsultationTypeDirty) {
       const found = config.consultationTypes.find(t => t.name === watchConsultationType);
       if (found) {
-        form.setValue("amount", String(found.price), { shouldDirty: true });
+        if (!isHonorary) {
+          form.setValue("amount", String(found.price), { shouldDirty: true });
+        }
+        if (found.duration && watchStartTime) {
+          const [hours, minutes] = watchStartTime.split(':').map(Number);
+          const endD = new Date();
+          endD.setHours(hours, minutes + found.duration, 0, 0);
+          form.setValue("end_time", format(endD, "HH:mm"), { shouldDirty: true });
+        }
       }
     }
-  }, [watchConsultationType, isHonorary, isConsultationTypeDirty, config.consultationTypes, form]);
+  }, [watchConsultationType, isHonorary, isConsultationTypeDirty, config.consultationTypes, form, watchStartTime]);
 
   // Efecto para limpiar o resetear pagos si es honoraria
   useEffect(() => {
@@ -116,8 +129,10 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
         const endD = new Date(initialData.end_time);
         const wasWalkIn = initialData.consultation_type === 'walk-in';
         setIsWalkIn(wasWalkIn);
+        const nameParts = (initialData.patient_name || "").split(' ');
         form.reset({
-          patient_name: initialData.patient_name,
+          patient_first_name: nameParts[0] || "",
+          patient_last_name: nameParts.slice(1).join(' ') || "",
           patient_phone: initialData.patient_phone || "",
           patient_document: initialData.patient_document || "",
           patient_birth_date: initialData.patient_birth_date || "",
@@ -136,7 +151,8 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
         setIsEditing(true);
         setIsWalkIn(false);
         form.reset({
-          patient_name: "",
+          patient_first_name: "",
+          patient_last_name: "",
           patient_phone: "",
           patient_document: "",
           patient_birth_date: "",
@@ -171,12 +187,43 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
       } else {
         startDateTime = new Date(`${values.start_date}T${values.start_time}:00`);
         endDateTime = new Date(`${values.start_date}T${values.end_time}:00`);
+        
+        if (endDateTime <= startDateTime) {
+          setSubmitError("La hora de fin debe ser posterior a la hora de inicio.");
+          setIsSubmitting(false);
+          return;
+        }
+
+        // Validación de choques de horario
+        const newStart = startDateTime.getTime();
+        const newEnd = endDateTime.getTime();
+        
+        const hasConflict = allAppointments.some(app => {
+          // Ignorar la cita actual si estamos editando
+          if (initialData && app.id === initialData.id) return false;
+          // Ignorar citas canceladas
+          if (app.status === 'cancelled') return false;
+          // Ignorar walk-in (no tienen bloque estricto en la vista de tiempo)
+          if (app.consultation_type === 'walk-in') return false;
+
+          const existingStart = new Date(app.start_time).getTime();
+          const existingEnd = new Date(app.end_time).getTime();
+
+          // Hay solapamiento si: nuevaInicio < viejaFin Y nuevaFin > viejaInicio
+          return newStart < existingEnd && newEnd > existingStart;
+        });
+
+        if (hasConflict) {
+          setSubmitError("Conflicto de horario: La cita se cruza con otra agenda existente.");
+          setIsSubmitting(false);
+          return;
+        }
       }
 
       const payload = {
         clinic_id: tenantInfo.clinic_id,
         doctor_id: tenantInfo.doctor_id,
-        patient_name: values.patient_name,
+        patient_name: `${values.patient_first_name.trim()} ${values.patient_last_name.trim()}`,
         patient_phone: values.patient_phone,
         patient_document: values.patient_document || null,
         patient_birth_date: toISODateString(values.patient_birth_date),
@@ -230,7 +277,7 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
 
   function handleStartConsultation() {
     if (!initialData) return;
-    const pName = encodeURIComponent(initialData.patient_name || form.getValues("patient_name") || "");
+    const pName = encodeURIComponent(initialData.patient_name || `${form.getValues("patient_first_name")} ${form.getValues("patient_last_name")}`.trim());
     const pDoc = initialData.patient_document ? `&patientDoc=${encodeURIComponent(initialData.patient_document)}` : "";
     const pBirth = initialData.patient_birth_date ? `&patientBirth=${encodeURIComponent(initialData.patient_birth_date)}` : "";
     const url = `/consultas?appointmentId=${initialData.id}&patientName=${pName}${pDoc}${pBirth}`;
@@ -323,6 +370,20 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
                     Eliminar
                   </button>
                 )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!initialData?.patient_phone) return;
+                    const text = `Hola ${initialData.patient_name}, te recordamos tu cita médica para el día ${format(new Date(initialData.start_time), "dd/MM/yyyy")} a las ${format(new Date(initialData.start_time), "HH:mm")}.`;
+                    const phoneStr = initialData.patient_phone.replace(/\D/g, "");
+                    window.open(`https://wa.me/${phoneStr}?text=${encodeURIComponent(text)}`, '_blank');
+                  }}
+                  disabled={!initialData?.patient_phone}
+                  className="w-full sm:w-auto text-sm font-semibold text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 px-3 py-2 rounded-xl transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  Recordatorio
+                </button>
               </div>
 
               <div className="flex flex-col sm:flex-row justify-end items-stretch gap-3 w-full sm:w-auto">
@@ -351,16 +412,29 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
             <h3 className="text-xs font-bold uppercase tracking-widest text-ink-soft">Datos del Paciente</h3>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <label className="text-sm font-semibold text-ink">Nombre Completo *</label>
+                <label className="text-sm font-semibold text-ink">Nombres *</label>
                 <div className="relative">
                   <User className="absolute left-3 top-2.5 h-4 w-4 text-ink-soft" />
                   <input
-                    {...form.register("patient_name")}
+                    {...form.register("patient_first_name")}
                     className="hce-input pl-9"
-                    placeholder="Ej. Juan Pérez"
+                    placeholder="Ej. Juan"
                   />
                 </div>
-                {form.formState.errors.patient_name && <p className="text-xs text-red-500">{form.formState.errors.patient_name.message}</p>}
+                {form.formState.errors.patient_first_name && <p className="text-xs text-red-500">{form.formState.errors.patient_first_name.message}</p>}
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-ink">Apellidos *</label>
+                <div className="relative">
+                  <User className="absolute left-3 top-2.5 h-4 w-4 text-ink-soft" />
+                  <input
+                    {...form.register("patient_last_name")}
+                    className="hce-input pl-9"
+                    placeholder="Ej. Pérez"
+                  />
+                </div>
+                {form.formState.errors.patient_last_name && <p className="text-xs text-red-500">{form.formState.errors.patient_last_name.message}</p>}
               </div>
 
               <div className="space-y-1.5">

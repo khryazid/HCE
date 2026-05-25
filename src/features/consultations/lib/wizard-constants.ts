@@ -86,5 +86,6 @@ export const EMPTY_QUICK_PATIENT: QuickPatientForm = {
   documentNumber: "",
   firstName: "",
   lastName: "",
+  phone: "",
   birthDate: "",
 };

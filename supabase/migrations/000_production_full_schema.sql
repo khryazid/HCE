@@ -95,6 +95,7 @@ create table if not exists public.patients (
   doctor_id       uuid        not null references auth.users (id) on delete cascade,
   document_number text        not null,
   full_name       text        not null,
+  phone           text,
   birth_date      date,
   status          text        not null default 'activo'
     check (status in ('activo', 'inactivo', 'en-seguimiento', 'alta')),
@@ -1336,6 +1337,61 @@ exception when others then
   raise notice '[cron] pg_cron no disponible: %. Habilítalo en Supabase → Database → Extensions.', sqlerrm;
 end $$;
 
+-- ── send_daily_reports ────────────────────────────────────────────────────────
+-- Envia reporte diario de facturación y pacientes a los doctores.
+-- Corre a las 02:00 UTC (aprox 22:00 en UTC-4).
+
+create or replace function public.send_daily_reports() returns void
+language plpgsql security definer set search_path = public as $$
+declare
+  v_site_url     text;
+  v_email_secret text;
+  r record;
+begin
+  select value into v_site_url      from public.app_config where key = 'site_url';
+  select value into v_email_secret  from public.app_config where key = 'resend_email_secret';
+
+  if v_site_url is null or v_email_secret is null
+     or v_site_url like 'REEMPLAZAR%' or v_email_secret like 'REEMPLAZAR%' then
+    raise warning '[email_cron] app_config no configurada para reportes diarios.';
+    return;
+  end if;
+
+  for r in
+    select
+      p.doctor_id,
+      u.email as doctor_email,
+      p.full_name as doctor_name
+    from public.profiles p
+    inner join auth.users u on u.id = p.doctor_id
+    where u.email is not null
+  loop
+    perform net.http_post(
+      url     := v_site_url || '/api/email/daily-report',
+      headers := jsonb_build_object(
+        'Content-Type',   'application/json',
+        'x-email-secret', v_email_secret
+      ),
+      body    := jsonb_build_object(
+        'target_doctor_id', r.doctor_id,
+        'doctor_email',     r.doctor_email,
+        'doctor_name',      r.doctor_name
+      )
+    );
+  end loop;
+end;
+$$;
+
+do $$ begin
+  perform cron.schedule(
+    'send_daily_reports',
+    '0 2 * * *',
+    'select public.send_daily_reports()'
+  );
+exception when others then
+  raise notice '[cron] pg_cron no disponible: %', sqlerrm;
+end $$;
+
 -- ── send_trial_ending_emails ──────────────────────────────────────────
 -- Envia recordatorios por email a doctores cuyo free trial termina mañana o hoy.
 -- Llama a POST /api/email/trial-ending.
@@ -2109,4 +2165,124 @@ END $$;
 -- ════════════════════════════════════════════════════════════
 -- FIN SECURITY HARDENING
 -- ════════════════════════════════════════════════════════════
+
+-- ════════════════════════════════════════════════════════════
+-- SISTEMA AMPLIADO DE NOTIFICACIONES (CITAS Y RECORDATORIOS)
+-- ════════════════════════════════════════════════════════════
+
+-- 1. Trigger para notificar creación/modificación/cancelación de citas en tiempo real
+create or replace function public.notify_appointment_change()
+returns trigger as $$
+declare
+  app_url text;
+  push_secret text;
+  doc_id uuid;
+  pat_name text;
+  msg_title text;
+  msg_body text;
+begin
+  select value into app_url from public.app_config where key = 'site_url' limit 1;
+  select value into push_secret from public.app_config where key = 'push_send_secret' limit 1;
+  
+  if app_url is null or push_secret is null then
+    return null;
+  end if;
+
+  if TG_OP = 'INSERT' then
+    doc_id := NEW.doctor_id;
+    pat_name := NEW.patient_name;
+    msg_title := 'Nueva Cita Agendada';
+    msg_body := 'Paciente: ' || pat_name || '. Motivo: ' || coalesce(NEW.reason, 'Consulta médica');
+  elsif TG_OP = 'UPDATE' then
+    doc_id := NEW.doctor_id;
+    pat_name := NEW.patient_name;
+    msg_title := 'Cita Modificada';
+    msg_body := 'La cita de ' || pat_name || ' ha sido actualizada.';
+  elsif TG_OP = 'DELETE' then
+    doc_id := OLD.doctor_id;
+    pat_name := OLD.patient_name;
+    msg_title := 'Cita Cancelada';
+    msg_body := 'La cita de ' || pat_name || ' ha sido cancelada.';
+  end if;
+
+  perform net.http_post(
+    url := app_url || '/api/push/send',
+    headers := jsonb_build_object('Content-Type', 'application/json', 'x-push-secret', push_secret),
+    body := jsonb_build_object(
+      'title', msg_title,
+      'message', msg_body,
+      'url', '/agenda',
+      'targetDoctorId', doc_id
+    )
+  );
+
+  return null;
+end;
+$$ language plpgsql security definer;
+
+drop trigger if exists on_appointment_change on public.appointments;
+create trigger on_appointment_change
+  after insert or update or delete on public.appointments
+  for each row execute function public.notify_appointment_change();
+
+-- 2. CronJob cada 15 minutos para Recordatorios de Citas "X tiempo antes"
+create or replace function public.notify_upcoming_appointments()
+returns void as $$
+declare
+  app_url text;
+  push_secret text;
+  appt record;
+  reminder_minutes int;
+begin
+  select value into app_url from public.app_config where key = 'site_url' limit 1;
+  select value into push_secret from public.app_config where key = 'push_send_secret' limit 1;
+
+  if app_url is null or push_secret is null then
+    return;
+  end if;
+
+  -- Buscar citas que van a suceder pronto. 
+  -- Leeremos la preferencia notification_time_minutes del médico, por defecto 30 minutos.
+  for appt in 
+    select a.id, a.patient_name, a.start_time, a.doctor_id, 
+           coalesce((p.ui_preferences->>'notification_time_minutes')::int, 30) as notify_mins
+    from public.appointments a
+    join public.profiles p on a.doctor_id = p.doctor_id
+    where a.start_time > now() 
+      and a.start_time <= now() + (coalesce((p.ui_preferences->>'notification_time_minutes')::int, 30) || ' minutes')::interval
+      -- Validar que no se haya notificado ya
+      and not exists (
+        select 1 from public.notification_log nl 
+        where nl.task_id = a.id and nl.notification_type = 'appointment_reminder'
+      )
+  loop
+    -- Enviar Push
+    perform net.http_post(
+      url := app_url || '/api/push/send',
+      headers := jsonb_build_object('Content-Type', 'application/json', 'x-push-secret', push_secret),
+      body := jsonb_build_object(
+        'title', 'Recordatorio de Cita',
+        'message', 'Tu próxima cita con ' || appt.patient_name || ' es a las ' || to_char(appt.start_time AT TIME ZONE 'UTC', 'HH24:MI'),
+        'url', '/agenda',
+        'targetDoctorId', appt.doctor_id
+      )
+    );
+    
+    -- Registrar en log para no repetir
+    insert into public.notification_log (task_id, notification_type, result, status)
+    values (appt.id, 'appointment_reminder', jsonb_build_object('success', true), 'success');
+  end loop;
+end;
+$$ language plpgsql security definer;
+
+-- Programar el cron cada 15 minutos
+DO $$ BEGIN
+  perform cron.schedule(
+    'notify-upcoming-appointments',
+    '*/15 * * * *',
+    'select public.notify_upcoming_appointments();'
+  );
+EXCEPTION WHEN others THEN
+  raise notice '[cron] pg_cron no disponible para notify-upcoming-appointments: %.', sqlerrm;
+END $$;
 

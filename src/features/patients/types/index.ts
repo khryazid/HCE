@@ -40,6 +40,7 @@ export type PatientRecord = {
   doctor_id: string;
   document_number: string;
   full_name: string;
+  phone: string | null;
   birth_date: string | null;
   status: PatientStatus;
   created_at: string;

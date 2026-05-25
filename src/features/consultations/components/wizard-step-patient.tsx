@@ -519,7 +519,7 @@ export function WizardStepPatient({
                           linkedRecordId: "",
                           patientStatus: existing.status ?? "activo",
                         }));
-                        setQuickPatient({ documentNumber: "", firstName: "", lastName: "", birthDate: "" });
+                        setQuickPatient({ documentNumber: "", firstName: "", lastName: "", birthDate: "", phone: "" });
                       } else {
                         setQuickPatient((current) => ({
                           ...current,
@@ -574,7 +574,7 @@ export function WizardStepPatient({
                   />
                 </div>
               </div>
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-4 sm:grid-cols-3">
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-ink">Nombres</label>
                   <input
@@ -599,6 +599,20 @@ export function WizardStepPatient({
                       setQuickPatient((current) => ({
                         ...current,
                         lastName: event.target.value,
+                      }))
+                    }
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-ink">Teléfono</label>
+                  <input
+                    className="hce-input"
+                    placeholder="Ej: 0991234567"
+                    value={quickPatient.phone}
+                    onChange={(event) =>
+                      setQuickPatient((current) => ({
+                        ...current,
+                        phone: event.target.value,
                       }))
                     }
                   />
