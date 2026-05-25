@@ -1952,4 +1952,18 @@ En una revisión final transversal (cross-cutting) se identificaron tareas pendi
 
 ---
 
-*Documento generado por el sistema de agentes Glyphix v2 · Última actualización: 2026-05-24*
+## 🛠️ REPORTES POST-AUDITORÍA (Hotfixes)
+
+**Ejecutado por:** Antigravity · 2026-05-25
+**Motivo:** Resolución de errores en cascada detectados durante pruebas de usuario tras la aplicación de la auditoría.
+
+### Hotfixes Aplicados:
+1. **CSP Nonce Nativo (Hotfix #1 & #2):** El hash de CSP en `proxy.ts` bloqueaba scripts en línea en producción, causando que el PWA theme loader fallara. Se eliminó el hash estático y se migró a inyección nativa de `nonce` directamente en `layout.tsx` a través de cabeceras (`headers().get("x-nonce")`), garantizando validación perfecta en Chromium.
+2. **Interrupción de Server Actions (Hotfix #3):** El middleware SSR redirigía con `302` a `/dashboard` si detectaba sesión activa, interrumpiendo abruptamente el POST de la *Server Action* durante el registro, causando el error de cliente `"An unexpected response was received"`. Se resolvió excluyendo explícitamente peticiones con cabecera `next-action`.
+3. **Restricción de Foreign Keys (Hotfix #4):** La tabla `clinics` y su FK obligatoria, añadidas por el Agente 4, rompieron la creación de perfiles médicos (error `23503`). Se actualizó la secuencia transaccional de `createTenantProfileWithTrial` para inicializar el registro de la clínica *antes* de crear el perfil.
+4. **Fallo Crítico en Worker PDF (Hotfix #5):** El worker de generación de PDFs fallaba silenciosamente en fondo. Se descubrió que el string `SpaceGroteskBase64` incrustado contenía el código HTML de un Error 404 de Google Fonts en lugar de la tipografía válida. Se reemplazó el uso a fuente estándar `helvetica` para prevenir corrupción de buffer y acelerar la generación.
+5. **Navegación UX del Flujo Clínico (Hotfix #5):** El guardado del Wizard Clínico finalizaba el formulario sin llevar al médico a la historia del paciente. Se actualizó el hook `use-consultation-wizard` para forzar la navegación SPA hacia `/pacientes` y establecer `clinical.setSelectedPatientId`, unificando la generación de PDF con la vista de evolución.
+
+---
+
+*Documento generado por el sistema de agentes Glyphix v2 · Última actualización: 2026-05-25*
