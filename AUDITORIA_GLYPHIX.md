@@ -579,7 +579,13 @@ El `eslint-disable-next-line` fue **revertido**. El hallazgo se delega correctam
 | 🔴 Alta | ✅ **[RESUELTO]** Añadir callbacks `blocking/blocked` en `openDB()` para prevenir cuelgue y guardar temporalmente `sync_queue` local en migraciones. | `src/lib/db/indexeddb.ts` | ⚠️ Riesgo inminente de destrucción de trabajo offline y de app muerta por re-carga de SW. |
 | 🔴 Alta | ✅ **[RESUELTO]** Migrar cerrojo del worker a Web Locks API (`navigator.locks.request`). | `src/lib/sync/sync-worker.ts` | Prevenir duplicación de escrituras y carrera entre 2+ pestañas abiertas. |
 | 🟡 Media | ✅ **[RESUELTO]** Expandir la firma de `log_audit_event` para alojar `client_timestamp`. | `src/lib/sync/sync-worker.ts`, Supabase Schema | Rigurosidad pericial de historias de pacientes. |
-| 🟡 Media | ✅ **[RESUELTO por Agente 4]** Reestructurar todos los webhooks de Realtime para aplicar parches granulares de React Query usando `payload.new`. | `src/features/**/lib/*-realtime.ts` | Alivianar tráfico y CPU innecesario en refresh. |
+| 🟡 Media | ✅ **[RESUELTO por Agente 4 y 5]** Reestructurar todos los webhooks de Realtime para aplicar parches granulares de React Query usando `payload.new`. Y aplicación de tiempo real al Dashboard y Consultas. | `src/features/**/lib/*-realtime.ts` | Alivianar tráfico y CPU innecesario en refresh. |
+
+### ✅ Acciones Recientes Adicionales (Real-time & Borradores)
+1. **[RESUELTO] Borradores Blindados:** Se detectó que al navegar usando el menú lateral, el sistema no guardaba el borrador (pérdida de datos). Se reescribió `useWizardDraftSync` para guardar de manera reactiva (debounce) y forzosamente en el des-montaje del componente.
+2. **[RESUELTO] UI de Consultas Abandonadas:** Se eliminó la apertura invasiva de borradores. Ahora se muestran elegantemente en una tarjeta "Consulta Abandonada" con los datos del paciente y botones de acción en `/consultas`.
+3. **[RESUELTO] Dashboard Real-time:** Se eliminó el `useEffect` manual de `DashboardView.tsx` y se inyectaron los WebSockets de React Query (`usePatientsRealtime`, `useClinicalRecordsRealtime`). Ahora las métricas de pacientes activos y seguimientos bailan en tiempo real entre asistentes y médicos.
+4. **[RESUELTO] Notificaciones Reactivas:** `useOverdueCount` refactorizado a React Query. La "campanita roja" de alertas responde al instante a cambios realizados en otras pantallas.
 
 ---
 
