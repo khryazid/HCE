@@ -2210,9 +2210,9 @@ begin
     headers := jsonb_build_object('Content-Type', 'application/json', 'x-push-secret', push_secret),
     body := jsonb_build_object(
       'title', msg_title,
-      'message', msg_body,
+      'body', msg_body,
       'url', '/agenda',
-      'targetDoctorId', doc_id
+      'target_doctor_id', doc_id
     )
   );
 
