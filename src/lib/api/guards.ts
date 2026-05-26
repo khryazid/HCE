@@ -92,10 +92,10 @@ export const pushUnsubscribeBodySchema = z.object({
 
 /** POST /api/push/send */
 export const pushSendBodySchema = z.object({
-  title:            z.string().max(100).optional(),
-  body:             z.string().max(500).optional(),
-  target_doctor_id: z.string().uuid().optional(),
-  url:              z.string().max(500).optional(),
+  title:            z.string().max(100).nullable().optional(),
+  body:             z.string().max(500).nullable().optional(),
+  target_doctor_id: z.string().uuid().nullable().optional(),
+  url:              z.string().max(500).nullable().optional(),
 });
 
 /** POST /api/email/followup — HAL-03 */
