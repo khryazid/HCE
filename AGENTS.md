@@ -61,7 +61,7 @@ public/                           ← Assets estáticos (favicons, icons PWA)
 1. **Webpack sobre Turbopack** — `next-pwa` es incompatible con Turbopack. Siempre usar `npm run dev` (no `--turbo`).
 2. **`proxy.ts` en lugar de `middleware.ts`** — Es el mecanismo de protección de rutas SSR en Next.js 16.
 3. **IndexedDB como fuente de verdad local** — La app funciona sin internet. El sync worker sube a Supabase en background.
-4. **Schema único** — `supabase/migrations/000_production_full_schema.sql` es la única fuente de verdad. No hay migraciones incrementales.
+4. **Schema híbrido** — `supabase/migrations/000_production_full_schema.sql` es la fuente de verdad completa. Los cambios nuevos se duplican como migraciones incrementales (`001_*.sql`, `002_*.sql`...) para aplicar en producción sin re-ejecutar todo el schema.
 5. **Tipos generados** — `src/types/supabase.types.ts` se genera con `npm run db:types`. Nunca editar manualmente.
 6. **Rate limiting en Postgres** — El rate limiting está implementado como RPC en Supabase, no en middleware de Next.js.
 

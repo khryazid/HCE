@@ -9,12 +9,12 @@ import {
   EmptyStateIconConsultations,
 } from "@/components/ui/empty-state";
 import { useConsultationWizard } from "@/features/consultations/lib/use-consultation-wizard";
-import { WizardStepPatient } from "@/features/consultations/components/wizard-step-patient";
-import { WizardStepAnamnesis } from "@/features/consultations/components/wizard-step-anamnesis";
+import WizardStepPatient from "@/features/consultations/components/wizard-step-patient";
+import WizardStepAnamnesis from "@/features/consultations/components/wizard-step-anamnesis";
 import { WizardStepReviewOfSystems } from "@/features/consultations/components/wizard-step-review-of-systems";
-import { WizardStepPhysicalExam } from "@/features/consultations/components/wizard-step-physical-exam";
-import { WizardStepDiagnosisOnly } from "@/features/consultations/components/wizard-step-diagnosis-only";
-import { WizardStepTreatment } from "@/features/consultations/components/wizard-step-treatment";
+import WizardStepPhysicalExam from "@/features/consultations/components/wizard-step-physical-exam";
+import WizardStepDiagnosisOnly from "@/features/consultations/components/wizard-step-diagnosis-only";
+import WizardStepTreatment from "@/features/consultations/components/wizard-step-treatment";
 import { WizardStepper } from "./wizard-stepper";
 
 // Constante de steps (fuera del componente)

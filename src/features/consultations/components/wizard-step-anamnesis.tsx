@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { memo, useCallback } from "react";
 import type { WizardForm, CurrentMedication } from "@/features/consultations/lib/use-consultation-wizard";
 import { MedicationsTable } from "@/features/consultations/components/medications-table";
 
@@ -11,7 +11,7 @@ type Props = {
   uiPreferences?: Record<string, boolean>;
 };
 
-export function WizardStepAnamnesis({ form, setForm, validationErrors, uiPreferences }: Props) {
+const WizardStepAnamnesis = memo(function WizardStepAnamnesis({ form, setForm, validationErrors, uiPreferences }: Props) {
   const handleMedicationsChange = useCallback(
     (meds: CurrentMedication[]) => {
       const pharmacologicalText = meds
@@ -224,4 +224,5 @@ export function WizardStepAnamnesis({ form, setForm, validationErrors, uiPrefere
       </div>
     </div>
   );
-}
+});
+export default WizardStepAnamnesis;

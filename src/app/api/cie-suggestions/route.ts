@@ -84,18 +84,21 @@ async function requestGeminiSuggestions(input: RequestBody, reqId: string): Prom
       await new Promise((resolve) => setTimeout(resolve, 1200));
     }
 
-      const abortController = new AbortController();
-      const timeoutId = setTimeout(() => abortController.abort(), 8000);
-
       try {
-        const response = await ai.models.generateContent({
+        // Timeout riguroso: si Gemini no responde en 8s, abortamos para no
+        // dejar al médico esperando indefinidamente en la UI del wizard.
+        const generatePromise = ai.models.generateContent({
           model,
           contents: buildCieSuggestionPrompt(input),
           config: {
             responseMimeType: "application/json",
           },
         });
-        clearTimeout(timeoutId);
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("GEMINI_TIMEOUT")), 8000),
+        );
+
+        const response = await Promise.race([generatePromise, timeoutPromise]);
 
         const text = response.text;
         if (!text) return null;
@@ -103,10 +106,14 @@ async function requestGeminiSuggestions(input: RequestBody, reqId: string): Prom
         const suggestions = extractGeminiSuggestions(text);
         return suggestions.length > 0 ? suggestions : null;
       } catch (error: unknown) {
-        clearTimeout(timeoutId);
         // @google/genai throws errors with .status for HTTP errors
         const err = error as { status?: number; message?: string };
         const status = err?.status;
+
+        if (err?.message === "GEMINI_TIMEOUT") {
+          log.warn("cie-api", "Gemini timeout (8s) — reintentando...", { attempt: attempt + 1, model });
+          continue;
+        }
         
         if (status === 503) {
           log.warn("cie-api", "Gemini 503 — reintentando...", { attempt: attempt + 1, model });

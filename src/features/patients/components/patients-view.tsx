@@ -16,10 +16,10 @@ import { ConfirmModal } from "@/components/ui/confirm-modal";
 import type { ClinicalRecordRecord } from "@/features/consultations/types";
 import { PATIENT_STATUS_OPTIONS, type PatientRecord, type PatientStatus } from "@/features/patients/types";
 import { buildRetryableErrorMessage } from "@/lib/ui/feedback-copy";
-import { PatientList } from "@/features/patients/components/PatientList";
-import { PatientProfileCard } from "@/features/patients/components/PatientProfileCard";
-import { PatientHistoryTimeline } from "@/features/patients/components/PatientHistoryTimeline";
-import { PatientAnalyticsBar } from "@/features/patients/components/PatientAnalyticsBar";
+import { PatientList } from "@/features/patients/components/patient-list";
+import { PatientProfileCard } from "@/features/patients/components/patient-profile-card";
+import { PatientHistoryTimeline } from "@/features/patients/components/patient-history-timeline";
+import { PatientAnalyticsBar } from "@/features/patients/components/patient-analytics-bar";
 import {
   usePatients,
   useClinicalRecords,

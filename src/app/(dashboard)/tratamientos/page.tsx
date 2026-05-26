@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import TreatmentsView from "@/features/consultations/components/TreatmentsView";
+import TreatmentsView from "@/features/consultations/components/treatments-view";
 import { APP_NAME } from "@/lib/constants/app";
 
 export const metadata: Metadata = {

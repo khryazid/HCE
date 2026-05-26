@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { memo, useMemo, useState } from "react";
 import type { ClinicalRecordRecord } from "@/features/consultations/types";
 import type { PatientRecord } from "@/features/patients/types";
 import type {
@@ -55,7 +55,7 @@ type Props = {
   onApplyFollowUpMode: (record: ClinicalRecordRecord | null) => void;
 };
 
-export function WizardStepPatient({
+const WizardStepPatient = memo(function WizardStepPatient({
   form,
   setForm,
   patients,
@@ -638,4 +638,5 @@ export function WizardStepPatient({
       )}
     </div>
   );
-}
+});
+export default WizardStepPatient;

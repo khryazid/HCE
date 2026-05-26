@@ -1,5 +1,7 @@
 "use client";
 
+import { memo } from "react";
+
 import type { WizardForm } from "@/features/consultations/lib/use-consultation-wizard";
 import { ChipSelector } from "@/features/consultations/components/chip-selector";
 
@@ -61,7 +63,7 @@ type Props = {
   uiPreferences?: Record<string, boolean>;
 };
 
-export function WizardStepPhysicalExam({ form, setForm, tenantSpecialties = [], uiPreferences }: Props) {
+const WizardStepPhysicalExam = memo(function WizardStepPhysicalExam({ form, setForm, tenantSpecialties = [], uiPreferences }: Props) {
   const isPediatric = tenantSpecialties.some(
     (s) => s.toLowerCase().includes("pediatr") || s.toLowerCase().includes("neonat"),
   );
@@ -437,4 +439,5 @@ export function WizardStepPhysicalExam({ form, setForm, tenantSpecialties = [], 
       )}
     </div>
   );
-}
+});
+export default WizardStepPhysicalExam;
