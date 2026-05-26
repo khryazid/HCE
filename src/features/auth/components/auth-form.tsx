@@ -380,9 +380,9 @@ export function AuthForm({ mode }: AuthFormProps) {
           </>
         ) : null}
 
-        <label className="block space-y-2 text-sm font-medium text-ink-soft">
+        <div className="block space-y-2 text-sm font-medium text-ink-soft">
           <div className="flex justify-between items-center">
-            <span>Contraseña</span>
+            <label htmlFor="password-field">Contraseña</label>
             {!isSignUp && (
               <Link
                 href="/recuperar"
@@ -394,6 +394,7 @@ export function AuthForm({ mode }: AuthFormProps) {
           </div>
           <div className="flex gap-2">
             <Input
+              id="password-field"
               type={showPassword ? "text" : "password"}
               autoComplete={isSignUp ? "new-password" : "current-password"}
               placeholder="Minimo 6 caracteres"
@@ -411,7 +412,7 @@ export function AuthForm({ mode }: AuthFormProps) {
           {errors.password ? (
             <p className="text-xs text-red-700">{errors.password.message}</p>
           ) : null}
-        </label>
+        </div>
 
         {error ? (
           <p className="hce-alert-error" role="alert">{error}</p>
