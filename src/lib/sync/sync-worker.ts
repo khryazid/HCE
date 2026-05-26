@@ -15,7 +15,9 @@ import {
 } from "@/lib/observability/app-events";
 import { MAX_RETRY_DELAY_MS, BASE_RETRY_DELAY_MS } from "@/lib/constants/sync";
 
-// C-06: Evento dedicado para suscripción expirada
+// Suscripción expirada: cuando RLS devuelve 42501, emitimos este evento para
+// mostrar un banner al médico indicando que sus datos locales están seguros
+// pero no se sincronizarán hasta que renueve su plan.
 export const APP_EVENT_SUBSCRIPTION_EXPIRED = "hce:subscription-expired";
 
 const MAX_RETRIES = 3;
@@ -271,7 +273,9 @@ async function syncItem(item: SyncQueueItem): Promise<"synced" | "conflicted"> {
     .maybeSingle();
 
   if (remoteError) {
-    // C-06: Detectar 42501 (suscripción inactiva / RLS denegado) en la lectura de remote
+    // Suscrip. expirada: PostgreSQL devuelve 42501 (insufficient_privilege)
+    // cuando la RLS deniega acceso porque el plan está inactivo. En este caso
+    // no reintentamos — el médico necesita renovar su suscripción.
     const errObj = remoteError as { code?: string };
     if (errObj.code === "42501") {
       emitAppEvent(APP_EVENT_SUBSCRIPTION_EXPIRED, {
@@ -287,10 +291,10 @@ async function syncItem(item: SyncQueueItem): Promise<"synced" | "conflicted"> {
     : Number.NEGATIVE_INFINITY;
 
   if (remoteTime > item.client_timestamp) {
-    // Sync-1.3: A-10 upgrade — instead of silently deleting the local change,
-    // mark it as "conflicted" so the doctor can see it in the SyncQueuePanel
-    // and decide whether to discard or retry manually. Also emit the abandoned
-    // event (higher UI prominence than sync_error) so the banner turns red.
+    // Conflicto de reloj: el servidor tiene una versión más reciente que la
+    // local (remoteTime > client_timestamp). En vez de perder silenciosamente
+    // el cambio local, lo marcamos como "conflicted" para que el médico pueda
+    // revisarlo en Ajustes › Sincronización y decidir si descarta o reintenta.
     const conflictMessage =
       `Conflicto en "${tableName}": el servidor tiene una versión más reciente (clock drift). ` +
       "Tu cambio local está guardado como conflicto — revísalo en Ajustes › Sincronización.";
@@ -333,7 +337,8 @@ async function syncItem(item: SyncQueueItem): Promise<"synced" | "conflicted"> {
     const { error } = await tableClient.upsert(payload, { onConflict: "id" });
 
     if (error) {
-      // C-06: Detectar 42501 en la escritura del upsert
+      // Suscrip. expirada: mismo manejo que en la lectura — 42501 indica
+      // que la RLS bloqueó la escritura porque el plan no está activo.
       const errObj = error as { code?: string };
       if (errObj.code === "42501") {
         emitAppEvent(APP_EVENT_SUBSCRIPTION_EXPIRED, {
@@ -432,7 +437,9 @@ async function _flushSyncQueueInner(options?: { forceRetry?: boolean }) {
   const currentDoctorId = user.id;
 
   try {
-    // Sync-1.2: Prune old items before processing
+    // Limpieza preventiva: eliminar items antiguos del sync_queue antes de
+    // procesar nuevos. Items sincronizados hace >7 días y abandonados hace
+    // >30 días son eliminados para evitar que IndexedDB crezca sin límite.
     await pruneOldSyncQueueItems(7, 30);
   } catch (err) {
     console.error("[sync-worker] Failed to prune old sync queue items:", err);
@@ -535,7 +542,8 @@ async function _flushSyncQueueInner(options?: { forceRetry?: boolean }) {
             ? ((error as { message: string }).message)
             : "Unknown sync error";
 
-      // C-06: Si la suscripción expiró, marcar como conflicted sin reintentar
+      // Suscrip. expirada: marcar como conflicted sin reintentar para no
+      // acumular reintentos inútiles mientras el plan esté inactivo.
       if (message.startsWith("SUBSCRIPTION_EXPIRED:")) {
         await updateSyncItemStatus(
           item.id,

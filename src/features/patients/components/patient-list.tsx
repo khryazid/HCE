@@ -7,7 +7,7 @@
 
 import { Search } from "lucide-react";
 import { useState, useMemo } from "react";
-import { PatientStatusBadge } from "@/features/patients/components/PatientStatusBadge";
+import { PatientStatusBadge } from "@/features/patients/components/patient-status-badge";
 import { calculateAge } from "@/features/dashboard/lib/metrics";
 import {
   EmptyState,

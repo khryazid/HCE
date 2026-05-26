@@ -381,7 +381,17 @@ export function AuthForm({ mode }: AuthFormProps) {
         ) : null}
 
         <label className="block space-y-2 text-sm font-medium text-ink-soft">
-          <span>Contraseña</span>
+          <div className="flex justify-between items-center">
+            <span>Contraseña</span>
+            {!isSignUp && (
+              <Link
+                href="/recuperar"
+                className="text-xs font-semibold text-accent hover:underline focus:outline-none"
+              >
+                ¿Olvidaste tu contraseña?
+              </Link>
+            )}
+          </div>
           <div className="flex gap-2">
             <Input
               type={showPassword ? "text" : "password"}

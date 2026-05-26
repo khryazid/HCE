@@ -41,6 +41,16 @@ create table if not exists public.clinics (
   updated_at  timestamptz not null default now()
 );
 
+-- ⚠️  NOTA: Limpieza de Supabase Storage (bucket clinic_assets)
+-- Cuando se elimina una clínica o cuenta de usuario, los archivos
+-- almacenados en el bucket `clinic_assets` NO se borran por cascade
+-- de FK ni por trigger de base de datos, porque Postgres no puede
+-- invocar directamente la API de Supabase Storage.
+-- La limpieza se realiza a nivel de aplicación en:
+--   src/features/admin/actions.ts → deleteUserAccount()
+-- Esa función borra los archivos del bucket ANTES de eliminar el
+-- perfil y la cuenta de auth.
+
 -- ── profiles ─────────────────────────────────────────────────
 -- Una fila por médico. doctor_id = auth.uid().
 -- clinic_id agrupa médicos dentro de una misma clínica.
@@ -1251,16 +1261,99 @@ end $$;
 create table if not exists public.app_config (
   key        text primary key,
   value      text not null,
+  -- Cifrado en reposo: los secretos se almacenan cifrados con pgcrypto.
+  -- Las funciones get_config_secret / set_config_secret manejan el ciclo.
+  encrypted  boolean not null default false,
   updated_at timestamptz not null default now()
 );
+
+-- Parche: agregar columna encrypted si no existe (migraciones existentes)
+do $$
+begin
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public'
+      and table_name   = 'app_config'
+      and column_name  = 'encrypted'
+  ) then
+    alter table public.app_config add column encrypted boolean not null default false;
+  end if;
+end $$;
 
 -- Solo el service role puede leer esta tabla (contiene secretos)
 alter table public.app_config enable row level security;
 -- Sin policies públicas → solo service_role y funciones SECURITY DEFINER acceden
 
+-- ── Funciones de cifrado para app_config ──────────────────────
+-- Usa pgcrypto (ya habilitado) con cifrado simétrico PGP.
+-- La passphrase se configura como variable de sesión del service_role:
+--   ALTER DATABASE postgres SET app.encryption_key = 'tu-clave-secreta';
+-- O bien, se pasa como parámetro de conexión en Supabase.
+
+-- Escribir un secreto cifrado
+create or replace function public.set_config_secret(
+  p_key text,
+  p_value text
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_passphrase text;
+begin
+  v_passphrase := coalesce(current_setting('app.encryption_key', true), '');
+  if v_passphrase = '' then
+    -- Fallback: almacenar sin cifrar si no hay passphrase configurada
+    insert into public.app_config (key, value, encrypted, updated_at)
+    values (p_key, p_value, false, now())
+    on conflict (key) do update
+      set value = excluded.value, encrypted = false, updated_at = now();
+    return;
+  end if;
+
+  insert into public.app_config (key, value, encrypted, updated_at)
+  values (p_key, encode(pgp_sym_encrypt(p_value, v_passphrase), 'base64'), true, now())
+  on conflict (key) do update
+    set value = encode(pgp_sym_encrypt(excluded.value, v_passphrase), 'base64'),
+        encrypted = true,
+        updated_at = now();
+end;
+$$;
+
+-- Leer un secreto (descifra automáticamente si está cifrado)
+create or replace function public.get_config_secret(p_key text)
+returns text
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_value text;
+  v_encrypted boolean;
+  v_passphrase text;
+begin
+  select value, encrypted into v_value, v_encrypted
+  from public.app_config where key = p_key;
+
+  if v_value is null then return null; end if;
+  if not coalesce(v_encrypted, false) then return v_value; end if;
+
+  v_passphrase := coalesce(current_setting('app.encryption_key', true), '');
+  if v_passphrase = '' then
+    raise warning '[app_config] No encryption key configured. Cannot decrypt %.', p_key;
+    return null;
+  end if;
+
+  return pgp_sym_decrypt(decode(v_value, 'base64'), v_passphrase);
+end;
+$$;
+
 -- C-01: Los secretos reales NO se guardan aquí. Insertarlos manualmente desde
 -- el Supabase SQL Editor tras rotar los valores en Vercel.
 -- Generar nuevo PUSH_SEND_SECRET con: openssl rand -hex 32
+-- Para cifrar un secreto: SELECT set_config_secret('push_send_secret', 'tu-valor');
 insert into public.app_config (key, value) values
   ('site_url',         'REEMPLAZAR_CON_NEXT_PUBLIC_SITE_URL'),
   ('push_send_secret', 'REEMPLAZAR_CON_PUSH_SEND_SECRET'),
@@ -1271,7 +1364,12 @@ on conflict (key) do update
   set value = excluded.value, updated_at = now();
 
 -- Para verificar que se guardaron correctamente (ejecutar desde SQL Editor):
---   select key, value from public.app_config;
+--   select key, value, encrypted from public.app_config;
+-- Para cifrar los secretos en producción (ejecutar UNA VEZ):
+--   ALTER DATABASE postgres SET app.encryption_key = 'salida-de-openssl-rand-base64-32';
+--   SELECT set_config_secret('push_send_secret', 'tu-push-secret-real');
+--   SELECT set_config_secret('resend_email_secret', 'tu-resend-secret');
+--   SELECT set_config_secret('admin_email', 'tu-email@dominio.com');
 
 -- ── send_followup_emails ─────────────────────────────────────────────────────
 -- Envia recordatorios por email a doctores con seguimientos hoy.
@@ -2180,31 +2278,53 @@ declare
   pat_name text;
   msg_title text;
   msg_body text;
+  v_time_str text;
+  v_type text;
+  v_reason text;
+  v_actor uuid := auth.uid();
 begin
+  -- Leer configuración (usando get_config_secret para cifrado)
   select value into app_url from public.app_config where key = 'site_url' limit 1;
-  select value into push_secret from public.app_config where key = 'push_send_secret' limit 1;
+  push_secret := public.get_config_secret('push_send_secret');
   
   if app_url is null or push_secret is null then
     return null;
   end if;
 
-  if TG_OP = 'INSERT' then
-    doc_id := NEW.doctor_id;
-    pat_name := NEW.patient_name;
-    msg_title := 'Nueva Cita Agendada';
-    msg_body := 'Paciente: ' || pat_name || '. Motivo: ' || coalesce(NEW.notes, 'Consulta médica');
-  elsif TG_OP = 'UPDATE' then
-    doc_id := NEW.doctor_id;
-    pat_name := NEW.patient_name;
-    msg_title := 'Cita Modificada';
-    msg_body := 'La cita de ' || pat_name || ' ha sido actualizada.';
-  elsif TG_OP = 'DELETE' then
-    doc_id := OLD.doctor_id;
-    pat_name := OLD.patient_name;
-    msg_title := 'Cita Cancelada';
-    msg_body := 'La cita de ' || pat_name || ' ha sido cancelada.';
+  -- Para DELETE usamos OLD, para INSERT/UPDATE usamos NEW
+  doc_id := coalesce(NEW.doctor_id, OLD.doctor_id);
+
+  -- Filtro: Si la acción la hizo el propio doctor de la cita, no enviar notificación push
+  if v_actor = doc_id then
+    return null;
   end if;
 
+  if TG_OP = 'INSERT' or TG_OP = 'UPDATE' then
+    pat_name := NEW.patient_name;
+    v_time_str := to_char(NEW.start_time AT TIME ZONE 'UTC', 'HH24:MI');
+    v_type := coalesce(NEW.consultation_type, 'consulta');
+    v_reason := coalesce(NEW.notes, '');
+
+    if TG_OP = 'INSERT' then
+      msg_title := 'Nueva Cita Agendada';
+      msg_body := 'Paciente: ' || pat_name || ' | Hora: ' || v_time_str || ' | Tipo: ' || v_type;
+    else
+      msg_title := 'Cita Modificada';
+      msg_body := 'Cambios en cita de ' || pat_name || ' | Hora: ' || v_time_str || ' | Tipo: ' || v_type;
+    end if;
+
+    if v_reason <> '' then
+      msg_body := msg_body || '. Motivo: ' || v_reason;
+    end if;
+
+  elsif TG_OP = 'DELETE' then
+    pat_name := OLD.patient_name;
+    v_time_str := to_char(OLD.start_time AT TIME ZONE 'UTC', 'HH24:MI');
+    msg_title := 'Cita Eliminada';
+    msg_body := 'Se canceló la cita de ' || pat_name || ' a las ' || v_time_str;
+  end if;
+
+  -- Enviar push vía pg_net
   perform net.http_post(
     url := app_url || '/api/push/send',
     headers := jsonb_build_object('Content-Type', 'application/json', 'x-push-secret', push_secret),
@@ -2285,4 +2405,111 @@ DO $$ BEGIN
 EXCEPTION WHEN others THEN
   raise notice '[cron] pg_cron no disponible para notify-upcoming-appointments: %.', sqlerrm;
 END $$;
+
+-- ════════════════════════════════════════════════════════════
+-- 12. ANONIMIZACIÓN GDPR — "Derecho al Olvido"
+-- ════════════════════════════════════════════════════════════
+-- Anonimiza los datos personales de un paciente sin borrar los registros
+-- clínicos. Esto cumple con la retención legal de historiales médicos
+-- (mínimo 5-15 años según jurisdicción) mientras elimina PII.
+--
+-- USO (desde SQL Editor o vía RPC):
+--   SELECT anonymize_patient('patient-uuid');
+--
+-- REQUISITO: El usuario autenticado debe ser el doctor que creó al paciente.
+
+create or replace function public.anonymize_patient(p_patient_id uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_patient record;
+  v_doctor_id uuid := auth.uid();
+  v_records_count integer;
+  v_anon_id text;
+begin
+  -- Verificar que el paciente existe y pertenece al doctor
+  select * into v_patient
+  from public.patients
+  where id = p_patient_id
+    and doctor_id = v_doctor_id
+    and deleted_at is null;
+
+  if not found then
+    return jsonb_build_object(
+      'success', false,
+      'error', 'Paciente no encontrado o no autorizado'
+    );
+  end if;
+
+  -- Generar un ID anónimo determinista (basado en el UUID original)
+  v_anon_id := 'ANON-' || substring(md5(p_patient_id::text) from 1 for 8);
+
+  -- 1. Anonimizar datos personales del paciente
+  update public.patients set
+    full_name       = v_anon_id,
+    document_number = v_anon_id,
+    phone           = null,
+    birth_date      = null,
+    status          = 'alta',
+    deleted_at      = now(),
+    updated_at      = now()
+  where id = p_patient_id;
+
+  -- 2. Contar registros clínicos preservados (NO se borran)
+  select count(*) into v_records_count
+  from public.clinical_records
+  where patient_id = p_patient_id;
+
+  -- 3. Cancelar citas futuras pendientes
+  update public.appointments set
+    patient_name       = v_anon_id,
+    patient_phone      = null,
+    patient_document   = null,
+    patient_birth_date = null,
+    status             = 'cancelled',
+    notes              = coalesce(notes, '') || ' [Anonimizado por GDPR]',
+    updated_at         = now()
+  where patient_id = p_patient_id
+    and status = 'scheduled'
+    and start_time > now();
+
+  -- 4. Registrar en auditoría (inmutable, con hash del nombre original)
+  insert into public.audit_logs (
+    clinic_id, doctor_id, event_type, resource_type, resource_id,
+    changes, entry_hash, sequence_no
+  ) values (
+    v_patient.clinic_id,
+    v_doctor_id,
+    'gdpr_anonymize',
+    'patients',
+    p_patient_id,
+    jsonb_build_object(
+      'action', 'anonymize',
+      'original_name_hash', md5(v_patient.full_name),
+      'records_preserved', v_records_count,
+      'anonymized_at', now()
+    ),
+    md5(p_patient_id::text || now()::text),
+    (select coalesce(max(sequence_no), 0) + 1 from public.audit_logs where clinic_id = v_patient.clinic_id)
+  );
+
+  return jsonb_build_object(
+    'success', true,
+    'anonymized_id', v_anon_id,
+    'records_preserved', v_records_count,
+    'message', format(
+      'Paciente anonimizado. %s registros clínicos preservados para retención legal.',
+      v_records_count
+    )
+  );
+end;
+$$;
+
+comment on function public.anonymize_patient(uuid) is
+  'GDPR "Derecho al Olvido": anonimiza PII del paciente (nombre, cédula, teléfono, '
+  'fecha nacimiento) sin borrar registros clínicos. Cumple retención legal de '
+  'historiales médicos. Registra la acción en audit_logs.';
 

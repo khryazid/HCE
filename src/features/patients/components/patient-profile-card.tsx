@@ -7,7 +7,7 @@
 
 import { Trash2, ClipboardList, Clock } from "lucide-react";
 import { PATIENT_STATUS_OPTIONS, type PatientRecord, type PatientStatus } from "@/features/patients/types";
-import { PatientStatusBadge } from "@/features/patients/components/PatientStatusBadge";
+import { PatientStatusBadge } from "@/features/patients/components/patient-status-badge";
 import { formatDate } from "@/lib/ui/format-date";
 import { EmptyState, EmptyStateIconPatients } from "@/components/ui/empty-state";
 import type { ClinicalRecordRecord } from "@/features/consultations/types";

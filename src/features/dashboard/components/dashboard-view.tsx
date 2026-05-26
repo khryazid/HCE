@@ -25,11 +25,11 @@ import {
   type FollowUpPanelItem,
   EMPTY_METRICS,
 } from "@/features/dashboard/components/types";
-import { DashboardMetricsBar } from "@/features/dashboard/components/DashboardMetricsBar";
-import { DashboardActivityFeed } from "@/features/dashboard/components/DashboardActivityFeed";
-import { DashboardFollowUpPanel } from "@/features/dashboard/components/DashboardFollowUpPanel";
-import { DashboardAgendaPanel } from "@/features/dashboard/components/DashboardAgendaPanel";
-import { DashboardCharts } from "@/features/dashboard/components/DashboardCharts";
+import { DashboardMetricsBar } from "@/features/dashboard/components/dashboard-metrics-bar";
+import { DashboardActivityFeed } from "@/features/dashboard/components/dashboard-activity-feed";
+import { DashboardFollowUpPanel } from "@/features/dashboard/components/dashboard-follow-up-panel";
+import { DashboardAgendaPanel } from "@/features/dashboard/components/dashboard-agenda-panel";
+import { DashboardCharts } from "@/features/dashboard/components/dashboard-charts";
 import { useAgenda } from "@/features/agenda/lib/use-agenda";
 import {
   calculateMetrics,

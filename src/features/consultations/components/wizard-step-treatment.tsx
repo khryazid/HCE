@@ -1,5 +1,7 @@
 "use client";
 
+import { memo } from "react";
+
 import { ChipSelector } from "@/features/consultations/components/chip-selector";
 import {
   MedicationInstructionsBuilder,
@@ -94,7 +96,7 @@ function SectionHeader({
   );
 }
 
-export function WizardStepTreatment({
+const WizardStepTreatment = memo(function WizardStepTreatment({
   form,
   setForm,
   templates,
@@ -506,4 +508,5 @@ export function WizardStepTreatment({
       </div>
     </div>
   );
-}
+});
+export default WizardStepTreatment;

@@ -2,8 +2,7 @@
 
 ## 1. Única Fuente de Verdad (Single Source of Truth)
 
-En Glyphix, **no** utilizamos un sistema de migraciones incrementales tradicionales (como múltiples archivos que se ejecutan en orden). 
-En su lugar, mantenemos un esquema consolidado que es idempotente:
+El esquema completo de la base de datos vive en un archivo consolidado e idempotente:
 
 **`supabase/migrations/000_production_full_schema.sql`**
 
@@ -13,6 +12,50 @@ Este archivo contiene:
 3. Triggers y configuraciones de pg_cron.
 4. Políticas de Seguridad por Nivel de Fila (RLS) (`DROP POLICY IF EXISTS ... CREATE POLICY ...`).
 5. Configuración de Storage y Secrets.
+6. Cifrado de secretos con pgcrypto (`set_config_secret` / `get_config_secret`).
+7. Anonimización GDPR (`anonymize_patient`).
+
+### Migraciones incrementales
+
+A partir de mayo 2026, los cambios nuevos se documentan adicionalmente como migraciones incrementales en archivos separados:
+
+| Archivo | Contenido |
+|---|---|
+| `000_production_full_schema.sql` | Schema completo (fuente de verdad, idempotente) |
+| `001_encryption_and_gdpr.sql` | Cifrado app_config + GDPR anonymization |
+
+**Flujo para nuevos cambios:**
+1. Añadir el cambio al schema completo `000_production_full_schema.sql` (mantener idempotencia)
+2. Crear un archivo incremental `NNN_descripcion.sql` con solo los cambios nuevos
+3. Aplicar en producción: ejecutar el archivo incremental en Supabase SQL Editor
+4. Ejecutar `npm run db:types` para regenerar los tipos TypeScript
+
+## 1b. Cifrado de Secretos (`app_config`)
+
+Los secretos almacenados en `app_config` (push_send_secret, resend_email_secret, etc.) pueden cifrarse en reposo usando pgcrypto:
+
+```sql
+-- 1. Configurar passphrase (una sola vez por BD):
+ALTER DATABASE postgres SET app.encryption_key = 'resultado-de-openssl-rand-base64-32';
+
+-- 2. Cifrar un secreto:
+SELECT set_config_secret('push_send_secret', 'mi-secreto-real');
+
+-- 3. Leer un secreto (descifra automáticamente):
+SELECT get_config_secret('push_send_secret');
+```
+
+Las funciones SECURITY DEFINER en cron (push, email) siguen leyendo `value` directamente. Para usar cifrado completo, actualizar esas funciones para usar `get_config_secret()` en vez de `SELECT value FROM app_config`.
+
+## 1c. Anonimización GDPR
+
+La función `anonymize_patient(patient_uuid)` implementa el "Derecho al Olvido":
+- Reemplaza nombre, cédula con un ID anónimo (`ANON-xxxxxxxx`)
+- Borra teléfono y fecha de nacimiento
+- Cancela citas futuras pendientes
+- **Preserva** registros clínicos (retención legal 5-15 años)
+- Registra la acción en `audit_logs` con hash del nombre original
+
 
 ## 2. Tipos de TypeScript Generados
 

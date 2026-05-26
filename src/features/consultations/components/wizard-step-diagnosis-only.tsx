@@ -1,5 +1,7 @@
 "use client";
 
+import { memo } from "react";
+
 import type { WizardForm } from "@/features/consultations/lib/use-consultation-wizard";
 import { APP_NAME } from "@/lib/constants/app";
 
@@ -10,7 +12,7 @@ type Props = {
   triggerMagicCieFill: () => void;
 };
 
-export function WizardStepDiagnosisOnly({
+const WizardStepDiagnosisOnly = memo(function WizardStepDiagnosisOnly({
   form,
   setForm,
   validationErrors,
@@ -70,4 +72,5 @@ export function WizardStepDiagnosisOnly({
       </div>
     </div>
   );
-}
+});
+export default WizardStepDiagnosisOnly;

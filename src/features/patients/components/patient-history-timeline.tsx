@@ -19,7 +19,7 @@ import {
   EmptyState,
   EmptyStateIconConsultations,
 } from "@/components/ui/empty-state";
-import { ExportZipButton } from "@/features/patients/components/ExportZipButton";
+import { ExportZipButton } from "@/features/patients/components/export-zip-button";
 import { formatMedicalReport, formatPrescription, getWhatsAppLink } from "@/lib/whatsapp/whatsapp-formatter";
 import { MessageCircle } from "lucide-react";
 import type { ClinicalRecordRecord } from "@/features/consultations/types";

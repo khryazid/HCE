@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import BillingView from "@/features/billing/components/BillingView";
+import BillingView from "@/features/billing/components/billing-view";
 import { getPublicPricing } from "@/lib/config";
 import { APP_NAME } from "@/lib/constants/app";
 import { createClient } from "@/lib/supabase/server";
