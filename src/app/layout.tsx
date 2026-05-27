@@ -115,7 +115,6 @@ export default async function RootLayout({
         <Script
           id="theme-script"
           strategy="beforeInteractive"
-          nonce={nonce}
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var t=localStorage.getItem('hce:theme');if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}})();`,
           }}
