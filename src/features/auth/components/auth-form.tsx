@@ -195,25 +195,11 @@ export function AuthForm({ mode }: AuthFormProps) {
   }
 
   return (
-    <section
-      className="mx-auto w-full max-w-xl rounded-3xl border border-border bg-card/90 p-6 shadow-2xl backdrop-blur-sm sm:p-8"
-      aria-label={isSignUp ? "Formulario de registro" : "Formulario de inicio de sesión"}
-    >
-      <div className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-widest text-accent">{APP_NAME}</p>
-        <h2 className="text-2xl font-extrabold tracking-tight text-ink">
-          {isSignUp ? "Crear cuenta" : "Iniciar sesión"}
-        </h2>
-        <p className="text-sm leading-6 text-ink-soft">
-          {isSignUp
-            ? "Registra tu cuenta y define tu perfil de especialidades para comenzar."
-            : "Ingresa con tu cuenta para continuar con tu flujo clínico."}
-        </p>
-      </div>
+    <div aria-label={isSignUp ? "Formulario de registro" : "Formulario de inicio de sesión"}>
 
-      <form className="mt-6 space-y-4" onSubmit={handleSubmit(onSubmit)}>
-        <label className="block space-y-2 text-sm font-medium text-ink-soft">
-          <span>Correo</span>
+      <form onSubmit={handleSubmit(onSubmit)}>
+        <div className="gx-field">
+          <label className="gx-label">Correo Electrónico</label>
           <Input
             type="email"
             autoComplete="email"
@@ -221,18 +207,19 @@ export function AuthForm({ mode }: AuthFormProps) {
             {...register("email")}
             aria-invalid={errors.email ? "true" : undefined}
             aria-describedby={errors.email ? "field-error-email" : undefined}
+            className="gx-input"
           />
           {errors.email ? (
             <p id="field-error-email" className="text-xs text-red-700" role="alert">
               {errors.email.message}
             </p>
           ) : null}
-        </label>
+        </div>
 
         {isSignUp ? (
           <>
-            <label className="block space-y-2 text-sm font-medium text-ink-soft">
-              <span>Nombre completo</span>
+            <div className="gx-field">
+              <label className="gx-label">Nombre completo</label>
               <Input
                 type="text"
                 autoComplete="name"
@@ -246,17 +233,18 @@ export function AuthForm({ mode }: AuthFormProps) {
                   {errors.fullName.message}
                 </p>
               ) : null}
-            </label>
+            </div>
 
             <fieldset
               aria-describedby={errors.specialties ? "field-error-specialties" : undefined}
-              className="space-y-2 relative"
+              className="gx-field relative"
               ref={dropdownRef}
             >
-              <legend className="text-sm font-medium text-ink-soft">Especialidades</legend>
+              <legend className="gx-label" style={{marginBottom: 8}}>Especialidades</legend>
 
               <div
-                className="flex flex-wrap items-center gap-2 rounded-xl border border-field-border bg-field p-2 focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/20 transition-all"
+                className="gx-input"
+                style={{display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, padding: "8px 12px", minHeight: 44, cursor: "text"}}
                 onClick={() => setIsSpecialtyDropdownOpen(true)}
               >
                 {watchSpecialties.map((entry) => (
@@ -291,12 +279,13 @@ export function AuthForm({ mode }: AuthFormProps) {
                   onFocus={() => setIsSpecialtyDropdownOpen(true)}
                   placeholder={watchSpecialties.length === 0 ? "Buscar y seleccionar..." : ""}
                   className="flex-1 bg-transparent px-1 py-0.5 text-sm outline-none placeholder:text-ink-soft/70 min-w-[120px]"
+                  style={{border: "none", outline: "none", background: "transparent"}}
                   aria-label="Buscar especialidad"
                 />
               </div>
 
               {isSpecialtyDropdownOpen && (
-                <div className="absolute left-0 top-full z-10 mt-1 max-h-56 w-full overflow-auto rounded-xl border border-border bg-card shadow-xl p-1 animate-in fade-in zoom-in-95">
+                <div style={{position: "absolute", top: "100%", left: 0, width: "100%", zIndex: 10, marginTop: 4, maxHeight: 220, overflowY: "auto", background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: "var(--radius)", boxShadow: "0 12px 32px rgba(0,0,0,0.1)", padding: 4}}>
                   {filteredSpecialties.filter((s) => !watchSpecialties.includes(s)).length > 0 ? (
                     <ul role="listbox" className="flex flex-col gap-0.5">
                       {filteredSpecialties
@@ -312,7 +301,10 @@ export function AuthForm({ mode }: AuthFormProps) {
                                 setSpecialtySearch("");
                                 setIsSpecialtyDropdownOpen(false);
                               }}
-                              className="w-full rounded-lg px-3 py-2 text-left text-sm text-ink transition-colors hover:bg-bg-soft focus:bg-bg-soft focus:outline-none"
+                              className="w-full rounded px-3 py-2 text-left text-sm text-ink transition-colors focus:outline-none"
+                              style={{background: "transparent"}}
+                              onMouseEnter={(e) => e.currentTarget.style.background = "var(--bg-soft)"}
+                              onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
                             >
                               {entry}
                             </button>
@@ -334,15 +326,15 @@ export function AuthForm({ mode }: AuthFormProps) {
               ) : null}
             </fieldset>
 
-            <fieldset className="space-y-3">
-              <legend className="text-sm font-medium text-ink-soft">Selecciona tu Plan</legend>
+            <fieldset className="gx-field" style={{marginBottom: 24}}>
+              <legend className="gx-label" style={{marginBottom: 8}}>Selecciona tu Plan</legend>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <label
-                  className={`relative flex cursor-pointer rounded-xl border p-4 shadow-sm transition-colors focus:outline-none ${
-                    watch("plan") === "basic"
-                      ? "border-accent bg-accent/5 ring-1 ring-accent"
-                      : "border-border bg-card hover:bg-bg-soft"
-                  }`}
+                  className="relative flex cursor-pointer rounded-xl border p-4 transition-colors focus:outline-none"
+                  style={{
+                    borderColor: watch("plan") === "basic" ? "var(--accent)" : "var(--border)",
+                    background: watch("plan") === "basic" ? "var(--accent-dim)" : "var(--bg)",
+                  }}
                 >
                   <input type="radio" value="basic" {...register("plan")} className="sr-only" />
                   <div className="flex w-full flex-col">
@@ -355,11 +347,11 @@ export function AuthForm({ mode }: AuthFormProps) {
                   </div>
                 </label>
                 <label
-                  className={`relative flex cursor-pointer rounded-xl border p-4 shadow-sm transition-colors focus:outline-none ${
-                    watch("plan") === "clinic"
-                      ? "border-accent bg-accent/5 ring-1 ring-accent"
-                      : "border-border bg-card hover:bg-bg-soft"
-                  }`}
+                  className="relative flex cursor-pointer rounded-xl border p-4 transition-colors focus:outline-none"
+                  style={{
+                    borderColor: watch("plan") === "clinic" ? "var(--accent)" : "var(--border)",
+                    background: watch("plan") === "clinic" ? "var(--accent-dim)" : "var(--bg)",
+                  }}
                 >
                   <input type="radio" value="clinic" {...register("plan")} className="sr-only" />
                   <div className="flex w-full flex-col">
@@ -374,40 +366,41 @@ export function AuthForm({ mode }: AuthFormProps) {
               </div>
             </fieldset>
 
-            <p className="rounded-xl border border-border bg-bg-soft px-3 py-2 text-xs text-ink-soft">
+            <p style={{fontSize: "0.8125rem", color: "var(--ink-soft)", background: "var(--bg-soft)", padding: "8px 12px", borderRadius: 8, marginTop: 16}}>
               El espacio de clínica se crea automáticamente para ti durante el registro.
             </p>
           </>
         ) : null}
 
-        <div className="block space-y-2 text-sm font-medium text-ink-soft">
-          <div className="flex justify-between items-center">
-            <label htmlFor="password-field">Contraseña</label>
+        <div className="gx-field">
+          <label className="gx-label" htmlFor="password-field">
+            Contraseña
             {!isSignUp && (
               <Link
                 href="/recuperar"
-                className="text-xs font-semibold text-accent hover:underline focus:outline-none"
+                className="gx-label-link"
               >
                 ¿Olvidaste tu contraseña?
               </Link>
             )}
-          </div>
-          <div className="flex gap-2">
+          </label>
+          <div style={{position: "relative"}}>
             <Input
               id="password-field"
               type={showPassword ? "text" : "password"}
               autoComplete={isSignUp ? "new-password" : "current-password"}
               placeholder="Minimo 6 caracteres"
               {...register("password")}
+              className="gx-input"
+              style={{paddingRight: 80}}
             />
-            <Button
+            <button
               type="button"
-              variant="secondary"
-              className="px-3 py-2 text-xs font-semibold text-ink-soft"
+              style={{position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", fontSize: "0.8125rem", fontWeight: 600, color: "var(--ink-soft)", cursor: "pointer"}}
               onClick={() => setShowPassword((current) => !current)}
             >
               {showPassword ? "Ocultar" : "Mostrar"}
-            </Button>
+            </button>
           </div>
           {errors.password ? (
             <p className="text-xs text-red-700">{errors.password.message}</p>
@@ -423,37 +416,37 @@ export function AuthForm({ mode }: AuthFormProps) {
         ) : null}
 
         {isSignUp && (
-          <p className="text-xs text-ink-soft text-center mt-4">
+          <div className="gx-auth-footer" style={{marginTop: 16}}>
             Al crear una cuenta, aceptas nuestros{" "}
-            <Link href="/terminos" target="_blank" className="text-accent hover:underline">
+            <Link href="/terminos" target="_blank" className="gx-label-link">
               Términos y Condiciones
             </Link>{" "}
             y la{" "}
-            <Link href="/privacidad" target="_blank" className="text-accent hover:underline">
+            <Link href="/privacidad" target="_blank" className="gx-label-link">
               Política de Privacidad
             </Link>.
-          </p>
+          </div>
         )}
 
-        <Button
+        <button
           type="submit"
           disabled={isSubmitting}
-          className="hce-btn-primary w-full justify-center py-3 text-sm font-semibold disabled:cursor-not-allowed mt-4"
+          className="gx-btn-submit"
           aria-busy={isSubmitting}
         >
-          {isSubmitting ? "Procesando..." : isSignUp ? "Crear cuenta" : "Entrar"}
-        </Button>
+          {isSubmitting ? "Procesando..." : isSignUp ? "Crear cuenta" : "Iniciar Sesión"}
+        </button>
       </form>
 
-      <p className="mt-5 text-center text-sm text-ink-soft">
+      <div className="gx-auth-footer">
         {isSignUp ? "¿Ya tienes cuenta?" : "¿Aún no tienes cuenta?"}{" "}
         <Link
           href={isSignUp ? "/login" : "/registro"}
-          className="font-semibold text-accent underline-offset-4 hover:underline"
+          className="gx-label-link"
         >
-          {isSignUp ? "Inicia sesión" : "Crear cuenta"}
+          {isSignUp ? "Inicia sesión" : "Regístrate aquí"}
         </Link>
-      </p>
-    </section>
+      </div>
+    </div>
   );
 }
