@@ -5,6 +5,7 @@ import DashboardV1 from "@/redesign/section-01-dashboard";
 import DashboardV2 from "@/redesign/section-01-dashboard-v2";
 import PatientList from "@/redesign/section-02-patients";
 import IdentificationForm from "@/redesign/section-03-identification";
+import AgendaView from "@/redesign/section-04-agenda";
 
 const SHELL_STYLES = `
 .gx-shell {
@@ -85,11 +86,12 @@ const SHELL_STYLES = `
 `;
 
 export default function RedesignPreviewPage() {
-  const [view, setView] = useState("dash-v2");
+  const [view, setView] = useState("agenda");
 
   const views = {
     "dash-v1": <DashboardV1 />,
     "dash-v2": <DashboardV2 />,
+    "agenda": <AgendaView />,
     "patients": <PatientList />,
     "form-id": <IdentificationForm />,
   };
@@ -114,6 +116,12 @@ export default function RedesignPreviewPage() {
               onClick={() => setView("dash-v1")}
             >
               Dashboard (Original) <span className="gx-shell-tag">V1</span>
+            </button>
+            <button 
+              className={`gx-shell-btn ${view === "agenda" ? "gx-shell-btn-active" : ""}`}
+              onClick={() => setView("agenda")}
+            >
+              Agenda / Citas <span className="gx-shell-tag">New</span>
             </button>
             <button 
               className={`gx-shell-btn ${view === "patients" ? "gx-shell-btn-active" : ""}`}
