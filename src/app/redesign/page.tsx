@@ -6,6 +6,9 @@ import DashboardV2 from "@/redesign/section-01-dashboard-v2";
 import PatientList from "@/redesign/section-02-patients";
 import IdentificationForm from "@/redesign/section-03-identification";
 import AgendaView from "@/redesign/section-04-agenda";
+import AuthView from "@/redesign/section-05-auth";
+import LandingView from "@/redesign/section-06-landing";
+import SettingsView from "@/redesign/section-07-settings";
 
 const SHELL_STYLES = `
 .gx-shell {
@@ -22,6 +25,7 @@ const SHELL_STYLES = `
   flex-direction: column;
   padding: 24px 16px;
   flex-shrink: 0;
+  overflow-y: auto;
 }
 .gx-shell-header {
   color: #FFF;
@@ -76,6 +80,11 @@ const SHELL_STYLES = `
   padding: 2px 6px;
   border-radius: 100px;
 }
+.gx-shell-divider {
+  height: 1px;
+  background: #222;
+  margin: 12px 0;
+}
 .gx-shell-main {
   flex: 1;
   min-width: 0;
@@ -86,14 +95,17 @@ const SHELL_STYLES = `
 `;
 
 export default function RedesignPreviewPage() {
-  const [view, setView] = useState("agenda");
+  const [view, setView] = useState("landing");
 
   const views = {
+    "landing": <LandingView />,
+    "auth": <AuthView />,
     "dash-v1": <DashboardV1 />,
     "dash-v2": <DashboardV2 />,
     "agenda": <AgendaView />,
     "patients": <PatientList />,
     "form-id": <IdentificationForm />,
+    "settings": <SettingsView />,
   };
 
   return (
@@ -105,6 +117,22 @@ export default function RedesignPreviewPage() {
             <span /> Ferric Meridian v3.0
           </div>
           <div className="gx-shell-links">
+            
+            <button 
+              className={`gx-shell-btn ${view === "landing" ? "gx-shell-btn-active" : ""}`}
+              onClick={() => setView("landing")}
+            >
+              Landing Page <span className="gx-shell-tag">New</span>
+            </button>
+            <button 
+              className={`gx-shell-btn ${view === "auth" ? "gx-shell-btn-active" : ""}`}
+              onClick={() => setView("auth")}
+            >
+              Autenticación <span className="gx-shell-tag">New</span>
+            </button>
+
+            <div className="gx-shell-divider" />
+
             <button 
               className={`gx-shell-btn ${view === "dash-v2" ? "gx-shell-btn-active" : ""}`}
               onClick={() => setView("dash-v2")}
@@ -112,29 +140,39 @@ export default function RedesignPreviewPage() {
               Dashboard <span className="gx-shell-tag">V2</span>
             </button>
             <button 
-              className={`gx-shell-btn ${view === "dash-v1" ? "gx-shell-btn-active" : ""}`}
-              onClick={() => setView("dash-v1")}
-            >
-              Dashboard (Original) <span className="gx-shell-tag">V1</span>
-            </button>
-            <button 
               className={`gx-shell-btn ${view === "agenda" ? "gx-shell-btn-active" : ""}`}
               onClick={() => setView("agenda")}
             >
-              Agenda / Citas <span className="gx-shell-tag">New</span>
+              Agenda / Citas
             </button>
             <button 
               className={`gx-shell-btn ${view === "patients" ? "gx-shell-btn-active" : ""}`}
               onClick={() => setView("patients")}
             >
-              Lista de Pacientes <span className="gx-shell-tag">Sec 2</span>
+              Lista de Pacientes
             </button>
             <button 
               className={`gx-shell-btn ${view === "form-id" ? "gx-shell-btn-active" : ""}`}
               onClick={() => setView("form-id")}
             >
-              Form: Identificación <span className="gx-shell-tag">Sec 3</span>
+              Formulario ID
             </button>
+
+            <div className="gx-shell-divider" />
+
+            <button 
+              className={`gx-shell-btn ${view === "settings" ? "gx-shell-btn-active" : ""}`}
+              onClick={() => setView("settings")}
+            >
+              Ajustes <span className="gx-shell-tag">New</span>
+            </button>
+            <button 
+              className={`gx-shell-btn ${view === "dash-v1" ? "gx-shell-btn-active" : ""}`}
+              onClick={() => setView("dash-v1")}
+            >
+              Dashboard (V1)
+            </button>
+
           </div>
         </nav>
         <main className="gx-shell-main">
