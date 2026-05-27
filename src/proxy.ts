@@ -23,9 +23,9 @@ function injectRequestIdAndCSP(request: NextRequest, response: NextResponse): Ne
     script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://js.stripe.com https://va.vercel-scripts.com ${
       process.env.NODE_ENV === "development" ? "'unsafe-eval'" : ""
     };
-    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://api.fontshare.com;
     img-src 'self' data: blob: https:;
-    font-src 'self' data: https://fonts.gstatic.com;
+    font-src 'self' data: https://fonts.gstatic.com https://cdn.fontshare.com;
     connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://vitals.vercel-insights.com;
     frame-src 'self' https://js.stripe.com https://hooks.stripe.com;
     object-src 'none';
