@@ -18,18 +18,18 @@ export function SyncStatusBanner() {
   // this, closing and reopening the browser would hide the warning even though
   // "conflicted" items still sit in the sync queue.
   const SUBSCRIPTION_EXPIRED_KEY = "hce:subscription-expired";
-  const [subscriptionExpired, setSubscriptionExpired] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return window.localStorage.getItem(SUBSCRIPTION_EXPIRED_KEY) === "true";
-  });
-
-  // Sync-3.1: Estado de conectividad (red + Realtime)
-  const [isOffline, setIsOffline] = useState(
-    typeof navigator !== "undefined" ? !navigator.onLine : false,
-  );
+  const [subscriptionExpired, setSubscriptionExpired] = useState(false);
+  const [isOffline, setIsOffline] = useState(false);
   const [isRealtimeError, setIsRealtimeError] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+     
+    setSubscriptionExpired(window.localStorage.getItem(SUBSCRIPTION_EXPIRED_KEY) === "true");
+     
+    setIsOffline(!navigator.onLine);
     let active = true;
 
     const load = async () => {
@@ -98,6 +98,7 @@ export function SyncStatusBanner() {
   }, []);
 
   // C-06: Prioridad máxima — suscripción expirada supera cualquier otro estado
+  if (!mounted) return null;
   if (subscriptionExpired) {
     return (
       <Link
