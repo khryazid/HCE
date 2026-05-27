@@ -1,496 +1,167 @@
 "use client";
+
 import { useTranslations } from "next-intl";
 import Link from "next/link";
-import { useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
 import "./landing.css";
 import { APP_NAME } from "@/lib/constants/app";
 
-/* ─── Fonts via next/font would conflict with "use client",
-       so we load them in layout.tsx — see note below ── */
+function Ico({d,s=20}: {d:string, s?:number}) { 
+  return (
+    <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d={d}/>
+    </svg>
+  ); 
+}
 
 export default function LandingClient({ proPrice, clinicPrice }: { proPrice: number; clinicPrice: number }) {
-  const navRef = useRef<HTMLElement>(null);
-  const blobRef = useRef<HTMLDivElement>(null);
   const t = useTranslations("Landing");
+  // Default to dark mode for a premium feel, but we'll stick to light for now since it matches the approved prototype.
+  const [theme, setTheme] = useState("light");
 
   useEffect(() => {
-    /* Nav scroll effect */
-    const nav = navRef.current;
+    // Add scroll listener for any scroll-based logic in the future
     const onScroll = () => {
-      if (nav) nav.classList.toggle("scrolled", window.scrollY > 40);
+      const nav = document.querySelector(".gx-nav");
+      if (nav) {
+        if (window.scrollY > 40) nav.classList.add("scrolled");
+        else nav.classList.remove("scrolled");
+      }
     };
     window.addEventListener("scroll", onScroll, { passive: true });
-
-    /* Cursor blob */
-    const blob = blobRef.current;
-    const onMove = (e: MouseEvent) => {
-      if (!blob) return;
-      blob.style.left = e.clientX + "px";
-      blob.style.top = e.clientY + "px";
-    };
-    document.addEventListener("mousemove", onMove);
-
-    /* IntersectionObserver reveals */
-    const reveals = document.querySelectorAll<HTMLElement>(
-      ".reveal, .reveal-left, .reveal-right"
-    );
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (!entry.isIntersecting) return;
-          const siblings = entry.target.parentElement?.querySelectorAll<HTMLElement>(
-            ".reveal, .reveal-left, .reveal-right"
-          );
-          let idx = 0;
-          siblings?.forEach((s, j) => { if (s === entry.target) idx = j; });
-          setTimeout(() => {
-            (entry.target as HTMLElement).classList.add("visible");
-          }, idx * 80);
-          observer.unobserve(entry.target);
-        });
-      },
-      { threshold: 0.12, rootMargin: "0px 0px -40px 0px" }
-    );
-    reveals.forEach((el) => observer.observe(el));
-
-    /* Bento 3-D tilt */
-    const cards = document.querySelectorAll<HTMLElement>(".l-bento-card");
-    const onTiltMove = (e: MouseEvent) => {
-      const card = (e.currentTarget as HTMLElement);
-      const rect = card.getBoundingClientRect();
-      const x = (e.clientX - rect.left) / rect.width - 0.5;
-      const y = (e.clientY - rect.top) / rect.height - 0.5;
-      card.style.transform = `translateY(-4px) rotateX(${-y * 5}deg) rotateY(${x * 5}deg)`;
-    };
-    const onTiltLeave = (e: MouseEvent) => {
-      (e.currentTarget as HTMLElement).style.transform = "";
-    };
-    cards.forEach((c) => {
-      c.addEventListener("mousemove", onTiltMove);
-      c.addEventListener("mouseleave", onTiltLeave);
-    });
-
-    /* Smooth scroll for anchor links */
-    document.querySelectorAll<HTMLAnchorElement>('a[href^="#"]').forEach((a) => {
-      a.addEventListener("click", (e) => {
-        const id = a.getAttribute("href")?.slice(1);
-        const target = id ? document.getElementById(id) : null;
-        if (target) {
-          e.preventDefault();
-          target.scrollIntoView({ behavior: "smooth" });
-        }
-      });
-    });
-
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      document.removeEventListener("mousemove", onMove);
-      observer.disconnect();
-      cards.forEach((c) => {
-        c.removeEventListener("mousemove", onTiltMove);
-        c.removeEventListener("mouseleave", onTiltLeave);
-      });
-    };
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
   return (
-    <div className="landing-root">
-      {/* Grid background */}
-      <div className="l-grid-bg" aria-hidden />
-
-      {/* Cursor blob */}
-      <div className="l-cursor-blob" ref={blobRef} aria-hidden />
-
-      {/* ── Skip link ──────────────────────────────────────────── */}
-      <a
-        href="#main-content"
-        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[200] focus:rounded-lg focus:px-4 focus:py-2 focus:text-white"
-        style={{ background: "var(--accent)", color: "#020d18" }}
-      >
-        Ir al contenido
-      </a>
-
-      {/* ── Nav ───────────────────────────────────────────────── */}
-      <nav ref={navRef} className="l-nav" aria-label="Navegación principal">
-        <Link href="/" className="l-nav-logo">
-          <div className="l-nav-dot" />
-          {APP_NAME}<span style={{ color: "var(--accent)", marginLeft: 2 }}>·</span>
+    <div className="gx-landing" data-theme={theme}>
+      
+      {/* ── Navigation ── */}
+      <nav className="gx-nav">
+        <Link href="/" style={{textDecoration:"none"}} className="gx-nav-brand">
+          <span /> {APP_NAME}
         </Link>
-
-        <div className="l-nav-links">
-          <a href="#features">Funciones</a>
-          <a href="#offline">Offline</a>
-          <a href="#pricing">Precios</a>
-        </div>
-
-        <div className="l-nav-cta">
-          <Link href="/login" className="l-btn-ghost">Iniciar sesión</Link>
-          <Link href="/registro" className="l-btn-primary">Empezar gratis</Link>
+        <div className="gx-nav-links">
+          <a href="#features" className="gx-nav-link">Características</a>
+          <a href="#pricing" className="gx-nav-link">Precios</a>
+          <span className="gx-nav-link" onClick={() => setTheme(t => t === "light" ? "dark" : "light")} style={{userSelect:"none"}}>Tema: {theme}</span>
+          <Link href="/login" className="gx-btn gx-btn-s" style={{padding:"8px 16px", fontSize:"0.8125rem"}}>Iniciar Sesión</Link>
         </div>
       </nav>
 
-      {/* ── Main ──────────────────────────────────────────────── */}
-      <main id="main-content">
+      {/* ── Hero ── */}
+      <header className="gx-hero">
+        <div className="gx-hero-badge gx-s gx-s1">
+          <div style={{width:6,height:6,background:"var(--accent)",borderRadius:"50%",boxShadow:"0 0 8px var(--accent)"}}/>
+          {APP_NAME} v3.0 ya disponible
+        </div>
+        <h1 className="gx-hero-title gx-s gx-s2">
+          La historia clínica que<br/>respeta tu tiempo.
+        </h1>
+        <p className="gx-hero-desc gx-s gx-s3">
+          Diseñado para médicos que buscan rapidez y precisión. Una herramienta clínica que no se siente como un software de contabilidad de los años 90.
+        </p>
+        <div className="gx-hero-actions gx-s gx-s4">
+          <Link href="/registro" className="gx-btn gx-btn-p">Comenzar prueba gratis</Link>
+          <a href="#features" className="gx-btn gx-btn-s">Ver funciones</a>
+        </div>
+      </header>
 
-        {/* ── HERO ────────────────────────────────────────────── */}
-        <section className="l-hero" aria-label="Sección principal">
-          <div className="l-hero-glow" aria-hidden />
-
-          {/* Eyebrow badge */}
-          <div className="l-hero-badge" aria-label="Software médico disponible ahora">
-            <span className="l-hero-badge-dot" aria-hidden />
-            Motor Clínico · Disponible ahora
+      {/* ── Mockup / Visual ── */}
+      <section className="gx-mockup gx-s gx-s4">
+        <div className="gx-m-frame">
+          <div className="gx-m-top">
+            <div className="gx-m-dot" />
+            <div className="gx-m-dot" />
+            <div className="gx-m-dot" />
           </div>
-
-          {/* Headline */}
-          <h1 className="l-hero-title">
-            <span className="line"><span>{t("heroTitleLine1")}</span></span>
-            <span className="line"><span style={{ color: "var(--accent)", fontWeight: 800 }}>{t("heroTitleLine2")}</span></span>
-          </h1>
-
-          {/* Sub */}
-          <p className="l-hero-sub">
-            {t("heroSub")}
-          </p>
-
-          {/* CTAs */}
-          <div className="l-hero-actions">
-            <Link href="/registro" className="l-btn-hero">
-              Prueba gratis por 7 días
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
-                <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </Link>
-            <a href="#features" className="l-btn-hero-ghost">Ver funciones</a>
-          </div>
-
-          {/* Trust note */}
-          <p className="l-hero-note">7 días de prueba gratis · Sin tarjeta de crédito · Cancela cuando quieras</p>
-
-          {/* Stats bar */}
-          <div className="l-hero-stats" role="list" aria-label="Métricas clave">
-            {[
-              { num: "∞", label: "Pacientes registrados" },
-              { num: "CIE-10", label: "Codificación con IA" },
-              { num: "100%", label: "Funciona offline" },
-              { num: "< 2s", label: "Tiempo de carga" },
-            ].map((s) => (
-              <div key={s.label} className="l-hero-stat" role="listitem">
-                <span className="l-hero-stat-num">{s.num}</span>
-                <span className="l-hero-stat-label">{s.label}</span>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <div className="l-divider" aria-hidden />
-
-        {/* ── FEATURES ────────────────────────────────────────── */}
-        <section id="features" aria-labelledby="features-heading">
-          <div className="l-section">
-            {/* Section glow */}
-            <div
-              className="l-section-glow"
-              aria-hidden
-              style={{ width: 600, height: 600, top: -100, right: -200 }}
-            />
-
-            <span className="l-section-label reveal">Funcionalidades</span>
-            <h2 id="features-heading" className="l-section-title reveal">
-              Diseñado para el<br /><em>consultorio real</em>
-            </h2>
-            <p className="l-section-body reveal">
-              No es un formulario digital. Es un flujo clínico completo que se
-              adapta a tu especialidad y trabaja contigo, no contra ti.
-            </p>
-
-            <div className="l-bento" role="list">
-
-              {/* Wide card — Wizard */}
-              <article className="l-bento-card wide reveal" role="listitem" aria-labelledby="feat-wizard">
-                <div className="l-card-icon" aria-hidden>⚕️</div>
-                <h3 id="feat-wizard" className="l-card-title">Motor Clínico Adaptativo</h3>
-                <p className="l-card-body">
-                  Flujo de <strong style={{color:"var(--lt)"}}>6 pasos médico-legales</strong> que se adapta a tu especialidad. 
-                  Oculta las secciones que no usas (ej. pediatría, intrahospitalarias) y el sistema lo recordará 
-                  automáticamente en tu próxima sesión.
-                </p>
-                <div className="l-card-big-num">3min</div>
-                <span className="l-card-tag">Por consulta documentada</span>
-              </article>
-
-              {/* Posología */}
-              <article className="l-bento-card reveal" role="listitem" aria-labelledby="feat-posology">
-                <div className="l-card-icon" aria-hidden>💊</div>
-                <h3 id="feat-posology" className="l-card-title">Posología Inteligente</h3>
-                <p className="l-card-body">
-                  Escribe la receta médica en texto libre y {APP_NAME} generará automáticamente tarjetas estructuradas 
-                  de indicaciones para la hoja del paciente.
-                </p>
-                <span className="l-card-tag">Generación automática</span>
-              </article>
-
-              {/* AI */}
-              <article className="l-bento-card reveal" role="listitem" aria-labelledby="feat-ai">
-                <div className="l-card-icon" aria-hidden>🧠</div>
-                <h3 id="feat-ai" className="l-card-title">CIE-10 asistido por IA</h3>
-                <p className="l-card-body">
-                  Sugerencias de diagnóstico en tiempo real con Gemini 3.5 Flash.
-                </p>
-                <div className="l-card-tags">
-                  <span className="l-card-tag">Gemini 3.5 Flash</span>
-                </div>
-              </article>
-
-              {/* Offline */}
-              <article className="l-bento-card reveal" role="listitem" aria-labelledby="feat-offline-card">
-                <div className="l-card-icon" aria-hidden>📶</div>
-                <h3 id="feat-offline-card" className="l-card-title">Offline-first nativo</h3>
-                <p className="l-card-body">
-                  IndexedDB local con 0ms de latencia. Sincronización automática
-                  con backoff exponencial al recuperar conexión.
-                </p>
-                <span className="l-card-tag">Sin pérdida de datos</span>
-              </article>
-
-              {/* Clinics */}
-              <article className="l-bento-card reveal" role="listitem" aria-labelledby="feat-clinics">
-                <div className="l-card-icon" aria-hidden>🏥</div>
-                <h3 id="feat-clinics" className="l-card-title">Gestión Multi-Doctor</h3>
-                <p className="l-card-body">
-                  Agrega a tus colegas y asistentes. Arquitectura multi-tenant con roles de seguridad estrictos (RLS)
-                  para clínicas y consultorios compartidos.
-                </p>
-                <span className="l-card-tag">Equipos médicos</span>
-              </article>
-
-            </div>
-          </div>
-        </section>
-
-        <div className="l-divider" aria-hidden />
-
-        {/* ── OFFLINE SPLIT ────────────────────────────────────── */}
-        <section id="offline" aria-labelledby="offline-heading">
-          <div className="l-section">
-            <div className="l-split">
-
-              {/* Visual — Mock panel */}
-              <div className="reveal-left">
-                <div className="l-mock-panel">
-                  <div className="l-mock-top">
-                    <span className="l-mock-dot r" />
-                    <span className="l-mock-dot y" />
-                    <span className="l-mock-dot g" />
-                    {APP_NAME} — consultas offline
-                  </div>
-                  <div className="l-mock-body">
-                    {[
-                      { name: "García, Luis", status: "Sincronizado", accent: true },
-                      { name: "Rodríguez, Ana", status: "En cola", accent: false },
-                      { name: "Méndez, Carlos", status: "En cola", accent: false },
-                      { name: "Flores, María", status: "Sincronizado", accent: true },
-                    ].map((row) => (
-                      <div key={row.name} className={`l-mock-row${row.accent ? " l-mock-row-accent" : ""}`}>
-                        <span style={{fontSize:".9rem"}}>🫀</span>
-                        <span style={{flex:1, fontSize:".82rem"}}>{row.name}</span>
-                        {row.accent
-                          ? <span className="l-mock-badge">✓ Sync</span>
-                          : <span className="l-mock-badge-muted">⏳ Pendiente</span>
-                        }
-                      </div>
-                    ))}
-                    <div style={{marginTop:"16px", padding:"12px 14px", borderRadius:"8px", background:"var(--accent-dim)", border:"1px solid var(--line2)", fontSize:".78rem", color:"var(--lt2)"}}>
-                      🔄 Sincronizando 2 consultas… backoff 3s
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Content */}
-              <div className="reveal-right">
-                <span className="l-section-label">Arquitectura Offline-First</span>
-                <h2 id="offline-heading" className="l-section-title">
-                  Trabaja sin internet.<br /><em>Siempre.</em>
-                </h2>
-                <p style={{color:"var(--lt2)", marginTop:"16px", lineHeight:1.7, fontSize:".95rem"}}>
-                  {APP_NAME} corre completamente en tu navegador usando IndexedDB.
-                  Sin conexión, la app sigue funcionando a la perfección.
-                  Cuando vuelve el internet, sincroniza sola.
-                </p>
-                <ul className="l-check-list" aria-label="Beneficios offline">
-                  <li>Latencia 0ms — todo corre local</li>
-                  <li>Cola de sincronización con backoff exponencial</li>
-                  <li>Resolución de conflictos por dependencias</li>
-                  <li>Instalable como PWA en iOS, Android y escritorio</li>
-                </ul>
-              </div>
-
-            </div>
-          </div>
-        </section>
-
-        <div className="l-divider" aria-hidden />
-
-        {/* ── TESTIMONIALS ────────────────────────────────────── */}
-        <section
-          aria-labelledby="testi-heading"
-          style={{background:"var(--lbg1)", position:"relative", zIndex:2}}
-        >
-          <div className="l-section">
-            <div style={{textAlign:"center", maxWidth:600, margin:"0 auto"}}>
-              <span className="l-section-label reveal">Testimonios</span>
-              <h2 id="testi-heading" className="l-section-title reveal">
-                Los médicos que ya usan <em>{APP_NAME}</em>
-              </h2>
-              <p className="l-section-body reveal" style={{margin:"16px auto 0", textAlign:"center"}}>
-                Estamos en lanzamiento temprano. Pronto compartiremos aquí las experiencias
-                de los primeros médicos que confían en {APP_NAME} cada día.
-              </p>
-              <div className="reveal" style={{marginTop:"48px", display:"flex", gap:"16px", justifyContent:"center", flexWrap:"wrap"}}>
-                {[
-                  { icon: "⚕️", label: "Médicos generales" },
-                  { icon: "👶", label: "Pediatras" },
-                  { icon: "🫀", label: "Cardiólogos" },
-                  { icon: "🧠", label: "Neurólogos" },
-                ].map((sp) => (
-                  <div
-                    key={sp.label}
-                    style={{
-                      display:"flex", alignItems:"center", gap:"8px",
-                      padding:"10px 20px",
-                      background:"var(--glass)", border:"1px solid var(--line)",
-                      borderRadius:"100px", fontSize:".82rem", color:"var(--lt2)"
-                    }}
-                  >
-                    <span>{sp.icon}</span> {sp.label}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <div className="l-divider" aria-hidden />
-
-        {/* ── PRICING ─────────────────────────────────────────── */}
-        <section id="pricing" aria-labelledby="pricing-heading">
-          <div className="l-section">
-            <div style={{textAlign:"center", maxWidth:520, margin:"0 auto"}}>
-              <span className="l-section-label reveal">Precios</span>
-              <h2 id="pricing-heading" className="l-section-title reveal">
-                Planes simples,<br /><em>sin sorpresas</em>
-              </h2>
-              <p className="l-section-body reveal" style={{margin:"12px auto 0", textAlign:"center"}}>
-                Un plan claro. Paga solo lo que usas.<br />
-                <span style={{ color: "var(--accent)", fontWeight: 600 }}>Todos los planes incluyen 7 días de prueba gratis. Sin tarjeta.</span>
-              </p>
-            </div>
-
-            <div className="l-pricing-grid">
-
-              {/* Plan Pro */}
-              <article className="l-pricing-card featured reveal" aria-labelledby="plan-pro">
-                <h3 id="plan-pro" className="l-plan-name">Profesional Independiente</h3>
-                <p className="l-plan-desc">Para médicos con consultorio propio.</p>
-                <div className="l-plan-price">${proPrice} <span>/mes</span></div>
-                <ul className="l-plan-features" aria-label="Características del plan Pro">
-                  {[
-                    "Pacientes y consultas ilimitados",
-                    "Seguimientos clínicos",
-                    "Plantillas de tratamiento",
-                    "Sugerencias CIE-10 con IA",
-                    "PDF clínico profesional",
-                    "Sync offline automático",
-                    "Soporte por email",
-                  ].map((f) => (
-                    <li key={f} className="l-plan-feature">{f}</li>
-                  ))}
-                </ul>
-                <Link
-                  href="/registro?plan=pro"
-                  className="l-btn-hero"
-                  style={{width:"100%", marginTop:"auto", paddingTop:"14px", paddingBottom:"14px", justifyContent:"center"}}
-                >
-                  Comenzar ahora
-                </Link>
-              </article>
-
-              {/* Plan Clínica */}
-              <article className="l-pricing-card reveal" aria-labelledby="plan-clinica">
-                <h3 id="plan-clinica" className="l-plan-name">Clínica</h3>
-                <p className="l-plan-desc">Para centros con múltiples doctores.</p>
-                <div className="l-plan-price">${clinicPrice} <span>/mes</span></div>
-                <ul className="l-plan-features" aria-label="Características del plan Clínica">
-                  {[
-                    "Todo lo del plan Profesional",
-                    "Múltiples doctores",
-                    "Reportes consolidados",
-                    "Soporte prioritario",
-                  ].map((f) => (
-                    <li key={f} className="l-plan-feature">{f}</li>
-                  ))}
-                </ul>
-                <Link
-                  href="/registro?plan=clinica"
-                  className="l-btn-hero-ghost"
-                  style={{width:"100%", marginTop:"auto", paddingTop:"14px", paddingBottom:"14px", justifyContent:"center"}}
-                >
-                  Comenzar ahora
-                </Link>
-              </article>
-
-            </div>
-          </div>
-        </section>
-
-        <div className="l-divider" aria-hidden />
-
-        {/* ── FINAL CTA ───────────────────────────────────────── */}
-        <div className="l-cta-section">
-          <div className="l-cta-box reveal">
-            <h2 className="l-cta-title">
-              Digitaliza tu consultorio.<br />
-              Empieza <em>hoy</em>.
-            </h2>
-            <p className="l-cta-body">
-              Únete a los médicos que ya reducen el tiempo de documentación
-              y nunca pierden una consulta.
-            </p>
-            <div className="l-cta-actions">
-              <Link href="/registro" className="l-btn-hero">
-                Prueba gratis por 7 días
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
-                  <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </Link>
-              <Link href="/login" className="l-btn-hero-ghost">
-                Iniciar sesión
-              </Link>
-            </div>
+          <div className="gx-m-content">
+             {/* Abstract representation of the app inside the mockup frame */}
+             <div style={{position:"absolute", top:40, left:40, right:40, height:60, background:"var(--bg)", borderRadius:8, border:"1px solid var(--border)", boxShadow:"var(--shadow-sm)"}} />
+             <div style={{position:"absolute", top:120, left:40, width:240, bottom:40, background:"var(--bg)", borderRadius:8, border:"1px solid var(--border)", boxShadow:"var(--shadow-sm)"}} />
+             <div style={{position:"absolute", top:120, left:300, right:40, bottom:40, background:"var(--bg)", borderRadius:8, border:"1px solid var(--border)", boxShadow:"var(--shadow-sm)"}} />
           </div>
         </div>
+      </section>
 
-        {/* ── FOOTER ──────────────────────────────────────────── */}
-      <footer className="l-footer">
-        <div className="l-footer-logo">
-          <div className="l-nav-dot" aria-hidden />
-          {APP_NAME}<span style={{color:"var(--accent)", marginLeft:2}}>·</span>
+      {/* ── Bento Grid (Features) ── */}
+      <section id="features" className="gx-bento">
+        <div className="gx-b-card gx-b-large">
+          <div className="gx-b-icon"><Ico d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" /></div>
+          <h3 className="gx-b-title">Velocidad sin compromisos</h3>
+          <p className="gx-b-desc">La interfaz está optimizada para reducir el número de clics al mínimo. Atajos de teclado en cada rincón (⌘K) y un diseño que prioriza la densidad de información sin sacrificar la estética.</p>
         </div>
-        <nav className="l-footer-links" aria-label="Links del pie de página">
+        <div className="gx-b-card">
+          <div className="gx-b-icon"><Ico d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></div>
+          <h3 className="gx-b-title">Offline-First</h3>
+          <p className="gx-b-desc">Funciona incluso si el WiFi de tu consultorio falla. Todo se guarda localmente en IndexedDB y se sincroniza cuando vuelve la conexión.</p>
+        </div>
+        <div className="gx-b-card">
+          <div className="gx-b-icon"><Ico d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></div>
+          <h3 className="gx-b-title">Cumplimiento Legal</h3>
+          <p className="gx-b-desc">Listos para el Ministerio de Salud. RIPS automáticos, firmas digitales y cifrado en reposo para cumplir con las normativas locales e internacionales de salud.</p>
+        </div>
+        <div className="gx-b-card gx-b-large">
+          <div className="gx-b-icon"><Ico d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z" /></div>
+          <h3 className="gx-b-title">Sugerencias con IA (Gemini)</h3>
+          <p className="gx-b-desc">El autocompletado CIE-10 está potenciado por modelos de inteligencia artificial avanzados. Encuentra el diagnóstico exacto analizando el texto libre del motivo de consulta.</p>
+        </div>
+      </section>
+
+      {/* ── Pricing ── */}
+      <section id="pricing" className="gx-hero" style={{paddingTop: 60, paddingBottom: 120}}>
+        <h2 className="gx-hero-title" style={{fontSize: "3rem", marginBottom: 16}}>Planes simples</h2>
+        <p className="gx-hero-desc" style={{marginBottom: 48}}>Un solo plan integral para profesionales independientes. Transparente y sin sorpresas.</p>
+        
+        <div style={{display:"flex", gap:24, justifyContent:"center", flexWrap:"wrap"}}>
+          <div className="gx-b-card" style={{maxWidth: 400, width:"100%", textAlign:"left", border:"1px solid var(--accent)", boxShadow:"0 0 0 1px var(--accent)"}}>
+            <h3 className="gx-b-title">Profesional Independiente</h3>
+            <div style={{fontFamily:"var(--font-mono)", fontSize:"2.5rem", fontWeight:700, margin:"16px 0", color:"var(--ink)"}}>
+              ${proPrice} <span style={{fontSize:"1rem", color:"var(--ink-faint)", fontWeight:500}}>/mes</span>
+            </div>
+            <ul style={{listStyle:"none", padding:0, margin:"0 0 32px", fontSize:"0.9375rem", color:"var(--ink-soft)", lineHeight:1.8}}>
+              <li>✓ Consultas y pacientes ilimitados</li>
+              <li>✓ Sugerencias IA (Gemini)</li>
+              <li>✓ Trabajo Offline Nativo</li>
+              <li>✓ PDF profesional</li>
+            </ul>
+            <Link href="/registro?plan=pro" className="gx-btn gx-btn-p" style={{width:"100%"}}>Prueba gratis por 7 días</Link>
+          </div>
+          
+          {clinicPrice > 0 && (
+            <div className="gx-b-card" style={{maxWidth: 400, width:"100%", textAlign:"left"}}>
+              <h3 className="gx-b-title">Clínica</h3>
+              <div style={{fontFamily:"var(--font-mono)", fontSize:"2.5rem", fontWeight:700, margin:"16px 0", color:"var(--ink)"}}>
+                ${clinicPrice} <span style={{fontSize:"1rem", color:"var(--ink-faint)", fontWeight:500}}>/mes</span>
+              </div>
+              <ul style={{listStyle:"none", padding:0, margin:"0 0 32px", fontSize:"0.9375rem", color:"var(--ink-soft)", lineHeight:1.8}}>
+                <li>✓ Todo lo del plan Profesional</li>
+                <li>✓ Doctores y roles múltiples</li>
+                <li>✓ Reportes de gerencia</li>
+                <li>✓ Soporte prioritario</li>
+              </ul>
+              <Link href="/registro?plan=clinica" className="gx-btn gx-btn-s" style={{width:"100%", textAlign:"center"}}>Contactar ventas</Link>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* ── Footer ── */}
+      <footer className="gx-footer">
+        <div className="gx-nav-brand">
+          <span /> {APP_NAME}
+        </div>
+        <nav className="gx-footer-links" aria-label="Links del pie de página">
           <Link href="/login">Iniciar sesión</Link>
           <Link href="/registro">Registro</Link>
-          <a href="#pricing">Precios</a>
           <a href="#features">Funciones</a>
           <Link href="/privacidad">Privacidad</Link>
           <Link href="/terminos">Términos</Link>
         </nav>
-        <div className="flex items-center gap-4 mt-8 justify-center text-sm">
+        <div className="gx-footer-lang">
           <button 
             onClick={() => {
               fetch('/api/locale', { method: 'POST', body: JSON.stringify({ locale: 'es' }) }).then(() => window.location.reload());
             }}
-            className="text-ink-soft hover:text-ink transition-colors"
           >
             🇪🇸 Español
           </button>
@@ -498,17 +169,15 @@ export default function LandingClient({ proPrice, clinicPrice }: { proPrice: num
             onClick={() => {
               fetch('/api/locale', { method: 'POST', body: JSON.stringify({ locale: 'en' }) }).then(() => window.location.reload());
             }}
-            className="text-ink-soft hover:text-ink transition-colors"
           >
             🇺🇸 English
           </button>
         </div>
-        <p className="l-footer-copy">
+        <p className="gx-footer-copy">
           © {new Date().getFullYear()} {APP_NAME}. Todos los derechos reservados.
         </p>
       </footer>
 
-      </main>
     </div>
   );
 }
