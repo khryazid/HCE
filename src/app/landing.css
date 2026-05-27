@@ -198,4 +198,59 @@
   .gx-mockup, .gx-bento { padding: 0 24px; }
   .gx-nav { padding: 16px 24px; }
   .gx-nav-links { display: none; }
+  .gx-showcase { grid-template-columns: 1fr; padding: 40px 24px; gap: 40px; }
+  .gx-showcase-right { position: relative; top: 0; height: 400px; }
 }
+
+/* ── Showcase (Sticky Scroll) ─────────────────────── */
+.gx-showcase {
+  max-width: 1200px; margin: 0 auto; padding: 80px 40px 160px;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 80px;
+  position: relative;
+}
+.gx-showcase-left {
+  display: flex; flex-direction: column;
+}
+.gx-showcase-item {
+  height: 80vh; /* Force scroll height to trigger intersection */
+  display: flex; flex-direction: column; justify-content: center;
+  opacity: 0.3; transition: all 500ms var(--ease-out);
+  transform: translateY(20px);
+}
+.gx-showcase-item.active {
+  opacity: 1; transform: translateY(0);
+}
+.gx-showcase-icon {
+  width: 48px; height: 48px; border-radius: 12px;
+  background: var(--accent-dim); color: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 24px; box-shadow: 0 0 24px var(--accent-dim);
+}
+.gx-showcase-title {
+  font-family: var(--font-display); font-size: 2.5rem; font-weight: 700;
+  color: var(--ink); margin-bottom: 16px; letter-spacing: -0.02em;
+}
+.gx-showcase-desc {
+  font-size: 1.125rem; color: var(--ink-soft); line-height: 1.6;
+}
+
+.gx-showcase-right {
+  position: sticky; top: 120px; height: calc(100vh - 240px);
+  min-height: 500px; display: flex; align-items: center; justify-content: center;
+}
+.gx-showcase-image-container {
+  width: 100%; height: 100%; position: relative;
+  background: var(--bg-soft); border-radius: 24px;
+  border: 1px solid var(--border); box-shadow: var(--shadow-md), 0 32px 64px rgba(0,0,0,0.08);
+  overflow: hidden;
+}
+.gx-showcase-image {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  object-fit: cover; object-position: left top;
+  opacity: 0; transform: scale(0.95); filter: blur(10px);
+  transition: all 800ms var(--ease-out);
+}
+.gx-showcase-image.active {
+  opacity: 1; transform: scale(1); filter: blur(0);
+}
+

@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import "./landing.css";
 import { APP_NAME } from "@/lib/constants/app";
 
@@ -17,8 +17,10 @@ function Ico({d,s=20}: {d:string, s?:number}) {
 export default function LandingClient({ proPrice, clinicPrice }: { proPrice: number; clinicPrice: number }) {
   const t = useTranslations("Landing");
   const [theme, setTheme] = useState("light");
+  const [activeStep, setActiveStep] = useState(0);
 
   useEffect(() => {
+    // Nav Scroll
     const onScroll = () => {
       const nav = document.querySelector(".gx-nav");
       if (nav) {
@@ -27,7 +29,27 @@ export default function LandingClient({ proPrice, clinicPrice }: { proPrice: num
       }
     };
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+
+    // IntersectionObserver for Sticky Showcase
+    const items = document.querySelectorAll(".gx-showcase-item");
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const index = Number(entry.target.getAttribute("data-index"));
+          setActiveStep(index);
+          // Highlight active item text
+          items.forEach(i => i.classList.remove("active"));
+          entry.target.classList.add("active");
+        }
+      });
+    }, { rootMargin: "-40% 0px -40% 0px", threshold: 0 });
+
+    items.forEach(item => observer.observe(item));
+
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      observer.disconnect();
+    };
   }, []);
 
   return (
@@ -84,46 +106,50 @@ export default function LandingClient({ proPrice, clinicPrice }: { proPrice: num
         </div>
       </header>
 
-      {/* ── Mockup / Visual ── */}
-      <section className="gx-mockup gx-s gx-s4">
-        <div className="gx-m-frame">
-          <div className="gx-m-top">
-            <div className="gx-m-dot" />
-            <div className="gx-m-dot" />
-            <div className="gx-m-dot" />
+      {/* ── Showcase (Sticky Scroll) ── */}
+      <section id="features" className="gx-showcase">
+        <div className="gx-showcase-left">
+          
+          <div className="gx-showcase-item active" data-index="0">
+            <div className="gx-showcase-icon"><Ico d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" /></div>
+            <h3 className="gx-showcase-title">Panel de Control Inteligente</h3>
+            <p className="gx-showcase-desc">Un Dashboard que te da el panorama completo de tu día. Métricas clave, flujo de pacientes y acceso rápido a consultas recientes, optimizado con atajos de teclado (⌘K) para máxima velocidad.</p>
           </div>
-          <div className="gx-m-content">
-             <div style={{position:"absolute", top:40, left:40, right:40, height:60, background:"var(--bg)", borderRadius:8, border:"1px solid var(--border)", boxShadow:"var(--shadow-sm)"}} />
-             <div style={{position:"absolute", top:120, left:40, width:240, bottom:40, background:"var(--bg)", borderRadius:8, border:"1px solid var(--border)", boxShadow:"var(--shadow-sm)"}} />
-             <div style={{position:"absolute", top:120, left:300, right:40, bottom:40, background:"var(--bg)", borderRadius:8, border:"1px solid var(--border)", boxShadow:"var(--shadow-sm)"}} />
+
+          <div className="gx-showcase-item" data-index="1">
+            <div className="gx-showcase-icon"><Ico d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></div>
+            <h3 className="gx-showcase-title">Agenda Dinámica</h3>
+            <p className="gx-showcase-desc">Bloques de tiempo claros y una vista semanal fluida. Control total sobre tus citas y disponibilidad con una interfaz diseñada para reducir el estrés visual.</p>
+          </div>
+
+          <div className="gx-showcase-item" data-index="2">
+            <div className="gx-showcase-icon"><Ico d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></div>
+            <h3 className="gx-showcase-title">Base de Pacientes</h3>
+            <p className="gx-showcase-desc">Busca, filtra y gestiona a todos tus pacientes en milisegundos. Integración directa con el historial clínico y generación automática de reportes PDF profesionales.</p>
+          </div>
+
+        </div>
+
+        <div className="gx-showcase-right">
+          <div className="gx-showcase-image-container">
+            <img 
+              src="/screenshots/dashboard.png" 
+              alt="Dashboard de la clínica" 
+              className={`gx-showcase-image ${activeStep === 0 ? "active" : ""}`} 
+            />
+            <img 
+              src="/screenshots/agenda.png" 
+              alt="Calendario y Agenda" 
+              className={`gx-showcase-image ${activeStep === 1 ? "active" : ""}`} 
+            />
+            <img 
+              src="/screenshots/patients.png" 
+              alt="Lista de Pacientes" 
+              className={`gx-showcase-image ${activeStep === 2 ? "active" : ""}`} 
+            />
           </div>
         </div>
       </section>
-
-      {/* ── Bento Grid (Features) ── */}
-      <section id="features" className="gx-bento">
-        <div className="gx-b-card gx-b-large">
-          <div className="gx-b-icon"><Ico d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" /></div>
-          <h3 className="gx-b-title">Motor Clínico Adaptativo</h3>
-          <p className="gx-b-desc">Flujo de 6 pasos médico-legales que se adapta a tu especialidad. Oculta las secciones que no usas (ej. pediatría) y el sistema lo recordará automáticamente en tu próxima sesión. Atajos de teclado en cada rincón (⌘K) para máxima velocidad.</p>
-        </div>
-        <div className="gx-b-card">
-          <div className="gx-b-icon"><Ico d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></div>
-          <h3 className="gx-b-title">Posología Inteligente</h3>
-          <p className="gx-b-desc">Escribe la receta médica en texto libre y el sistema generará automáticamente tarjetas estructuradas de indicaciones para la hoja del paciente.</p>
-        </div>
-        <div className="gx-b-card">
-          <div className="gx-b-icon"><Ico d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></div>
-          <h3 className="gx-b-title">Gestión Multi-Doctor</h3>
-          <p className="gx-b-desc">Agrega a tus colegas y asistentes. Arquitectura multi-tenant con roles de seguridad estrictos (RLS) para clínicas y consultorios compartidos.</p>
-        </div>
-        <div className="gx-b-card gx-b-large">
-          <div className="gx-b-icon"><Ico d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z" /></div>
-          <h3 className="gx-b-title">Sugerencias con IA (Gemini)</h3>
-          <p className="gx-b-desc">El autocompletado CIE-10 está potenciado por modelos de inteligencia artificial (Gemini 2.0 Flash). Encuentra el diagnóstico exacto analizando el texto libre del motivo de consulta en milisegundos.</p>
-        </div>
-      </section>
-
       {/* ── Offline Split ── */}
       <section id="offline" style={{padding: "120px 40px", background: "var(--bg-soft)", borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)"}}>
         <div style={{maxWidth: 1200, margin: "0 auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 64, alignItems: "center"}}>
