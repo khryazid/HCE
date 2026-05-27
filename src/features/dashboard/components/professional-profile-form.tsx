@@ -190,16 +190,15 @@ export function ProfessionalProfileForm({
   }
 
   return (
-    <section className="mx-auto w-full max-w-3xl hce-page">
-      <header className="hce-surface bg-[linear-gradient(180deg,var(--surface-glow),transparent)]">
-        <p className="hce-kicker text-cyan-800">{kicker}</p>
-        <h1 className="mt-2 hce-page-title">{title}</h1>
-        <p className="mt-2 hce-page-lead">{lead}</p>
+    <section className="w-full">
+      <header className="mb-8">
+        <h2 className="text-xl font-bold text-ink mb-2">{title}</h2>
+        <p className="text-sm text-ink-soft">{lead}</p>
       </header>
 
       <form
         onSubmit={handleSubmit}
-        className="grid gap-4 rounded-3xl border border-border bg-card p-6 shadow-sm sm:grid-cols-2"
+        className="grid gap-6 sm:grid-cols-2"
       >
         {/* Sección 1 — Datos profesionales */}
         <ProfileSectionPersonal
