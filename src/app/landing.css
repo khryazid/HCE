@@ -55,7 +55,7 @@
   background: var(--bg);
   -webkit-font-smoothing: antialiased;
   min-height: 100dvh;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 @keyframes gx-up {
