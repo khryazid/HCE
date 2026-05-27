@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import "./globals.css";
 import { SyncBootstrap } from "@/features/sync/components/sync-bootstrap";
 import { QueryProvider } from "@/lib/query-provider";
@@ -111,8 +112,9 @@ export default async function RootLayout({
             --font-switzer:  var(--font-ui, 'Outfit', system-ui, sans-serif);
           }
         `}</style>
-        <script
-          suppressHydrationWarning
+        <Script
+          id="theme-script"
+          strategy="beforeInteractive"
           nonce={nonce}
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var t=localStorage.getItem('hce:theme');if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}})();`,
