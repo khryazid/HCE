@@ -28,36 +28,19 @@ export function AuthRouteShell({
 }: AuthRouteShellProps) {
   return (
     <div className="gx-auth">
-      
-      {/* LEFT */}
-      <div className="gx-auth-left">
+      <div className="gx-auth-card gx-s">
         <Link href="/" className="gx-auth-brand">
           <span /> {APP_NAME}
         </Link>
 
-        <div className="gx-auth-form-wrap">
-          <div className="gx-s gx-s1">
-            <div className="gx-af-kicker">{kicker}</div>
-            <h1 className="gx-af-title">{title}</h1>
-            <p className="gx-af-sub">{lead}</p>
-            {children}
-          </div>
+        <div className="gx-auth-header">
+          <div className="gx-af-kicker">{kicker}</div>
+          <h1 className="gx-af-title">{title}</h1>
+          <p className="gx-af-sub">{lead}</p>
         </div>
-      </div>
 
-      {/* RIGHT */}
-      <div className="gx-auth-right">
-        <div className="gx-ar-bg" />
-        <div className="gx-ar-noise" />
-        <div className="gx-ar-content gx-s gx-s2">
-          <div className="gx-ar-quote">
-            &quot;Desde que usamos Glyphix, registrar la historia clínica dejó de ser una carga para volver a ser una herramienta de diagnóstico. Ahorramos 2 horas al día.&quot;
-          </div>
-          <div className="gx-ar-author">Dr. Andrés Mejía</div>
-          <div className="gx-ar-role">Cardiólogo · Medellín, Colombia</div>
-        </div>
+        {children}
       </div>
-
     </div>
   );
 }
