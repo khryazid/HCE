@@ -105,13 +105,14 @@ export default async function RootLayout({
       */}
       <head>
         {/* Font variable injection for legacy variables */}
-        <style>{`
+        <style suppressHydrationWarning>{`
           :root {
             --font-sentient: var(--font-display, 'Space Grotesk', system-ui, sans-serif);
             --font-switzer:  var(--font-ui, 'Outfit', system-ui, sans-serif);
           }
         `}</style>
         <script
+          suppressHydrationWarning
           nonce={nonce}
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var t=localStorage.getItem('hce:theme');if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}})();`,
