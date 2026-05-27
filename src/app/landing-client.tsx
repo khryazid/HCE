@@ -154,27 +154,34 @@ export default function LandingClient({ proPrice, clinicPrice }: { proPrice: num
       <section id="offline" style={{padding: "120px 40px", background: "var(--bg-soft)", borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)"}}>
         <div style={{maxWidth: 1200, margin: "0 auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 64, alignItems: "center"}}>
           
-          <div style={{background: "var(--bg-elevated)", padding: 32, borderRadius: 16, border: "1px solid var(--border)", boxShadow: "var(--shadow-md)"}}>
-             <div style={{display:"flex", gap:8, marginBottom:24}}>
-               <div className="gx-m-dot" style={{background:"#FF5F56"}}/>
-               <div className="gx-m-dot" style={{background:"#FFBD2E"}}/>
-               <div className="gx-m-dot" style={{background:"#27C93F"}}/>
+          <div style={{background: "var(--bg-elevated)", padding: "32px 40px", borderRadius: 16, border: "1px solid var(--border-subtle)", boxShadow: "0 24px 64px rgba(0,0,0,0.06)"}}>
+             <div style={{display:"flex", gap:8, marginBottom:32}}>
+               <div style={{width:12,height:12,borderRadius:"50%",background:"#FF5F56"}}/>
+               <div style={{width:12,height:12,borderRadius:"50%",background:"#FFBD2E"}}/>
+               <div style={{width:12,height:12,borderRadius:"50%",background:"#27C93F"}}/>
              </div>
-             <div style={{display:"flex", flexDirection:"column", gap:12}}>
+             <div style={{display:"flex", flexDirection:"column", gap:16}}>
                 {[
                   { name: "García, Luis", status: "Sincronizado", color: "var(--state-ok)" },
                   { name: "Rodríguez, Ana", status: "En cola", color: "var(--state-warn)" },
                   { name: "Méndez, Carlos", status: "En cola", color: "var(--state-warn)" },
                   { name: "Flores, María", status: "Sincronizado", color: "var(--state-ok)" },
                 ].map((row) => (
-                  <div key={row.name} style={{display:"flex", justifyContent:"space-between", alignItems:"center", padding:"12px 16px", background:"var(--bg)", border:"1px solid var(--border)", borderRadius:8}}>
-                    <span style={{fontSize:"0.9375rem", fontWeight:500}}>{row.name}</span>
-                    <span style={{fontSize:"0.75rem", fontWeight:600, color: row.color}}>{row.status}</span>
+                  <div key={row.name} style={{display:"flex", justifyContent:"space-between", alignItems:"center", padding:"16px 20px", background:"var(--bg-elevated)", border:"1px solid var(--border)", borderRadius:8}}>
+                    <span style={{fontSize:"1rem", fontWeight:600, fontFamily:"var(--font-display)", color:"var(--ink)"}}>{row.name}</span>
+                    <span style={{fontSize:"0.875rem", fontWeight:600, color: row.color}}>{row.status}</span>
                   </div>
                 ))}
              </div>
-             <div style={{marginTop: 24, padding: "12px 16px", background: "var(--accent-dim)", borderRadius: 8, border: "1px solid rgba(196,96,42,0.2)", fontSize: "0.8125rem", color: "var(--accent)", fontWeight: 500}}>
-               🔄 Sincronizando 2 consultas… backoff 3s
+             <div style={{marginTop: 32, padding: "16px 20px", background: "var(--accent-dim)", borderRadius: 8, border: "1px solid rgba(196,96,42,0.2)", display: "flex", alignItems: "center", gap: 8}}>
+               <div style={{background: "#4A90E2", width: 20, height: 20, borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center"}}>
+                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                   <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                 </svg>
+               </div>
+               <span style={{fontSize: "0.9375rem", color: "var(--accent)", fontWeight: 600, fontFamily: "var(--font-display)"}}>
+                 Sincronizando 2 consultas... backoff 3s
+               </span>
              </div>
           </div>
 
