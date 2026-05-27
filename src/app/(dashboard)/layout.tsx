@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { PanelErrorBoundary } from "@/components/ui/panel-error-boundary";
 import { DashboardOnboardingGuard } from "@/features/dashboard/components/dashboard-onboarding-guard";
 import { GlobalSearch } from "@/features/dashboard/components/global-search";
-import { Sidebar, BottomNav, MobileHeader } from "@/features/dashboard/components/sidebar";
+import { Topnav, BottomNav, MobileHeader } from "@/features/dashboard/components/topnav";
 import { SyncStatusBanner } from "@/features/sync/components/sync-status-banner";
 import { TenantProvider } from "@/lib/supabase/tenant-context";
 import { ClinicalProvider } from "@/features/consultations/context/clinical-context";
@@ -17,34 +17,30 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-
 export default function DashboardLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <TenantProvider>
       <ClinicalProvider>
-        <div className="flex h-full min-h-screen">
-          {/* Desktop sidebar — hidden on mobile */}
+        <div className="flex flex-col min-h-screen bg-bg">
+          {/* Desktop Top Navigation */}
           <PanelErrorBoundary>
-            <Sidebar />
+            <Topnav />
           </PanelErrorBoundary>
 
-          {/* Main content column */}
-          <div className="flex flex-1 flex-col overflow-x-hidden">
+          {/* Mobile top header */}
+          <PanelErrorBoundary>
+            <MobileHeader />
+          </PanelErrorBoundary>
 
-            {/* Mobile top header — sits in normal flow above main */}
-            <PanelErrorBoundary>
-              <MobileHeader />
-            </PanelErrorBoundary>
-
+          {/* Main content area */}
+          <div className="flex-1 flex flex-col relative w-full">
             <DashboardOnboardingGuard />
 
-            <main
-              className="flex-1 p-4 pb-24 pt-4 sm:p-6 sm:pt-6 lg:p-8 lg:pb-8 lg:pt-8"
-            >
-              <div className="mx-auto w-full max-w-6xl">
-                <div className="mb-4 space-y-3">
+            <main className="flex-1 p-4 pb-24 sm:p-6 lg:p-8">
+              <div className="mx-auto w-full max-w-7xl">
+                <div className="mb-6 space-y-3">
                   <PanelErrorBoundary>
                     <GlobalSearch />
                   </PanelErrorBoundary>
@@ -52,6 +48,7 @@ export default function DashboardLayout({
                     <SyncStatusBanner />
                   </PanelErrorBoundary>
                 </div>
+                
                 <PanelErrorBoundary>
                   {children}
                 </PanelErrorBoundary>
@@ -59,7 +56,7 @@ export default function DashboardLayout({
             </main>
           </div>
 
-          {/* Mobile FAB — AUDIT FIX A-3: aria-label para screen readers */}
+          {/* Mobile FAB */}
           <Link
             href="/consultas"
             aria-label="Nueva consulta"
