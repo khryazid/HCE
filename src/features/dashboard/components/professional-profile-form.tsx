@@ -184,15 +184,21 @@ export function ProfessionalProfileForm({
         
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
-          const { readOnboardingProfile } = await import("@/lib/supabase/onboarding");
-          const existing = readOnboardingProfile(session.user.user_metadata);
-          const clinicId = existing?.clinic_id || createClinicId();
+          const { createClinicId } = await import("@/lib/supabase/profile");
+          const metadata = session.user.user_metadata;
+          const clinicId = metadata.clinic_id || createClinicId();
+          const fullName = metadata.full_name || form.signatureName || "Doctor";
+          
+          const specialtiesRaw = metadata.specialties;
+          const specialties = Array.isArray(specialtiesRaw) && specialtiesRaw.length > 0 
+            ? specialtiesRaw 
+            : letterhead.specialties ? letterhead.specialties.split(",").map(s => s.trim()) : ["Medicina General"];
           
           await createTenantProfileWithTrial({
             clinicId,
-            fullName: form.fullName || form.signatureName || "Doctor",
-            specialties: form.specialties.length > 0 ? form.specialties : ["Medicina General"],
-            plan: "basic",
+            fullName,
+            specialties,
+            plan: metadata.plan || "basic",
           });
         }
       }
