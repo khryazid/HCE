@@ -132,15 +132,26 @@ export function ProfessionalProfileForm({
     return () => { active = false; };
   }, [router]);
 
-  // Load letterhead from localStorage
+  // Load letterhead from localStorage and ensure tenant specialties are used as fallback
   useEffect(() => {
     if (!tenant) return;
     const local = loadLetterheadSettings(tenant.doctor_id, tenant.clinic_id);
-    setLetterhead((current) => ({
-      specialties: current.specialties || local.specialties || tenant.specialties.join(", "),
-      logo_data_url: local.logo_data_url || current.logo_data_url,
-      signature_data_url: local.signature_data_url || current.signature_data_url,
-    }));
+    
+    setLetterhead((current) => {
+      // Si current.specialties esta vacio, forzamos usar local o las del tenant.
+      // Esto arregla el bug donde no se pre-llenaban las especialidades del registro.
+      const resolvedSpecialties = current.specialties
+        ? current.specialties
+        : (local.specialties && local.specialties.trim().length > 0 
+             ? local.specialties 
+             : tenant.specialties.join(", "));
+
+      return {
+        specialties: resolvedSpecialties,
+        logo_data_url: local.logo_data_url || current.logo_data_url,
+        signature_data_url: local.signature_data_url || current.signature_data_url,
+      };
+    });
   }, [tenant]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
