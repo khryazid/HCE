@@ -6,6 +6,12 @@ export const metadata: Metadata = {
   title: `Ajustes | ${APP_NAME}`,
 };
 
-export default function AjustesPage() {
-  return <AjustesClient />;
+export default function AjustesPage({
+  searchParams,
+}: {
+  searchParams: { [key: string]: string | string[] | undefined };
+}) {
+  const isOnboarding = searchParams?.onboarding === "true";
+  
+  return <AjustesClient isOnboarding={isOnboarding} />;
 }

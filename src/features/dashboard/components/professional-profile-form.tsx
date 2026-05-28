@@ -50,6 +50,7 @@ type ProfessionalProfileFormProps = {
   title: string;
   lead: string;
   submitLabel?: string;
+  onSuccess?: () => void;
 };
 
 // ─── Pure helpers ─────────────────────────────────────────────────────────────
@@ -207,10 +208,14 @@ export function ProfessionalProfileForm({
         "Perfil actualizado correctamente. Puedes seguir editando cuando lo necesites.",
       );
 
-      // Redireccionar al dashboard después de guardar forzando recarga de contexto
-      setTimeout(() => {
-        window.location.href = "/dashboard";
-      }, 1200);
+      if (props.onSuccess) {
+        props.onSuccess();
+      } else {
+        // Redireccionar al dashboard después de guardar forzando recarga de contexto
+        setTimeout(() => {
+          window.location.href = "/dashboard";
+        }, 1200);
+      }
     } catch (submitError) {
       setError(
         submitError instanceof Error

@@ -80,10 +80,14 @@ export function DashboardOnboardingGuard() {
       }
 
       const onboardingProfile = readOnboardingProfile(user.user_metadata);
-      const isReady = isOnboardingProfileComplete(onboardingProfile);
+      const isProfileFilled = isOnboardingProfileComplete(onboardingProfile);
+      
+      // El setup completo ahora requiere terminar todo el wizard.
+      const isWizardFinished = user.user_metadata.wizard_completed === true;
+      const isReady = isProfileFilled && isWizardFinished;
 
       if (!isReady && !isProfileSetupPage && !isBillingPage) {
-        router.replace("/ajustes");
+        router.replace("/ajustes?onboarding=true");
         return;
       }
 
