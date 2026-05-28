@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getSupabaseClient } from "@/lib/supabase/client";
-import { loadTenantProfile, updateTenantUIPreferences, type TenantProfile } from "@/lib/supabase/profile";
+import { updateTenantUIPreferences } from "@/lib/supabase/profile";
+import { useTenant } from "@/lib/supabase/tenant-context";
 import { Check, Loader2 } from "lucide-react";
 
 type PreferenceItem = {
@@ -36,39 +36,23 @@ const PREFERENCES: PreferenceItem[] = [
 ];
 
 export function ClinicalFormBuilderPanel() {
-  const [profile, setProfile] = useState<TenantProfile | null>(null);
+  const { tenant, loading: tenantLoading } = useTenant();
   const [preferences, setPreferences] = useState<Record<string, boolean>>({});
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   useEffect(() => {
-    async function loadData() {
-      try {
-        const supabase = getSupabaseClient();
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) return;
-        
-        const tenant = await loadTenantProfile(session.user.id);
-        if (tenant) {
-          setProfile(tenant);
-          setPreferences((tenant.ui_preferences as Record<string, boolean>) || {});
-        }
-      } catch (err) {
-        console.error("Error loading profile", err);
-      } finally {
-        setLoading(false);
-      }
+    if (tenant) {
+      setPreferences((tenant.ui_preferences as Record<string, boolean>) || {});
     }
-    void loadData();
-  }, []);
+  }, [tenant]);
 
   async function handleSave() {
-    if (!profile) return;
+    if (!tenant) return;
     setSaving(true);
     setMessage(null);
     try {
-      await updateTenantUIPreferences(profile.doctor_id, preferences);
+      await updateTenantUIPreferences(tenant.doctor_id, preferences);
       setMessage({ type: "success", text: "Preferencias guardadas exitosamente. El Wizard Clínico se ha actualizado." });
       // Limpiar mensaje después de 3s
       setTimeout(() => setMessage(null), 3000);
@@ -89,12 +73,12 @@ export function ClinicalFormBuilderPanel() {
     });
   }
 
-  if (loading) {
+  if (tenantLoading) {
     return <div className="p-4 text-sm text-ink-soft animate-pulse">Cargando constructor clínico...</div>;
   }
 
-  if (!profile) {
-    return null;
+  if (!tenant) {
+    return <div className="p-4 text-sm text-red-600">No se pudo cargar la información del usuario.</div>;
   }
 
   const categories = Array.from(new Set(PREFERENCES.map(p => p.category)));
