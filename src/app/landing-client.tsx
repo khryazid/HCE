@@ -20,6 +20,10 @@ export default function LandingClient({ proPrice, clinicPrice }: { proPrice: num
   const [activeStep, setActiveStep] = useState(0);
 
   useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+  }, [theme]);
+
+  useEffect(() => {
     // Nav Scroll
     const onScroll = () => {
       const nav = document.querySelector(".gx-nav");
@@ -58,14 +62,14 @@ export default function LandingClient({ proPrice, clinicPrice }: { proPrice: num
       {/* ── Navigation ── */}
       <nav className="gx-nav">
         <Link href="/" style={{textDecoration:"none"}} className="gx-nav-brand">
-          <span /> {APP_NAME}
+          <img src="/icons/icon-96.webp" alt="Glyphix" style={{width: 24, height: 24, objectFit: "contain"}} /> {APP_NAME}
         </Link>
         <div className="gx-nav-links">
           <a href="#features" className="gx-nav-link">Características</a>
           <a href="#offline" className="gx-nav-link">Offline</a>
           <a href="#pricing" className="gx-nav-link">Precios</a>
           <span className="gx-nav-link" onClick={() => setTheme(t => t === "light" ? "dark" : "light")} style={{userSelect:"none"}}>Tema: {theme}</span>
-          <Link href="/login" className="gx-btn gx-btn-s" style={{padding:"8px 16px", fontSize:"0.8125rem"}}>Iniciar Sesión</Link>
+          <Link href="/login" prefetch={false} className="gx-btn gx-btn-s" style={{padding:"8px 16px", fontSize:"0.8125rem"}}>Iniciar Sesión</Link>
         </div>
       </nav>
 
@@ -83,7 +87,7 @@ export default function LandingClient({ proPrice, clinicPrice }: { proPrice: num
           {t("heroSub")}
         </p>
         <div className="gx-hero-actions gx-s gx-s4">
-          <Link href="/registro" className="gx-btn gx-btn-p">Comenzar prueba gratis</Link>
+          <Link href="/registro" prefetch={false} className="gx-btn gx-btn-p">Comenzar prueba gratis</Link>
           <a href="#features" className="gx-btn gx-btn-s">Ver funciones</a>
         </div>
         <p style={{fontSize: "0.8125rem", color: "var(--ink-faint)", marginTop: 24, animation: "gx-up 600ms forwards", animationDelay:"400ms", opacity:0}}>
@@ -224,12 +228,12 @@ export default function LandingClient({ proPrice, clinicPrice }: { proPrice: num
       </section>
 
       {/* ── Pricing ── */}
-      <section id="pricing" className="gx-hero" style={{paddingTop: 60, paddingBottom: 120}}>
+      <section id="pricing" style={{maxWidth: 1000, margin: "0 auto", paddingTop: 120, paddingBottom: 120, textAlign: "center", paddingLeft: 24, paddingRight: 24}}>
         <h2 className="gx-hero-title" style={{fontSize: "3rem", marginBottom: 16}}>Planes simples,<br/><em>sin sorpresas</em></h2>
         <p className="gx-hero-desc" style={{marginBottom: 48}}>Un plan claro. Paga solo lo que usas. <br/><span style={{color:"var(--accent)", fontWeight:600}}>Todos incluyen 7 días de prueba gratis. Sin tarjeta.</span></p>
         
-        <div style={{display:"flex", gap:24, justifyContent:"center", flexWrap:"wrap"}}>
-          <div className="gx-b-card" style={{maxWidth: 400, width:"100%", textAlign:"left", border:"2px solid var(--accent)"}}>
+        <div style={{display:"flex", gap:24, justifyContent:"center", flexWrap:"wrap", maxWidth: 850, margin: "0 auto"}}>
+          <div className="gx-b-card gx-price-card" style={{flex: "1 1 320px", maxWidth: 400, textAlign:"left", border:"2px solid var(--accent)"}}>
             <h3 className="gx-b-title" style={{fontSize:"1.5rem"}}>Profesional Independiente</h3>
             <p style={{color:"var(--ink-soft)", fontSize:"0.9375rem", marginBottom:16}}>Para médicos con consultorio propio.</p>
             <div style={{fontFamily:"var(--font-mono)", fontSize:"3rem", fontWeight:700, margin:"16px 0 24px", color:"var(--ink)"}}>
@@ -242,11 +246,11 @@ export default function LandingClient({ proPrice, clinicPrice }: { proPrice: num
               <li style={{display:"flex", gap:8}}><span style={{color:"var(--accent)"}}>✓</span> Sync offline automático</li>
               <li style={{display:"flex", gap:8}}><span style={{color:"var(--accent)"}}>✓</span> Soporte por email</li>
             </ul>
-            <Link href="/registro?plan=pro" className="gx-btn gx-btn-p" style={{width:"100%"}}>Comenzar ahora</Link>
+            <Link href="/registro?plan=pro" prefetch={false} className="gx-btn gx-btn-p" style={{width:"100%"}}>Comenzar ahora</Link>
           </div>
           
           {clinicPrice > 0 && (
-            <div className="gx-b-card" style={{maxWidth: 400, width:"100%", textAlign:"left"}}>
+            <div className="gx-b-card gx-price-card" style={{flex: "1 1 320px", maxWidth: 400, textAlign:"left"}}>
               <h3 className="gx-b-title" style={{fontSize:"1.5rem"}}>Clínica</h3>
               <p style={{color:"var(--ink-soft)", fontSize:"0.9375rem", marginBottom:16}}>Para centros con múltiples doctores.</p>
               <div style={{fontFamily:"var(--font-mono)", fontSize:"3rem", fontWeight:700, margin:"16px 0 24px", color:"var(--ink)"}}>
@@ -258,7 +262,7 @@ export default function LandingClient({ proPrice, clinicPrice }: { proPrice: num
                 <li style={{display:"flex", gap:8}}><span style={{color:"var(--ink)"}}>✓</span> Reportes de gerencia</li>
                 <li style={{display:"flex", gap:8}}><span style={{color:"var(--ink)"}}>✓</span> Soporte prioritario</li>
               </ul>
-              <Link href="/registro?plan=clinica" className="gx-btn gx-btn-s" style={{width:"100%", textAlign:"center", display:"block"}}>Comenzar ahora</Link>
+              <Link href="/registro?plan=clinica" prefetch={false} className="gx-btn gx-btn-s" style={{width:"100%", textAlign:"center", display:"block"}}>Comenzar ahora</Link>
             </div>
           )}
         </div>
@@ -274,8 +278,8 @@ export default function LandingClient({ proPrice, clinicPrice }: { proPrice: num
             Únete a los médicos que ya reducen el tiempo de documentación y nunca pierden una consulta.
           </p>
           <div className="gx-hero-actions">
-            <Link href="/registro" className="gx-btn gx-btn-p">Prueba gratis por 7 días</Link>
-            <Link href="/login" className="gx-btn gx-btn-s">Iniciar sesión</Link>
+            <Link href="/registro" prefetch={false} className="gx-btn gx-btn-p">Prueba gratis por 7 días</Link>
+            <Link href="/login" prefetch={false} className="gx-btn gx-btn-s">Iniciar sesión</Link>
           </div>
         </div>
       </section>
@@ -283,11 +287,11 @@ export default function LandingClient({ proPrice, clinicPrice }: { proPrice: num
       {/* ── Footer ── */}
       <footer className="gx-footer">
         <div className="gx-nav-brand">
-          <span /> {APP_NAME}
+          <img src="/icons/icon-96.webp" alt="Glyphix" style={{width: 24, height: 24, objectFit: "contain"}} /> {APP_NAME}
         </div>
         <nav className="gx-footer-links" aria-label="Links del pie de página">
-          <Link href="/login">Iniciar sesión</Link>
-          <Link href="/registro">Registro</Link>
+          <Link href="/login" prefetch={false}>Iniciar sesión</Link>
+          <Link href="/registro" prefetch={false}>Registro</Link>
           <a href="#features">Funciones</a>
           <Link href="/privacidad">Privacidad</Link>
           <Link href="/terminos">Términos</Link>

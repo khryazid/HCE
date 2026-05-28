@@ -37,29 +37,16 @@ const NAV_ITEMS: NavItem[] = [
 /* ── Logo mark — sello de cobre ─────────────────────────────── */
 function GlyphMark({ size = 32 }: { size?: number }) {
   return (
-    <div
-      style={{
-        width: size, height: size,
-        borderRadius: "8px",
-        background: "var(--accent)",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        flexShrink: 0,
-        boxShadow: "0 2px 6px var(--accent-glow)",
-      }}
-    >
-      <span
-        style={{
-          fontFamily: "'Space Grotesk', system-ui, sans-serif",
-          fontSize: size * 0.44,
-          fontWeight: 700,
-          color: "#FBF6F0",
-          lineHeight: 1,
-          letterSpacing: "-.04em",
-        }}
-      >
-        G
-      </span>
-    </div>
+    <img 
+      src="/icons/icon-96.webp" 
+      alt="Glyphix Logo" 
+      style={{ 
+        width: size, 
+        height: size, 
+        objectFit: "contain",
+        flexShrink: 0
+      }} 
+    />
   );
 }
 

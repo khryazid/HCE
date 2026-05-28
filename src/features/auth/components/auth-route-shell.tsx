@@ -30,7 +30,7 @@ export function AuthRouteShell({
     <div className="gx-auth">
       <div className="gx-auth-card gx-s">
         <Link href="/" className="gx-auth-brand">
-          <span /> {APP_NAME}
+          <img src="/icons/icon-96.webp" alt="Glyphix" style={{width: 24, height: 24, objectFit: "contain"}} /> {APP_NAME}
         </Link>
 
         <div className="gx-auth-header">

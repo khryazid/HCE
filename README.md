@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="public/android-chrome-192x192.png" alt="Glyphix Logo" width="120" />
+  <img src="./public/logo.png" alt="Glyphix Logo" width="120" />
   <h1>Glyphix — Motor Clínico Inteligente ⚕️</h1>
   
   <p>
@@ -16,11 +16,12 @@
   
   <p>
     <img src="https://img.shields.io/badge/Build-Passing-brightgreen?style=flat-square" alt="Build" />
-    <img src="https://img.shields.io/badge/Tests-85%2F85-brightgreen?style=flat-square" alt="Tests" />
+    <img src="https://img.shields.io/badge/Tests-125%2F125-brightgreen?style=flat-square" alt="Tests" />
     <img src="https://img.shields.io/badge/TypeScript-0_errors-brightgreen?style=flat-square" alt="TypeScript" />
     <img src="https://img.shields.io/badge/ESLint-Clean-brightgreen?style=flat-square" alt="ESLint" />
     <img src="https://img.shields.io/badge/E2E-9_specs-brightgreen?style=flat-square" alt="E2E" />
     <img src="https://img.shields.io/badge/PWA-Ready-f36?style=flat-square" alt="PWA" />
+    <img src="https://img.shields.io/badge/i18n-ES%20%7C%20EN-9cf?style=flat-square" alt="i18n" />
   </p>
 
 </div>
@@ -35,7 +36,7 @@ Con arquitectura multi-tenant de grado empresarial, Glyphix automatiza la factur
 
 ---
 
-## ✅ Estado Actual del Proyecto *(2026-05-21)*
+## ✅ Estado Actual del Proyecto *(2026-05-28)*
 
 > Build limpio · 0 errores TypeScript · Build de producción OK · **Versión 1.0.0 (Producción)**
 
@@ -46,9 +47,9 @@ Con arquitectura multi-tenant de grado empresarial, Glyphix automatiza la factur
 | **Consulta Wizard** | Flujo guiado 6 pasos → PDF con membrete. PAM auto-calculada, normalidad auto-completada. |
 | **UI Adaptativa (Clinical Rompecabezas)** | Secciones colapsables con memoria (JSONB) — el especialista configura el wizard a su flujo. |
 | **Constructor Posología** | Parsea texto libre con viñetas y lo convierte en tarjetas de medicación estructuradas. |
-| **Offline-First** | IndexedDB + sync worker con backoff exponencial. Eliminações remotas se propagan al cache local. |
+| **Offline-First** | IndexedDB + sync worker con backoff exponencial. Eliminaciones remotas se propagan al cache local. |
 | **Realtime Sync** | Supabase WebSocket Realtime en 5 tablas (pacientes, citas, consultas, equipo, plantillas). |
-| **Agenda Reactiva** | Calendario con polling 30s + `refetchOnWindowFocus` + Realtime — el médico ve citas nuevas al instante. |
+| **Agenda Reactiva** | Calendario con polling 30s + `refetchOnWindowFocus` + Realtime — el médico ve citas nuevas al instante. Diseño high-density clínico con notificaciones contextuales. |
 | **Plan Multi-Doctor** | Multi-tenant para Clínicas, roles (admin/doctor/viewer) y billing multi-seat. |
 | **IA CIE-10** | Gemini 2.0 Flash sugiere diagnósticos en tiempo real |
 | **Plantillas** | Multi-dispositivo en Supabase, versionado JSONB, historial restaurable |
@@ -62,11 +63,21 @@ Con arquitectura multi-tenant de grado empresarial, Glyphix automatiza la factur
 | **Rate Limiting** | Por RPC Postgres en `/api/push/send` y `/api/stripe/*` |
 | **Auditoría** | Hash criptográfico encadenado en cada consulta sellada |
 | **Validación de Fechas** | Utilidad `toISODateString` — previene error PostgreSQL 22008 en todos los formularios |
-| **UX/UI Refinada** | Animaciones fluidas, Skeletons, búsqueda global (Ctrl+K) categorizada, y alertas urgentes contextuales. |
+| **Recuperación de Contraseña** | Flujo completo de reset vía email con Supabase Auth (`/recuperar`) |
+| **Onboarding Wizard** | Secuencia forzada de configuración inicial — perfil profesional, especialidad, membrete — antes de acceder al dashboard |
+| **i18n (ES/EN)** | Internacionalización con `next-intl`, mensajes en español e inglés |
+| **Cifrado & GDPR** | Migraciones de cifrado de datos sensibles y cumplimiento de protección de datos |
+| **Notificaciones de Agenda** | Cron SQL para recordatorios automáticos de citas próximas |
+| **Documentación In-App** | Manual HTML para médicos accesible desde `/docs` dentro del dashboard |
+| **UX/UI Premium** | Navegación Topnav, landing page rediseñada con Sticky Scroll Showcase, auth centrada en card, settings con sidebar, animaciones fluidas y Skeletons |
 
-### Sprint 3 completado
+### Últimas mejoras (mayo 2026)
 
-**El motor base y toda la funcionalidad técnica han sido completados exitosamente.** La aplicación es totalmente estable, cuenta con sincronización invisible offline-first, notificaciones push/email automáticas e integridad de datos.
+- **Rediseño completo de UI** — Landing page con secciones animadas y Sticky Scroll, auth centrada, dashboard con Topnav, agenda high-density, settings con navegación lateral, modales de cita rediseñados.
+- **Onboarding forzado** — Wizard de configuración secuencial obligatoria para nuevos médicos.
+- **Auto-healing de perfiles** — Si el perfil del tenant falta, se recrea automáticamente al guardar perfil profesional.
+- **Autocomplete de especialidades** — Dropdown con búsqueda en ajustes del perfil.
+- **Correcciones de hydration SSR** — Resueltos todos los mismatches de hydration en ThemeScript, SyncStatusBanner y layout.
 
 ---
 
@@ -103,12 +114,18 @@ Con arquitectura multi-tenant de grado empresarial, Glyphix automatiza la factur
 - Instalable como app nativa en iOS, Android, macOS y Windows.
 - **Web Push** a las 8am UTC con cron SQL `send_followup_push_daily`.
 - **Email** (Resend) a las 7am UTC con cron SQL `send_followup_emails_daily`.
+- **Notificaciones de Agenda** — Recordatorios automáticos de citas próximas vía cron SQL.
+
+### 🌐 Internacionalización
+- Soporte ES/EN con `next-intl`.
+- Detección automática de locale y API route `/api/locale` para cambio dinámico.
 
 ### 🔐 Seguridad
 - RLS en todas las tablas — el backend nunca expone datos de otra clínica.
 - Logs inmutables con hash criptográfico encadenado.
 - CSP Headers estrictos en `next.config.ts`.
 - Variables de entorno validadas en servidor con `src/lib/env.ts`.
+- Migraciones de cifrado y cumplimiento GDPR para datos sensibles de pacientes.
 
 ---
 
@@ -127,6 +144,7 @@ graph TD
     Push[🔔 Web Push / VAPID]
     Email[📧 Resend / Email]
     RT[📡 Supabase Realtime]
+    i18n[🌐 next-intl ES/EN]
 
     Client --> PROXY
     PROXY -->|Protege rutas| Client
@@ -137,6 +155,7 @@ graph TD
     Client -->|JWT Sessions| Auth
     Client -->|Análisis CIE-10| AI
     Client -->|Gestión Suscripción| Stripe
+    Client -->|Locale| i18n
     Stripe -->|Webhooks Verificados| SupabaseDB
     SupabaseDB -->|pg_cron 7am| Email
     SupabaseDB -->|pg_cron 8am| Push
@@ -153,12 +172,14 @@ graph TD
 | **Framework & UI** | Next.js 16 (App Router, Webpack), React 19, Tailwind CSS v4 |
 | **Backend & BD** | Supabase (PostgreSQL), RLS, pg_cron, FTS con tsvector GIN |
 | **Estado & Cache** | TanStack Query v5, IndexedDB (`idb`) |
-| **Seguridad** | Supabase SSR proxy.ts, CSP Headers, HSTS, Stripe Signatures |
+| **Seguridad** | Supabase SSR proxy.ts, CSP Headers, HSTS, Stripe Signatures, Cifrado GDPR |
 | **Machine Learning** | Google Gemini API (`gemini-2.0-flash`) |
 | **Pagos** | Stripe API v2026-04-22, Webhooks, Customer Portal |
-| **Notificaciones** | Web Push API, VAPID, Resend Email |
+| **Notificaciones** | Web Push API, VAPID, Resend Email, Agenda Cron |
+| **i18n** | next-intl (ES/EN) |
 | **PDF / Export** | jsPDF 4.x, JSZip |
-| **Testing** | Vitest (85 tests), Playwright (9 specs E2E) |
+| **Validación** | Zod v4 + React Hook Form |
+| **Testing** | Vitest (125 tests), Playwright (9 specs E2E) |
 
 ---
 
@@ -180,7 +201,7 @@ npx tsc --noEmit
 # ESLint
 npm run lint
 
-# Tests unitarios e integración (85 tests)
+# Tests unitarios e integración (125 tests)
 npm run test
 
 # E2E en navegadores reales (requiere E2E_EMAIL + E2E_PASSWORD en .env.local)
@@ -211,38 +232,57 @@ npm run test:e2e -- tests/e2e/search.spec.ts
 ```
 src/
 ├── app/                    # Next.js App Router — páginas y API routes
-│   ├── (auth)/             # Login, registro, onboarding
-│   ├── (dashboard)/        # Dashboard, pacientes, consultas, admin, ajustes, tratamientos
-│   └── api/                # Stripe, push, email, search, IA CIE-10
+│   ├── (auth)/             # Login, registro, recuperación de contraseña
+│   ├── (dashboard)/        # Dashboard, pacientes, consultas, agenda, admin, ajustes, tratamientos, docs
+│   ├── api/                # Stripe, push, email, search, IA CIE-10, clinic, locale, auth
+│   ├── landing-client.tsx  # Landing page con Sticky Scroll Showcase
+│   ├── privacidad/         # Página de política de privacidad
+│   └── terminos/           # Página de términos y condiciones
 ├── features/               # Lógica de negocio por dominio (Vertical Slice)
 │   ├── admin/              # Panel super admin
+│   ├── agenda/             # Calendario, citas, modales de agenda
 │   ├── auth/               # Formularios y flujos de autenticación
 │   ├── billing/            # Integración Stripe + portal
 │   ├── consultations/      # Wizard, PDF, IA CIE, plantillas, realtime
-│   ├── dashboard/          # Métricas, búsqueda global Ctrl+K, letterhead, equipo
+│   ├── dashboard/          # Métricas, búsqueda global Ctrl+K, Topnav, letterhead, equipo, onboarding guard
 │   ├── patients/           # CRUD pacientes, ExportZip, realtime hooks
 │   └── sync/               # Bootstrap del sync worker
+├── i18n/                   # Configuración de next-intl
 ├── lib/
+│   ├── api/                # Utilidades de API compartidas
+│   ├── config.ts           # Configuración global de la app
 │   ├── constants/          # Especialidades médicas y constantes
 │   ├── db/                 # IndexedDB schema + queries locales con pruning remoto
 │   ├── env.ts              # Validación de variables de entorno al arrancar
-│   ├── hooks/use-theme.ts  # Hook de dark mode con lazy initializer
+│   ├── hooks/              # Hooks reutilizables (dark mode, etc.)
 │   ├── observability/      # Logger de errores, usage-tracker
-│   ├── supabase/           # Cliente SSR/browser, profile, tenant, onboarding
+│   ├── supabase/           # Cliente SSR/browser, profile, tenant, onboarding, auth-actions
 │   ├── sync/               # Sync worker con backoff exponencial
-│   └── utils/date-utils.ts # Validación/conversión de fechas DD/MM/AAAA ↔ ISO
-├── components/ui/          # ThemeToggle, EmptyState, ConfirmModal, etc.
+│   ├── ui/                 # Utilidades UI (feedback-copy, format-date)
+│   ├── utils/              # Validación/conversión de fechas, utilidades generales
+│   └── whatsapp/           # Formateador de mensajes WhatsApp
+├── components/ui/          # ThemeToggle, ThemeScript, EmptyState, ConfirmModal, Skeletons, Sheet, etc.
 ├── proxy.ts                # Proxy SSR de Next.js 16 (reemplaza middleware.ts)
 └── types/supabase.types.ts # Generado con npm run db:types
+messages/
+├── es.json                 # Traducciones en español
+└── en.json                 # Traducciones en inglés
+worker/
+└── index.ts                # Service Worker / Sync Worker
 supabase/
 └── migrations/
-    └── 000_production_full_schema.sql   # Única fuente de verdad del schema
+    ├── 000_production_full_schema.sql   # Única fuente de verdad del schema
+    ├── 001_add_client_timestamp_to_audit.sql
+    ├── 001_encryption_and_gdpr.sql      # Cifrado + cumplimiento GDPR
+    └── 002_agenda_notifications.sql     # Notificaciones automáticas de citas
 tests/
 ├── e2e/                    # Playwright specs (9 archivos)
-│   └── helpers/login.ts    # Helper compartido de autenticación
-└── *.test.ts               # Vitest: 85 tests unitarios/integración
+│   └── helpers/            # Helper compartido de autenticación
+├── api/                    # Tests de API routes (Stripe webhook)
+├── features/               # Tests de features (wizard-domain)
+├── integration/            # Tests de integración (tenant RLS)
+└── *.test.ts               # Vitest: 125 tests unitarios/integración
 docs/
-├── AUDITORIA_GLYPHIX.md    # (En raíz) Auditoría y estado
 ├── SETUP.md                # Guía de instalación
 ├── ARCHITECTURE.md         # Decisiones de arquitectura
 ├── DEPLOYMENT.md           # Guía de despliegue
@@ -260,10 +300,11 @@ docs/
 | `npm run build` | Build de producción |
 | `npm run lint` | ESLint sobre todo `src/` |
 | `npm run typecheck` | TypeScript sin emitir archivos |
-| `npm run test` | Suite Vitest (85 tests) |
+| `npm run test` | Suite Vitest (125 tests) |
 | `npm run test:e2e` | Suite Playwright E2E (9 specs) |
 | `npm run test:e2e:headed` | E2E con navegador visible |
 | `npm run db:types` | Regenera `src/types/supabase.types.ts` desde Supabase |
+| `npm run docs:pdf` | Genera documentación en PDF |
 
 ---
 

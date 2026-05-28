@@ -70,10 +70,10 @@
   position: fixed; top: 0; left: 0; right: 0; z-index: 100;
   display: flex; align-items: center; justify-content: space-between;
   padding: 16px 40px;
-  background: rgba(250, 250, 248, 0.8);
+  background: color-mix(in srgb, var(--bg) 85%, transparent);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(0,0,0,0.05);
+  border-bottom: 1px solid var(--border);
 }
 .gx-nav-brand {
   display: flex; align-items: center; gap: 8px;
@@ -101,7 +101,7 @@
   font-family: var(--font-mono); font-size: 0.6875rem; font-weight: 500;
   color: var(--accent); background: var(--accent-dim);
   padding: 6px 12px; border-radius: 100px; margin-bottom: 32px;
-  border: 1px solid rgba(196,96,42,0.2);
+  border: 1px solid var(--accent-dim);
 }
 .gx-hero-title {
   font-family: var(--font-display); font-size: 4.5rem; font-weight: 700;
@@ -164,6 +164,17 @@
   transition: all 300ms var(--ease-out);
 }
 .gx-b-card:hover { transform: translateY(-4px); box-shadow: 0 12px 32px rgba(0,0,0,0.05); border-color: var(--border-hover); }
+
+/* Pricing Cards Hover Enhancement */
+.gx-price-card {
+  transition: all 400ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.gx-price-card:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 32px 64px rgba(0,0,0,0.1);
+  border-color: var(--accent);
+}
+
 .gx-b-large { grid-column: span 2; }
 .gx-b-icon {
   width: 40px; height: 40px; background: var(--accent-dim); color: var(--accent);

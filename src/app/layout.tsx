@@ -45,9 +45,13 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
+      { url: "/favicon.ico", sizes: "48x48", type: "image/x-icon" },
+      { url: "/icons/icon-96.webp", sizes: "96x96", type: "image/webp" },
+      { url: "/icons/icon-192.webp", sizes: "192x192", type: "image/webp" },
       { url: "/icons/android-chrome-192x192.png", sizes: "192x192", type: "image/png" },
       { url: "/icons/android-chrome-512x512.png", sizes: "512x512", type: "image/png" },
     ],
+    shortcut: "/favicon.ico",
     apple: "/apple-touch-icon.png",
   },
   appleWebApp: {
