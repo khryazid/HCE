@@ -26,9 +26,9 @@ export function AjustesClient() {
   ];
 
   return (
-    <div className="flex flex-col md:flex-row gap-8 max-w-6xl mx-auto w-full hce-page">
-      {/* Sidebar */}
-      <aside className="w-full md:w-64 shrink-0">
+    <div className="flex flex-col lg:flex-row gap-8 w-full hce-page">
+      {/* Sidebar de navegación */}
+      <aside className="lg:w-64 shrink-0">
         <div className="sticky top-24">
           <div className="mb-6 px-3">
             <h1 className="text-2xl font-bold text-ink tracking-tight mb-1">Ajustes</h1>

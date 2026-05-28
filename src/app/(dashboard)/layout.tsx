@@ -39,7 +39,7 @@ export default function DashboardLayout({
             <DashboardOnboardingGuard />
 
             <main className="flex-1 p-4 pb-24 sm:p-6 lg:p-8">
-              <div className="mx-auto w-full max-w-7xl">
+              <div className="mx-auto w-full max-w-[1440px]">
                 <div className="mb-6 space-y-3">
                   <PanelErrorBoundary>
                     <GlobalSearch />

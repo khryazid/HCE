@@ -158,6 +158,18 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Fondo gradiente sutil para modo oscuro (más ameno y menos plano) */
+[data-theme="dark"] body {
+  background: radial-gradient(ellipse at top, color-mix(in srgb, var(--accent) 6%, #18181b) 0%, #09090b 80%);
+  background-attachment: fixed;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) body {
+    background: radial-gradient(ellipse at top, color-mix(in srgb, var(--accent) 6%, #18181b) 0%, #09090b 80%);
+    background-attachment: fixed;
+  }
+}
+
 html {
   color-scheme: light dark;
 }
