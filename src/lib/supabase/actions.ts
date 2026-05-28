@@ -50,19 +50,9 @@ export async function createTenantProfileWithTrial(input: {
     return { success: true };
   }
 
-  // 4. Create the clinic first (required for FK constraint)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error: clinicError } = await (adminClient as any)
-    .from("clinics")
-    .insert({
-      id: input.clinicId,
-      name: "Consultorio de " + input.fullName.split(" ")[0]
-    });
+  // 4. (No existe tabla clinics en el schema de producción actual. 
+  // clinic_id es solo un UUID lógico para agrupar usuarios).
 
-  if (clinicError && clinicError.code !== "23505") {
-    console.error("[createTenantProfileWithTrial] Clinic insert failed:", clinicError);
-    return { success: false, error: "Error al inicializar la clínica" };
-  }
 
   // 5. Create the profile with trial — server-controlled expiration date
   const trialExpiresAt = new Date(Date.now() + TRIAL_DURATION_MS).toISOString();
