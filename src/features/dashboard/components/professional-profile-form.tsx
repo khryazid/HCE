@@ -105,6 +105,7 @@ export function ProfessionalProfileForm({
   title,
   lead,
   submitLabel = "Guardar cambios",
+  onSuccess,
 }: ProfessionalProfileFormProps) {
   const router = useRouter();
   const { tenant } = useTenant();
@@ -208,8 +209,8 @@ export function ProfessionalProfileForm({
         "Perfil actualizado correctamente. Puedes seguir editando cuando lo necesites.",
       );
 
-      if (props.onSuccess) {
-        props.onSuccess();
+      if (onSuccess) {
+        onSuccess();
       } else {
         // Redireccionar al dashboard después de guardar forzando recarga de contexto
         setTimeout(() => {
