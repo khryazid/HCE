@@ -8,8 +8,11 @@ import { useTenant } from "@/lib/supabase/tenant-context";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
 import { Database } from "@/types/supabase.types";
-import { CalendarContainer } from "./custom-calendar/calendar-container";
 import { CalendarEvent } from "./custom-calendar/types";
+import { AgendaTopbar } from "./custom-calendar/agenda-topbar";
+import { AgendaSidebar } from "./custom-calendar/agenda-sidebar";
+import { AgendaGrid } from "./custom-calendar/agenda-grid";
+import "./agenda.css";
 
 type AppointmentRow = Database["public"]["Tables"]["appointments"]["Row"];
 type AppointmentInsert = Database["public"]["Tables"]["appointments"]["Insert"];
@@ -73,48 +76,103 @@ export function CalendarView() {
   };
 
 
+  // Filtros de estado (nuevo diseño)
+  const [filters, setFilters] = useState({
+    firstTime: true,
+    control: true,
+    followUp: true,
+    blocked: true,
+  });
+
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [viewMode, setViewMode] = useState<'day' | 'week' | 'month'>('week');
+
+  const filteredEvents = useMemo(() => {
+    return events.filter(e => {
+      const t = e.consultation_type;
+      if (t === "primera_vez" && !filters.firstTime) return false;
+      if (t === "control" && !filters.control) return false;
+      if (t === "seguimiento" && !filters.followUp) return false;
+      if (t === "bloqueo" && !filters.blocked) return false;
+      return true;
+    });
+  }, [events, filters]);
+
+  // Contadores para el Sidebar
+  const stats = useMemo(() => {
+    let firstTime = 0, control = 0, followUp = 0, blocked = 0;
+    events.forEach(e => {
+      const t = e.consultation_type;
+      if (t === "primera_vez") firstTime++;
+      else if (t === "control") control++;
+      else if (t === "seguimiento") followUp++;
+      else if (t === "bloqueo") blocked++;
+      else control++; // default
+    });
+    return { firstTime, control, followUp, blocked };
+  }, [events]);
+
+  const handlePrev = () => setCurrentDate(d => {
+    const nd = new Date(d);
+    if (viewMode === 'day') nd.setDate(nd.getDate() - 1);
+    else nd.setDate(nd.getDate() - 7);
+    return nd;
+  });
+  
+  const handleNext = () => setCurrentDate(d => {
+    const nd = new Date(d);
+    if (viewMode === 'day') nd.setDate(nd.getDate() + 1);
+    else nd.setDate(nd.getDate() + 7);
+    return nd;
+  });
 
   if (loading) return null;
   if (!tenantProfile) return null;
 
   return (
     <>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-ink">Agenda Médica</h1>
-          <p className="mt-1 text-sm text-ink-soft">
-            Controla tus turnos y el estado de cobros de tus pacientes.
-          </p>
-        </div>
-        <button 
-          onClick={() => {
+      <div className="gx-agenda -mx-4 sm:-mx-6 lg:-mx-8 -mt-6">
+        <AgendaTopbar
+          currentDate={currentDate}
+          viewMode={viewMode}
+          setViewMode={setViewMode}
+          onPrev={handlePrev}
+          onNext={handleNext}
+          onToday={() => setCurrentDate(new Date())}
+          onNewAppointment={() => {
             setSelectedEvent(undefined);
             setSelectedSlot(undefined);
             setIsModalOpen(true);
           }}
-          className="hce-btn-primary shrink-0 gap-2 shadow-md shadow-teal-500/20"
-        >
-          <Plus className="h-4 w-4" />
-          Nueva Cita
-        </button>
-      </div>
+        />
 
-      <div className="h-[600px] lg:h-[calc(100vh-140px)] mt-6 relative z-0 flex flex-col">
-        {isLoading ? (
-          <div className="flex h-full items-center justify-center rounded-2xl border border-border bg-card shadow-sm">
-            <div className="flex flex-col items-center gap-3">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-accent border-t-transparent" />
-              <p className="text-ink-soft font-medium animate-pulse">Cargando agenda...</p>
+        <div className="gx-layout relative">
+          {isLoading && (
+            <div className="absolute inset-0 z-50 flex items-center justify-center bg-bg/50 backdrop-blur-sm">
+              <div className="flex flex-col items-center gap-3 bg-card p-6 rounded-2xl shadow-lg border border-border">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-accent border-t-transparent" />
+                <p className="text-ink-soft font-medium animate-pulse">Cargando agenda...</p>
+              </div>
             </div>
-          </div>
-        ) : (
-          <CalendarContainer 
-            events={events}
+          )}
+
+          <AgendaSidebar 
+            currentDate={currentDate}
+            onDateSelect={setCurrentDate}
+            filters={filters}
+            setFilters={setFilters}
+            doctorName={tenantProfile.full_name || "Doctor"}
+            stats={stats}
+          />
+          
+          <AgendaGrid 
+            currentDate={currentDate}
+            viewMode={viewMode}
+            events={filteredEvents}
             onEventClick={handleSelectEvent}
             onSlotClick={handleSelectSlot}
-            defaultView={typeof window !== 'undefined' && window.innerWidth < 640 ? 'day' : 'month'}
           />
-        )}
+        </div>
       </div>
 
       <AppointmentModal
