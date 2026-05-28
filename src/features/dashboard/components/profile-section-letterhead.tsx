@@ -86,7 +86,7 @@ export function ProfileSectionLetterhead({
 }: Props) {
   const [specialtySearch, setSpecialtySearch] = useState("");
   const [isSpecialtyDropdownOpen, setIsSpecialtyDropdownOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLFieldSetElement>(null);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
