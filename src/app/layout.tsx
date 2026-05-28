@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Script from "next/script";
 import "./globals.css";
 import { SyncBootstrap } from "@/features/sync/components/sync-bootstrap";
 import { QueryProvider } from "@/lib/query-provider";
@@ -7,6 +6,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/react";
 import { Space_Grotesk, Outfit } from "next/font/google";
 import { APP_NAME, APP_FULL_NAME, APP_TAGLINE } from "@/lib/constants/app";
+import { ThemeScript } from "@/components/ui/theme-script";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -112,13 +112,7 @@ export default async function RootLayout({
             --font-switzer:  var(--font-ui, 'Outfit', system-ui, sans-serif);
           }
         `}</style>
-        <Script
-          id="theme-script"
-          strategy="beforeInteractive"
-          dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('hce:theme');if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}})();`,
-          }}
-        />
+        <ThemeScript nonce={nonce} />
       </head>
 
       <body className={`${spaceGrotesk.variable} ${outfit.variable} min-h-full flex flex-col bg-bg text-ink font-sans`} suppressHydrationWarning>
