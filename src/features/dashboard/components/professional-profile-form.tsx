@@ -198,7 +198,7 @@ export function ProfessionalProfileForm({
 
       <form
         onSubmit={handleSubmit}
-        className="grid gap-6 sm:grid-cols-2"
+        className="space-y-8"
       >
         {/* Sección 1 — Datos profesionales */}
         <ProfileSectionPersonal
@@ -225,13 +225,13 @@ export function ProfessionalProfileForm({
 
 
         {error ? (
-          <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 sm:col-span-2">
+          <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 w-full">
             {error}
           </p>
         ) : null}
 
         {successMessage ? (
-          <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 sm:col-span-2">
+          <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 w-full">
             {successMessage}
           </p>
         ) : null}
@@ -239,7 +239,7 @@ export function ProfessionalProfileForm({
         <Button
           type="submit"
           disabled={saving}
-          className="sm:col-span-2 min-h-12 justify-center"
+          className="w-full min-h-12 justify-center"
         >
           {saving ? "Guardando..." : submitLabel}
         </Button>

@@ -42,81 +42,97 @@ export function ProfileSectionPersonal({
   onChange,
 }: Props) {
   return (
-    <>
-      <label className="space-y-2 text-sm font-medium text-ink-soft">
-        <span>Titulo profesional</span>
-        <Input
-          value={professionalTitle}
-          onChange={(e) => onChange({ professionalTitle: e.target.value })}
-          placeholder="Dr. / Dra."
-          required
-        />
-      </label>
+    <div className="space-y-6 sm:col-span-2">
+      {/* Tarjeta 1: Identidad Profesional */}
+      <div className="hce-card space-y-6">
+        <h3 className="text-base font-semibold text-ink border-b border-border pb-3">
+          Identidad Profesional
+        </h3>
+        <div className="grid gap-6 sm:grid-cols-2">
+          <label className="space-y-2 text-sm font-medium text-ink-soft">
+            <span>Titulo profesional</span>
+            <Input
+              value={professionalTitle}
+              onChange={(e) => onChange({ professionalTitle: e.target.value })}
+              placeholder="Dr. / Dra."
+              required
+            />
+          </label>
 
-      <label className="space-y-2 text-sm font-medium text-ink-soft">
-        <span>Numero de licencia profesional</span>
-        <Input
-          value={licenseNumber}
-          onChange={(e) => onChange({ licenseNumber: e.target.value })}
-          required
-        />
-      </label>
+          <label className="space-y-2 text-sm font-medium text-ink-soft">
+            <span>Numero de licencia profesional</span>
+            <Input
+              value={licenseNumber}
+              onChange={(e) => onChange({ licenseNumber: e.target.value })}
+              required
+            />
+          </label>
 
-      <label className="space-y-2 text-sm font-medium text-ink-soft">
-        <span>Anos de experiencia</span>
-        <Input
-          type="number"
-          min={0}
-          max={80}
-          value={yearsExperience}
-          onChange={(e) => onChange({ yearsExperience: e.target.value })}
-          required
-        />
-      </label>
+          <label className="space-y-2 text-sm font-medium text-ink-soft">
+            <span>Años de experiencia</span>
+            <Input
+              type="number"
+              min={0}
+              max={80}
+              value={yearsExperience}
+              onChange={(e) => onChange({ yearsExperience: e.target.value })}
+              required
+            />
+          </label>
 
-      <label className="space-y-2 text-sm font-medium text-ink-soft">
-        <span>Telefono principal</span>
-        <Input
-          value={primaryPhone}
-          onChange={(e) => onChange({ primaryPhone: e.target.value })}
-          required
-        />
-      </label>
+          <label className="space-y-2 text-sm font-medium text-ink-soft">
+            <span>Nombre para firma y membrete</span>
+            <Input
+              value={signatureName}
+              onChange={(e) => onChange({ signatureName: e.target.value })}
+              required
+            />
+          </label>
+        </div>
+      </div>
 
-      <label className="space-y-2 text-sm font-medium text-ink-soft">
-        <span>Telefono secundario (opcional)</span>
-        <Input
-          value={secondaryPhone}
-          onChange={(e) => onChange({ secondaryPhone: e.target.value })}
-        />
-      </label>
+      {/* Tarjeta 2: Contacto y Ubicación */}
+      <div className="hce-card space-y-6">
+        <h3 className="text-base font-semibold text-ink border-b border-border pb-3">
+          Contacto y Ubicación
+        </h3>
+        <div className="grid gap-6 sm:grid-cols-2">
+          <label className="space-y-2 text-sm font-medium text-ink-soft">
+            <span>Teléfono principal</span>
+            <Input
+              value={primaryPhone}
+              onChange={(e) => onChange({ primaryPhone: e.target.value })}
+              required
+            />
+          </label>
 
-      <label className="space-y-2 text-sm font-medium text-ink-soft">
-        <span>Correo publico de contacto (opcional)</span>
-        <Input
-          type="email"
-          value={publicContactEmail}
-          onChange={(e) => onChange({ publicContactEmail: e.target.value })}
-        />
-      </label>
+          <label className="space-y-2 text-sm font-medium text-ink-soft">
+            <span>Teléfono secundario (opcional)</span>
+            <Input
+              value={secondaryPhone}
+              onChange={(e) => onChange({ secondaryPhone: e.target.value })}
+            />
+          </label>
 
-      <label className="space-y-2 text-sm font-medium text-ink-soft sm:col-span-2">
-        <span>Direccion profesional</span>
-        <Input
-          value={professionalAddress}
-          onChange={(e) => onChange({ professionalAddress: e.target.value })}
-          required
-        />
-      </label>
+          <label className="space-y-2 text-sm font-medium text-ink-soft">
+            <span>Correo público de contacto (opcional)</span>
+            <Input
+              type="email"
+              value={publicContactEmail}
+              onChange={(e) => onChange({ publicContactEmail: e.target.value })}
+            />
+          </label>
 
-      <label className="space-y-2 text-sm font-medium text-ink-soft sm:col-span-2">
-        <span>Nombre para firma y membrete</span>
-        <Input
-          value={signatureName}
-          onChange={(e) => onChange({ signatureName: e.target.value })}
-          required
-        />
-      </label>
-    </>
+          <label className="space-y-2 text-sm font-medium text-ink-soft">
+            <span>Dirección profesional</span>
+            <Input
+              value={professionalAddress}
+              onChange={(e) => onChange({ professionalAddress: e.target.value })}
+              required
+            />
+          </label>
+        </div>
+      </div>
+    </div>
   );
 }
