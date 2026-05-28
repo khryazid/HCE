@@ -343,7 +343,7 @@ export function GlobalSearch() {
 
   // ─── Render ───────────────────────────────────────────────────────────────
 
-  if (pathname === "/ajustes") return null;
+  if (pathname === "/ajustes" || pathname === "/docs") return null;
 
   return (
     <>

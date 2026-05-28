@@ -67,15 +67,33 @@ function GlyphMark({ size = 32 }: { size?: number }) {
 function ConnectionStatus() {
   const [isOnline, setIsOnline] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [hasPending, setHasPending] = useState(false);
+  const [hasErrors, setHasErrors] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    
+    // Check initial online status
     setIsOnline(navigator.onLine);
-    const on  = () => setIsOnline(true);
+
+    // Import dynamically or ensure getSyncQueueStats is available
+    const checkQueue = async () => {
+      try {
+        const { getSyncQueueStats } = await import("@/lib/db/indexeddb");
+        const stats = await getSyncQueueStats();
+        setHasErrors(stats.failed > 0 || stats.conflicted > 0);
+        setHasPending(stats.pending > 0);
+      } catch {
+        // Ignore IDB errors initially
+      }
+    };
+
+    void checkQueue();
+
+    const on  = () => { setIsOnline(true); void checkQueue(); };
     const off = () => setIsOnline(false);
     const onSyncStart = () => setIsSyncing(true);
-    const onSyncFinish = () => setIsSyncing(false);
+    const onSyncFinish = () => { setIsSyncing(false); void checkQueue(); };
     
     window.addEventListener("online", on);
     window.addEventListener("offline", off);
@@ -90,22 +108,40 @@ function ConnectionStatus() {
     };
   }, []);
 
+  // Determinar color y texto
+  let dotColor = "bg-emerald-500";
+  let textColor = "text-ink-soft";
+  let label = "Sincronizado";
+
+  if (!isOnline) {
+    dotColor = "bg-red-500";
+    label = "Offline";
+  } else if (hasErrors) {
+    dotColor = "bg-red-500";
+    textColor = "text-red-500";
+    label = "Error de Sync";
+  } else if (isSyncing) {
+    dotColor = "bg-blue-500";
+    label = "Sincronizando";
+  } else if (hasPending) {
+    dotColor = "bg-amber-500";
+    label = "Pendiente";
+  }
+
   return (
-    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-bg-soft border border-border" title={isSyncing ? "Sincronizando..." : isOnline ? "Online y Sincronizado" : "Modo Offline"}>
+    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-bg-soft border border-border" title={label}>
       <span className="relative flex h-2 w-2 shrink-0">
         {isSyncing ? (
           <>
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-400 opacity-75"></span>
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-blue-500"></span>
+            <span className={`relative inline-flex h-2 w-2 rounded-full ${dotColor}`}></span>
           </>
-        ) : isOnline ? (
-          <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
         ) : (
-          <span className="relative inline-flex h-2 w-2 rounded-full bg-red-500"></span>
+          <span className={`relative inline-flex h-2 w-2 rounded-full ${dotColor}`}></span>
         )}
       </span>
-      <span className="text-[10px] uppercase font-semibold tracking-wider text-ink-soft hidden xl:inline-block">
-        {isSyncing ? "Sincronizando" : isOnline ? "Sincronizado" : "Offline"}
+      <span className={`text-xs uppercase font-semibold tracking-wider hidden xl:inline-block ${textColor}`}>
+        {label}
       </span>
     </div>
   );
@@ -137,7 +173,7 @@ export function Topnav() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`relative flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
+                className={`relative flex items-center gap-2 px-3 py-2 rounded-lg text-base transition-colors ${
                   isActive 
                     ? "bg-accent/10 text-accent font-semibold" 
                     : "text-ink-soft font-medium hover:bg-bg-soft hover:text-ink"
@@ -146,7 +182,7 @@ export function Topnav() {
                 {item.icon}
                 <span>{item.label}</span>
                 {item.href === "/pacientes" && overdueCount > 0 && (
-                  <span className="flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white ml-1">
+                  <span className="flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-xs font-bold text-white ml-1">
                     {overdueCount > 9 ? "9+" : overdueCount}
                   </span>
                 )}
@@ -158,22 +194,6 @@ export function Topnav() {
         {/* Right Actions */}
         <div className="flex items-center gap-4 shrink-0">
           
-          {/* Global Search Trigger */}
-          <button
-            type="button"
-            onClick={() => window.dispatchEvent(new KeyboardEvent("keydown", {
-              key: "k", ctrlKey: true, bubbles: true
-            }))}
-            className="flex items-center gap-2 rounded-full border border-border bg-bg-soft px-3 py-1.5 text-sm text-ink-soft transition hover:border-accent/30 hover:text-ink"
-            title="Buscar (Ctrl/Cmd + K)"
-          >
-            <Search className="w-4 h-4 opacity-70" />
-            <div className="flex items-center gap-1">
-              <kbd className="inline-flex h-4 items-center rounded border border-border bg-card px-1 text-[9px] font-medium uppercase">⌘</kbd>
-              <kbd className="inline-flex h-4 items-center rounded border border-border bg-card px-1 text-[9px] font-medium uppercase">K</kbd>
-            </div>
-          </button>
-
           <ConnectionStatus />
           
           <div className="h-6 w-px bg-border mx-1"></div>
@@ -195,7 +215,7 @@ export function MobileHeader() {
           <p className="font-display text-base font-bold tracking-tight text-ink leading-tight">
             {APP_NAME}
           </p>
-          <p className="text-[10px] text-ink-faint uppercase tracking-wider font-semibold">
+          <p className="text-xs text-ink-faint uppercase tracking-wider font-semibold">
             Motor Clínico
           </p>
         </div>
@@ -221,7 +241,7 @@ export function BottomNav() {
           <Link
             key={item.href}
             href={item.href}
-            className={`relative flex flex-1 flex-col items-center justify-center gap-1 py-2 text-[10px] font-medium transition-colors ${
+            className={`relative flex flex-1 flex-col items-center justify-center gap-1 py-2 text-xs font-medium transition-colors ${
               isActive ? "text-accent" : "text-ink-faint hover:text-ink-soft"
             }`}
           >
@@ -231,7 +251,7 @@ export function BottomNav() {
             <div className={`relative flex transition-transform ${isActive ? "scale-110" : "scale-100"}`}>
               {item.icon}
               {item.href === "/pacientes" && overdueCount > 0 && (
-                <span className="absolute -right-2 -top-1 flex h-3.5 min-w-[14px] items-center justify-center rounded-full border border-card bg-red-500 px-0.5 text-[8px] font-bold text-white">
+                <span className="absolute -right-2 -top-1 flex h-3.5 min-w-[14px] items-center justify-center rounded-full border border-card bg-red-500 px-0.5 text-[10px] font-bold text-white">
                   {overdueCount > 9 ? "9+" : overdueCount}
                 </span>
               )}

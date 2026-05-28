@@ -14,6 +14,8 @@ import { isSameDay, parseISO } from "date-fns";
 import { useTenant } from "@/lib/supabase/tenant-context";
 import { DashboardSkeleton } from "@/components/ui/skeletons";
 import { listSyncQueueItems } from "@/lib/db/indexeddb";
+
+import "./dashboard.css";
 import { usePatients, useClinicalRecords } from "@/features/patients/lib/use-patients-queries";
 import { usePatientsRealtime } from "@/features/patients/lib/use-patients-realtime";
 import { useClinicalRecordsRealtime } from "@/features/patients/lib/use-clinical-records-realtime";
@@ -25,17 +27,13 @@ import {
   type FollowUpPanelItem,
   EMPTY_METRICS,
 } from "@/features/dashboard/components/types";
-import { DashboardMetricsBar } from "@/features/dashboard/components/dashboard-metrics-bar";
 import { DashboardActivityFeed } from "@/features/dashboard/components/dashboard-activity-feed";
 import { DashboardFollowUpPanel } from "@/features/dashboard/components/dashboard-follow-up-panel";
 import { DashboardAgendaPanel } from "@/features/dashboard/components/dashboard-agenda-panel";
-import { DashboardCharts } from "@/features/dashboard/components/dashboard-charts";
 import { useAgenda } from "@/features/agenda/lib/use-agenda";
 import {
   calculateMetrics,
   buildActivityFeed,
-  getLast7DaysConsultations,
-  getSpecialtyBreakdown,
 } from "@/features/dashboard/lib/metrics";
 
 // ─── Page Container ───────────────────────────────────────────────────────────
@@ -164,12 +162,6 @@ export default function DashboardView() {
     [followUpItems],
   );
 
-  const weeklyConsultations = useMemo(() => getLast7DaysConsultations(recordsData), [recordsData]);
-  const weeklyMax = useMemo(
-    () => Math.max(1, ...weeklyConsultations.map((p) => p.total)),
-    [weeklyConsultations],
-  );
-  const specialtyBreakdown = useMemo(() => getSpecialtyBreakdown(recordsData), [recordsData]);
   const todayLabel = useMemo(
     () =>
       new Date().toLocaleDateString("es-EC", {
@@ -187,167 +179,112 @@ export default function DashboardView() {
 
   if (tenantLoading || loading) return <DashboardSkeleton />;
 
+  const overdueFollowUps = followUpItems.filter(i => i.isOverdue);
+  // eslint-disable-next-line react-hooks/purity
+  const daysLeft = tenant?.subscription_expires_at ? Math.floor((new Date(tenant.subscription_expires_at).getTime() - Date.now()) / 86_400_000) : -1;
+  const isTrialActive = tenant?.subscription_status === "trialing" && daysLeft >= 0;
+
   return (
-    <section className="hce-page">
+    <>
+      <style>{"\n"}</style> {/* Trigger re-render if needed or global css applies */}
+      <div className="gx-dash-inner animate-in fade-in duration-300">
 
-      {/* ── Hero header ── */}
-      <header className="relative overflow-hidden rounded-3xl border border-border bg-card p-6 shadow-sm sm:p-8">
-        {/* Ambient gradient */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 -z-0"
-          style={{
-            background:
-              "radial-gradient(ellipse 70% 80% at 100% 0%, rgba(196,96,42,0.08) 0%, transparent 60%), radial-gradient(ellipse 40% 60% at 0% 100%, rgba(196,96,42,0.05) 0%, transparent 60%)",
-          }}
-        />
-        <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-accent">
-              Sesión activa
-            </p>
-            <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-ink sm:text-4xl" style={{ fontFamily: "var(--font-display)", letterSpacing: "-.04em" }}>
-              Hola{displayName ? (
-                <span
-                  className="ml-2"
-                  style={{ color: "var(--accent)" }}
-                >
-                  {displayName.split(" ")[0]}
-                </span>
-              ) : ""}
+        {/* Header */}
+        <header className="gx-header gx-s gx-s1">
+          <div className="gx-header-left">
+            <h1 className="gx-greeting">
+              Buenos días, {displayName ? <span className="gx-name">{displayName.split(" ")[0]}</span> : null}
             </h1>
-            <p className="mt-2 max-w-2xl text-sm leading-7 text-ink-soft">
-              {tenant
-                ? `${tenant.full_name} · ${tenant.specialties.join(", ")}`
-                : "Cargando perfil profesional..."}
-            </p>
+            <div className="gx-header-sep" />
+            <span className="gx-header-meta">
+              {tenant?.specialties?.[0] || "Medicina General"} · {todayLabel}
+            </span>
           </div>
-          <div className="grid gap-3 sm:grid-cols-3 lg:w-[38rem]">
-            <Link href="/consultas" className="hce-btn-primary py-3 text-center text-sm">
-              Nueva consulta
-            </Link>
-            <Link href="/agenda" className="hce-btn-secondary py-3 text-center text-sm border-teal-500/30 text-teal-800 dark:text-teal-200 bg-teal-50/50 dark:bg-teal-900/20 hover:bg-teal-100 dark:hover:bg-teal-900/40">
-              Mi Agenda
-            </Link>
-            <Link href="/pacientes" className="hce-btn-secondary py-3 text-center text-sm">
-              Ver pacientes
-            </Link>
+          <div className="gx-header-right flex-wrap sm:flex-nowrap">
+            <Link href="/consultas" className="gx-btn gx-btn-p">Nueva consulta</Link>
+            <Link href="/agenda" className="gx-btn gx-btn-s">Mi Agenda</Link>
           </div>
-        </div>
-      </header>
+        </header>
 
-      {tenantError ? (
-        <div className="hce-alert-warning" role="alert" aria-live="polite">
-          {tenantError}
-        </div>
-      ) : null}
+        {tenantError && (
+          <div className="rounded-md bg-red-50 p-4 mt-4" role="alert">
+            <p className="text-sm font-medium text-red-800">{tenantError}</p>
+          </div>
+        )}
 
-      {tenant?.subscription_status === "trialing" && tenant?.subscription_expires_at && (() => {
-        // eslint-disable-next-line react-hooks/purity
-        const daysLeft = Math.floor((new Date(tenant.subscription_expires_at).getTime() - Date.now()) / 86_400_000);
-        // Solo mostrar el banner si el trial sigue vigente (daysLeft >= 0).
-        // Si ya expiró, el DashboardOnboardingGuard redirige a /billing.
-        if (daysLeft < 0) return null;
-        return (
-          <div className="rounded-2xl border border-accent/20 bg-accent/5 p-4" role="alert">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent/10 text-accent">
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-accent">
-                    {daysLeft === 0
-                      ? "Prueba gratuita — último día"
-                      : `Prueba gratuita (${daysLeft} día${daysLeft !== 1 ? "s" : ""} restante${daysLeft !== 1 ? "s" : ""})`
-                    }
-                  </h3>
-                  <p className="mt-0.5 text-xs text-ink-soft">
-                    Estás probando el motor clínico con todas sus funcionalidades. Activa tu suscripción para mantener el acceso ininterrumpido.
-                  </p>
-                </div>
+        {/* Trial Banner */}
+        {isTrialActive && (
+          <div className="gx-trial gx-s gx-s2">
+            <div className="gx-trial-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+            <div className="gx-trial-body">
+              <div className="gx-trial-title">
+                {daysLeft === 0 ? "Prueba gratuita — último día" : `Prueba gratuita (${daysLeft} día${daysLeft !== 1 ? "s" : ""} restante${daysLeft !== 1 ? "s" : ""})`}
               </div>
-              <Link href="/billing" className="shrink-0 hce-btn-primary py-2 px-4 text-xs">
-                Activar cuenta
-              </Link>
+              <div className="gx-trial-text">Motor clínico completo. Activa tu suscripción para acceso permanente.</div>
             </div>
+            <Link href="/billing" className="gx-btn gx-btn-p bg-accent text-white hover:bg-accent-hover text-center px-4 py-1.5 flex items-center justify-center border-0" style={{ border: "none" }}>Activar cuenta</Link>
           </div>
-        );
-      })()}
+        )}
 
-      {/* ── Today summary ── */}
-      <article
-        className="relative overflow-hidden rounded-3xl border border-border bg-card p-5 shadow-sm"
-        aria-label="Resumen del día"
-      >
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0"
-          style={{
-            background:
-              "radial-gradient(circle at top right, rgba(196,96,42,.07), transparent 45%)",
-          }}
-        />
-        <div className="relative space-y-1">
-          <p className="text-xs font-semibold uppercase tracking-widest text-accent">
-            Resumen del día
-          </p>
-          <h2 className="text-xl font-bold capitalize text-ink">{todayLabel}</h2>
-          <p className="text-sm text-ink-soft">
-            {metrics.consultationsToday > 0
-              ? `Registraste ${metrics.consultationsToday} consulta${
-                  metrics.consultationsToday === 1 ? "" : "s"
-                } hoy.`
-              : "Aún no registras consultas hoy. Puedes iniciar con una acción rápida."}
-            {todayAppointmentsCount > 0 && ` Tienes ${todayAppointmentsCount} cita${todayAppointmentsCount === 1 ? "" : "s"} programada${todayAppointmentsCount === 1 ? "" : "s"} para hoy en tu agenda.`}
-          </p>
-        </div>
-      </article>
-
-      <DashboardMetricsBar metrics={metrics} />
-
-      {followUpItems.filter(i => i.isOverdue).length > 0 && (
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-4">
-          <div className="flex items-start gap-4">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-600">
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-            </div>
-            <div className="flex-1">
-              <h3 className="text-sm font-bold text-red-900">
-                {followUpItems.filter(i => i.isOverdue).length} seguimiento
-                {followUpItems.filter(i => i.isOverdue).length !== 1 ? "s" : ""} vencido
-                {followUpItems.filter(i => i.isOverdue).length !== 1 ? "s" : ""}
-              </h3>
-              <p className="mt-1 text-xs text-red-700">
-                {followUpItems.filter(i => i.isOverdue).slice(0, 2)
-                  .map(i => i.patientName).join(", ")}
-                {followUpItems.filter(i => i.isOverdue).length > 2
-                  ? ` y ${followUpItems.filter(i => i.isOverdue).length - 2} más` : ""}
-              </p>
-            </div>
-            <Link href="/pacientes" className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-red-500 transition-colors">
-              Ver pacientes →
-            </Link>
+        {/* Metrics Strip */}
+        <div className="gx-metrics gx-s gx-s2">
+          <div className="gx-m">
+            <span className="gx-mv gx-mv-a">{metrics.consultationsToday}</span>
+            {todayAppointmentsCount > 0 && <span className="gx-mf">/{todayAppointmentsCount}</span>}
+            <span className="gx-ml">consultas hoy</span>
           </div>
+          <div className="gx-m">
+            <span className="gx-mv">{metrics.activePatients}</span>
+            <span className="gx-ml">pacientes</span>
+          </div>
+          <div className="gx-m">
+            <span className="gx-mv">{metrics.followUpPending}</span>
+            <span className="gx-ml">seguimientos</span>
+          </div>
+          {overdueFollowUps.length > 0 && (
+            <div className="gx-m">
+              <span className="gx-mv gx-mv-r">{overdueFollowUps.length}</span>
+              <span className="gx-ml">vencidos</span>
+            </div>
+          )}
         </div>
-      )}
 
-      <DashboardCharts
-        weeklyConsultations={weeklyConsultations}
-        weeklyMax={weeklyMax}
-        specialtyBreakdown={specialtyBreakdown}
-      />
+        {/* Overdue Banner */}
+        {overdueFollowUps.length > 0 && (
+          <div className="gx-overdue gx-s gx-s3">
+            <div className="gx-overdue-ico">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+            </div>
+            <div className="gx-overdue-body">
+              <div className="gx-overdue-t">
+                {overdueFollowUps.length} seguimiento{overdueFollowUps.length !== 1 ? "s" : ""} vencido{overdueFollowUps.length !== 1 ? "s" : ""}
+              </div>
+              <div className="gx-overdue-d">
+                {overdueFollowUps.slice(0, 2).map(i => i.patientName).join(", ")}
+                {overdueFollowUps.length > 2 ? ` y ${overdueFollowUps.length - 2} más` : ""}
+              </div>
+            </div>
+            <Link href="/pacientes" className="gx-btn bg-red-600 hover:bg-red-700 text-white border-0 text-center flex items-center justify-center px-4 py-1.5 rounded-md" style={{ border: "none" }}>Ver pacientes</Link>
+          </div>
+        )}
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        <DashboardActivityFeed activity={activity} />
-        <DashboardAgendaPanel appointments={appointments} />
-        <DashboardFollowUpPanel
-          items={filteredFollowUpItems}
-          counts={followUpCounts}
-          activeFilter={followUpFilter}
-          onFilterChange={setFollowUpFilter}
-        />
+        {/* Main grid */}
+        <div className="gx-dash-grid gx-s gx-s4">
+          <DashboardAgendaPanel appointments={appointments} />
+          
+          <aside className="gx-side">
+            <DashboardActivityFeed activity={activity} />
+            <DashboardFollowUpPanel
+              items={filteredFollowUpItems}
+              counts={followUpCounts}
+              activeFilter={followUpFilter}
+              onFilterChange={setFollowUpFilter}
+            />
+          </aside>
+        </div>
       </div>
-    </section>
+    </>
   );
 }

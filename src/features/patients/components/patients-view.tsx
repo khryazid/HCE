@@ -13,6 +13,8 @@ import { useTenant } from "@/lib/supabase/tenant-context";
 import { useClinicalContext } from "@/features/consultations/context/clinical-context";
 import { PacientesSkeleton } from "@/components/ui/skeletons";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
+
+import "./patients.css";
 import type { ClinicalRecordRecord } from "@/features/consultations/types";
 import { PATIENT_STATUS_OPTIONS, type PatientRecord, type PatientStatus } from "@/features/patients/types";
 import { buildRetryableErrorMessage } from "@/lib/ui/feedback-copy";
@@ -82,11 +84,12 @@ export default function PatientsView() {
     [clinical],
   );
 
-  // Auto-select first patient when data arrives
+  // Auto-select ONLY if clinical.selectedPatientId is explicitly set
   useEffect(() => {
     if (!patientsLoading && patients.length > 0 && !selectedPatientId) {
-      const initialId = clinical.selectedPatientId || patients[0]?.id || "";
-      setSelectedPatientIdLocal(initialId);
+      if (clinical.selectedPatientId) {
+        setSelectedPatientIdLocal(clinical.selectedPatientId);
+      }
     }
   }, [patientsLoading, patients, selectedPatientId, clinical.selectedPatientId]);
 
@@ -112,12 +115,6 @@ export default function PatientsView() {
              (cleanSearch.length > 0 && cleanDoc.includes(cleanSearch));
     });
   }, [patients, search]);
-
-  useEffect(() => {
-    if (!patientsLoading && filteredPatients.length > 0 && !filteredPatients.some((p) => p.id === selectedPatientId)) {
-      setSelectedPatientId(filteredPatients[0]?.id ?? "");
-    }
-  }, [filteredPatients, selectedPatientId, setSelectedPatientId, patientsLoading]);
 
   // ─── Datos derivados ──────────────────────────────────────────────────────────
   const selectedPatient = useMemo(
@@ -251,7 +248,7 @@ export default function PatientsView() {
         alta={globalAnalytics.alta}
       />
 
-      <div className="grid gap-6 xl:grid-cols-[340px_minmax(0,1fr)]">
+      <div className="mt-8">
         <PatientList
           patients={filteredPatients}
           selectedPatientId={selectedPatientId}
@@ -259,30 +256,53 @@ export default function PatientsView() {
           onSearchChange={setSearch}
           onSelect={setSelectedPatientId}
           allPatients={patients}
+          records={records}
         />
 
-        <section className="space-y-6">
-          <PatientProfileCard
-            patient={selectedPatient}
-            patientHistory={patientHistory}
-            statusSaving={updateStatusMutation.isPending}
-            statusMessage={statusMessage}
-            onStatusChange={(nextStatus) => void handlePatientStatusChange(nextStatus)}
-            onDeleteRequest={() => {
-              if (selectedPatient) setDeletePatientTarget(selectedPatient);
-            }}
-          />
+        {selectedPatientId && selectedPatient && (
+          <>
+            {/* Backdrop */}
+            <div 
+              className="gx-slideover-backdrop" 
+              onClick={() => setSelectedPatientId("")} 
+            />
+            {/* Slide-over panel */}
+            <div className="gx-slideover-panel">
+              <div className="gx-slideover-header">
+                <h2 className="gx-slideover-title">Expediente Clínico</h2>
+                <button 
+                  className="gx-slideover-close" 
+                  onClick={() => setSelectedPatientId("")}
+                  title="Cerrar"
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                </button>
+              </div>
+              <div className="gx-slideover-body space-y-6">
+                <PatientProfileCard
+                  patient={selectedPatient}
+                  patientHistory={patientHistory}
+                  statusSaving={updateStatusMutation.isPending}
+                  statusMessage={statusMessage}
+                  onStatusChange={(nextStatus) => void handlePatientStatusChange(nextStatus)}
+                  onDeleteRequest={() => {
+                    if (selectedPatient) setDeletePatientTarget(selectedPatient);
+                  }}
+                />
 
-          <PatientHistoryTimeline
-            records={patientHistory}
-            expandedRecordIds={expandedRecordIds}
-            selectedPatientId={selectedPatientId}
-            selectedPatient={selectedPatient}
-            tenant={tenant}
-            onToggleExpand={toggleRecordExpand}
-            onDeleteRecordRequest={setDeleteRecordTarget}
-          />
-        </section>
+                <PatientHistoryTimeline
+                  records={patientHistory}
+                  expandedRecordIds={expandedRecordIds}
+                  selectedPatientId={selectedPatientId}
+                  selectedPatient={selectedPatient}
+                  tenant={tenant}
+                  onToggleExpand={toggleRecordExpand}
+                  onDeleteRecordRequest={setDeleteRecordTarget}
+                />
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Modal: Eliminar paciente con feedback de progreso */}

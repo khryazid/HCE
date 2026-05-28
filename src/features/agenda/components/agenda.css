@@ -39,8 +39,8 @@
   background: var(--bg-soft); padding: 4px; border-radius: var(--radius-sm);
 }
 .gx-tb-btn {
-  font-family: var(--font-sans); font-size: 0.6875rem; font-weight: 600;
-  background: transparent; border: none; padding: 4px 10px; border-radius: 4px;
+  font-family: var(--font-sans); font-size: 0.75rem; font-weight: 600;
+  background: transparent; border: none; padding: 6px 12px; border-radius: 4px;
   cursor: pointer; color: var(--ink-soft); transition: all 150ms ease-out;
 }
 .gx-tb-btn:hover { background: var(--bg-elevated); color: var(--ink); box-shadow: var(--shadow-sm); }
@@ -55,8 +55,8 @@
 
 /* Buttons */
 .gx-btn {
-  font-family: var(--font-sans); font-size: 0.75rem; font-weight: 600;
-  padding: 8px 16px; border-radius: var(--radius-sm); border: 1px solid transparent;
+  font-family: var(--font-sans); font-size: 0.8125rem; font-weight: 600;
+  padding: 10px 18px; border-radius: var(--radius-sm); border: 1px solid transparent;
   cursor: pointer; transition: all 150ms ease-out;
   display: inline-flex;
   align-items: center;
@@ -95,7 +95,7 @@
 }
 .gx-mc-cell {
   aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
-  font-family: var(--font-mono); font-size: 0.6875rem; color: var(--ink);
+  font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink);
   border-radius: 4px; cursor: pointer; transition: background 150ms ease-out;
 }
 .gx-mc-cell:hover:not(.gx-mc-today) { background: var(--bg-soft); }
@@ -164,10 +164,10 @@
 .gx-gh-day:hover { background-color: var(--bg-soft); }
 .gx-gh-day:last-child { border-right: none; }
 .gx-gh-name {
-  font-size: 0.6875rem; font-weight: 600; color: var(--ink-soft); text-transform: uppercase;
+  font-size: 0.75rem; font-weight: 600; color: var(--ink-soft); text-transform: uppercase;
 }
 .gx-gh-num {
-  font-family: var(--font-display); font-size: 1.5rem; font-weight: 700;
+  font-family: var(--font-display); font-size: 1.75rem; font-weight: 700;
   color: var(--ink); line-height: 1.1; margin-top: 2px;
 }
 .gx-gh-today .gx-gh-name { color: var(--accent); }
@@ -191,7 +191,7 @@
 }
 .gx-gb-time-lbl {
   position: absolute; top: -8px; right: 8px;
-  font-family: var(--font-mono); font-size: 0.625rem; color: var(--ink-faint);
+  font-family: var(--font-mono); font-size: 0.6875rem; color: var(--ink-faint);
   font-feature-settings: "tnum";
 }
 
@@ -251,9 +251,9 @@
   color: var(--ink-soft);
 }
 
-.gx-at-title { font-size: 0.75rem; font-weight: 600; line-height: 1.2; margin-bottom: 2px; }
+.gx-at-title { font-size: 0.8125rem; font-weight: 600; line-height: 1.2; margin-bottom: 2px; }
 .gx-at-sub {
-  font-family: var(--font-mono); font-size: 0.625rem; font-weight: 500;
+  font-family: var(--font-mono); font-size: 0.6875rem; font-weight: 500;
   opacity: 0.8; line-height: 1.2;
 }
 

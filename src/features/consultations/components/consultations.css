@@ -1,0 +1,125 @@
+/* styles for consultations-view.tsx split layout */
+
+.gx-consultation-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+  align-items: start;
+}
+
+@media (min-width: 1024px) {
+  .gx-consultation-layout {
+    grid-template-columns: 280px 1fr;
+    gap: 3rem;
+  }
+}
+
+/* Índice lateral pegajoso */
+.gx-consultation-index {
+  position: sticky;
+  top: 5rem; /* debajo del topnav */
+  height: max-content;
+  border-right: 1px solid var(--border);
+  padding-right: 1.5rem;
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .gx-consultation-index {
+    display: block;
+  }
+}
+
+/* Elemento del índice */
+.gx-index-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 0.5rem;
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.gx-index-item:hover {
+  background-color: var(--bg-soft);
+  color: var(--ink);
+}
+
+.gx-index-item[data-active="true"] {
+  color: var(--accent);
+  background-color: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+/* El número circulito */
+.gx-index-num {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 9999px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  border: 1px solid var(--border);
+  background-color: var(--card);
+}
+
+.gx-index-item[data-active="true"] .gx-index-num {
+  background-color: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+.gx-index-item[data-done="true"]:not([data-active="true"]) .gx-index-num {
+  background-color: var(--ink);
+  color: var(--card);
+  border-color: var(--ink);
+}
+
+/* Separador asimétrico para secciones del formulario */
+.gx-form-section {
+  padding: 3rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.gx-form-section:first-of-type {
+  padding-top: 0;
+}
+
+.gx-form-section:last-of-type {
+  border-bottom: none;
+}
+
+.gx-form-section-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--ink);
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.gx-form-section-title span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 0.25rem;
+  background-color: var(--accent);
+  color: white;
+  font-size: 0.75rem;
+}
+
+/* Action bar flotante en el índice o inferior */
+.gx-floating-actions {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px dashed var(--border);
+}

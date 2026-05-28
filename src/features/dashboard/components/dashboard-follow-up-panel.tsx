@@ -1,19 +1,14 @@
 "use client";
 
-/**
- * components/dashboard/DashboardFollowUpPanel.tsx
- *
- * Panel de seguimientos pendientes con filtros urgentes/vencidos/próximos.
- */
-
 import Link from "next/link";
-import { formatDate } from "@/lib/ui/format-date";
+import { parseISO, format } from "date-fns";
+import { es } from "date-fns/locale";
 import type { FollowUpPanelFilter, FollowUpPanelItem } from "@/features/dashboard/components/types";
 
 const FILTER_LABELS: Record<FollowUpPanelFilter, string> = {
-  urgentes: "Urgentes",
   vencidos: "Vencidos",
-  proximos: "Próximos",
+  urgentes: "Próximos",
+  proximos: "Futuros",
 };
 
 type Props = {
@@ -24,75 +19,57 @@ type Props = {
 };
 
 export function DashboardFollowUpPanel({ items, counts, activeFilter, onFilterChange }: Props) {
+  const FILTERS: FollowUpPanelFilter[] = ["vencidos", "urgentes", "proximos"];
+  
   return (
-    <article className="hce-surface p-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
-        <div>
-          <h2 className="text-sm font-semibold text-[color:var(--ink)]">Seguimientos Pendientes</h2>
-          <p className="text-xs text-[color:var(--ink-soft)]">Urgentes y vencidos</p>
-        </div>
-        <div className="flex gap-1.5 flex-wrap">
-          {(["urgentes", "vencidos", "proximos"] as FollowUpPanelFilter[]).map((filter) => (
-            <button
-              key={filter}
-              type="button"
-              onClick={() => onFilterChange(filter)}
-              className={`rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider transition ${
-                activeFilter === filter
-                  ? "bg-accent text-white"
-                  : "bg-[color:var(--bg-soft)] text-ink-soft hover:text-ink"
-              }`}
-            >
-              {FILTER_LABELS[filter]} ({counts[filter]})
-            </button>
-          ))}
-        </div>
+    <section>
+      <div className="gx-sh"><h2 className="gx-st">Seguimientos</h2></div>
+      
+      <div className="gx-fu-tabs">
+        {FILTERS.map(k=>(
+          <button 
+            key={k} 
+            className={`gx-fu-tab${activeFilter===k?" gx-fu-tab-on":""}`} 
+            onClick={()=>onFilterChange(k)}
+          >
+            {FILTER_LABELS[k]}
+            <span className="gx-tc">{counts[k]}</span>
+          </button>
+        ))}
       </div>
-      <div className="space-y-2">
+      
+      <div className="space-y-0 mt-2">
         {items.length === 0 ? (
-          <div className="hce-empty">
-            No hay seguimientos {FILTER_LABELS[activeFilter].toLowerCase()} pendientes.
-          </div>
+          <div className="text-sm text-ink-soft italic px-2">No hay seguimientos en esta categoría.</div>
         ) : (
-          items.slice(0, 5).map((item) => (
-            <div
-              key={item.recordId}
-              className={`rounded-xl border px-4 py-3 flex items-center justify-between transition hover:bg-[color:var(--bg-soft)] ${
-                item.isOverdue
-                  ? "border-red-200 bg-red-50/40"
-                  : item.isUrgent
-                    ? "border-amber-200 bg-amber-50/40"
-                    : "border-[color:var(--border)] bg-[color:var(--card)]"
-              }`}
-            >
-              <div>
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-semibold text-[color:var(--ink)]">{item.patientName}</p>
-                  {item.isOverdue && (
-                    <span className="rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-red-800" aria-label="Estado: Vencido">
-                      Vencido
-                    </span>
-                  )}
-                  {!item.isOverdue && item.isUrgent && (
-                    <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-800" aria-label="Estado: Urgente">
-                      Urgente
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs text-[color:var(--ink-soft)] mt-1">
-                  Control pendiente: {formatDate(item.dueDate)}
-                </p>
-              </div>
+          items.map(f=>{
+            let dateStr = "";
+            try {
+              dateStr = format(parseISO(f.dueDate), "d MMM", { locale: es });
+            } catch (e) {
+              dateStr = f.dueDate;
+            }
+
+            const pipClass = f.isOverdue ? "gx-pip-r" : f.isUrgent ? "gx-pip-w" : "gx-pip-g";
+            const dateClass = f.isOverdue ? "gx-fu-date-r" : f.isUrgent ? "gx-fu-date-w" : "";
+
+            return (
               <Link
-                href={`/consultas?mode=seguimiento&patientId=${item.patientId}&recordId=${item.recordId}`}
-                className="text-xs font-semibold text-accent hover:underline"
+                key={f.recordId}
+                href={`/consultas?mode=seguimiento&patientId=${f.patientId}&recordId=${f.recordId}`}
+                className="gx-fu-item"
               >
-                Abrir
+                <div className={`gx-fu-pip ${pipClass}`} />
+                <div className="gx-fu-info">
+                  <div className="gx-fu-name">{f.patientName}</div>
+                  <div className="gx-fu-dx">{f.diagnosis || "Control general"}</div>
+                </div>
+                <span className={`gx-fu-date ${dateClass}`}>{dateStr}</span>
               </Link>
-            </div>
-          ))
+            )
+          })
         )}
       </div>
-    </article>
+    </section>
   );
 }

@@ -3,6 +3,7 @@
 import { memo, useCallback } from "react";
 import type { WizardForm, CurrentMedication } from "@/features/consultations/lib/use-consultation-wizard";
 import { MedicationsTable } from "@/features/consultations/components/medications-table";
+import { AlertTriangle, Activity, Scissors, Users, Cigarette, Baby, MessageSquare, FileText } from "lucide-react";
 
 type Props = {
   form: WizardForm;
@@ -76,51 +77,58 @@ const WizardStepAnamnesis = memo(function WizardStepAnamnesis({ form, setForm, v
 
       {/* MOTIVO DE CONSULTA Y ENFERMEDAD ACTUAL */}
       <div className="space-y-4">
-        <h4 className="text-sm font-semibold text-teal-900 dark:text-teal-400 border-b border-teal-100 dark:border-teal-500/30 pb-2">
+        <h4 className="text-sm font-semibold text-ink border-b border-border pb-2">
           A. Motivo de Consulta y Enfermedad Actual
         </h4>
 
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-ink">
-            Motivo de consulta <span className="text-red-500">*</span>
-          </label>
-          <input
-            id="field-chiefComplaint"
-            className="hce-input"
-            placeholder="¿Por qué viene hoy? Ej: Dolor abdominal intenso"
-            value={form.chiefComplaint}
-            onChange={(e) => setForm((c) => ({ ...c, chiefComplaint: e.target.value }))}
-            aria-invalid={!!validationErrors.chiefComplaint}
-            aria-describedby={validationErrors.chiefComplaint ? "error-chiefComplaint" : undefined}
-          />
-          {validationErrors.chiefComplaint ? (
-            <p id="error-chiefComplaint" className="text-sm font-medium text-red-600">{validationErrors.chiefComplaint}</p>
-          ) : null}
-        </div>
+        <div className="space-y-4">
+          <div className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
+            <label htmlFor="field-chiefComplaint" className="absolute left-3 top-3 flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+              <MessageSquare className="h-3.5 w-3.5" /> Motivo de consulta <span className="text-red-500">*</span>
+            </label>
+            <input
+              id="field-chiefComplaint"
+              className="w-full bg-transparent px-3 pb-3 pt-10 text-base text-ink placeholder:text-ink-faint/50 !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none"
+              placeholder="¿Por qué viene hoy? Ej: Dolor abdominal intenso"
+              value={form.chiefComplaint}
+              onChange={(e) => setForm((c) => ({ ...c, chiefComplaint: e.target.value }))}
+              aria-invalid={!!validationErrors.chiefComplaint}
+              aria-describedby={validationErrors.chiefComplaint ? "error-chiefComplaint" : undefined}
+            />
+            {validationErrors.chiefComplaint ? (
+              <p id="error-chiefComplaint" className="absolute -bottom-6 left-1 text-xs font-medium text-red-600">{validationErrors.chiefComplaint}</p>
+            ) : null}
+          </div>
 
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-ink">Enfermedad actual / Anamnesis</label>
-          <textarea
-            className="hce-input min-h-24"
-            placeholder="Relato cronológico del padecimiento: inicio, duración, características, factores modificadores, síntomas acompañantes..."
-            value={form.anamnesis}
-            onChange={(e) => setForm((c) => ({ ...c, anamnesis: e.target.value }))}
-          />
+          <div className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
+            <label className="absolute left-3 top-3 flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+              <FileText className="h-3.5 w-3.5" /> Enfermedad actual / Anamnesis
+            </label>
+            <textarea
+              className="w-full min-h-[140px] resize-none bg-transparent px-3 pb-3 pt-10 text-base text-ink placeholder:text-ink-faint/50 !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none"
+              placeholder="Relato cronológico del padecimiento: inicio, duración, características, factores modificadores, síntomas acompañantes..."
+              value={form.anamnesis}
+              onChange={(e) => setForm((c) => ({ ...c, anamnesis: e.target.value }))}
+            />
+          </div>
         </div>
       </div>
 
       {/* ANTECEDENTES */}
       <div className="space-y-4">
-        <h4 className="text-sm font-semibold text-teal-900 dark:text-teal-400 border-b border-teal-100 dark:border-teal-500/30 pb-2">
+        <h4 className="text-sm font-semibold text-ink border-b border-border pb-2">
           B. Antecedentes Clínicos
         </h4>
 
-        <div className="rounded-2xl border border-border bg-card p-5 space-y-4">
+        <div className="space-y-4 space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-widest text-red-600">Alérgicos</label>
+            <div className="group relative overflow-hidden rounded-xl border border-red-200 bg-red-50/10 shadow-sm transition-all focus-within:border-red-400 focus-within:ring-1 focus-within:ring-red-400 dark:border-red-900/30 dark:bg-red-900/10">
+              <label className="absolute left-3 top-3 flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-red-600 transition-colors group-focus-within:text-red-500">
+                <AlertTriangle className="h-3.5 w-3.5" />
+                Alérgicos
+              </label>
               <textarea
-                className="hce-input min-h-16 border-red-200 bg-red-50/30 focus:border-red-400 focus:ring-red-400"
+                className="w-full min-h-[140px] resize-none bg-transparent px-3 pb-3 pt-10 text-base text-ink placeholder:text-red-400/50 !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none"
                 placeholder="Alergias a medicamentos, alimentos, ambientales..."
                 value={form.backgrounds?.allergic ?? ""}
                 onFocus={(e) => handleBulletFocus(e, "allergic")}
@@ -131,10 +139,13 @@ const WizardStepAnamnesis = memo(function WizardStepAnamnesis({ form, setForm, v
 
             {uiPreferences?.hide_personal_history !== true && (
               <>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-widest text-ink-soft">Patológicos (Médicos)</label>
+                <div className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
+                  <label className="absolute left-3 top-3 flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+                    <Activity className="h-3.5 w-3.5" />
+                    Patológicos (Médicos)
+                  </label>
                   <textarea
-                    className="hce-input min-h-16"
+                    className="w-full min-h-[140px] resize-none bg-transparent px-3 pb-3 pt-10 text-base text-ink placeholder:text-ink-faint/50 !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none"
                     placeholder="HTA, Diabetes, Asma..."
                     value={form.backgrounds?.pathological ?? ""}
                     onFocus={(e) => handleBulletFocus(e, "pathological")}
@@ -143,10 +154,13 @@ const WizardStepAnamnesis = memo(function WizardStepAnamnesis({ form, setForm, v
                   />
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-widest text-ink-soft">Quirúrgicos</label>
+                <div className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
+                  <label className="absolute left-3 top-3 flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+                    <Scissors className="h-3.5 w-3.5" />
+                    Quirúrgicos
+                  </label>
                   <textarea
-                    className="hce-input min-h-16"
+                    className="w-full min-h-[140px] resize-none bg-transparent px-3 pb-3 pt-10 text-base text-ink placeholder:text-ink-faint/50 !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none"
                     placeholder="Cirugías previas..."
                     value={form.backgrounds?.surgical ?? ""}
                     onFocus={(e) => handleBulletFocus(e, "surgical")}
@@ -158,10 +172,13 @@ const WizardStepAnamnesis = memo(function WizardStepAnamnesis({ form, setForm, v
             )}
 
             {uiPreferences?.hide_family_history !== true && (
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase tracking-widest text-ink-soft">Familiares</label>
+              <div className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
+                <label className="absolute left-3 top-3 flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+                  <Users className="h-3.5 w-3.5" />
+                  Familiares
+                </label>
                 <textarea
-                  className="hce-input min-h-16"
+                  className="w-full min-h-[140px] resize-none bg-transparent px-3 pb-3 pt-10 text-base text-ink placeholder:text-ink-faint/50 !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none"
                   placeholder="Padres, abuelos..."
                   value={form.backgrounds?.family ?? ""}
                   onFocus={(e) => handleBulletFocus(e, "family")}
@@ -172,10 +189,13 @@ const WizardStepAnamnesis = memo(function WizardStepAnamnesis({ form, setForm, v
             )}
 
             {uiPreferences?.hide_habits !== true && (
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase tracking-widest text-ink-soft">Hábitos / Tóxicos</label>
+              <div className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
+                <label className="absolute left-3 top-3 flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+                  <Cigarette className="h-3.5 w-3.5" />
+                  Hábitos / Tóxicos
+                </label>
                 <textarea
-                  className="hce-input min-h-16"
+                  className="w-full min-h-[140px] resize-none bg-transparent px-3 pb-3 pt-10 text-base text-ink placeholder:text-ink-faint/50 !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none"
                   placeholder="Tabaco, alcohol, drogas, sedentarismo..."
                   value={form.backgrounds?.toxic ?? ""}
                   onFocus={(e) => handleBulletFocus(e, "toxic")}
@@ -187,10 +207,13 @@ const WizardStepAnamnesis = memo(function WizardStepAnamnesis({ form, setForm, v
 
             {/* Solo visible si el sexo biológico es Mujer y no está oculto por preferencias */}
             {form.gender === "Mujer" && uiPreferences?.hide_female_history !== true && (
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase tracking-widest text-ink-soft">Gineco-obstétricos</label>
+              <div className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
+                <label className="absolute left-3 top-3 flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+                  <Baby className="h-3.5 w-3.5" />
+                  Gineco-obstétricos
+                </label>
                 <textarea
-                  className="hce-input min-h-16"
+                  className="w-full min-h-[140px] resize-none bg-transparent px-3 pb-3 pt-10 text-base text-ink placeholder:text-ink-faint/50 !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none"
                   placeholder="FUR, Gestas, Partos, Cesáreas, Abortos..."
                   value={form.backgrounds?.gynecoObstetric ?? ""}
                   onFocus={(e) => handleBulletFocus(e, "gynecoObstetric")}
@@ -209,7 +232,7 @@ const WizardStepAnamnesis = memo(function WizardStepAnamnesis({ form, setForm, v
             />
           </div>
 
-          <details className="mt-2 text-sm text-ink-soft group">
+          <details className="mt-2 text-base text-ink-soft group">
             <summary className="cursor-pointer font-medium hover:text-ink">Mostrar otros antecedentes (Histórico)</summary>
             <div className="mt-3">
               <textarea

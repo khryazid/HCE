@@ -1,46 +1,46 @@
 @import "tailwindcss";
 
 /* ═══════════════════════════════════════════════════════════════
-   FERRIC MERIDIAN — Design System v2.0
-   Modo claro: blanco puro + tipografía oscura + acento cobre
-   Modo oscuro: zinc-950 elegante + acento cobre luminoso
+   AEGIS CLINICAL — Design System v3.0
+   Modo claro: blanco clínico + tipografía slate + acento cyan
+   Modo oscuro: slate-900 profundo (no negro puro) + acento cyan médico
    Tipografía: Sentient (display) + Switzer (UI)
 ═══════════════════════════════════════════════════════════════ */
 
 :root {
-  /* ── Superficies (modo claro — blanco puro elegante) */
-  --bg:           #FFFFFF;   /* blanco puro */
+  /* ── Superficies (modo claro) */
+  --bg:           #F8FAFC;   /* slate-50 muy limpio */
   --bg-elevated:  #FFFFFF;   /* blanco puro elevado */
-  --bg-soft:      #F4F4F6;   /* zinc-100 muy sutil */
+  --bg-soft:      #F1F5F9;   /* slate-100 */
 
   /* ── Tipografía */
-  --ink:          #0D0D0D;   /* casi negro — más suave que #000 */
-  --ink-soft:     #6B6B80;   /* zinc-500 con toque azulado */
-  --ink-faint:    #A1A1B0;   /* zinc-400 — hints, placeholders */
+  --ink:          #0F172A;   /* slate-900 profundo */
+  --ink-soft:     #64748B;   /* slate-500 */
+  --ink-faint:    #94A3B8;   /* slate-400 */
 
   /* ── Superficies de componentes */
   --card:         #FFFFFF;
-  --card-contrast:#F8F8FA;
-  --border:       #E4E4E8;   /* zinc-200 — muy sutil */
+  --card-contrast:#F8FAFC;
+  --border:       #E2E8F0;   /* slate-200 */
   --field:        #FFFFFF;
-  --field-border: #D1D1D8;   /* zinc-300 */
+  --field-border: #CBD5E1;   /* slate-300 */
 
-  /* ── Acento — cobre oxidado (mantiene identidad de marca) */
-  --accent:       #C4602A;
-  --accent-dim:   rgba(196, 96, 42, 0.08);
-  --accent-glow:  rgba(196, 96, 42, 0.18);
-  --accent-hover: #A84F22;
+  /* ── Acento — Cyan Médico (confianza/higiene) */
+  --accent:       #0284C7;   /* sky-600 */
+  --accent-dim:   rgba(2, 132, 199, 0.08);
+  --accent-glow:  rgba(2, 132, 199, 0.18);
+  --accent-hover: #0369A1;   /* sky-700 */
 
   /* ── Estado clínico */
-  --state-ok:     #16803C;   /* verde sobrio */
-  --state-warn:   #B45309;   /* ámbar profundo */
-  --state-alert:  #B91C1C;   /* rojo oscuro */
-  --state-info:   #1D4ED8;   /* azul profundo */
+  --state-ok:     #059669;   /* emerald-600 */
+  --state-warn:   #D97706;   /* amber-600 */
+  --state-alert:  #DC2626;   /* red-600 */
+  --state-info:   #2563EB;   /* blue-600 */
 
-  /* ── Sombras — crisp y limpias sobre blanco */
-  --shadow-sm:    0 1px 2px rgba(0,0,0,0.05);
-  --shadow:       0 4px 16px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.05);
-  --shadow-lg:    0 20px 60px rgba(0,0,0,0.10), 0 4px 16px rgba(0,0,0,0.06);
+  /* ── Sombras */
+  --shadow-sm:    0 1px 2px rgba(15, 23, 42, 0.05);
+  --shadow:       0 4px 16px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.03);
+  --shadow-lg:    0 20px 60px rgba(15, 23, 42, 0.08), 0 4px 16px rgba(15, 23, 42, 0.04);
 
   /* ── Geometría */
   --radius-sm:    6px;
@@ -57,69 +57,69 @@
   color-scheme: light;
 }
 
-/* ── Modo oscuro elegante — zinc-950 profundo */
+/* ── Modo oscuro clínico — slate-900 profundo, no negro puro */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg:           #09090B;   /* zinc-950 — negro elegante, no plano */
-    --bg-elevated:  #111113;   /* zinc-900 muy oscuro */
-    --bg-soft:      #18181B;   /* zinc-900 */
-    --ink:          #FAFAFA;   /* zinc-50 — blanco suave */
-    --ink-soft:     #A1A1AA;   /* zinc-400 */
-    --ink-faint:    #52525B;   /* zinc-600 */
-    --card:         #111113;
-    --card-contrast:#18181B;
-    --border:       #27272A;   /* zinc-800 */
-    --field:        #18181B;
-    --field-border: #3F3F46;   /* zinc-700 */
-    --accent:       #D4763A;   /* cobre más luminoso en oscuro */
-    --accent-dim:   rgba(212,118,58,0.12);
-    --accent-glow:  rgba(212,118,58,0.22);
-    --shadow-sm:    0 1px 3px rgba(0,0,0,0.40);
-    --shadow:       0 4px 20px rgba(0,0,0,0.50);
-    --shadow-lg:    0 20px 60px rgba(0,0,0,0.60);
+    --bg:           #090F16;   /* slate super profundo, tint azulado */
+    --bg-elevated:  #111923;   /* slate-900 */
+    --bg-soft:      #182330;   /* slate-800 soft */
+    --ink:          #F8FAFC;   /* slate-50 */
+    --ink-soft:     #CBD5E1;   /* slate-300 */
+    --ink-faint:    #94A3B8;   /* slate-400 */
+    --card:         #111923;   /* card elevated */
+    --card-contrast:#182330;
+    --border:       #1E293B;   /* slate-800 */
+    --field:        #182330;   /* inputs más claros para contraste */
+    --field-border: #334155;   /* slate-700 */
+    --accent:       #38BDF8;   /* sky-400 muy luminoso */
+    --accent-dim:   rgba(56, 189, 248, 0.12);
+    --accent-glow:  rgba(56, 189, 248, 0.22);
+    --shadow-sm:    0 1px 3px rgba(0, 0, 0, 0.50);
+    --shadow:       0 4px 20px rgba(0, 0, 0, 0.60);
+    --shadow-lg:    0 20px 60px rgba(0, 0, 0, 0.80);
     color-scheme: dark;
   }
 }
 
 [data-theme="dark"] {
-  --bg:           #09090B;
-  --bg-elevated:  #111113;
-  --bg-soft:      #18181B;
-  --ink:          #FAFAFA;
-  --ink-soft:     #A1A1AA;
-  --ink-faint:    #52525B;
-  --card:         #111113;
-  --card-contrast:#18181B;
-  --border:       #27272A;
-  --field:        #18181B;
-  --field-border: #3F3F46;
-  --accent:       #D4763A;
-  --accent-dim:   rgba(212,118,58,0.12);
-  --accent-glow:  rgba(212,118,58,0.22);
-  --shadow-sm:    0 1px 3px rgba(0,0,0,0.40);
-  --shadow:       0 4px 20px rgba(0,0,0,0.50);
-  --shadow-lg:    0 20px 60px rgba(0,0,0,0.60);
+  --bg:           #090F16;
+  --bg-elevated:  #111923;
+  --bg-soft:      #182330;
+  --ink:          #F8FAFC;
+  --ink-soft:     #CBD5E1;
+  --ink-faint:    #94A3B8;
+  --card:         #111923;
+  --card-contrast:#182330;
+  --border:       #1E293B;
+  --field:        #182330;
+  --field-border: #334155;
+  --accent:       #38BDF8;
+  --accent-dim:   rgba(56, 189, 248, 0.12);
+  --accent-glow:  rgba(56, 189, 248, 0.22);
+  --shadow-sm:    0 1px 3px rgba(0, 0, 0, 0.50);
+  --shadow:       0 4px 20px rgba(0, 0, 0, 0.60);
+  --shadow-lg:    0 20px 60px rgba(0, 0, 0, 0.80);
   color-scheme: dark;
 }
 
 [data-theme="light"] {
-  --bg:           #FFFFFF;
+  --bg:           #F8FAFC;
   --bg-elevated:  #FFFFFF;
-  --bg-soft:      #F4F4F6;
-  --ink:          #0D0D0D;
-  --ink-soft:     #6B6B80;
-  --ink-faint:    #A1A1B0;
+  --bg-soft:      #F1F5F9;
+  --ink:          #0F172A;
+  --ink-soft:     #64748B;
+  --ink-faint:    #94A3B8;
   --card:         #FFFFFF;
-  --card-contrast:#F8F8FA;
-  --border:       #E4E4E8;
+  --card-contrast:#F8FAFC;
+  --border:       #E2E8F0;
   --field:        #FFFFFF;
-  --field-border: #D1D1D8;
-  --accent:       #C4602A;
-  --accent-dim:   rgba(196,96,42,0.08);
-  --accent-glow:  rgba(196,96,42,0.18);
-  --shadow-sm:    0 1px 2px rgba(0,0,0,0.05);
-  --shadow:       0 4px 16px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.05);
-  --shadow-lg:    0 20px 60px rgba(0,0,0,0.10), 0 4px 16px rgba(0,0,0,0.06);
+  --field-border: #CBD5E1;
+  --accent:       #0284C7;
+  --accent-dim:   rgba(2, 132, 199, 0.08);
+  --accent-glow:  rgba(2, 132, 199, 0.18);
+  --shadow-sm:    0 1px 2px rgba(15, 23, 42, 0.05);
+  --shadow:       0 4px 16px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.03);
+  --shadow-lg:    0 20px 60px rgba(15, 23, 42, 0.08), 0 4px 16px rgba(15, 23, 42, 0.04);
   color-scheme: light;
 }
 
@@ -196,6 +196,16 @@ html {
       transition-duration: 0.01ms !important;
       scroll-behavior: auto !important;
     }
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   GLOBAL ELEMENT STYLES
+══════════════════════════════════════════════════════ */
+@layer base {
+  option {
+    background-color: var(--bg-elevated);
+    color: var(--ink);
   }
 }
 

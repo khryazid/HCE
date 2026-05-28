@@ -33,6 +33,7 @@ export const EMPTY_METRICS: DashboardMetrics = {
 
 export type ActivityItem = {
   id: string;
+  patientId?: string;
   fullName: string;
   ageText: string;
   lastVisitReason: string | null;

@@ -62,12 +62,13 @@ export function useWizardDraftSync<TForm>({
 
   // M-11: Guardar borrador robustamente
   // Guardamos en cada cambio de form/step con un debounce y al desmontar.
+  const { saveWizardDraft } = context;
   useEffect(() => {
     if (!wizardOpen || !draftRestoredRef.current) return;
 
     // Guardar inmediatamente si el usuario recarga la pestaña o minimiza
     const flushNow = () => {
-      context.saveWizardDraft(form, step);
+      saveWizardDraft(form, step);
     };
 
     const onBeforeUnload = () => flushNow();
@@ -90,5 +91,5 @@ export function useWizardDraftSync<TForm>({
       // Salvar el borrador cuando el componente se desmonta (ej. navegando por el sidebar)
       flushNow();
     };
-  }, [context, draftRestoredRef, form, step, wizardOpen]);
+  }, [saveWizardDraft, draftRestoredRef, form, step, wizardOpen]);
 }

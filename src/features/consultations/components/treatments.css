@@ -1,0 +1,294 @@
+/* ═══════════════════════════════════════════════════════════════
+   GLYPHIX — Tratamientos (Plantillas)
+   Terminal de control / Tabla densa + Slide-over Formulario
+═══════════════════════════════════════════════════════════════ */
+
+@keyframes gx-up {
+  from { opacity:0; transform:translateY(8px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+.gx-s { opacity:0; animation: gx-up 320ms cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.gx-s1{animation-delay:0ms}.gx-s2{animation-delay:40ms}.gx-s3{animation-delay:80ms}
+.gx-s4{animation-delay:120ms}
+
+/* ══════════════════════════════════════════════════════
+   HEADER
+══════════════════════════════════════════════════════ */
+.gx-th-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.gx-th-title {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+  margin: 0;
+}
+.gx-th-sub {
+  font-size: 0.8125rem;
+  color: var(--ink-soft);
+  margin-top: 4px;
+}
+
+/* ── Buttons ──────────────────────────────────────── */
+.gx-btn {
+  font-family: var(--font-sans); font-size: 0.75rem; font-weight: 600;
+  border-radius: var(--radius-sm); padding: 8px 18px; cursor: pointer;
+  transition: all 180ms cubic-bezier(0.16, 1, 0.3, 1); user-select: none;
+  border: 1px solid transparent; display: inline-flex; align-items: center; justify-content: center;
+}
+.gx-btn:active { transform: scale(0.97); }
+.gx-btn:disabled { opacity: 0.5; pointer-events: none; }
+.gx-btn-p { color: #FFF; background: var(--accent); }
+.gx-btn-p:hover { background: var(--accent-hover); box-shadow: 0 4px 16px var(--accent-glow); transform: translateY(-1px); }
+.gx-btn-s { color: var(--ink); background: var(--bg-elevated); border-color: var(--border); }
+.gx-btn-s:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ══════════════════════════════════════════════════════
+   TABLE
+══════════════════════════════════════════════════════ */
+.gx-table-wrap {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--bg-elevated);
+}
+.gx-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+/* ── Header ───────────────────────────────────────── */
+.gx-table thead th {
+  font-family: var(--font-sans);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-faint);
+  text-align: left;
+  padding: 10px 16px;
+  background: var(--bg-soft);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+/* ── Rows ─────────────────────────────────────────── */
+.gx-table tbody tr {
+  border-bottom: 1px solid var(--border);
+  transition: background 120ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.gx-table tbody tr:last-child { border-bottom: none; }
+.gx-table tbody tr:hover {
+  background: var(--bg-soft);
+}
+.gx-table td {
+  padding: 12px 16px;
+  vertical-align: middle;
+}
+
+/* ── Data Cells ───────────────────────────────────── */
+.gx-t-title {
+  font-weight: 600;
+  color: var(--ink);
+}
+.gx-t-version {
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
+  background: var(--bg-soft);
+  color: var(--ink-soft);
+  padding: 2px 6px;
+  border-radius: 100px;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+.gx-t-trigger {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+.gx-t-summary {
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+  max-width: 300px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.gx-date {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  color: var(--ink-faint);
+  font-feature-settings: "tnum";
+}
+
+/* ── Actions (Hover reveal) ───────────────────────── */
+.gx-row-actions {
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 150ms cubic-bezier(0.16, 1, 0.3, 1);
+  justify-content: flex-end;
+}
+.gx-table tbody tr:hover .gx-row-actions { opacity: 1; }
+@media (max-width: 1024px) {
+  .gx-row-actions { opacity: 1; }
+}
+
+.gx-row-act {
+  font-family: var(--font-sans);
+  font-size: 0.625rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: all 120ms cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+}
+.gx-row-act:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.gx-row-act:active { transform: scale(0.95); }
+.gx-row-act-danger:hover {
+  border-color: var(--state-error);
+  color: var(--state-error);
+  background: color-mix(in srgb, var(--state-error) 10%, transparent);
+}
+
+/* ══════════════════════════════════════════════════════
+   SLIDE-OVER PANEL
+══════════════════════════════════════════════════════ */
+.gx-slideover-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.3);
+  backdrop-filter: blur(4px);
+  z-index: var(--z-modal);
+  opacity: 0;
+  animation: fade-in 200ms ease-out forwards;
+}
+
+.gx-slideover-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  max-width: 600px;
+  background: var(--bg);
+  box-shadow: var(--shadow-lg);
+  z-index: calc(var(--z-modal) + 1);
+  transform: translateX(100%);
+  animation: slide-in-right 300ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  display: flex;
+  flex-direction: column;
+}
+
+.gx-slideover-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-soft);
+}
+.gx-slideover-title {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+.gx-slideover-close {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: all 150ms cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1px solid transparent;
+  background: transparent;
+}
+.gx-slideover-close:hover {
+  background: var(--bg-elevated);
+  color: var(--ink);
+  border-color: var(--border);
+}
+
+.gx-slideover-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+}
+.gx-slideover-footer {
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-elevated);
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes slide-in-right {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+/* ══════════════════════════════════════════════════════
+   FORM INPUTS (Estilo Registro Clínico)
+══════════════════════════════════════════════════════ */
+.gx-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+.gx-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+.gx-input, .gx-select, .gx-textarea {
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  color: var(--ink);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  outline: none;
+  transition: all 150ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.gx-textarea {
+  resize: vertical;
+  min-height: 120px;
+}
+.gx-input::placeholder, .gx-textarea::placeholder { color: var(--ink-faint); }
+.gx-input:hover, .gx-select:hover, .gx-textarea:hover { border-color: var(--ink-faint); }
+.gx-input:focus, .gx-select:focus, .gx-textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-dim);
+  background: var(--bg-elevated);
+}
+
+.gx-section-divider {
+  margin: 32px 0 16px 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-subtle);
+  font-family: var(--font-sans);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--accent);
+}

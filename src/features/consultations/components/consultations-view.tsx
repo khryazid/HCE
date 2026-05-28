@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useTenant } from "@/lib/supabase/tenant-context";
 import { ConsultasSkeleton } from "@/components/ui/skeletons";
@@ -15,35 +15,24 @@ import { WizardStepReviewOfSystems } from "@/features/consultations/components/w
 import WizardStepPhysicalExam from "@/features/consultations/components/wizard-step-physical-exam";
 import WizardStepDiagnosisOnly from "@/features/consultations/components/wizard-step-diagnosis-only";
 import WizardStepTreatment from "@/features/consultations/components/wizard-step-treatment";
-import { WizardStepper } from "./wizard-stepper";
+import "./consultations.css";
 
-// Constante de steps (fuera del componente)
-const WIZARD_STEPS = [
-  { number: 1, label: "Paciente" },
-  { number: 2, label: "Anamnesis" },
-  { number: 3, label: "Rev. Sistemas" },
-  { number: 4, label: "Examen Físico" },
-  { number: 5, label: "Diagnóstico" },
-  { number: 6, label: "Tratamiento" },
-];
-
-// ─── Step metadata (medico-legal order) — used by WizardStepper internally
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+// ─── Step metadata
 const STEPS = [
-  { num: 1, label: "Datos del Paciente e Ingreso" },
-  { num: 2, label: "Anamnesis y Antecedentes" },
-  { num: 3, label: "Revisión por Sistemas" },
-  { num: 4, label: "Examen Físico" },
-  { num: 5, label: "Diagnóstico" },
-  { num: 6, label: "Tratamiento y Plan" },
+  { id: "step-1", num: 1, label: "Datos del Paciente e Ingreso" },
+  { id: "step-2", num: 2, label: "Anamnesis y Antecedentes" },
+  { id: "step-3", num: 3, label: "Revisión por Sistemas" },
+  { id: "step-4", num: 4, label: "Examen Físico" },
+  { id: "step-5", num: 5, label: "Diagnóstico" },
+  { id: "step-6", num: 6, label: "Tratamiento y Plan" },
 ] as const;
 
 export default function ConsultationsView() {
   const { tenant, loading: tenantLoading } = useTenant();
   const wizard = useConsultationWizard(tenant);
   const searchParams = useSearchParams();
+  const [activeStepId, setActiveStepId] = useState<string>("step-1");
 
-  // Escuchar parámetros de la URL para Iniciar Consulta desde la Agenda
   const { wizardOpen, openWizard, setQuickPatient } = wizard;
   useEffect(() => {
     const aptId = searchParams?.get("appointmentId");
@@ -60,7 +49,6 @@ export default function ConsultationsView() {
       }));
 
       if (pName || pDoc || pBirth) {
-        // Buscar coincidencia exacta por cédula
         const existingPatient = pDoc ? wizard.patients.find(p => p.document_number === pDoc) : undefined;
 
         if (existingPatient) {
@@ -70,7 +58,6 @@ export default function ConsultationsView() {
             patientStatus: existingPatient.status ?? "activo",
           }));
         } else {
-          // Si no existe, pre-llenar para crear paciente
           const parts = (pName || "").trim().split(" ");
           const firstName = parts[0] || "";
           const lastName = parts.slice(1).join(" ") || "";
@@ -88,223 +75,305 @@ export default function ConsultationsView() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, wizardOpen, openWizard, setQuickPatient]);
 
+  // Scroll-spy para el índice lateral
+  useEffect(() => {
+    if (!wizard.wizardOpen) return;
+    
+    let timeoutId: NodeJS.Timeout;
+    const handleScroll = () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      
+      timeoutId = setTimeout(() => {
+        const offset = 250; // Compensación para headers y visualización
+        const scrollPosition = window.scrollY + offset;
+
+        let currentActive = "step-1";
+        
+        for (const step of STEPS) {
+          const el = document.getElementById(step.id);
+          if (el) {
+            const top = el.getBoundingClientRect().top + window.scrollY;
+            if (scrollPosition >= top) {
+              currentActive = step.id;
+            }
+          }
+        }
+        
+        setActiveStepId((prev) => (prev !== currentActive ? currentActive : prev));
+      }, 50);
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    // Llamada inicial para fijar el activo correcto al abrir
+    setTimeout(handleScroll, 100);
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [wizard.wizardOpen]);
+
+  const scrollToStep = (id: string) => {
+    const el = document.getElementById(id);
+    if (el) {
+      const y = el.getBoundingClientRect().top + window.scrollY - 100;
+      window.scrollTo({ top: y, behavior: "smooth" });
+    }
+  };
+
   if (tenantLoading || wizard.dataLoading) {
     return <ConsultasSkeleton />;
   }
 
   return (
-    <section className="hce-page">
+    <section className="hce-page pb-24">
 
       {/* Header */}
-      <header className="relative overflow-hidden rounded-3xl border border-border bg-card p-6 shadow-sm sm:p-8">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0"
-          style={{
-            background:
-              "radial-gradient(ellipse 70% 80% at 100% 0%, rgba(15,118,110,0.10) 0%, transparent 60%)",
-          }}
-        />
-        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-accent">
-              Motor clínico
-            </p>
-            <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">
-              Flujo de consulta
-            </h1>
-            <p className="mt-2 text-sm leading-7 text-ink-soft">
-              Registro guiado en 6 pasos siguiendo el orden médico-legal estricto.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => {
-              import("@/lib/observability/usage-tracker").then((m) => m.trackUsage("consultation:start"));
-              wizard.openWizard();
+      {!wizard.wizardOpen && (
+        <header className="relative overflow-hidden rounded-3xl border border-border bg-card p-6 shadow-sm sm:p-8 mb-6">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0"
+            style={{
+              background:
+                "radial-gradient(ellipse 70% 80% at 100% 0%, rgba(15,118,110,0.10) 0%, transparent 60%)",
             }}
-            className="hce-btn-primary shrink-0"
-          >
-            Nueva consulta
-          </button>
-        </div>
-      </header>
+          />
+          <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-widest text-accent">
+                Motor clínico
+              </p>
+              <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">
+                Flujo de consulta
+              </h1>
+              <p className="mt-2 text-sm leading-7 text-ink-soft">
+                Registro guiado siguiendo el orden médico-legal estricto.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                import("@/lib/observability/usage-tracker").then((m) => m.trackUsage("consultation:start"));
+                wizard.openWizard();
+              }}
+              className="hce-btn-primary shrink-0"
+            >
+              Nueva consulta
+            </button>
+          </div>
+        </header>
+      )}
 
       {wizard.message ? (
-        <div className="hce-alert-success" role="status" aria-live="polite">
+        <div className="hce-alert-success mb-6" role="status" aria-live="polite">
           {wizard.message}
         </div>
       ) : null}
 
       {wizard.error ? (
-        <div className="hce-alert-error" role="alert" aria-live="assertive">
+        <div className="hce-alert-error mb-6" role="alert" aria-live="assertive">
           {wizard.error}
         </div>
       ) : null}
 
       {wizard.wizardOpen ? (
-        <article className="space-y-4" spellCheck={true} lang="es">
-
-          {/* Wizard header */}
-          <div className="relative overflow-hidden rounded-3xl border border-border bg-card p-6 shadow-sm">
-            <div
-              aria-hidden
-              className="pointer-events-none absolute inset-0"
-              style={{
-                background:
-                  "radial-gradient(circle at top right, rgba(14,118,110,.08), transparent 45%)",
-              }}
-            />
-            <div className="relative flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-widest text-accent">Registro Clínico</p>
-                <h2 className="mt-1 text-2xl font-extrabold tracking-tight text-ink">Nueva Consulta</h2>
-                <p className="text-sm text-ink-soft">Completa los datos y guarda al finalizar.</p>
-              </div>
-              <button
-                type="button"
-                className="hce-btn-secondary shrink-0"
-                onClick={wizard.resetWizard}
-              >
-                Cancelar
-              </button>
+        <article spellCheck={true} lang="es">
+          
+          {/* Header minimalista cuando el wizard está abierto */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 pb-4 border-b border-border">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-widest text-accent">Registro Clínico</p>
+              <h2 className="mt-1 text-2xl font-extrabold tracking-tight text-ink">Nueva Consulta</h2>
             </div>
-
-            {/* Stepper visual */}
-            <div className="mt-5 flex justify-center w-full">
-              <WizardStepper steps={WIZARD_STEPS} currentStep={wizard.step} />
-            </div>
+            <button
+              type="button"
+              className="hce-btn-secondary shrink-0 mt-4 sm:mt-0 text-sm"
+              onClick={wizard.resetWizard}
+            >
+              Cancelar Consulta
+            </button>
           </div>
 
-          {/* ── Paso 1: Datos del Paciente e Ingreso ──────────────────────── */}
-          <section className="rounded-3xl border border-border bg-card p-6 shadow-sm space-y-4">
-            <h3 className="text-base font-bold text-ink border-b border-border pb-3">
-              <span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-accent/10 text-xs font-extrabold text-accent">1</span>
-              Datos del Paciente e Ingreso
-            </h3>
-            <WizardStepPatient
-              form={wizard.form}
-              setForm={wizard.setForm}
-              patients={wizard.patients}
-              quickPatient={wizard.quickPatient}
-              setQuickPatient={wizard.setQuickPatient}
-              pendingFollowUp={wizard.pendingFollowUp}
-              latestPatientRecord={wizard.latestPatientRecord}
-              validationErrors={wizard.validationErrors}
-              tenantSpecialties={tenant?.specialties ?? []}
-              onCreateQuickPatient={() => void wizard.createQuickPatient()}
-              onApplyConsultaMode={wizard.applyConsultaMode}
-              onApplyFollowUpMode={wizard.applyFollowUpMode}
-            />
-          </section>
+          <div className="gx-consultation-layout">
+            
+            {/* ÍNDICE LATERAL (STICKY) */}
+            <aside className="gx-consultation-index">
+              <nav className="space-y-1">
+                {STEPS.map((step) => {
+                  const isActive = activeStepId === step.id;
+                  const isDone = false; // TODO: Implementar lógica de validación parcial si se desea
 
-          {wizard.form.patientId ? (
-            <>
-              {/* ── Paso 2: Anamnesis y Antecedentes ──────────────────────── */}
-              <section className="rounded-3xl border border-border bg-card p-6 shadow-sm space-y-4">
-                <h3 className="text-base font-bold text-ink border-b border-border pb-3">
-                  <span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-accent/10 text-xs font-extrabold text-accent">2</span>
-                  Anamnesis y Antecedentes
-                </h3>
-                <WizardStepAnamnesis
-                  form={wizard.form}
-                  setForm={wizard.setForm}
-                  validationErrors={wizard.validationErrors}
-                  uiPreferences={wizard.uiPreferences}
-                />
-              </section>
+                  // Ocultar sección 3 si el usuario prefirió ocultarla
+                  if (step.id === "step-3" && wizard.uiPreferences?.hide_review_of_systems) {
+                    return null;
+                  }
 
-              {/* ── Paso 3: Revisión por Sistemas (Examen Funcional) ────────── */}
-              {wizard.uiPreferences?.hide_review_of_systems !== true && (
-                <section className="rounded-3xl border border-border bg-card p-6 shadow-sm space-y-4">
-                  <h3 className="text-base font-bold text-ink border-b border-border pb-3">
-                    <span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-accent/10 text-xs font-extrabold text-accent">3</span>
-                    Revisión por Sistemas (Examen Funcional)
-                  </h3>
-                  <WizardStepReviewOfSystems
-                    form={wizard.form}
-                    setForm={wizard.setForm}
-                    uiPreferences={wizard.uiPreferences}
-                    onToggleSection={wizard.toggleSectionVisibility}
-                  />
-                </section>
+                  return (
+                    <button
+                      key={step.id}
+                      type="button"
+                      onClick={() => scrollToStep(step.id)}
+                      className="gx-index-item w-full text-left"
+                      data-active={isActive}
+                      data-done={isDone}
+                    >
+                      <span className="gx-index-num">{step.num}</span>
+                      <span className="truncate">{step.label}</span>
+                    </button>
+                  );
+                })}
+              </nav>
+
+              {/* ACTION BAR FLOTANTE INTEGRADA EN EL ÍNDICE */}
+              {wizard.form.patientId && (
+                <div className="gx-floating-actions">
+                  <p className="text-xs font-bold text-ink mb-3">Acciones</p>
+                  <div className="flex flex-col gap-2">
+                    <button
+                      onClick={() => void wizard.handleSaveWithoutPdf()}
+                      className="hce-btn-secondary w-full justify-center text-xs py-2"
+                      disabled={wizard.saving}
+                    >
+                      {wizard.saving ? "Guardando..." : "Solo Guardar"}
+                    </button>
+                    <button
+                      onClick={() => void wizard.handleSaveWithPdf()}
+                      className="hce-btn-primary w-full justify-center text-xs py-2"
+                      disabled={wizard.saving}
+                    >
+                      Guardar y PDF
+                    </button>
+                  </div>
+                </div>
               )}
+            </aside>
 
-              {/* ── Paso 4: Examen Físico ──────────────────────────────────── */}
-              <section className="rounded-3xl border border-border bg-card p-6 shadow-sm space-y-4">
-                <h3 className="text-base font-bold text-ink border-b border-border pb-3">
-                  <span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-accent/10 text-xs font-extrabold text-accent">4</span>
-                  Examen Físico
+            {/* LIENZO CLÍNICO CONTINUO */}
+            <div className="gx-form-canvas bg-card rounded-2xl sm:rounded-none sm:bg-transparent p-4 sm:p-0 shadow-sm sm:shadow-none border border-border sm:border-none">
+              
+              {/* ── Paso 1: Datos del Paciente e Ingreso ──────────────────────── */}
+              <section id="step-1" className="gx-form-section pt-0">
+                <h3 className="gx-form-section-title">
+                  <span>1</span> Datos del Paciente e Ingreso
                 </h3>
-                <WizardStepPhysicalExam
+                <WizardStepPatient
                   form={wizard.form}
                   setForm={wizard.setForm}
-                  tenantSpecialties={tenant?.specialties ?? []}
-                  uiPreferences={wizard.uiPreferences}
-                />
-              </section>
-
-              {/* ── Paso 5: Diagnóstico ───────────────────────────────────── */}
-              <section className="rounded-3xl border border-border bg-card p-6 shadow-sm space-y-4">
-                <h3 className="text-base font-bold text-ink border-b border-border pb-3">
-                  <span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-accent/10 text-xs font-extrabold text-accent">5</span>
-                  Diagnóstico
-                </h3>
-                <WizardStepDiagnosisOnly
-                  form={wizard.form}
-                  setForm={wizard.setForm}
-                  validationErrors={wizard.validationErrors}
-                  triggerMagicCieFill={wizard.triggerMagicCieFill}
-                />
-              </section>
-
-              {/* ── Paso 6: Tratamiento y Plan ────────────────────────────── */}
-              <section className="rounded-3xl border border-border bg-card p-6 shadow-sm space-y-4">
-                <h3 className="text-base font-bold text-ink border-b border-border pb-3">
-                  <span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-accent/10 text-xs font-extrabold text-accent">6</span>
-                  Tratamiento y Plan
-                </h3>
-                <WizardStepTreatment
-                  form={wizard.form}
-                  setForm={wizard.setForm}
-                  templates={wizard.templates}
-                  validationErrors={wizard.validationErrors}
+                  patients={wizard.patients}
+                  quickPatient={wizard.quickPatient}
+                  setQuickPatient={wizard.setQuickPatient}
+                  pendingFollowUp={wizard.pendingFollowUp}
                   latestPatientRecord={wizard.latestPatientRecord}
-                  onApplyTemplate={wizard.applyTemplate}
-                  uiPreferences={wizard.uiPreferences}
-                  onToggleSection={wizard.toggleSectionVisibility}
+                  validationErrors={wizard.validationErrors}
+                  tenantSpecialties={tenant?.specialties ?? []}
+                  onCreateQuickPatient={() => void wizard.createQuickPatient()}
+                  onApplyConsultaMode={wizard.applyConsultaMode}
+                  onApplyFollowUpMode={wizard.applyFollowUpMode}
                 />
               </section>
 
-              {/* Action bar */}
-              <div className="hce-sticky-action-bar flex flex-col sm:flex-row gap-4 items-center justify-between pb-[calc(env(safe-area-inset-bottom)+1rem)] sm:pb-4">
-                <div>
-                  <p className="font-bold text-ink">Consulta lista para guardar</p>
-                  <p className="text-xs text-ink-soft">Revisa los datos antes de continuar.</p>
+              {wizard.form.patientId ? (
+                <>
+                  {/* ── Paso 2: Anamnesis y Antecedentes ──────────────────────── */}
+                  <section id="step-2" className="gx-form-section">
+                    <h3 className="gx-form-section-title">
+                      <span>2</span> Anamnesis y Antecedentes
+                    </h3>
+                    <WizardStepAnamnesis
+                      form={wizard.form}
+                      setForm={wizard.setForm}
+                      validationErrors={wizard.validationErrors}
+                      uiPreferences={wizard.uiPreferences}
+                    />
+                  </section>
+
+                  {/* ── Paso 3: Revisión por Sistemas (Examen Funcional) ────────── */}
+                  {wizard.uiPreferences?.hide_review_of_systems !== true && (
+                    <section id="step-3" className="gx-form-section">
+                      <h3 className="gx-form-section-title">
+                        <span>3</span> Revisión por Sistemas
+                      </h3>
+                      <WizardStepReviewOfSystems
+                        form={wizard.form}
+                        setForm={wizard.setForm}
+                        uiPreferences={wizard.uiPreferences}
+                        onToggleSection={wizard.toggleSectionVisibility}
+                      />
+                    </section>
+                  )}
+
+                  {/* ── Paso 4: Examen Físico ──────────────────────────────────── */}
+                  <section id="step-4" className="gx-form-section">
+                    <h3 className="gx-form-section-title">
+                      <span>4</span> Examen Físico
+                    </h3>
+                    <WizardStepPhysicalExam
+                      form={wizard.form}
+                      setForm={wizard.setForm}
+                      tenantSpecialties={tenant?.specialties ?? []}
+                      uiPreferences={wizard.uiPreferences}
+                    />
+                  </section>
+
+                  {/* ── Paso 5: Diagnóstico ───────────────────────────────────── */}
+                  <section id="step-5" className="gx-form-section">
+                    <h3 className="gx-form-section-title">
+                      <span>5</span> Diagnóstico
+                    </h3>
+                    <WizardStepDiagnosisOnly
+                      form={wizard.form}
+                      setForm={wizard.setForm}
+                      validationErrors={wizard.validationErrors}
+                      triggerMagicCieFill={wizard.triggerMagicCieFill}
+                    />
+                  </section>
+
+                  {/* ── Paso 6: Tratamiento y Plan ────────────────────────────── */}
+                  <section id="step-6" className="gx-form-section">
+                    <h3 className="gx-form-section-title">
+                      <span>6</span> Tratamiento y Plan
+                    </h3>
+                    <WizardStepTreatment
+                      form={wizard.form}
+                      setForm={wizard.setForm}
+                      templates={wizard.templates}
+                      validationErrors={wizard.validationErrors}
+                      latestPatientRecord={wizard.latestPatientRecord}
+                      onApplyTemplate={wizard.applyTemplate}
+                      uiPreferences={wizard.uiPreferences}
+                      onToggleSection={wizard.toggleSectionVisibility}
+                    />
+                  </section>
+
+                  {/* ACTION BAR MOBILE (visible solo en pantallas pequeñas) */}
+                  <div className="lg:hidden hce-sticky-action-bar flex flex-col gap-3 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-4 mt-8 border-t border-border">
+                    <p className="font-bold text-ink text-center">Consulta lista para guardar</p>
+                    <div className="flex flex-row gap-3">
+                      <button
+                        onClick={() => void wizard.handleSaveWithoutPdf()}
+                        className="hce-btn-secondary flex-1 justify-center"
+                        disabled={wizard.saving}
+                      >
+                        {wizard.saving ? "..." : "Solo guardar"}
+                      </button>
+                      <button
+                        onClick={() => void wizard.handleSaveWithPdf()}
+                        className="hce-btn-primary flex-1 justify-center"
+                        disabled={wizard.saving}
+                      >
+                        Guardar y PDF
+                      </button>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="my-12 rounded-2xl border border-dashed border-border/60 bg-bg-soft/50 p-8 text-center">
+                  <p className="text-ink-soft font-medium">Selecciona o crea un paciente arriba para continuar redactando la consulta.</p>
                 </div>
-                <div className="flex flex-wrap gap-3 w-full sm:w-auto">
-                  <button
-                    onClick={() => void wizard.handleSaveWithoutPdf()}
-                    className="hce-btn-secondary flex-1 sm:flex-none justify-center"
-                    disabled={wizard.saving}
-                  >
-                    {wizard.saving ? "Guardando..." : "Solo guardar"}
-                  </button>
-                  <button
-                    onClick={() => void wizard.handleSaveWithPdf()}
-                    className="hce-btn-primary flex-1 sm:flex-none justify-center"
-                    disabled={wizard.saving}
-                  >
-                    Guardar y Generar PDF
-                  </button>
-                </div>
-              </div>
-            </>
-          ) : (
-            <div className="rounded-3xl border border-border bg-card p-6 text-center shadow-sm">
-              <p className="text-ink-soft">Selecciona o crea un paciente para continuar con la consulta.</p>
+              )}
             </div>
-          )}
+          </div>
         </article>
       ) : (
         <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
@@ -315,7 +384,7 @@ export default function ConsultationsView() {
             return (
               <div className="flex flex-col md:flex-row items-center justify-between gap-6">
                 <div className="flex items-start gap-4">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent">
                     <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                   </div>
                   <div>
@@ -340,7 +409,7 @@ export default function ConsultationsView() {
                   <button
                     type="button"
                     onClick={wizard.resumeWizard}
-                    className="hce-btn-primary flex-1 md:flex-none justify-center bg-amber-500 hover:bg-amber-600 border-amber-600"
+                    className="hce-btn-primary flex-1 md:flex-none justify-center"
                   >
                     Retomar consulta
                   </button>

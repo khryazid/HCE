@@ -1,6 +1,7 @@
 "use client";
 
 import { memo, useMemo, useState } from "react";
+import { User, Briefcase, Shield, Droplet, Users, Phone, UserPlus, Search, IdCard, Calendar } from "lucide-react";
 import type { ClinicalRecordRecord } from "@/features/consultations/types";
 import type { PatientRecord } from "@/features/patients/types";
 import type {
@@ -120,7 +121,7 @@ const WizardStepPatient = memo(function WizardStepPatient({
               <p className="text-sm font-semibold text-teal-900 dark:text-teal-100">
                 {selectedPatientLabel.full_name}
               </p>
-              <p className="mt-1 text-xs text-teal-800 dark:text-teal-200">
+              <p className="mt-1 text-xs text-ink-soft">
                 DNI: {selectedPatientLabel.document_number}
                 {selectedPatientLabel.birth_date
                   ? ` · Edad: ${calculateAge(selectedPatientLabel.birth_date)} (${selectedPatientLabel.birth_date})`
@@ -138,48 +139,56 @@ const WizardStepPatient = memo(function WizardStepPatient({
             </button>
           </div>
 
-          <div className="hce-card space-y-4">
+          <div className="space-y-4">
             <h4 className="text-sm font-semibold text-ink">Datos complementarios para la consulta</h4>
             <div className="grid gap-4 sm:grid-cols-3">
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-ink">
-                  Sexo Biológico <span className="text-red-500">*</span>
-                </label>
-                <select
-                  className="hce-input"
-                  value={form.gender}
-                  onChange={(e) => setForm(c => ({ ...c, gender: e.target.value as "Hombre" | "Mujer" | "" }))}
-                >
-                  <option value="">Seleccionar...</option>
-                  <option value="Hombre">Hombre</option>
-                  <option value="Mujer">Mujer</option>
-                </select>
-                <p className="text-[10px] text-ink-soft">
+                <div className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
+                  <label className="absolute left-3 top-2 flex items-center gap-1.5 text-sm font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+                    <User className="h-3 w-3" /> Sexo Biológico <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    className="w-full bg-transparent px-3 pb-3 pt-7 text-base text-ink !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none"
+                    value={form.gender}
+                    onChange={(e) => setForm(c => ({ ...c, gender: e.target.value as "Hombre" | "Mujer" | "" }))}
+                  >
+                    <option value="">Seleccionar...</option>
+                    <option value="Hombre">Hombre</option>
+                    <option value="Mujer">Mujer</option>
+                  </select>
+                </div>
+                <p className="text-xs text-ink-soft px-1">
                   Dato médico-legal obligatorio para valores de referencia de laboratorio.
                 </p>
               </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-ink">Ocupación</label>
+              <div className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
+                <label className="absolute left-3 top-2 flex items-center gap-1.5 text-sm font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+                  <Briefcase className="h-3 w-3" /> Ocupación
+                </label>
                 <input
-                  className="hce-input"
+                  className="w-full bg-transparent px-3 pb-3 pt-7 text-base text-ink !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none placeholder:text-ink-faint/30"
                   placeholder="Ej: Docente, Arquitecto"
                   value={form.occupation}
                   onChange={(e) => setForm(c => ({ ...c, occupation: e.target.value }))}
                 />
               </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-ink">Aseguradora / EPS</label>
+              <div className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
+                <label className="absolute left-3 top-2 flex items-center gap-1.5 text-sm font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+                  <Shield className="h-3 w-3" /> Aseguradora / EPS
+                </label>
                 <input
-                  className="hce-input"
+                  className="w-full bg-transparent px-3 pb-3 pt-7 text-base text-ink !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none placeholder:text-ink-faint/30"
                   placeholder="Ej: Particular, IESS"
                   value={form.insurance}
                   onChange={(e) => setForm(c => ({ ...c, insurance: e.target.value }))}
                 />
               </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-ink">Tipo de Sangre</label>
+              <div className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
+                <label className="absolute left-3 top-2 flex items-center gap-1.5 text-sm font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+                  <Droplet className="h-3 w-3" /> Tipo de Sangre
+                </label>
                 <select
-                  className="hce-input"
+                  className="w-full bg-transparent px-3 pb-3 pt-7 text-base text-ink !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none"
                   value={form.blood_type}
                   onChange={(e) => setForm(c => ({ ...c, blood_type: e.target.value as typeof form.blood_type }))}
                 >
@@ -198,31 +207,37 @@ const WizardStepPatient = memo(function WizardStepPatient({
           </div>
 
           {/* Contacto de Emergencia */}
-          <div className="hce-card space-y-4">
+          <div className="space-y-4">
             <h4 className="text-sm font-semibold text-ink">Contacto de Emergencia</h4>
             <div className="grid gap-4 sm:grid-cols-3">
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-ink">Nombre</label>
+              <div className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
+                <label className="absolute left-3 top-2 flex items-center gap-1.5 text-sm font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+                  <UserPlus className="h-3 w-3" /> Nombre
+                </label>
                 <input
-                  className="hce-input"
+                  className="w-full bg-transparent px-3 pb-3 pt-7 text-base text-ink !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none placeholder:text-ink-faint/30"
                   placeholder="Ej: Ana Gómez"
                   value={form.emergency_contact.name}
                   onChange={(e) => setForm(c => ({ ...c, emergency_contact: { ...c.emergency_contact, name: e.target.value } }))}
                 />
               </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-ink">Parentesco</label>
+              <div className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
+                <label className="absolute left-3 top-2 flex items-center gap-1.5 text-sm font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+                  <Users className="h-3 w-3" /> Parentesco
+                </label>
                 <input
-                  className="hce-input"
+                  className="w-full bg-transparent px-3 pb-3 pt-7 text-base text-ink !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none placeholder:text-ink-faint/30"
                   placeholder="Ej: Madre, Esposo, Amigo"
                   value={form.emergency_contact.relationship}
                   onChange={(e) => setForm(c => ({ ...c, emergency_contact: { ...c.emergency_contact, relationship: e.target.value } }))}
                 />
               </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-ink">Teléfono</label>
+              <div className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
+                <label className="absolute left-3 top-2 flex items-center gap-1.5 text-sm font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+                  <Phone className="h-3 w-3" /> Teléfono
+                </label>
                 <input
-                  className="hce-input"
+                  className="w-full bg-transparent px-3 pb-3 pt-7 text-base text-ink !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none placeholder:text-ink-faint/30"
                   type="tel"
                   placeholder="Ej: +593 99 000 0000"
                   value={form.emergency_contact.phone}
@@ -232,12 +247,14 @@ const WizardStepPatient = memo(function WizardStepPatient({
             </div>
           </div>
 
-          <div className="hce-card space-y-4">
+          <div className="space-y-4">
             <h4 className="text-sm font-semibold text-ink">Datos de Ingreso</h4>
 
             {/* A. Tipo de consulta */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-ink">Tipo de Consulta</label>
+            <div className="group relative overflow-hidden rounded-xl border border-border bg-card p-3 pt-7 shadow-sm">
+              <label className="absolute left-3 top-2 flex items-center gap-1.5 text-sm font-bold uppercase tracking-widest text-ink-soft">
+                Tipo de Consulta
+              </label>
               <div className="flex flex-wrap gap-2">
                 {([
                   { value: "primera-vez", label: "Primera vez" },
@@ -252,7 +269,7 @@ const WizardStepPatient = memo(function WizardStepPatient({
                     className={`hce-chip ${
                       form.consultationType === value
                         ? "border-teal-500/50 bg-teal-500/10 text-teal-900 dark:text-teal-100"
-                        : "border-border bg-card text-ink hover:bg-bg-soft"
+                        : "border-border bg-bg-soft text-ink hover:border-teal-400"
                     }`}
                   >
                     {label}
@@ -262,10 +279,12 @@ const WizardStepPatient = memo(function WizardStepPatient({
             </div>
 
             {/* B. Fuente de información */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-ink">Fuente de Información</label>
+            <div className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
+              <label className="absolute left-3 top-2 flex items-center gap-1.5 text-sm font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+                Fuente de Información
+              </label>
               <select
-                className="hce-input"
+                className="w-full bg-transparent px-3 pb-3 pt-7 text-base text-ink !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none"
                 value={form.informantSource}
                 onChange={(e) => setForm(c => ({ ...c, informantSource: e.target.value as typeof form.informantSource }))}
               >
@@ -277,8 +296,10 @@ const WizardStepPatient = memo(function WizardStepPatient({
             </div>
 
             {/* C. Confiabilidad del informante */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-ink">Confiabilidad del Informante</label>
+            <div className="group relative overflow-hidden rounded-xl border border-border bg-card p-3 pt-7 shadow-sm">
+              <label className="absolute left-3 top-2 flex items-center gap-1.5 text-sm font-bold uppercase tracking-widest text-ink-soft">
+                Confiabilidad del Informante
+              </label>
               <div className="flex flex-wrap gap-2">
                 {([
                   { value: "confiable", label: "Confiable" },
@@ -292,7 +313,7 @@ const WizardStepPatient = memo(function WizardStepPatient({
                     className={`hce-chip ${
                       form.informantReliability === value
                         ? "border-teal-500/50 bg-teal-500/10 text-teal-900 dark:text-teal-100"
-                        : "border-border bg-card text-ink hover:bg-bg-soft"
+                        : "border-border bg-bg-soft text-ink hover:border-teal-400"
                     }`}
                   >
                     {label}
@@ -302,18 +323,20 @@ const WizardStepPatient = memo(function WizardStepPatient({
             </div>
 
             {/* D. Médico que remite */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-ink">Médico que Remite <span className="font-normal text-ink-soft">(opcional)</span></label>
+            <div className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
+              <label className="absolute left-3 top-2 flex items-center gap-1.5 text-sm font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+                Médico que Remite (opcional)
+              </label>
               <input
-                className="hce-input"
-                placeholder="Dr. García — Cardiología"
+                className="w-full bg-transparent px-3 pb-3 pt-7 text-base text-ink !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none placeholder:text-ink-faint/30"
+                placeholder="Ej: Dr. García — Cardiología"
                 value={form.referringDoctor}
                 onChange={(e) => setForm(c => ({ ...c, referringDoctor: e.target.value }))}
               />
             </div>
           </div>
 
-          <div className="hce-card space-y-4">
+          <div className="space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <p className="text-sm font-semibold text-ink">
                 Tipo de registro clínico
@@ -363,36 +386,40 @@ const WizardStepPatient = memo(function WizardStepPatient({
             </div>
 
             {pendingFollowUp ? (
-              <p className="text-sm text-ink-soft">
+              <p className="text-base text-ink-soft">
                 Control {pendingFollowUp.isOverdue ? "vencido" : "programado"} para
                 el {pendingFollowUp.dueDateLabel}. Base diagnóstica:{" "}
                 {pendingFollowUp.diagnosis}.
               </p>
             ) : (
-              <p className="text-sm text-ink-soft">
+              <p className="text-base text-ink-soft">
                 Puedes usar modo seguimiento si solo vas a registrar la evolución de un paciente frecuente.
               </p>
             )}
 
             <div className="mt-4 border-t border-border pt-4">
-              <label className="text-xs font-semibold text-ink">Especialidad de la Consulta</label>
-              <select
-                className="hce-input mt-1.5"
-                value={form.specialtyKind}
-                onChange={(e) => setForm(c => ({ ...c, specialtyKind: e.target.value }))}
-              >
-                {tenantSpecialties.length > 0 ? (
-                  tenantSpecialties.map(spec => (
-                    <option key={spec} value={spec}>{spec}</option>
-                  ))
-                ) : (
-                  <>
-                    <option value="medicina-general">Medicina General</option>
-                    <option value="pediatria">Pediatría</option>
-                    <option value="odontologia">Odontología</option>
-                  </>
-                )}
-              </select>
+              <div className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
+                <label className="absolute left-3 top-2 flex items-center gap-1.5 text-sm font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+                  Especialidad de la Consulta
+                </label>
+                <select
+                  className="w-full bg-transparent px-3 pb-3 pt-7 text-base text-ink !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none"
+                  value={form.specialtyKind}
+                  onChange={(e) => setForm(c => ({ ...c, specialtyKind: e.target.value }))}
+                >
+                  {tenantSpecialties.length > 0 ? (
+                    tenantSpecialties.map(spec => (
+                      <option key={spec} value={spec}>{spec}</option>
+                    ))
+                  ) : (
+                    <>
+                      <option value="medicina-general">Medicina General</option>
+                      <option value="pediatria">Pediatría</option>
+                      <option value="odontologia">Odontología</option>
+                    </>
+                  )}
+                </select>
+              </div>
             </div>
           </div>
         </div>
@@ -435,22 +462,24 @@ const WizardStepPatient = memo(function WizardStepPatient({
 
           {activeTab === "search" && (
             <div className="space-y-4 pt-2" role="tabpanel" id="patient-search-panel" aria-labelledby="patient-search-tab">
-              <label className="block text-sm font-medium text-ink">
-                Busca por nombre, apellido o documento
-              </label>
               <div className="relative">
-                <input
-                  className={baseInputClass()}
-                  placeholder="Ej: Juan Pérez o 1712345678"
-                  value={searchQuery}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value);
-                    setShowSuggestions(true);
-                  }}
-                  onFocus={() => setShowSuggestions(true)}
-                  aria-invalid={!!validationErrors.patientId}
-                  aria-describedby={validationErrors.patientId ? "error-patientId" : undefined}
-                />
+                <div className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
+                  <label className="absolute left-3 top-2 flex items-center gap-1.5 text-sm font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+                    <Search className="h-3 w-3" /> Buscar Paciente
+                  </label>
+                  <input
+                    className="w-full bg-transparent px-3 pb-3 pt-7 text-base text-ink !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none placeholder:text-ink-faint/30"
+                    placeholder="Ej: Juan Pérez o 1712345678"
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      setShowSuggestions(true);
+                    }}
+                    onFocus={() => setShowSuggestions(true)}
+                    aria-invalid={!!validationErrors.patientId}
+                    aria-describedby={validationErrors.patientId ? "error-patientId" : undefined}
+                  />
+                </div>
 
                 {showSuggestions && suggestions.length > 0 ? (
                   <div className="absolute inset-x-0 top-full z-20 mt-1 max-h-60 overflow-y-auto rounded-xl border border-border bg-card shadow-lg">
@@ -499,14 +528,50 @@ const WizardStepPatient = memo(function WizardStepPatient({
 
           {activeTab === "create" && (
             <div className="space-y-4 pt-2" role="tabpanel" id="patient-create-panel" aria-labelledby="patient-create-tab">
-              <p className="text-sm text-ink-soft">
+              <p className="text-base text-ink-soft">
                 Ingresa los datos básicos para registrar y continuar con la consulta.
               </p>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-ink">DNI / Cédula</label>
+              <div className="grid gap-4 sm:grid-cols-12">
+                <div className="col-span-12 sm:col-span-6 group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
+                  <label className="absolute left-3 top-2 flex items-center gap-1.5 text-sm font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+                    <User className="h-3 w-3" /> Nombres
+                  </label>
                   <input
-                    className="hce-input"
+                    className="w-full bg-transparent px-3 pb-3 pt-7 text-base text-ink !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none placeholder:text-ink-faint/30"
+                    placeholder="Ej: María"
+                    value={quickPatient.firstName}
+                    onChange={(event) =>
+                      setQuickPatient((current) => ({
+                        ...current,
+                        firstName: event.target.value,
+                      }))
+                    }
+                  />
+                </div>
+                
+                <div className="col-span-12 sm:col-span-6 group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
+                  <label className="absolute left-3 top-2 flex items-center gap-1.5 text-sm font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+                    <Users className="h-3 w-3" /> Apellidos
+                  </label>
+                  <input
+                    className="w-full bg-transparent px-3 pb-3 pt-7 text-base text-ink !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none placeholder:text-ink-faint/30"
+                    placeholder="Ej: Gomez"
+                    value={quickPatient.lastName}
+                    onChange={(event) =>
+                      setQuickPatient((current) => ({
+                        ...current,
+                        lastName: event.target.value,
+                      }))
+                    }
+                  />
+                </div>
+
+                <div className="col-span-12 sm:col-span-4 group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
+                  <label className="absolute left-3 top-2 flex items-center gap-1.5 text-sm font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+                    <IdCard className="h-3 w-3" /> DNI / Cédula
+                  </label>
+                  <input
+                    className="w-full bg-transparent px-3 pb-3 pt-7 text-base text-ink !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none placeholder:text-ink-faint/30"
                     placeholder="Número de documento"
                     value={quickPatient.documentNumber}
                     onChange={(event) => {
@@ -529,15 +594,18 @@ const WizardStepPatient = memo(function WizardStepPatient({
                     }}
                   />
                 </div>
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-semibold text-ink">Fecha de nacimiento</label>
+
+                <div className="col-span-12 sm:col-span-4 group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
+                  <div className="absolute left-3 top-2 right-3 flex items-center justify-between pointer-events-none">
+                    <label className="flex items-center gap-1.5 text-sm font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+                      <Calendar className="h-3 w-3" /> Fecha Nac.
+                    </label>
                     {quickPatient.birthDate && quickPatient.birthDate.length === 10 && quickPatient.birthDate.includes("-") ? (
                       (() => {
                         const ageStr = calculateAge(quickPatient.birthDate);
                         const isInvalid = ageStr === "Fecha inválida" || ageStr === "Fecha futura" || ageStr === "Edad irreal";
                         return (
-                          <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${isInvalid ? "text-red-700 bg-red-100" : "text-teal-700 dark:text-teal-300 bg-teal-500/10"}`}>
+                          <span className={`text-sm font-bold px-1.5 py-0.5 rounded-full ${isInvalid ? "text-red-700 bg-red-100" : "text-teal-700 bg-teal-500/10"}`}>
                             {ageStr}
                           </span>
                         );
@@ -545,7 +613,7 @@ const WizardStepPatient = memo(function WizardStepPatient({
                     ) : null}
                   </div>
                   <input
-                    className="hce-input"
+                    className="w-full bg-transparent px-3 pb-3 pt-7 text-base text-ink !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none placeholder:text-ink-faint/30"
                     type="text"
                     placeholder="DD/MM/AAAA"
                     value={
@@ -573,40 +641,13 @@ const WizardStepPatient = memo(function WizardStepPatient({
                     }}
                   />
                 </div>
-              </div>
-              <div className="grid gap-4 sm:grid-cols-3">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-ink">Nombres</label>
+
+                <div className="col-span-12 sm:col-span-4 group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
+                  <label className="absolute left-3 top-2 flex items-center gap-1.5 text-sm font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+                    <Phone className="h-3 w-3" /> Teléfono
+                  </label>
                   <input
-                    className="hce-input"
-                    placeholder="Ej: María"
-                    value={quickPatient.firstName}
-                    onChange={(event) =>
-                      setQuickPatient((current) => ({
-                        ...current,
-                        firstName: event.target.value,
-                      }))
-                    }
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-ink">Apellidos</label>
-                  <input
-                    className="hce-input"
-                    placeholder="Ej: Gomez"
-                    value={quickPatient.lastName}
-                    onChange={(event) =>
-                      setQuickPatient((current) => ({
-                        ...current,
-                        lastName: event.target.value,
-                      }))
-                    }
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-ink">Teléfono</label>
-                  <input
-                    className="hce-input"
+                    className="w-full bg-transparent px-3 pb-3 pt-7 text-base text-ink !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none placeholder:text-ink-faint/30"
                     placeholder="Ej: 0991234567"
                     value={quickPatient.phone}
                     onChange={(event) =>

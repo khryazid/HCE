@@ -12,52 +12,52 @@ const SYSTEMS: {
 }[] = [
   {
     key: "cardiovascular",
-    label: "Cardiovascular",
+    label: "❤️ Cardiovascular",
     placeholder: "Palpitaciones, disnea de esfuerzo, ortopnea, edemas, dolor precordial...",
   },
   {
     key: "respiratory",
-    label: "Respiratorio",
+    label: "🫁 Respiratorio",
     placeholder: "Tos, expectoración, hemoptisis, disnea, sibilancias, dolor pleurítico...",
   },
   {
     key: "gastrointestinal",
-    label: "Gastrointestinal",
+    label: "🩺 Gastrointestinal",
     placeholder: "Náuseas, vómitos, disfagia, pirosis, dolor abdominal, cambios de hábito...",
   },
   {
     key: "genitourinary",
-    label: "Genitourinario",
+    label: "💧 Genitourinario",
     placeholder: "Disuria, polaquiuria, hematuria, incontinencia, secreciones...",
   },
   {
     key: "neurological",
-    label: "Neurológico",
+    label: "🧠 Neurológico",
     placeholder: "Cefalea, mareos, síncope, convulsiones, déficit motor o sensitivo...",
   },
   {
     key: "musculoskeletal",
-    label: "Musculoesquelético",
+    label: "🦴 Musculoesquelético",
     placeholder: "Dolor articular, rigidez matutina, limitación funcional, edema articular...",
   },
   {
     key: "dermatological",
-    label: "Dermatológico",
+    label: "🖐️ Dermatológico",
     placeholder: "Lesiones cutáneas, prurito, cambios de coloración, alopecia...",
   },
   {
     key: "endocrine",
-    label: "Endocrinológico",
+    label: "🦋 Endocrinológico",
     placeholder: "Polidipsia, poliuria, cambios de peso, intolerancia al frío/calor...",
   },
   {
     key: "psychiatric",
-    label: "Psiquiátrico",
+    label: "🎭 Psiquiátrico",
     placeholder: "Cambios de humor, ansiedad, insomnio, alucinaciones, ideas suicidas...",
   },
   {
     key: "hematological",
-    label: "Hematológico",
+    label: "🩸 Hematológico",
     placeholder: "Sangrados fáciles, equimosis, petequias, adenopatías, palidez...",
   },
 ];
@@ -94,17 +94,17 @@ const SystemRow = memo(function SystemRow({
         onClick={() => onToggle(systemKey)}
         className={`w-full flex items-center justify-between gap-3 px-4 py-3 text-left transition-colors ${
           entry.present
-            ? "border-amber-400/50 bg-amber-50/70 dark:bg-amber-900/20"
+            ? "border-accent/30 bg-accent/10"
             : "hover:bg-card"
         }`}
       >
-        <span className={`text-sm font-medium ${entry.present ? "text-amber-900 dark:text-amber-200" : "text-ink"}`}>
+        <span className={`text-sm font-medium ${entry.present ? "text-accent" : "text-ink"}`}>
           {label}
         </span>
         <span
           className={`flex-shrink-0 inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold transition-colors ${
             entry.present
-              ? "bg-amber-400/20 border border-amber-400/60 text-amber-800 dark:text-amber-300"
+              ? "bg-accent/20 border border-accent/40 text-accent"
               : "bg-bg-soft border border-border text-ink-soft"
           }`}
         >
@@ -113,9 +113,9 @@ const SystemRow = memo(function SystemRow({
       </button>
 
       {entry.present && (
-        <div className="px-4 pb-3 pt-1 bg-amber-50/50 dark:bg-amber-900/10 border-t border-amber-200/60 dark:border-amber-700/30">
+        <div className="px-4 pb-3 pt-1 bg-bg-soft border-t border-border">
           <textarea
-            className="hce-input min-h-16 text-sm border-amber-300/50 bg-white/80 focus:border-amber-500 focus:ring-amber-400 dark:bg-card"
+            className="hce-input min-h-16 text-sm "
             placeholder={placeholder}
             value={entry.notes}
             onChange={(e) => onNotesChange(systemKey, e.target.value)}
@@ -160,7 +160,7 @@ export const WizardStepReviewOfSystems = memo(function WizardStepReviewOfSystems
       <div>
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-2">
-            <h4 className="text-sm font-semibold text-teal-900 dark:text-teal-400">
+            <h4 className="text-sm font-semibold text-ink">
               Cuestionario por Sistemas
             </h4>
             <span className="text-xs text-ink-soft bg-bg-soft px-2 py-0.5 rounded-full border border-border">
@@ -171,7 +171,7 @@ export const WizardStepReviewOfSystems = memo(function WizardStepReviewOfSystems
             <button
               type="button"
               onClick={() => onToggleSection("hide_ros_details")}
-              className="text-[10px] uppercase font-bold tracking-wider text-teal-700 dark:text-teal-300 hover:bg-teal-100 dark:hover:bg-teal-900/50 transition-colors bg-teal-50 dark:bg-teal-900/30 px-2.5 py-1 rounded-md flex items-center gap-1.5"
+              className="text-xs uppercase font-bold tracking-wider text-ink-soft hover:bg-teal-100 dark:hover:bg-teal-900/50 transition-colors bg-bg-soft px-2.5 py-1 rounded-md flex items-center gap-1.5"
             >
               {uiPreferences?.hide_ros_details ? (
                 <><span>👁️</span> Mostrar</>

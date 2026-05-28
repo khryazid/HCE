@@ -14,10 +14,7 @@ export default function DocsPage() {
     <div className="flex min-h-screen flex-col bg-bg md:flex-row">
       {/* Sidebar */}
       <aside className="w-full border-r border-border bg-card p-6 md:w-64 md:sticky md:top-0 md:h-screen md:overflow-y-auto print:hidden">
-        <Link href="/dashboard" className="mb-8 flex items-center gap-2 text-ink transition hover:text-accent">
-          <ArrowLeft className="h-4 w-4" />
-          <span className="text-sm font-semibold">Volver al Dashboard</span>
-        </Link>
+
         <h1 className="mb-6 text-xl font-bold font-display text-ink flex items-center gap-2">
           <BookOpen className="h-5 w-5 text-accent" />
           Manual
