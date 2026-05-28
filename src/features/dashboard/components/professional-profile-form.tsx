@@ -175,6 +175,26 @@ export function ProfessionalProfileForm({
           logo_data_url: letterhead.logo_data_url,
           signature_data_url: letterhead.signature_data_url,
         });
+      } else {
+        // Healing: Si el perfil no existía en la base de datos (por un error previo o cuenta vieja),
+        // lo creamos ahora y le otorgamos su trial, usando el Server Action que tiene service_role.
+        const { createTenantProfileWithTrial } = await import("@/lib/supabase/actions");
+        const { createClinicId } = await import("@/lib/supabase/profile");
+        const supabase = await import("@/lib/supabase/client").then(m => m.getSupabaseClient());
+        
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          const { readOnboardingProfile } = await import("@/lib/supabase/onboarding");
+          const existing = readOnboardingProfile(session.user.user_metadata);
+          const clinicId = existing?.clinic_id || createClinicId();
+          
+          await createTenantProfileWithTrial({
+            clinicId,
+            fullName: form.fullName || form.signatureName || "Doctor",
+            specialties: form.specialties.length > 0 ? form.specialties : ["Medicina General"],
+            plan: "basic",
+          });
+        }
       }
 
       setSuccessMessage(
