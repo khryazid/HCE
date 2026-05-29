@@ -22,7 +22,7 @@ export async function createTenantProfileWithTrial(input: {
   clinicId: string;
   fullName: string;
   specialties: string[];
-  plan?: "individual" | "clinic";
+  plan?: "basic" | "clinic";
 }): Promise<{ success: true } | { success: false; error: string }> {
   try {
     // 1. Verify the caller is authenticated via their own session
@@ -73,7 +73,7 @@ export async function createTenantProfileWithTrial(input: {
         clinic_id: input.clinicId,
         full_name: input.fullName.trim(),
         specialty: input.specialties,
-        plan: input.plan ?? "individual",
+        plan: input.plan ?? "basic",
         subscription_status: "trialing",
         subscription_expires_at: trialExpiresAt,
         terms_version: CURRENT_TERMS_VERSION,

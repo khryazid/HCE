@@ -157,9 +157,9 @@ export function TeamPanel() {
             <div className="w-full sm:w-40 space-y-1">
               <label className="text-xs font-medium text-muted-foreground">Rol</label>
               <select
-                value={tenant?.plan === "individual" ? "assistant" : inviteRole}
+                value={tenant?.plan === "basic" ? "assistant" : inviteRole}
                 onChange={(e) => setInviteRole(e.target.value)}
-                disabled={tenant?.plan === "individual" || inviteMutation.isPending}
+                disabled={tenant?.plan === "basic" || inviteMutation.isPending}
                 className="w-full h-10 px-3 rounded-md border border-input bg-bg text-ink focus:outline-none focus:ring-2 focus:ring-accent text-sm disabled:opacity-50"
               >
                 {tenant?.plan === "clinic" && <option className="bg-bg text-ink" value="doctor">Doctor</option>}
@@ -175,7 +175,7 @@ export function TeamPanel() {
               {inviteMutation.isPending ? "Invitando..." : "Invitar miembro"}
             </button>
           </div>
-          {tenant?.plan === "individual" && (
+          {tenant?.plan === "basic" && (
             <p className="text-[11px] text-muted-foreground leading-tight">
               * El plan individual solo permite invitar asistentes. Actualiza al plan clínica para invitar a otros médicos.
             </p>
@@ -221,7 +221,7 @@ export function TeamPanel() {
                     <select
                       value={member.role}
                       onChange={(e) => updateRoleMutation.mutate({ id: member.id, role: e.target.value })}
-                      disabled={(updateRoleMutation.isPending && updateRoleMutation.variables?.id === member.id) || tenant?.plan === "individual"}
+                      disabled={(updateRoleMutation.isPending && updateRoleMutation.variables?.id === member.id) || tenant?.plan === "basic"}
                       className="h-8 px-2 rounded border border-border bg-bg text-ink text-xs focus:ring-2 focus:ring-accent disabled:opacity-50"
                     >
                       {tenant?.plan === "clinic" && <option className="bg-bg text-ink" value="admin">Admin</option>}

@@ -29,7 +29,7 @@ const loginSchema = z.object({
   password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres."),
   fullName: z.string().optional(),
   specialties: z.array(z.string()).optional(),
-  plan: z.enum(["individual", "clinic"]).optional(),
+  plan: z.enum(["basic", "clinic"]).optional(),
   termsAccepted: z.boolean().optional(),
 });
 
@@ -73,7 +73,7 @@ export function AuthForm({ mode }: AuthFormProps) {
       password: "",
       fullName: "",
       specialties: [],
-      plan: "individual",
+      plan: "basic",
       termsAccepted: false,
     },
   });
@@ -173,7 +173,7 @@ export function AuthForm({ mode }: AuthFormProps) {
             clinicId: normalizedClinicId,
             fullName: data.fullName?.trim() || "",
             specialties: data.specialties || [],
-            plan: data.plan as "individual" | "clinic",
+            plan: data.plan as "basic" | "clinic",
           });
           if (!result.success) {
             setError(result.error);
@@ -414,11 +414,11 @@ export function AuthForm({ mode }: AuthFormProps) {
                 <label
                   className="relative flex cursor-pointer rounded-xl border p-4 transition-colors focus:outline-none"
                   style={{
-                    borderColor: watch("plan") === "individual" ? "var(--accent)" : "var(--border)",
-                    background: watch("plan") === "individual" ? "var(--accent-dim)" : "var(--bg)",
+                    borderColor: watch("plan") === "basic" ? "var(--accent)" : "var(--border)",
+                    background: watch("plan") === "basic" ? "var(--accent-dim)" : "var(--bg)",
                   }}
                 >
-                  <input type="radio" value="individual" {...register("plan")} className="sr-only" />
+                  <input type="radio" value="basic" {...register("plan")} className="sr-only" />
                   <div className="flex w-full flex-col">
                     <span className="flex items-center justify-between">
                       <span className="text-sm font-semibold text-ink">Individual</span>

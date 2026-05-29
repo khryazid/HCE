@@ -46,7 +46,7 @@ export function OnboardingFlow() {
           clinicId: crypto.randomUUID(),
           fullName: fullName,
           specialties: [specialty],
-          plan: "individual"
+          plan: "basic"
         });
         
         if (!result.success) throw new Error(result.error || "Error al crear perfil");

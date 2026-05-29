@@ -8,7 +8,7 @@ export type TenantProfile = {
   specialties: string[];
   subscription_status?: string | null;
   subscription_expires_at?: string | null;
-  plan: "individual" | "clinic";
+  plan: "basic" | "clinic";
   role: "admin" | "doctor" | "assistant";
   ui_preferences?: Record<string, unknown>;
   onboarding_state: { step: number; completed: boolean };
@@ -20,7 +20,7 @@ type EnsureTenantProfileInput = {
   clinicId: string;
   fullName: string;
   specialties: string[];
-  plan?: "individual" | "clinic";
+  plan?: "basic" | "clinic";
 };
 
 type TenantMetadata = {
@@ -51,7 +51,7 @@ function withSpecialties(profile: {
   clinic_id: string;
   full_name: string;
   specialty: string[];
-  plan: "individual" | "clinic";
+  plan: "basic" | "clinic";
   subscription_status?: string | null;
   subscription_expires_at?: string | null;
   role?: "admin" | "doctor" | "assistant";
@@ -107,7 +107,7 @@ export async function loadTenantProfile(userId: string): Promise<TenantProfile |
 
   return withSpecialties({
     ...data,
-    plan: data.plan as "individual" | "clinic",
+    plan: data.plan as "basic" | "clinic",
     role: (memberData?.role as "admin" | "doctor" | "assistant") || "admin",
     ui_preferences: data.ui_preferences,
   });
@@ -148,7 +148,7 @@ export async function ensureTenantProfile(
       clinic_id: clinicId,
       full_name: fullName,
       specialty: specialties,
-      plan: input.plan || "individual",
+      plan: input.plan || "basic",
       // HAL-13.1: subscription_status y subscription_expires_at NO se asignan
       // desde el cliente. Solo createTenantProfileWithTrial (service_role) puede
       // asignarlos. Esto previene que un usuario manipule su propio trial status.
@@ -189,7 +189,7 @@ export async function ensureTenantProfile(
 
   return withSpecialties({
     ...data,
-    plan: data.plan as "individual" | "clinic",
+    plan: data.plan as "basic" | "clinic",
     ui_preferences: data.ui_preferences,
   });
 }
@@ -233,7 +233,7 @@ export async function bootstrapTenantProfileFromMetadata(
     userId,
     clinicId,
     fullName,
-    plan: plan as "individual" | "clinic",
+    plan: plan as "basic" | "clinic",
     specialties: specialties && specialties.length > 0 ? specialties : [specialty as string],
   });
 }
