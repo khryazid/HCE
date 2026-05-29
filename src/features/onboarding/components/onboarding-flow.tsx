@@ -18,6 +18,7 @@ export function OnboardingFlow() {
   // Form State
   const [fullName, setFullName] = useState(tenant?.full_name || "");
   const [specialty, setSpecialty] = useState(tenant?.specialties?.[0] || "");
+  const [consultationName, setConsultationName] = useState("Consulta General");
   const [fee, setFee] = useState("50");
   const [assistants, setAssistants] = useState(["", ""]);
 
@@ -32,20 +33,42 @@ export function OnboardingFlow() {
     try {
       const supabase = getSupabaseClient();
       
-      if (!tenant?.doctor_id) throw new Error("Sesión clínica no encontrada.");
+      let doctorId = tenant?.doctor_id;
 
-      // Update onboarding state and name in profiles
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({
-          full_name: fullName,
-          onboarding_state: { step: 4, completed: true }
-        })
-        .eq("doctor_id", tenant.doctor_id);
+      if (!doctorId) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("No hay usuario autenticado.");
+        doctorId = user.id;
 
-      if (profileError) throw profileError;
+        // Ensure a profile is created if it doesn't exist
+        const { error: insertError } = await supabase
+          .from("profiles")
+          .upsert({
+            doctor_id: doctorId,
+            clinic_id: crypto.randomUUID(), // New clinic ID
+            full_name: fullName,
+            specialty: [specialty],
+            plan: "individual",
+            payment_config: { default_fee: Number(fee), consultation_name: consultationName },
+            onboarding_state: { step: 4, completed: true }
+          });
+        
+        if (insertError) throw insertError;
+      } else {
+        // Update existing profile
+        const { error: profileError } = await supabase
+          .from("profiles")
+          .update({
+            full_name: fullName,
+            specialty: [specialty],
+            payment_config: { default_fee: Number(fee), consultation_name: consultationName },
+            onboarding_state: { step: 4, completed: true }
+          })
+          .eq("doctor_id", doctorId);
 
-      // Create base treatment template (Fee / Service)
+        if (profileError) throw profileError;
+      }
+
       // We will skip inserting into treatment_templates for now as it's Phase 5,
       // but we can mock the UI success.
 
@@ -113,8 +136,8 @@ export function OnboardingFlow() {
               </div>
               <div className="gx-field">
                 <label className="gx-label">Especialidad Principal</label>
-                <Input value={specialty} disabled className="bg-bg-soft" />
-                <p className="text-xs text-ink-soft mt-1">La especialidad se configuró durante el registro.</p>
+                <Input value={specialty} onChange={(e) => setSpecialty(e.target.value)} placeholder="Ej: Medicina General" />
+                <p className="text-xs text-ink-soft mt-1">Puedes modificar o asignar tu especialidad principal.</p>
               </div>
             </div>
           </div>
@@ -128,7 +151,11 @@ export function OnboardingFlow() {
             </div>
             <div className="space-y-4 max-w-md">
               <div className="gx-field">
-                <label className="gx-label">Costo de Consulta General ($)</label>
+                <label className="gx-label">Nombre de la Consulta</label>
+                <Input value={consultationName} onChange={(e) => setConsultationName(e.target.value)} placeholder="Ej: Consulta Pediátrica" />
+              </div>
+              <div className="gx-field">
+                <label className="gx-label">Costo de Consulta ($)</label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-soft">$</span>
                   <Input type="number" value={fee} onChange={(e) => setFee(e.target.value)} className="pl-7" />
