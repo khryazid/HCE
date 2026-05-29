@@ -29,12 +29,17 @@ const loginSchema = z.object({
   password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres."),
   fullName: z.string(),
   specialties: z.array(z.string()),
-  plan: z.enum(["basic", "clinic"]),
+  plan: z.enum(["individual", "clinic"]),
 });
 
 const registerSchema = loginSchema.extend({
   fullName: z.string().min(1, "El nombre completo es obligatorio."),
   specialties: z.array(z.string()).min(1, "Selecciona al menos una especialidad."),
+  password: z.string()
+    .min(8, "La contraseña debe tener al menos 8 caracteres.")
+    .regex(/[A-Z]/, "Debe contener al menos una letra mayúscula.")
+    .regex(/[0-9]/, "Debe contener al menos un número.")
+    .regex(/[^A-Za-z0-9]/, "Debe contener al menos un carácter especial."),
 });
 
 type AuthFormData = z.infer<typeof registerSchema>;
@@ -64,7 +69,7 @@ export function AuthForm({ mode }: AuthFormProps) {
       password: "",
       fullName: "",
       specialties: [],
-      plan: "basic",
+      plan: "individual",
     },
   });
 
@@ -74,6 +79,8 @@ export function AuthForm({ mode }: AuthFormProps) {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSpecialtyDropdownOpen, setIsSpecialtyDropdownOpen] = useState(false);
+  const [isUnverified, setIsUnverified] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
   const dropdownRef = useRef<HTMLFieldSetElement>(null);
 
   const watchSpecialties = watch("specialties") || [];
@@ -160,7 +167,7 @@ export function AuthForm({ mode }: AuthFormProps) {
             clinicId: normalizedClinicId,
             fullName: data.fullName?.trim() || "",
             specialties: data.specialties || [],
-            plan: data.plan as "basic" | "clinic",
+            plan: data.plan as "individual" | "clinic",
           });
           if (!result.success) {
             setError(result.error);
@@ -174,7 +181,7 @@ export function AuthForm({ mode }: AuthFormProps) {
           "Cuenta creada. Revisa tu correo (bandeja de entrada y spam) para confirmar la cuenta y luego inicia sesion. El perfil tenant se completara automaticamente con los datos registrados."
         );
         const nextEmail = encodeURIComponent(data.email.trim());
-        router.replace(`/?registered=1&email=${nextEmail}`);
+        router.replace(`/login?registered=1&email=${nextEmail}`);
         return;
       } else {
         if (action.data.user) {
@@ -186,12 +193,81 @@ export function AuthForm({ mode }: AuthFormProps) {
         router.replace("/dashboard");
       }
     } catch (authError) {
+      if (authError instanceof Error && authError.message.toLowerCase().includes("email not confirmed")) {
+        setIsUnverified(true);
+        setError(null);
+        return;
+      }
       setError(
         authError instanceof Error
           ? authError.message
           : "No se pudo completar la autenticacion. Verifica tus credenciales e intenta de nuevo."
       );
     }
+  }
+
+  async function handleResendVerification() {
+    setResendLoading(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const supabase = getSupabaseClient();
+      const email = watch("email");
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email: email,
+        options: {
+          emailRedirectTo: window.location.origin + "/dashboard",
+        },
+      });
+      if (error) throw error;
+      setMessage("Se ha reenviado el enlace de confirmación a tu correo. Por favor, revisa tu bandeja de entrada y spam.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Error al reenviar el correo.");
+    } finally {
+      setResendLoading(false);
+    }
+  }
+
+  if (isUnverified) {
+    return (
+      <div className="text-center space-y-5 animate-in fade-in duration-300">
+        <div className="mx-auto w-14 h-14 rounded-full bg-accent/10 flex items-center justify-center">
+          <svg className="w-7 h-7 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+        </div>
+        <div>
+          <h3 className="text-xl font-bold text-ink tracking-tight">Verifica tu correo</h3>
+          <p className="text-sm text-ink-soft mt-2 leading-relaxed">
+            Por motivos de seguridad y cumplimiento normativo, debes confirmar que eres el dueño de <strong className="text-ink font-semibold">{watch("email")}</strong> antes de acceder al entorno clínico.
+          </p>
+        </div>
+
+        {message && (
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700 text-left">
+            {message}
+          </div>
+        )}
+        
+        {error && (
+          <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 text-left">
+            {error}
+          </div>
+        )}
+
+        <div className="pt-2 flex flex-col gap-3">
+          <Button onClick={handleResendVerification} disabled={resendLoading} className="w-full min-h-[44px]">
+            {resendLoading ? "Enviando enlace..." : "Reenviar enlace de confirmación"}
+          </Button>
+          <button 
+            type="button" 
+            onClick={() => { setIsUnverified(false); setMessage(null); setError(null); }}
+            className="text-sm text-ink-soft hover:text-ink font-medium h-10 transition-colors"
+          >
+            Volver al inicio de sesión
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -332,14 +408,14 @@ export function AuthForm({ mode }: AuthFormProps) {
                 <label
                   className="relative flex cursor-pointer rounded-xl border p-4 transition-colors focus:outline-none"
                   style={{
-                    borderColor: watch("plan") === "basic" ? "var(--accent)" : "var(--border)",
-                    background: watch("plan") === "basic" ? "var(--accent-dim)" : "var(--bg)",
+                    borderColor: watch("plan") === "individual" ? "var(--accent)" : "var(--border)",
+                    background: watch("plan") === "individual" ? "var(--accent-dim)" : "var(--bg)",
                   }}
                 >
-                  <input type="radio" value="basic" {...register("plan")} className="sr-only" />
+                  <input type="radio" value="individual" {...register("plan")} className="sr-only" />
                   <div className="flex w-full flex-col">
                     <span className="flex items-center justify-between">
-                      <span className="text-sm font-semibold text-ink">Básico</span>
+                      <span className="text-sm font-semibold text-ink">Individual</span>
                     </span>
                     <span className="mt-1 flex items-center text-xs text-ink-soft">
                       Hasta 2 Asistentes.
@@ -389,7 +465,7 @@ export function AuthForm({ mode }: AuthFormProps) {
               id="password-field"
               type={showPassword ? "text" : "password"}
               autoComplete={isSignUp ? "new-password" : "current-password"}
-              placeholder="Minimo 6 caracteres"
+              placeholder={isSignUp ? "Mínimo 8 caracteres, números y especiales" : "Mínimo 6 caracteres"}
               {...register("password")}
               className="gx-input"
               style={{paddingRight: 80}}
@@ -402,8 +478,37 @@ export function AuthForm({ mode }: AuthFormProps) {
               {showPassword ? "Ocultar" : "Mostrar"}
             </button>
           </div>
+          {isSignUp && (
+            <div className="mt-2 space-y-2">
+              <div className="flex gap-1 h-1">
+                {[
+                  watch("password")?.length >= 8,
+                  /[A-Z]/.test(watch("password") || ""),
+                  /[0-9]/.test(watch("password") || ""),
+                  /[^A-Za-z0-9]/.test(watch("password") || ""),
+                ].map((passed, i) => (
+                  <div
+                    key={i}
+                    className={`flex-1 rounded-full transition-colors ${
+                      !watch("password")
+                        ? "bg-accent/10"
+                        : passed
+                        ? "bg-emerald-500"
+                        : "bg-red-200"
+                    }`}
+                  />
+                ))}
+              </div>
+              <p className="text-[11px] text-ink-soft flex flex-wrap gap-x-3 gap-y-1">
+                <span className={watch("password")?.length >= 8 ? "text-emerald-600 font-medium" : ""}>✓ 8 caracteres</span>
+                <span className={/[A-Z]/.test(watch("password") || "") ? "text-emerald-600 font-medium" : ""}>✓ 1 mayúscula</span>
+                <span className={/[0-9]/.test(watch("password") || "") ? "text-emerald-600 font-medium" : ""}>✓ 1 número</span>
+                <span className={/[^A-Za-z0-9]/.test(watch("password") || "") ? "text-emerald-600 font-medium" : ""}>✓ 1 especial</span>
+              </p>
+            </div>
+          )}
           {errors.password ? (
-            <p className="text-xs text-red-700">{errors.password.message}</p>
+            <p className="text-xs text-red-700 mt-1">{errors.password.message}</p>
           ) : null}
         </div>
 

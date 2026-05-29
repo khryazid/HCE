@@ -26,7 +26,7 @@ AGENTS.md — Contexto del Proyecto para Agentes
 | Auth | Supabase Auth + `proxy.ts` (reemplaza `middleware.ts`) |
 | Estado/Cache | TanStack Query v5 |
 | Offline | IndexedDB (`idb`) + Sync Worker con backoff exponencial |
-| IA | Google Gemini 2.0 Flash (sugerencias CIE-10) |
+| IA | Google Gemini 2.0 Flash (sugerencias CIE-11) |
 | Pagos | Stripe API v2026-04-22, Webhooks firmados |
 | Notificaciones | Web Push (VAPID) + Resend (email) |
 | PDF/Export | jsPDF 4.x + JSZip |

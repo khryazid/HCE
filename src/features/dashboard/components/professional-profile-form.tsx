@@ -26,6 +26,7 @@ import {
 import { buildRetryableErrorMessage } from "@/lib/ui/feedback-copy";
 import { ProfileSectionPersonal } from "@/features/dashboard/components/profile-section-personal";
 import { ProfileSectionLetterhead } from "@/features/dashboard/components/profile-section-letterhead";
+import { ProfileSectionAccessControls } from "@/features/dashboard/components/profile-section-access-controls";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -266,6 +267,8 @@ export function ProfessionalProfileForm({
           onError={setError}
         />
 
+        {/* Sección 3 — Controles de Acceso (Solo visible para Titulares) */}
+        <ProfileSectionAccessControls />
 
         {error ? (
           <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 w-full">

@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { LogoutButton } from "@/features/auth/components/logout-button";
 import { useOverdueCount } from "@/features/dashboard/hooks/use-overdue-count";
+import { useTenant } from "@/lib/supabase/tenant-context";
 import {
   Home,
   ClipboardList,
@@ -24,15 +25,34 @@ type NavItem = {
   icon: React.ReactNode;
 };
 
-const NAV_ITEMS: NavItem[] = [
-  { href: "/dashboard",    label: "Inicio",       icon: <Home         className="w-[16px] h-[16px]" /> },
-  { href: "/agenda",       label: "Agenda",       icon: <CalendarDays className="w-[16px] h-[16px]" /> },
-  { href: "/consultas",    label: "Consultas",    icon: <ClipboardList className="w-[16px] h-[16px]" /> },
-  { href: "/pacientes",    label: "Pacientes",    icon: <Users        className="w-[16px] h-[16px]" /> },
-  { href: "/tratamientos", label: "Tratamientos", icon: <Pill         className="w-[16px] h-[16px]" /> },
-  { href: "/ajustes",      label: "Ajustes",      icon: <Settings     className="w-[16px] h-[16px]" /> },
-  { href: "/docs",         label: "Manual",       icon: <HelpCircle   className="w-[16px] h-[16px]" /> },
-];
+function getNavItems(role?: string): NavItem[] {
+  const baseItems: NavItem[] = [
+    { href: "/agenda",       label: "Agenda",       icon: <CalendarDays className="w-[16px] h-[16px]" /> },
+    { href: "/pacientes",    label: "Pacientes",    icon: <Users        className="w-[16px] h-[16px]" /> },
+  ];
+
+  if (role !== "assistant") {
+    // Doctors and Admins see full clinical features
+    baseItems.unshift({ href: "/dashboard",    label: "Inicio",       icon: <Home className="w-[16px] h-[16px]" /> });
+    baseItems.push(
+      { href: "/consultas",    label: "Consultas",    icon: <ClipboardList className="w-[16px] h-[16px]" /> },
+      { href: "/tratamientos", label: "Tratamientos", icon: <Pill         className="w-[16px] h-[16px]" /> },
+      { href: "/laboratorio",  label: "Laboratorio",  icon: <Search       className="w-[16px] h-[16px]" /> },
+      { href: "/caja",         label: "Caja",         icon: <ClipboardList className="w-[16px] h-[16px]" /> }
+    );
+  } else {
+    // Assistant specifically gets Caja instead of clinical features
+    baseItems.push({ href: "/caja", label: "Caja", icon: <ClipboardList className="w-[16px] h-[16px]" /> });
+  }
+
+  // Everyone sees Settings and Docs
+  baseItems.push(
+    { href: "/ajustes",      label: "Ajustes",      icon: <Settings     className="w-[16px] h-[16px]" /> },
+    { href: "/docs",         label: "Manual",       icon: <HelpCircle   className="w-[16px] h-[16px]" /> }
+  );
+
+  return baseItems;
+}
 
 /* ── Logo mark — sello de cobre ─────────────────────────────── */
 function GlyphMark({ size = 32 }: { size?: number }) {
@@ -139,6 +159,8 @@ function ConnectionStatus() {
 export function Topnav() {
   const pathname = usePathname();
   const overdueCount = useOverdueCount();
+  const { tenant } = useTenant();
+  const navItems = getNavItems(tenant?.role);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-card/80 backdrop-blur-md hidden lg:block">
@@ -154,7 +176,7 @@ export function Topnav() {
 
         {/* Center Nav */}
         <nav className="flex items-center gap-1 flex-1">
-          {NAV_ITEMS.map((item) => {
+          {navItems.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
             return (
               <Link
@@ -219,10 +241,12 @@ export function MobileHeader() {
 export function BottomNav() {
   const pathname = usePathname();
   const overdueCount = useOverdueCount();
+  const { tenant } = useTenant();
+  const navItems = getNavItems(tenant?.role);
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-50 flex items-stretch border-t border-border bg-card/95 backdrop-blur-xl pb-safe lg:hidden">
-      {NAV_ITEMS.map((item) => {
+      {navItems.map((item) => {
         const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
         return (
           <Link

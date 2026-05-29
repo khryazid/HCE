@@ -65,6 +65,7 @@ export const EMPTY_FORM: WizardForm = {
   warningSigns: "",
   labOrders: [],
   imagingOrders: [],
+  medicalReferral: null,
   currentMedications: [],
   medicationInstructionsStructured: [],
   evolutionStatus: "",

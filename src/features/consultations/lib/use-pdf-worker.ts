@@ -17,6 +17,7 @@
 import { useCallback, useRef, useState } from "react";
 import type { LetterheadSettings } from "@/features/dashboard/lib/letterhead";
 import type { ConsultationPdfData } from "@/features/consultations/lib/pdf/pdf-types";
+import type { PdfSectionKey } from "@/features/consultations/lib/pdf/pdf-section-selector";
 
 function triggerDownload(bytes: Uint8Array, filename: string) {
   // new ArrayBuffer() garantiza un ArrayBuffer concreto — no SharedArrayBuffer
@@ -43,6 +44,7 @@ export function usePdfWorker() {
       letterhead: LetterheadSettings,
       data: ConsultationPdfData,
       filename: string,
+      enabledSections?: Set<PdfSectionKey>,
     ): Promise<void> => {
       setIsGenerating(true);
       setPdfError(null);
@@ -104,7 +106,7 @@ export function usePdfWorker() {
         const { generateConsultationPdf } = await import(
           "@/features/consultations/lib/pdf/pdf-renderer"
         );
-        await generateConsultationPdf(letterhead, data, "download");
+        await generateConsultationPdf(letterhead, data, "download", enabledSections);
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Error generando PDF";
         setPdfError(msg);

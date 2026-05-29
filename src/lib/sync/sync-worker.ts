@@ -376,7 +376,6 @@ async function syncItem(item: SyncQueueItem): Promise<"synced" | "conflicted"> {
       p_resource_type: tableName,
       p_resource_id: item.record_id,
       p_changes: payload as unknown as import("@/types/supabase.types").Json,
-      // @ts-expect-error: schema modified but types not regenerated yet
       p_client_timestamp: item.client_timestamp,
     });
   }

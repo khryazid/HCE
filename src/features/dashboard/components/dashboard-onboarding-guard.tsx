@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTenant } from "@/lib/supabase/tenant-context";
 import { isOnboardingProfileComplete, readOnboardingProfile } from "@/lib/supabase/onboarding";
 import { getSupabaseClient } from "@/lib/supabase/client";
@@ -9,6 +9,7 @@ import { getSupabaseClient } from "@/lib/supabase/client";
 export function DashboardOnboardingGuard() {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { tenant, loading } = useTenant();
   const [ready, setReady] = useState(false);
   const supabase = getSupabaseClient();
@@ -24,13 +25,14 @@ export function DashboardOnboardingGuard() {
 
     const isBillingPage = pathname === "/billing";
     const isProfileSetupPage = pathname === "/ajustes";
+    const isOnboardingPage = pathname.startsWith("/onboarding");
 
     if (!tenant) {
-      if (isProfileSetupPage) {
+      if (isOnboardingPage) {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setReady(true);
       } else {
-        router.replace("/ajustes");
+        router.replace("/onboarding");
       }
       return;
     }
@@ -79,23 +81,28 @@ export function DashboardOnboardingGuard() {
         return;
       }
 
-      const onboardingProfile = readOnboardingProfile(user.user_metadata);
-      const isProfileFilled = isOnboardingProfileComplete(onboardingProfile);
-      
-      // El setup completo ahora requiere terminar todo el wizard.
-      const isWizardFinished = user.user_metadata.wizard_completed === true;
-      const isReady = isProfileFilled && isWizardFinished;
+      // El setup completo ahora requiere terminar el Onboarding (step 4 y completed=true)
+      const isReady = tenant.onboarding_state?.completed === true;
 
-      if (!isReady && !isProfileSetupPage && !isBillingPage) {
-        router.replace("/ajustes?onboarding=true");
+      if (!isReady && !isProfileSetupPage && !isBillingPage && !pathname.startsWith("/onboarding")) {
+        router.replace("/onboarding");
         return;
+      }
+
+      if (isReady && tenant.role === "assistant") {
+        const assistantAllowedRoutes = ["/agenda", "/pacientes", "/caja", "/ajustes", "/docs"];
+        const isAllowed = assistantAllowedRoutes.some(r => pathname === r || pathname.startsWith(r + "/"));
+        if (!isAllowed && !isBillingPage && !isProfileSetupPage) {
+          router.replace("/agenda");
+          return;
+        }
       }
 
       setReady(true);
     }).catch(() => {
       router.replace("/login");
     });
-  }, [loading, tenant, pathname, router, supabase]);
+  }, [loading, tenant, pathname, router, supabase, searchParams]);
 
   if (ready) {
     return null;

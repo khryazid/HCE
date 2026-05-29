@@ -39,6 +39,7 @@ export default function ConsultationsView() {
     const pName = searchParams?.get("patientName");
     const pDoc = searchParams?.get("patientDoc");
     const pBirth = searchParams?.get("patientBirth");
+    const pPhone = searchParams?.get("patientPhone");
 
     if (aptId && !wizardOpen) {
       openWizard();
@@ -48,7 +49,7 @@ export default function ConsultationsView() {
         appointmentId: aptId,
       }));
 
-      if (pName || pDoc || pBirth) {
+      if (pName || pDoc || pBirth || pPhone) {
         const existingPatient = pDoc ? wizard.patients.find(p => p.document_number === pDoc) : undefined;
 
         if (existingPatient) {
@@ -68,6 +69,7 @@ export default function ConsultationsView() {
             lastName: lastName || prev.lastName,
             documentNumber: pDoc || prev.documentNumber,
             birthDate: pBirth || prev.birthDate,
+            phone: pPhone || prev.phone,
           }));
         }
       }
@@ -208,6 +210,15 @@ export default function ConsultationsView() {
                   if (step.id === "step-3" && wizard.uiPreferences?.hide_review_of_systems) {
                     return null;
                   }
+                  if (step.id === "step-4" && wizard.uiPreferences?.hide_physical_exam && wizard.uiPreferences?.hide_vital_signs) {
+                    return null; // Si no hay nada que mostrar en el paso 4
+                  }
+                  if (step.id === "step-5" && wizard.uiPreferences?.hide_diagnosis) {
+                    return null;
+                  }
+                  if (step.id === "step-6" && wizard.uiPreferences?.hide_treatment_plan && wizard.uiPreferences?.hide_medical_orders && wizard.uiPreferences?.hide_paraclinicals) {
+                    return null;
+                  }
 
                   return (
                     <button
@@ -304,47 +315,53 @@ export default function ConsultationsView() {
                   )}
 
                   {/* ── Paso 4: Examen Físico ──────────────────────────────────── */}
-                  <section id="step-4" className="gx-form-section">
-                    <h3 className="gx-form-section-title">
-                      <span>4</span> Examen Físico
-                    </h3>
-                    <WizardStepPhysicalExam
-                      form={wizard.form}
-                      setForm={wizard.setForm}
-                      tenantSpecialties={tenant?.specialties ?? []}
-                      uiPreferences={wizard.uiPreferences}
-                    />
-                  </section>
+                  {!(wizard.uiPreferences?.hide_physical_exam && wizard.uiPreferences?.hide_vital_signs) && (
+                    <section id="step-4" className="gx-form-section">
+                      <h3 className="gx-form-section-title">
+                        <span>4</span> Examen Físico
+                      </h3>
+                      <WizardStepPhysicalExam
+                        form={wizard.form}
+                        setForm={wizard.setForm}
+                        tenantSpecialties={tenant?.specialties ?? []}
+                        uiPreferences={wizard.uiPreferences}
+                      />
+                    </section>
+                  )}
 
                   {/* ── Paso 5: Diagnóstico ───────────────────────────────────── */}
-                  <section id="step-5" className="gx-form-section">
-                    <h3 className="gx-form-section-title">
-                      <span>5</span> Diagnóstico
-                    </h3>
-                    <WizardStepDiagnosisOnly
-                      form={wizard.form}
-                      setForm={wizard.setForm}
-                      validationErrors={wizard.validationErrors}
-                      triggerMagicCieFill={wizard.triggerMagicCieFill}
-                    />
-                  </section>
+                  {wizard.uiPreferences?.hide_diagnosis !== true && (
+                    <section id="step-5" className="gx-form-section">
+                      <h3 className="gx-form-section-title">
+                        <span>5</span> Diagnóstico
+                      </h3>
+                      <WizardStepDiagnosisOnly
+                        form={wizard.form}
+                        setForm={wizard.setForm}
+                        validationErrors={wizard.validationErrors}
+                        triggerMagicCieFill={wizard.triggerMagicCieFill}
+                      />
+                    </section>
+                  )}
 
                   {/* ── Paso 6: Tratamiento y Plan ────────────────────────────── */}
-                  <section id="step-6" className="gx-form-section">
-                    <h3 className="gx-form-section-title">
-                      <span>6</span> Tratamiento y Plan
-                    </h3>
-                    <WizardStepTreatment
-                      form={wizard.form}
-                      setForm={wizard.setForm}
-                      templates={wizard.templates}
-                      validationErrors={wizard.validationErrors}
-                      latestPatientRecord={wizard.latestPatientRecord}
-                      onApplyTemplate={wizard.applyTemplate}
-                      uiPreferences={wizard.uiPreferences}
-                      onToggleSection={wizard.toggleSectionVisibility}
-                    />
-                  </section>
+                  {!(wizard.uiPreferences?.hide_treatment_plan && wizard.uiPreferences?.hide_medical_orders && wizard.uiPreferences?.hide_paraclinicals) && (
+                    <section id="step-6" className="gx-form-section">
+                      <h3 className="gx-form-section-title">
+                        <span>6</span> Tratamiento y Plan
+                      </h3>
+                      <WizardStepTreatment
+                        form={wizard.form}
+                        setForm={wizard.setForm}
+                        templates={wizard.templates}
+                        validationErrors={wizard.validationErrors}
+                        latestPatientRecord={wizard.latestPatientRecord}
+                        onApplyTemplate={wizard.applyTemplate}
+                        uiPreferences={wizard.uiPreferences}
+                        onToggleSection={wizard.toggleSectionVisibility}
+                      />
+                    </section>
+                  )}
 
                   {/* ACTION BAR MOBILE (visible solo en pantallas pequeñas) */}
                   <div className="lg:hidden hce-sticky-action-bar flex flex-col gap-3 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-4 mt-8 border-t border-border">

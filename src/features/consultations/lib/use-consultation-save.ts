@@ -136,6 +136,70 @@ export function useConsultationSave() {
         specialtyRow,
       );
 
+      // --- Lab & Imaging Orders (100% Online) ---
+      if (form.labOrders.length > 0 || form.imagingOrders.length > 0) {
+        try {
+          const supabase = getSupabaseClient();
+          const ordersToInsert = [];
+          
+          if (form.labOrders.length > 0) {
+            ordersToInsert.push({
+              clinic_id: tenant.clinic_id,
+              doctor_id: tenant.doctor_id,
+              patient_id: form.patientId,
+              clinical_record_id: recordId,
+              order_type: "laboratory",
+              items: form.labOrders.map(name => ({ name })),
+              status: "pending"
+            });
+          }
+          
+          if (form.imagingOrders.length > 0) {
+            ordersToInsert.push({
+              clinic_id: tenant.clinic_id,
+              doctor_id: tenant.doctor_id,
+              patient_id: form.patientId,
+              clinical_record_id: recordId,
+              order_type: "imaging",
+              items: form.imagingOrders.map(name => ({ name })),
+              status: "pending"
+            });
+          }
+          
+          if (ordersToInsert.length > 0) {
+            // Utilizamos 'as any' porque generamos tipos sin las migraciones locales en remoto
+            const { error: ordersError } = await (supabase as any).from("lab_orders").insert(ordersToInsert as any);
+            if (ordersError) console.error("Error al insertar órdenes:", ordersError);
+          }
+        } catch (err) {
+          console.error("Fallo al guardar órdenes online (posible offline):", err);
+        }
+      }
+
+      // --- Medical Referral (100% Online) ---
+      if (form.medicalReferral) {
+        try {
+          const supabase = getSupabaseClient();
+          const referralToInsert = {
+            clinic_id: tenant.clinic_id,
+            referring_doctor_id: tenant.doctor_id,
+            patient_id: form.patientId,
+            clinical_record_id: recordId,
+            referred_doctor_id: form.medicalReferral.referred_doctor_id || null,
+            external_doctor_name: form.medicalReferral.external_doctor_name || null,
+            external_doctor_contact: form.medicalReferral.external_doctor_contact || null,
+            reason: form.medicalReferral.reason,
+            include_report: form.medicalReferral.include_report,
+            status: "pending"
+          };
+          
+          const { error: referralError } = await (supabase as any).from("medical_referrals").insert(referralToInsert as any);
+          if (referralError) console.error("Error al insertar referencia:", referralError);
+        } catch (err) {
+          console.error("Fallo al guardar referencia online (posible offline):", err);
+        }
+      }
+
       // --- Update Patient Status ---
       const patient = patients.find(p => p.id === form.patientId);
       if (patient && patient.status !== form.patientStatus) {

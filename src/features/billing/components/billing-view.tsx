@@ -111,7 +111,7 @@ export default function BillingView({ proPrice = 29, clinicPrice = 99, isAdmin =
           </p>
           <ul className="mt-6 flex flex-col gap-3 text-sm text-ink-soft flex-1">
             <li>✓ Pacientes y consultas ilimitados</li>
-            <li>✓ Sugerencias CIE-10 con IA</li>
+            <li>✓ Sugerencias CIE-11 con IA</li>
             <li>✓ PDF clínico profesional</li>
             <li>✓ Sync offline automático</li>
             <li>✓ Soporte por email</li>

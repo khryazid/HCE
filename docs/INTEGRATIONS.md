@@ -20,13 +20,13 @@ Cualquier cambio ocurre a través de los portales de Stripe (Checkout o Customer
 
 ---
 
-## 2. IA — Sugerencias CIE-10 (Gemini 2.0 Flash)
+## 2. IA — Sugerencias CIE-11 (Gemini 2.0 Flash)
 
 El modelo **`gemini-2.0-flash`** (configurado en `GEMINI_MODEL`) asiste al diagnóstico leyendo el `chief_complaint` (motivo) y `illness_history`.
 
 ### Endpoint Protegido (`/api/cie-suggestions/route.ts`)
 - Verifica suscripciones activas/trial (y el periodo de gracia de 7 días).
-- Retorna un JSON estructurado de hasta 5 códigos CIE-10.
+- Retorna un JSON estructurado de hasta 5 códigos CIE-11.
 
 ### Rate Limiting por DB
 La API utiliza una RPC en Postgres (`claim_api_rate_limit`) con bloqueos optimistas `FOR UPDATE` para restringir el consumo por `clinic_id`, evitando sobrecostos por requests concurrentes abusivos.

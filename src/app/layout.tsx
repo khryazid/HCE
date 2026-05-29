@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     "Historia clínica electrónica multiespecialidad con IA, trabajo offline y sincronización automática. Diseñado para médicos modernos.",
   manifest: "/manifest.json",
   keywords: [
-    "historia clínica electrónica", "software médico", "CIE-10",
+    "historia clínica electrónica", "software médico", "CIE-11",
     "consulta médica", "offline-first", "médicos", "salud digital", "Glyphix",
   ],
   robots: {
@@ -70,7 +70,7 @@ export const metadata: Metadata = {
     locale: "es_ES",
     title: `${APP_FULL_NAME} para médicos modernos`,
     description:
-      "Historia clínica multiespecialidad, sincronización offline-first y sugerencias CIE-10 con IA. Documentá cada consulta en menos de 3 minutos.",
+      "Historia clínica multiespecialidad, sincronización offline-first y sugerencias CIE-11 con IA. Documentá cada consulta en menos de 3 minutos.",
     siteName: APP_NAME,
     images: [{ url: "/og-image.jpg", width: 1200, height: 630, alt: `${APP_FULL_NAME}` }],
   },
@@ -78,7 +78,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: `${APP_FULL_NAME} para médicos modernos`,
     description:
-      "Historia clínica multiespecialidad, sincronización offline-first y sugerencias CIE-10 con IA.",
+      "Historia clínica multiespecialidad, sincronización offline-first y sugerencias CIE-11 con IA.",
     images: ["/og-image.jpg"],
   },
   // M-14: hreflang — la app usa locale via cookie (no rutas prefijadas /en/...)

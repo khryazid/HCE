@@ -21,7 +21,7 @@ export async function createTenantProfileWithTrial(input: {
   clinicId: string;
   fullName: string;
   specialties: string[];
-  plan?: "basic" | "clinic";
+  plan?: "individual" | "clinic";
 }): Promise<{ success: true } | { success: false; error: string }> {
   try {
     // 1. Verify the caller is authenticated via their own session
@@ -54,7 +54,19 @@ export async function createTenantProfileWithTrial(input: {
   // clinic_id es solo un UUID lógico para agrupar usuarios).
 
 
-  // 5. Create the profile with trial — server-controlled expiration date
+  // 5. Ensure the clinic exists in the clinics table. We upsert just in case.
+  const { error: clinicError } = await (adminClient as any)
+    .from("clinics")
+    .upsert({ id: input.clinicId, name: "Clínica de " + input.fullName.trim() })
+    .select()
+    .single();
+
+  if (clinicError) {
+    console.error("[createTenantProfileWithTrial] Clinic upsert failed:", clinicError);
+    return { success: false, error: "Error al registrar la clínica" };
+  }
+
+  // 6. Create the profile with trial — server-controlled expiration date
   const trialExpiresAt = new Date(Date.now() + TRIAL_DURATION_MS).toISOString();
 
   const { error: insertError } = await adminClient
@@ -64,7 +76,7 @@ export async function createTenantProfileWithTrial(input: {
       clinic_id: input.clinicId,
       full_name: input.fullName.trim(),
       specialty: input.specialties,
-      plan: input.plan ?? "basic",
+      plan: input.plan ?? "individual",
       subscription_status: "trialing",
       subscription_expires_at: trialExpiresAt,
     } satisfies ProfileInsert);
@@ -74,8 +86,22 @@ export async function createTenantProfileWithTrial(input: {
       if (insertError.code === "23505") {
         return { success: true };
       }
-      console.error("[createTenantProfileWithTrial] Insert failed:", insertError);
+      console.error("[createTenantProfileWithTrial] Insert profile failed:", insertError);
       return { success: false, error: "Error al crear perfil" };
+    }
+
+    // 7. Add user to clinic_members as 'admin' if they are the creator
+    const { error: memberError } = await (adminClient as any)
+      .from("clinic_members")
+      .upsert({
+        clinic_id: input.clinicId,
+        doctor_id: userId,
+        role: "admin",
+      });
+
+    if (memberError) {
+      console.error("[createTenantProfileWithTrial] Insert member failed:", memberError);
+      // We don't fail the whole registration, but log it.
     }
 
     return { success: true };

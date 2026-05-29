@@ -154,7 +154,7 @@ export function ExportZipButton({ patient, records, tenant }: Props) {
           ? "Este paciente no tiene consultas para exportar"
           : `Exportar ${records.length} consulta${records.length !== 1 ? "s" : ""} como ZIP`
       }
-      className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2 text-sm font-medium text-ink shadow-sm transition hover:border-teal-400 hover:bg-teal-50 hover:text-teal-700 disabled:cursor-not-allowed disabled:opacity-40"
+      className="flex h-[44px] items-center justify-center gap-2 rounded-xl border border-border bg-card px-4 text-sm font-semibold text-ink shadow-sm transition hover:border-teal-400 hover:bg-teal-50 hover:text-teal-700 disabled:cursor-not-allowed disabled:opacity-40 shrink-0"
     >
       {/* Archive icon */}
       <svg
@@ -172,9 +172,9 @@ export function ExportZipButton({ patient, records, tenant }: Props) {
         <rect x="1" y="3" width="22" height="5" />
         <line x1="10" y1="12" x2="14" y2="12" />
       </svg>
-      Exportar ZIP
+      <span className="hidden sm:inline">Exportar ZIP</span>
       {hasRecords && (
-        <span className="rounded-full bg-teal-100 px-1.5 py-0.5 text-[10px] font-semibold text-teal-700">
+        <span className="rounded-md bg-bg-soft border border-border px-1.5 py-0.5 text-[10px] font-bold text-ink">
           {records.length}
         </span>
       )}

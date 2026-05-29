@@ -300,7 +300,8 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
     const pName = encodeURIComponent(initialData.patient_name || `${form.getValues("patient_first_name")} ${form.getValues("patient_last_name")}`.trim());
     const pDoc = initialData.patient_document ? `&patientDoc=${encodeURIComponent(initialData.patient_document)}` : "";
     const pBirth = initialData.patient_birth_date ? `&patientBirth=${encodeURIComponent(initialData.patient_birth_date)}` : "";
-    const url = `/consultas?appointmentId=${initialData.id}&patientName=${pName}${pDoc}${pBirth}`;
+    const pPhone = initialData.patient_phone ? `&patientPhone=${encodeURIComponent(initialData.patient_phone)}` : "";
+    const url = `/consultas?appointmentId=${initialData.id}&patientName=${pName}${pDoc}${pBirth}${pPhone}`;
     router.push(url);
   }
 
@@ -392,11 +393,26 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
                 )}
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={async () => {
                     if (!initialData?.patient_phone) return;
-                    const text = `Hola ${initialData.patient_name}, te recordamos tu cita médica para el día ${format(new Date(initialData.start_time), "dd/MM/yyyy")} a las ${format(new Date(initialData.start_time), "HH:mm")}.`;
-                    const phoneStr = initialData.patient_phone.replace(/\D/g, "");
-                    window.open(`https://wa.me/${phoneStr}?text=${encodeURIComponent(text)}`, '_blank');
+                    if (!confirm("¿Enviar recordatorio de cita vía WhatsApp automáticamente?")) return;
+                    
+                    try {
+                      const res = await fetch("/api/whatsapp/reminder", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          phone: initialData.patient_phone,
+                          patientName: initialData.patient_name || "",
+                          dateStr: `${format(new Date(initialData.start_time), "dd/MM/yyyy")} a las ${format(new Date(initialData.start_time), "HH:mm")}`
+                        })
+                      });
+                      
+                      if (!res.ok) throw new Error("Fallo envío");
+                      alert("Recordatorio enviado por WhatsApp.");
+                    } catch (e) {
+                      alert("Error al enviar el recordatorio. Verifica la configuración de WhatsApp Cloud API.");
+                    }
                   }}
                   disabled={!initialData?.patient_phone}
                   className="w-full sm:w-auto text-sm font-semibold text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 px-3 py-2 rounded-xl transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"

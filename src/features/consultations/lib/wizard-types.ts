@@ -92,6 +92,14 @@ export type WizardForm = {
   labOrders: string[];
   imagingOrders: string[];
 
+  medicalReferral: {
+    referred_doctor_id: string;
+    external_doctor_name: string;
+    external_doctor_contact: string;
+    reason: string;
+    include_report: boolean;
+  } | null;
+
   currentMedications: CurrentMedication[];
   medicationInstructionsStructured: MedInstruction[];
 

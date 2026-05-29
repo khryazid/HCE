@@ -232,7 +232,7 @@ export default function LandingView() {
           <div className="gx-b-card gx-b-large">
             <div className="gx-b-icon"><Ico d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z" /></div>
             <h3 className="gx-b-title">Sugerencias con IA (Gemini)</h3>
-            <p className="gx-b-desc">El autocompletado CIE-10 está potenciado por modelos de inteligencia artificial avanzados. Encuentra el diagnóstico exacto analizando el texto libre del motivo de consulta.</p>
+            <p className="gx-b-desc">El autocompletado CIE-11 está potenciado por modelos de inteligencia artificial avanzados. Encuentra el diagnóstico exacto analizando el texto libre del motivo de consulta.</p>
           </div>
         </section>
 

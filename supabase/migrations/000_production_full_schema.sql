@@ -357,6 +357,224 @@ alter table public.treatment_templates add constraint treatment_templates_clinic
 alter table public.clinic_members drop constraint if exists clinic_members_clinic_id_fkey;
 alter table public.clinic_members add constraint clinic_members_clinic_id_fkey foreign key (clinic_id) references public.clinics (id) on delete cascade;
 
+-- ==============================================================================
+-- 13. LAB ORDERS
+-- ==============================================================================
+create table if not exists public.lab_orders (
+  id                  uuid primary key default gen_random_uuid(),
+  clinic_id           uuid not null references public.clinics (id) on delete cascade,
+  doctor_id           uuid not null references auth.users (id) on delete cascade,
+  patient_id          uuid not null references public.patients (id) on delete cascade,
+  clinical_record_id  uuid references public.clinical_records (id) on delete set null,
+  order_type          text not null check (order_type in ('laboratory', 'imaging')),
+  items               jsonb not null default '[]',  -- [{name, code?, notes}]
+  reason              text not null default '',     -- razón de la referencia
+  status              text not null default 'pending'
+    check (status in ('pending', 'in_progress', 'completed', 'cancelled')),
+  results             jsonb,                        -- resultados subidos por lab
+  completed_at        timestamptz,
+  created_at          timestamptz not null default now(),
+  updated_at          timestamptz not null default now()
+);
+
+-- RLS para Lab Orders
+alter table public.lab_orders enable row level security;
+
+drop policy if exists "Médicos pueden leer órdenes de su clínica" on public.lab_orders;
+create policy "Médicos pueden leer órdenes de su clínica"
+  on public.lab_orders for select
+  using (
+    auth.uid() is not null
+    and clinic_id in (
+      select clinic_id from public.profiles where doctor_id = auth.uid()
+      union
+      select clinic_id from public.clinic_members where doctor_id = auth.uid()
+    )
+  );
+
+drop policy if exists "Médicos pueden insertar órdenes en su clínica" on public.lab_orders;
+create policy "Médicos pueden insertar órdenes en su clínica"
+  on public.lab_orders for insert
+  with check (
+    auth.uid() = doctor_id
+    and clinic_id in (
+      select clinic_id from public.profiles where doctor_id = auth.uid()
+      union
+      select clinic_id from public.clinic_members where doctor_id = auth.uid()
+    )
+  );
+
+drop policy if exists "Médicos pueden actualizar órdenes en su clínica" on public.lab_orders;
+create policy "Médicos pueden actualizar órdenes en su clínica"
+  on public.lab_orders for update
+  using (
+    auth.uid() is not null
+    and clinic_id in (
+      select clinic_id from public.profiles where doctor_id = auth.uid()
+      union
+      select clinic_id from public.clinic_members where doctor_id = auth.uid()
+    )
+  );
+
+drop policy if exists "Médicos pueden eliminar órdenes de su clínica" on public.lab_orders;
+create policy "Médicos pueden eliminar órdenes de su clínica"
+  on public.lab_orders for delete
+  using (
+    auth.uid() is not null
+    and clinic_id in (
+      select clinic_id from public.profiles where doctor_id = auth.uid()
+      union
+      select clinic_id from public.clinic_members where doctor_id = auth.uid()
+    )
+  );
+
+create index if not exists idx_lab_orders_tenant on public.lab_orders (clinic_id, doctor_id);
+create index if not exists idx_lab_orders_patient on public.lab_orders (patient_id);
+
+
+-- ==============================================================================
+-- 14. MEDICAL REFERRALS
+-- ==============================================================================
+create table if not exists public.medical_referrals (
+  id                  uuid primary key default gen_random_uuid(),
+  clinic_id           uuid not null references public.clinics (id) on delete cascade,
+  referring_doctor_id uuid not null references auth.users (id) on delete cascade,
+  referred_doctor_id  uuid references auth.users (id) on delete set null, -- Null for external doctors
+  external_doctor_name text, -- Para doctores fuera del sistema
+  external_doctor_contact text,
+  patient_id          uuid not null references public.patients (id) on delete cascade,
+  clinical_record_id  uuid references public.clinical_records (id) on delete set null,
+  reason              text not null,
+  include_report      boolean not null default false,
+  status              text not null default 'pending'
+    check (status in ('pending', 'accepted', 'completed', 'declined')),
+  notes               text,
+  created_at          timestamptz not null default now(),
+  updated_at          timestamptz not null default now()
+);
+
+-- RLS para Medical Referrals
+alter table public.medical_referrals enable row level security;
+
+drop policy if exists "Médicos pueden leer referencias de su clínica" on public.medical_referrals;
+create policy "Médicos pueden leer referencias de su clínica"
+  on public.medical_referrals for select
+  using (
+    auth.uid() is not null
+    and (
+      clinic_id in (
+        select clinic_id from public.profiles where doctor_id = auth.uid()
+        union
+        select clinic_id from public.clinic_members where doctor_id = auth.uid()
+      )
+      or referred_doctor_id = auth.uid()
+    )
+  );
+
+drop policy if exists "Médicos pueden crear referencias" on public.medical_referrals;
+create policy "Médicos pueden crear referencias"
+  on public.medical_referrals for insert
+  with check (
+    auth.uid() = referring_doctor_id
+    and clinic_id in (
+      select clinic_id from public.profiles where doctor_id = auth.uid()
+      union
+      select clinic_id from public.clinic_members where doctor_id = auth.uid()
+    )
+  );
+
+drop policy if exists "Médicos pueden actualizar referencias" on public.medical_referrals;
+create policy "Médicos pueden actualizar referencias"
+  on public.medical_referrals for update
+  using (
+    auth.uid() is not null
+    and (
+      clinic_id in (
+        select clinic_id from public.profiles where doctor_id = auth.uid()
+        union
+        select clinic_id from public.clinic_members where doctor_id = auth.uid()
+      )
+      or referred_doctor_id = auth.uid()
+    )
+  );
+
+drop policy if exists "Médicos pueden eliminar referencias" on public.medical_referrals;
+create policy "Médicos pueden eliminar referencias"
+  on public.medical_referrals for delete
+  using (
+    auth.uid() is not null
+    and clinic_id in (
+      select clinic_id from public.profiles where doctor_id = auth.uid()
+      union
+      select clinic_id from public.clinic_members where doctor_id = auth.uid()
+    )
+  );
+
+create index if not exists idx_medical_referrals_tenant on public.medical_referrals (clinic_id, referring_doctor_id);
+create index if not exists idx_medical_referrals_patient on public.medical_referrals (patient_id);
+create index if not exists idx_medical_referrals_referred on public.medical_referrals (referred_doctor_id);
+
+-- ============================================================
+-- 15. CAJA / CASH TRANSACTIONS
+-- ============================================================
+
+create table if not exists public.cash_transactions (
+  id                  uuid primary key default gen_random_uuid(),
+  clinic_id           uuid not null references public.clinics (id) on delete cascade,
+  user_id             uuid not null references auth.users (id) on delete cascade,
+  patient_id          uuid references public.patients (id) on delete set null,
+  type                text not null check (type in ('income', 'expense')),
+  amount              numeric(10, 2) not null,
+  concept             text not null,
+  payment_method      text not null default 'cash'
+    check (payment_method in ('cash', 'card', 'transfer', 'other')),
+  status              text not null default 'completed'
+    check (status in ('completed', 'voided')),
+  reference_code      text,
+  created_at          timestamptz not null default now(),
+  updated_at          timestamptz not null default now()
+);
+
+alter table public.cash_transactions enable row level security;
+
+drop policy if exists "Usuarios de la clínica pueden ver transacciones" on public.cash_transactions;
+create policy "Usuarios de la clínica pueden ver transacciones"
+  on public.cash_transactions for select
+  using (
+    auth.uid() is not null
+    and clinic_id in (
+      select clinic_id from public.profiles where doctor_id = auth.uid()
+      union
+      select clinic_id from public.clinic_members where doctor_id = auth.uid()
+    )
+  );
+
+drop policy if exists "Usuarios de la clínica pueden insertar transacciones" on public.cash_transactions;
+create policy "Usuarios de la clínica pueden insertar transacciones"
+  on public.cash_transactions for insert
+  with check (
+    auth.uid() = user_id
+    and clinic_id in (
+      select clinic_id from public.profiles where doctor_id = auth.uid()
+      union
+      select clinic_id from public.clinic_members where doctor_id = auth.uid()
+    )
+  );
+
+drop policy if exists "Usuarios de la clínica pueden anular transacciones" on public.cash_transactions;
+create policy "Usuarios de la clínica pueden anular transacciones"
+  on public.cash_transactions for update
+  using (
+    auth.uid() is not null
+    and clinic_id in (
+      select clinic_id from public.profiles where doctor_id = auth.uid()
+      union
+      select clinic_id from public.clinic_members where doctor_id = auth.uid()
+    )
+  );
+
+create index if not exists idx_cash_transactions_tenant on public.cash_transactions (clinic_id, created_at desc);
+
 alter table public.profiles
   add column if not exists payment_config jsonb not null default '{}'::jsonb;
 
@@ -2513,3 +2731,148 @@ comment on function public.anonymize_patient(uuid) is
   'fecha nacimiento) sin borrar registros clínicos. Cumple retención legal de '
   'historiales médicos. Registra la acción en audit_logs.';
 
+-- ============================================================
+-- 16. TRACKING DE ONBOARDING & AUDITORÍA AUTOMÁTICA
+-- ============================================================
+
+alter table public.profiles
+  add column if not exists onboarding_state jsonb not null default '{"step": 1, "completed": false}'::jsonb;
+
+create or replace function public.log_audit_event_trigger()
+returns trigger
+security definer
+as $$
+declare
+  v_clinic_id uuid;
+  v_doctor_id uuid;
+  v_action text;
+  v_resource_id uuid;
+  v_changes jsonb;
+begin
+  v_action := TG_OP;
+
+  if v_action = 'DELETE' then
+    v_clinic_id := OLD.clinic_id;
+    v_doctor_id := auth.uid();
+    v_resource_id := OLD.id;
+    v_changes := to_jsonb(OLD);
+  else
+    v_clinic_id := NEW.clinic_id;
+    v_doctor_id := auth.uid();
+    v_resource_id := NEW.id;
+    
+    if v_action = 'INSERT' then
+      v_changes := to_jsonb(NEW);
+    else
+      v_changes := to_jsonb(NEW);
+    end if;
+  end if;
+
+  insert into public.audit_logs (
+    clinic_id,
+    doctor_id,
+    event_type,
+    resource_type,
+    resource_id,
+    changes,
+    entry_hash,
+    sequence_no
+  ) values (
+    v_clinic_id,
+    v_doctor_id,
+    lower(v_action),
+    TG_TABLE_NAME,
+    v_resource_id,
+    v_changes,
+    encode(digest(v_resource_id::text || now()::text, 'sha256'), 'hex'),
+    1
+  );
+
+  if v_action = 'DELETE' then
+    return OLD;
+  end if;
+  
+  return NEW;
+end;
+$$ language plpgsql;
+
+drop trigger if exists clinical_records_audit on public.clinical_records;
+create trigger clinical_records_audit
+  after insert or update or delete on public.clinical_records
+  for each row execute function public.log_audit_event_trigger();
+
+drop trigger if exists lab_orders_audit on public.lab_orders;
+create trigger lab_orders_audit
+  after insert or update or delete on public.lab_orders
+  for each row execute function public.log_audit_event_trigger();
+
+drop trigger if exists cash_transactions_audit on public.cash_transactions;
+create trigger cash_transactions_audit
+  after insert or update or delete on public.cash_transactions
+  for each row execute function public.log_audit_event_trigger();
+
+commit;
+-- 007_cash_shifts.sql
+-- Crea tabla para el control de turnos de caja aislados.
+
+create table if not exists public.cash_shifts (
+  id              uuid primary key default gen_random_uuid(),
+  clinic_id       uuid not null references public.clinics (id) on delete cascade,
+  user_id         uuid not null references auth.users (id) on delete cascade,
+  opened_at       timestamptz not null default now(),
+  closed_at       timestamptz,
+  initial_amount  numeric(10,2) not null default 0,
+  final_amount    numeric(10,2),
+  status          text not null default 'open' check (status in ('open', 'closed')),
+  created_at      timestamptz not null default now(),
+  updated_at      timestamptz not null default now()
+);
+
+alter table public.cash_shifts enable row level security;
+
+-- Policies for cash_shifts
+drop policy if exists "Usuarios pueden ver turnos de su clínica" on public.cash_shifts;
+create policy "Usuarios pueden ver turnos de su clínica"
+  on public.cash_shifts for select
+  using (
+    auth.uid() is not null
+    and clinic_id in (
+      select clinic_id from public.profiles where user_id = auth.uid() or doctor_id = auth.uid()
+      union
+      select clinic_id from public.clinic_members where user_id = auth.uid() or doctor_id = auth.uid()
+    )
+  );
+
+drop policy if exists "Usuarios pueden insertar turnos en su clínica" on public.cash_shifts;
+create policy "Usuarios pueden insertar turnos en su clínica"
+  on public.cash_shifts for insert
+  with check (
+    auth.uid() is not null
+    and auth.uid() = user_id
+    and clinic_id in (
+      select clinic_id from public.profiles where user_id = auth.uid() or doctor_id = auth.uid()
+      union
+      select clinic_id from public.clinic_members where user_id = auth.uid() or doctor_id = auth.uid()
+    )
+  );
+
+drop policy if exists "Usuarios pueden actualizar sus propios turnos" on public.cash_shifts;
+create policy "Usuarios pueden actualizar sus propios turnos"
+  on public.cash_shifts for update
+  using (
+    auth.uid() = user_id
+    and clinic_id in (
+      select clinic_id from public.profiles where user_id = auth.uid() or doctor_id = auth.uid()
+      union
+      select clinic_id from public.clinic_members where user_id = auth.uid() or doctor_id = auth.uid()
+    )
+  );
+
+-- Indexes
+create index if not exists idx_cash_shifts_tenant on public.cash_shifts (clinic_id, user_id, status);
+
+-- Añadir shift_id a cash_transactions
+alter table public.cash_transactions
+add column if not exists shift_id uuid references public.cash_shifts (id) on delete cascade;
+
+create index if not exists idx_cash_transactions_shift on public.cash_transactions (shift_id);

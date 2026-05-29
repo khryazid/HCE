@@ -19,7 +19,7 @@ describe("cie suggestions", () => {
       specialtyKind: "Neurología",
     });
 
-    expect(prompt).toContain("Asegúrate de que los códigos pertenezcan a la nomenclatura CIE-10 real");
+    expect(prompt).toContain("Asegúrate de que los códigos pertenezcan a la nomenclatura CIE-11 real");
     expect(prompt).toContain("Neurología");
   });
 

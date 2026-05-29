@@ -325,7 +325,7 @@ El campo `"_webpack_note"` en `scripts` es una clave no estándar usada como com
 - **Hallazgo:** Seguridad y aislamiento (Tenants). Endpoint `/api/search` mitigó exitosamente vectores IDOR al delegar la extracción del `clinic_id` a nivel de base de datos a través de `auth.uid()` en la RPC `search_global` (🔗 Referir → Agente 4: `search_global` usa firma antigua en tipos generados, requiere actualizar con `db:types`).
 - **Severidad:** 🟢 Bajo. **Archivos:** `src/app/api/search/route.ts`.
 
-### 2. Integración Gemini (CIE-10)
+### 2. Integración Gemini (CIE-11)
 - **Hallazgo:** Bypass de validación de entorno. El endpoint inicializa la instancia de `GoogleGenAI` accediendo directamente a `process.env.GEMINI_API_KEY` en lugar de usar `serverEnv.GEMINI_API_KEY`. Esto esquiva la garantía de "fail fast" y podría causar fallos silenciosos si la variable falta. Además usa un fallback a `gemini-3.5-flash` cuando el proyecto usa `gemini-2.0-flash`.
 - **Severidad:** 🔴 Alto. **Archivos:** `src/app/api/cie-suggestions/route.ts`. **Recomendación:** Importar y usar `serverEnv.GEMINI_API_KEY` y `serverEnv.GEMINI_MODEL`.
 - **Hallazgo:** Falta de Timeouts. La llamada a la API de Gemini tiene un retry manual de 1 intento para códigos 503, pero no implementa un `AbortSignal` con timeout. Si el modelo se cuelga procesando el prompt médico, la función Serverless bloqueará hasta alcanzar el timeout de Vercel, consumiendo recursos innecesariamente.
@@ -1583,7 +1583,7 @@ El manual debe cubrir las siguientes funcionalidades críticas para el médico, 
 
 1. **Registro y configuración inicial:** Creación de cuenta, configuración del perfil del médico (datos para membrete) y preferencias básicas.
 2. **Gestión de pacientes:** Cómo crear un paciente nuevo, buscar (Ctrl+K) y filtrar el directorio.
-3. **Consulta Wizard (6 pasos):** El flujo central de la app. Anamnesis, signos vitales (PAM), examen físico, diagnóstico (CIE-10 IA), posología y cierre.
+3. **Consulta Wizard (6 pasos):** El flujo central de la app. Anamnesis, signos vitales (PAM), examen físico, diagnóstico (CIE-11 IA), posología y cierre.
 4. **Constructor de Posología:** Cómo crear recetas médicas, usar plantillas y generar el PDF.
 5. **Agenda y citas:** Visualización del calendario, crear y gestionar citas.
 6. **Búsqueda global:** Uso del atajo `Ctrl+K` o `Cmd+K` para navegación rápida.
@@ -1651,7 +1651,7 @@ La consulta médica en Glyphix está diseñada en 6 pasos fluidos, creados para 
 1. **Motivo de consulta y Anamnesis:** Registre el padecimiento actual del paciente. Este paso guarda su progreso inmediatamente (como un borrador).
 2. **Signos Vitales:** Introduzca los valores básicos. *Nota:* Al ingresar la Presión Arterial (ej. `120/80`), el sistema calculará automáticamente la Presión Arterial Media (PAM) y la resaltará en rojo si está fuera de rango. El IMC también se calcula solo tras ingresar peso y talla.
 3. **Examen Físico:** Anote sus hallazgos por sistema.
-4. **Diagnóstico (Asistido por IA):** Escriba su impresión diagnóstica clínica. Presionando el botón "Sugerencias CIE-10", nuestra Inteligencia Artificial le propondrá el código CIE-10 exacto basado en lo que acaba de escribir, ahorrándole búsquedas manuales.
+4. **Diagnóstico (Asistido por IA):** Escriba su impresión diagnóstica clínica. Presionando el botón "Sugerencias CIE-11", nuestra Inteligencia Artificial le propondrá el código CIE-11 exacto basado en lo que acaba de escribir, ahorrándole búsquedas manuales.
 5. **Posología (Receta Médica):** Agregue los medicamentos. Puede guardar recetas comunes como "Plantillas" para usarlas con un solo clic en futuros pacientes.
 6. **Resumen y Cierre:** Revise todos los datos y haga clic en **Finalizar Consulta**. Esto sellará legalmente la consulta y generará un PDF listo para imprimir o enviar.
 

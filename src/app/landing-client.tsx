@@ -98,7 +98,7 @@ export default function LandingClient({ proPrice, clinicPrice }: { proPrice: num
         <div style={{display: "flex", justifyContent: "center", gap: 40, marginTop: 64, flexWrap: "wrap", animation: "gx-up 600ms forwards", animationDelay:"500ms", opacity:0}}>
           {[
             { num: "∞", label: "Pacientes registrados" },
-            { num: "CIE-10", label: "Codificación con IA" },
+            { num: "CIE-11", label: "Codificación con IA" },
             { num: "100%", label: "Funciona offline" },
             { num: "< 2s", label: "Tiempo de carga" },
           ].map((s) => (
@@ -206,24 +206,38 @@ export default function LandingClient({ proPrice, clinicPrice }: { proPrice: num
         </div>
       </section>
 
-      {/* ── Testimonials ── */}
-      <section style={{padding: "120px 40px", textAlign: "center", maxWidth: 800, margin: "0 auto"}}>
-        <span style={{fontSize:"0.8125rem", fontWeight:600, color:"var(--ink-faint)", textTransform:"uppercase", letterSpacing:"0.1em"}}>Testimonios</span>
-        <h2 className="gx-hero-title" style={{fontSize: "2.5rem", marginTop: 16}}>Los médicos que ya usan {APP_NAME}</h2>
-        <p className="gx-hero-desc">
-          Estamos en lanzamiento temprano. Pronto compartiremos aquí las experiencias de los primeros médicos que confían en la plataforma cada día.
-        </p>
-        <div style={{display:"flex", gap:16, justifyContent:"center", flexWrap:"wrap", marginTop: 40}}>
-          {[
-            { icon: "⚕️", label: "Médicos generales" },
-            { icon: "👶", label: "Pediatras" },
-            { icon: "🫀", label: "Cardiólogos" },
-            { icon: "🧠", label: "Neurólogos" },
-          ].map((sp) => (
-            <div key={sp.label} style={{display:"flex", alignItems:"center", gap:8, padding:"12px 24px", background:"var(--bg-elevated)", border:"1px solid var(--border)", borderRadius:"100px", fontSize:"0.9375rem", fontWeight:500}}>
-              <span>{sp.icon}</span> {sp.label}
-            </div>
-          ))}
+      {/* ── Funcionalidades Avanzadas (Bento Grid) ── */}
+      <section style={{padding: "120px 0", background: "var(--bg)"}}>
+        <div style={{textAlign: "center", marginBottom: 64}}>
+          <span style={{fontSize:"0.8125rem", fontWeight:600, color:"var(--ink-faint)", textTransform:"uppercase", letterSpacing:"0.1em"}}>Potencia Clínica</span>
+          <h2 className="gx-hero-title" style={{fontSize: "2.5rem", marginTop: 16}}>Todo lo que necesitas, integrado.</h2>
+        </div>
+        <div className="gx-bento">
+          
+          <div className="gx-b-card gx-b-large">
+            <div className="gx-b-icon"><Ico d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z" /></div>
+            <h3 className="gx-b-title">Sugerencias con IA (Gemini)</h3>
+            <p className="gx-b-desc">El autocompletado CIE-11 está potenciado por modelos de inteligencia artificial avanzados. Encuentra el diagnóstico exacto analizando el texto libre del motivo de consulta y examen físico en tiempo real.</p>
+          </div>
+
+          <div className="gx-b-card">
+            <div className="gx-b-icon" style={{background: "var(--state-ok-bg)", color: "var(--state-ok)"}}><Ico d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></div>
+            <h3 className="gx-b-title">Seguridad y Privacidad</h3>
+            <p className="gx-b-desc">Tus datos nunca se cruzan. Arquitectura Multi-tenant con bases de datos encriptadas y cumplimiento de HIPAA/GDPR.</p>
+          </div>
+
+          <div className="gx-b-card">
+            <div className="gx-b-icon" style={{background: "var(--state-warn-bg)", color: "var(--state-warn)"}}><Ico d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></div>
+            <h3 className="gx-b-title">Control de Cajas</h3>
+            <p className="gx-b-desc">Turnos de caja aislados (`cash_shifts`). Controla tus ingresos, egresos, saldos iniciales y cierres diarios de forma unificada.</p>
+          </div>
+
+          <div className="gx-b-card gx-b-large">
+            <div className="gx-b-icon"><Ico d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></div>
+            <h3 className="gx-b-title">Notificaciones de WhatsApp y Email</h3>
+            <p className="gx-b-desc">Automatiza el seguimiento. Envía recordatorios de citas y resultados de exámenes técnicos (PDFs) directamente al WhatsApp o al correo (Resend) de tus pacientes.</p>
+          </div>
+
         </div>
       </section>
 
@@ -242,11 +256,14 @@ export default function LandingClient({ proPrice, clinicPrice }: { proPrice: num
             <ul style={{listStyle:"none", padding:0, margin:"0 0 32px", display:"flex", flexDirection:"column", gap:12, fontSize:"0.9375rem", color:"var(--ink-soft)"}}>
               <li style={{display:"flex", gap:8}}><span style={{color:"var(--accent)"}}>✓</span> Pacientes y consultas ilimitados</li>
               <li style={{display:"flex", gap:8}}><span style={{color:"var(--accent)"}}>✓</span> Seguimientos clínicos</li>
-              <li style={{display:"flex", gap:8}}><span style={{color:"var(--accent)"}}>✓</span> Sugerencias CIE-10 con IA</li>
+              <li style={{display:"flex", gap:8}}><span style={{color:"var(--accent)"}}>✓</span> Sugerencias CIE-11 con IA</li>
               <li style={{display:"flex", gap:8}}><span style={{color:"var(--accent)"}}>✓</span> Sync offline automático</li>
               <li style={{display:"flex", gap:8}}><span style={{color:"var(--accent)"}}>✓</span> Soporte por email</li>
             </ul>
-            <Link href="/registro?plan=pro" prefetch={false} className="gx-btn gx-btn-p" style={{width:"100%"}}>Comenzar ahora</Link>
+            <div style={{display: "flex", gap: "12px", flexDirection: "column"}}>
+              <Link href="/planes/profesional" prefetch={false} className="gx-btn gx-btn-s" style={{width:"100%"}}>Ver todos los detalles</Link>
+              <Link href="/registro?plan=pro" prefetch={false} className="gx-btn gx-btn-p" style={{width:"100%"}}>Comenzar ahora</Link>
+            </div>
           </div>
           
           {clinicPrice > 0 && (
@@ -262,9 +279,67 @@ export default function LandingClient({ proPrice, clinicPrice }: { proPrice: num
                 <li style={{display:"flex", gap:8}}><span style={{color:"var(--ink)"}}>✓</span> Reportes de gerencia</li>
                 <li style={{display:"flex", gap:8}}><span style={{color:"var(--ink)"}}>✓</span> Soporte prioritario</li>
               </ul>
-              <Link href="/registro?plan=clinica" prefetch={false} className="gx-btn gx-btn-s" style={{width:"100%", textAlign:"center", display:"block"}}>Comenzar ahora</Link>
+              <div style={{display: "flex", gap: "12px", flexDirection: "column"}}>
+                <Link href="/planes/clinica" prefetch={false} className="gx-btn gx-btn-s" style={{width:"100%", textAlign:"center", display:"block"}}>Ver todos los detalles</Link>
+                <Link href="/registro?plan=clinica" prefetch={false} className="gx-btn gx-btn-p" style={{width:"100%", textAlign:"center", display:"block"}}>Comenzar ahora</Link>
+              </div>
             </div>
           )}
+        </div>
+      </section>
+
+      {/* ── Preguntas Frecuentes (FAQ) ── */}
+      <section id="faq" style={{padding: "120px 40px", background: "var(--bg-soft)"}}>
+        <div style={{textAlign: "center", marginBottom: 64}}>
+          <h2 className="gx-hero-title" style={{fontSize: "2.5rem"}}>Preguntas Frecuentes</h2>
+          <p className="gx-hero-desc">Resolvemos las dudas más comunes antes de que empieces a documentar.</p>
+        </div>
+        <div className="gx-faq-grid">
+          <div className="gx-faq-item">
+            <h4 className="gx-faq-q">¿Qué pasa si me quedo sin internet en medio de una consulta?</h4>
+            <p className="gx-faq-a">Absolutamente nada. Glyphix funciona de forma 100% offline-first. Tus pacientes y consultas se guardan en el navegador. Al recuperar conexión, el sistema sincroniza todo en segundo plano sin interrumpirte.</p>
+          </div>
+          <div className="gx-faq-item">
+            <h4 className="gx-faq-q">¿Los códigos CIE-11 son sugeridos automáticamente?</h4>
+            <p className="gx-faq-a">Sí. Nuestro asistente integrado lee el motivo de consulta y síntomas, procesa la información mediante Gemini AI, y te ofrece el código CIE-11 más preciso en fracciones de segundo.</p>
+          </div>
+          <div className="gx-faq-item">
+            <h4 className="gx-faq-q">¿Puedo migrar los datos desde mi software actual?</h4>
+            <p className="gx-faq-a">Actualmente soportamos importación manual o asistida (contáctanos). Sin embargo, siempre puedes exportar TODO desde Glyphix en formato ZIP (datos brutos en JSON + PDFs de consultas) con un solo clic.</p>
+          </div>
+          <div className="gx-faq-item">
+            <h4 className="gx-faq-q">Si tengo una clínica, ¿pueden varios doctores usarlo a la vez?</h4>
+            <p className="gx-faq-a">Sí, con el Plan Clínica puedes agrupar médicos, centralizar facturación (pagas 1 sola suscripción que cubre los &quot;asientos&quot;), y delegar permisos a recepcionistas o técnicos de laboratorio.</p>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Contacto ── */}
+      <section id="contacto" style={{padding: "120px 40px"}}>
+        <div className="gx-contact-box">
+          <div style={{textAlign:"center", marginBottom:32}}>
+            <h2 className="gx-hero-title" style={{fontSize: "2.5rem"}}>¿Necesitas hablar con nosotros?</h2>
+            <p className="gx-hero-desc" style={{margin:0}}>Estamos aquí para apoyarte en tu migración digital.</p>
+          </div>
+          
+          <div style={{display:"flex", flexDirection:"column", gap:16, width:"100%"}}>
+            <div className="gx-contact-item">
+              <div className="gx-contact-icon"><Ico d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></div>
+              <span>soporte@glyphmed.app</span>
+            </div>
+            <div className="gx-contact-item">
+              <div className="gx-contact-icon"><Ico d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></div>
+              <span>+1 (555) 123-4567</span>
+            </div>
+            <div className="gx-contact-item">
+              <div className="gx-contact-icon"><Ico d="M12 21s-8-4.5-8-11.8A8 8 0 0112 1.2a8 8 0 018 8C20 16.5 12 21 12 21z" /></div>
+              <span>Ciudad de México, México</span>
+            </div>
+          </div>
+          
+          <div style={{marginTop: 32}}>
+            <Link href="mailto:soporte@glyphmed.app" className="gx-btn gx-btn-p">Enviar correo de soporte</Link>
+          </div>
         </div>
       </section>
 
@@ -292,7 +367,8 @@ export default function LandingClient({ proPrice, clinicPrice }: { proPrice: num
         <nav className="gx-footer-links" aria-label="Links del pie de página">
           <Link href="/login" prefetch={false}>Iniciar sesión</Link>
           <Link href="/registro" prefetch={false}>Registro</Link>
-          <a href="#features">Funciones</a>
+          <Link href="/planes/profesional" prefetch={false}>Plan Pro</Link>
+          <Link href="/planes/clinica" prefetch={false}>Plan Clínica</Link>
           <Link href="/privacidad">Privacidad</Link>
           <Link href="/terminos">Términos</Link>
         </nav>

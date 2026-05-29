@@ -38,7 +38,7 @@ const WizardStepDiagnosisOnly = memo(function WizardStepDiagnosisOnly({
         />
       </div>
 
-      {/* Impresión Diagnóstica + CIE-10 */}
+      {/* Impresión Diagnóstica + CIE-11 */}
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
           <label htmlFor="field-diagnosis" className="absolute left-3 top-3 flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
@@ -58,13 +58,13 @@ const WizardStepDiagnosisOnly = memo(function WizardStepDiagnosisOnly({
             <p id="error-diagnosis" className="absolute -bottom-6 left-1 text-xs font-medium text-red-600">{validationErrors.diagnosis}</p>
           ) : null}
           <p className="absolute bottom-2 right-3 text-base text-ink-soft opacity-70">
-            {APP_NAME} sugerirá CIE-10 automáticamente al salir.
+            {APP_NAME} sugerirá CIE-11 automáticamente al salir.
           </p>
         </div>
 
         <div className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
           <label className="absolute left-3 top-3 flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
-            <Tags className="h-3.5 w-3.5" /> Códigos CIE-10 / CIE-11
+            <Tags className="h-3.5 w-3.5" /> Códigos CIE-11
           </label>
           <textarea
             className="w-full min-h-[140px] resize-none bg-transparent px-3 pb-3 pt-10 text-base text-ink placeholder:text-ink-faint/50 !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none"

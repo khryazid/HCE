@@ -4,6 +4,7 @@ import { DashboardOnboardingGuard } from "@/features/dashboard/components/dashbo
 import { GlobalSearch } from "@/features/dashboard/components/global-search";
 import { Topnav, BottomNav, MobileHeader } from "@/features/dashboard/components/topnav";
 import { SyncStatusBanner } from "@/features/sync/components/sync-status-banner";
+import { SubscriptionBanner } from "@/features/dashboard/components/subscription-banner";
 import { TenantProvider } from "@/lib/supabase/tenant-context";
 import { ClinicalProvider } from "@/features/consultations/context/clinical-context";
 import Link from "next/link";
@@ -41,6 +42,9 @@ export default function DashboardLayout({
             <main className="flex-1 p-4 pb-24 sm:p-6 lg:p-8">
               <div className="mx-auto w-full max-w-[1440px]">
                 <div className="mb-6 space-y-3">
+                  <PanelErrorBoundary>
+                    <SubscriptionBanner />
+                  </PanelErrorBoundary>
                   <PanelErrorBoundary>
                     <GlobalSearch />
                   </PanelErrorBoundary>

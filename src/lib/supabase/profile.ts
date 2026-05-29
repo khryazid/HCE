@@ -8,9 +8,10 @@ export type TenantProfile = {
   specialties: string[];
   subscription_status?: string | null;
   subscription_expires_at?: string | null;
-  plan: "basic" | "clinic";
+  plan: "individual" | "clinic";
   role: "admin" | "doctor" | "assistant";
   ui_preferences?: Record<string, unknown>;
+  onboarding_state: { step: number; completed: boolean };
 };
 
 type EnsureTenantProfileInput = {
@@ -18,7 +19,7 @@ type EnsureTenantProfileInput = {
   clinicId: string;
   fullName: string;
   specialties: string[];
-  plan?: "basic" | "clinic";
+  plan?: "individual" | "clinic";
 };
 
 type TenantMetadata = {
@@ -26,6 +27,7 @@ type TenantMetadata = {
   full_name?: unknown;
   specialty?: unknown;
   specialties?: unknown;
+  plan?: unknown;
 };
 
 // Internal: used to cast the insert payload to work around the Supabase type-gen
@@ -48,19 +50,27 @@ function withSpecialties(profile: {
   clinic_id: string;
   full_name: string;
   specialty: string[];
-  plan: "basic" | "clinic";
+  plan: "individual" | "clinic";
   subscription_status?: string | null;
   subscription_expires_at?: string | null;
   role?: "admin" | "doctor" | "assistant";
   ui_preferences?: Record<string, unknown> | unknown;
+  onboarding_state?: unknown;
 }): TenantProfile {
   // Map the DB column name `specialty` to the canonical `specialties` field.
-  const { specialty, role, ui_preferences, ...rest } = profile;
+  const { specialty, role, ui_preferences, onboarding_state, ...rest } = profile;
+  
+  const defaultOnboardingState = { step: 1, completed: false };
+  const parsedOnboardingState = onboarding_state && typeof onboarding_state === "object"
+    ? (onboarding_state as { step: number; completed: boolean })
+    : defaultOnboardingState;
+
   return { 
     ...rest, 
     specialties: specialty, 
     role: role || "admin",
-    ui_preferences: (ui_preferences as Record<string, unknown>) || {}
+    ui_preferences: (ui_preferences as Record<string, unknown>) || {},
+    onboarding_state: parsedOnboardingState,
   };
 }
 
@@ -72,7 +82,7 @@ export async function loadTenantProfile(userId: string): Promise<TenantProfile |
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from("profiles")
-    .select("doctor_id, clinic_id, full_name, specialty, subscription_status, subscription_expires_at, plan, ui_preferences")
+    .select("doctor_id, clinic_id, full_name, specialty, subscription_status, subscription_expires_at, plan, ui_preferences, onboarding_state")
     .eq("doctor_id", userId)
     .maybeSingle();
 
@@ -94,7 +104,7 @@ export async function loadTenantProfile(userId: string): Promise<TenantProfile |
 
   return withSpecialties({
     ...data,
-    plan: data.plan as "basic" | "clinic",
+    plan: data.plan as "individual" | "clinic",
     role: (memberData?.role as "admin" | "doctor" | "assistant") || "admin",
     ui_preferences: data.ui_preferences,
   });
@@ -135,13 +145,26 @@ export async function ensureTenantProfile(
       clinic_id: clinicId,
       full_name: fullName,
       specialty: specialties,
-      plan: input.plan || "basic",
+      plan: input.plan || "individual",
       // HAL-13.1: subscription_status y subscription_expires_at NO se asignan
       // desde el cliente. Solo createTenantProfileWithTrial (service_role) puede
       // asignarlos. Esto previene que un usuario manipule su propio trial status.
     } satisfies ProfileInsert)
-    .select("doctor_id, clinic_id, full_name, specialty, subscription_status, subscription_expires_at, plan, ui_preferences")
+    .select("doctor_id, clinic_id, full_name, specialty, subscription_status, subscription_expires_at, plan, ui_preferences, onboarding_state")
     .single();
+
+  // If there was no error and the profile was inserted, ensure the clinic and member exist
+  if (!error && data) {
+    // This is run client-side most of the time but via a server-action in signup,
+    // so we can't use adminClient directly here without moving it to a server action.
+    // However, the standard insert flow uses createTenantProfileWithTrial which ALREADY
+    // handles clinics and clinic_members! This function is mostly a fallback.
+    // To be perfectly safe, since the user is authenticated, they CANNOT insert into
+    // clinic_members without is_clinic_admin, which they don't have yet.
+    // So if they hit this fallback, they might not get 'admin' role correctly without
+    // a server-action.
+    // Since Phase 2, we strongly recommend all signups go through createTenantProfileWithTrial.
+  }
 
   if (error) {
     const reloaded = await loadTenantProfile(input.userId);
@@ -163,7 +186,7 @@ export async function ensureTenantProfile(
 
   return withSpecialties({
     ...data,
-    plan: data.plan as "basic" | "clinic",
+    plan: data.plan as "individual" | "clinic",
     ui_preferences: data.ui_preferences,
   });
 }
@@ -197,6 +220,8 @@ export async function bootstrapTenantProfileFromMetadata(
     ? metadata.specialties.filter((value): value is string => typeof value === "string")
     : undefined;
 
+  const plan = typeof metadata.plan === "string" ? metadata.plan : undefined;
+
   if (!clinicId || !fullName || (!specialty && (!specialties || specialties.length === 0))) {
     return null;
   }
@@ -205,6 +230,7 @@ export async function bootstrapTenantProfileFromMetadata(
     userId,
     clinicId,
     fullName,
+    plan: plan as "individual" | "clinic",
     specialties: specialties && specialties.length > 0 ? specialties : [specialty as string],
   });
 }

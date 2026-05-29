@@ -51,12 +51,15 @@ Con arquitectura multi-tenant de grado empresarial, Glyphix automatiza la factur
 | **Realtime Sync** | Supabase WebSocket Realtime en 5 tablas (pacientes, citas, consultas, equipo, plantillas). |
 | **Agenda Reactiva** | Calendario con polling 30s + `refetchOnWindowFocus` + Realtime — el médico ve citas nuevas al instante. Diseño high-density clínico con notificaciones contextuales. |
 | **Plan Multi-Doctor** | Multi-tenant para Clínicas, roles (admin/doctor/viewer) y billing multi-seat. |
-| **IA CIE-10** | Gemini 2.0 Flash sugiere diagnósticos en tiempo real |
+| **IA CIE-11** | Gemini 2.0 Flash sugiere diagnósticos en tiempo real |
 | **Plantillas** | Multi-dispositivo en Supabase, versionado JSONB, historial restaurable |
 | **Búsqueda Global** | `Ctrl+K` — FTS PostgreSQL con índices GIN + `websearch_to_tsquery` |
 | **Dark Mode** | Toggle claro/oscuro/sistema, anti-flash (script pre-hydration) |
 | **Notificaciones Push** | VAPID Web Push + cron SQL 8am UTC por seguimientos del día |
 | **Recordatorios Email** | Resend API + cron SQL 7am UTC, template HTML branded |
+| **Caja y Turnos** | Control de flujo de caja aislado (`cash_shifts`), auditoría de ingresos/egresos y cuadre final. |
+| **Laboratorio** | Órdenes de laboratorio, adjunto de resultados técnicos y envío de PDFs por WhatsApp al paciente. |
+| **Integraciones Core** | Meta Graph API (WhatsApp) para recordatorios y PDFs. Resend para invitaciones corporativas (Magic Links). |
 | **Exportación ZIP** | Historia clínica completa: JSON + un PDF por consulta, 100% client-side |
 | **Facturación** | Stripe Checkout, Webhooks firmados, Customer Portal |
 | **Admin Panel** | Métricas de tenants, control de acceso por `ADMIN_EMAIL` |
@@ -89,8 +92,8 @@ Con arquitectura multi-tenant de grado empresarial, Glyphix automatiza la factur
 - **Worker Inteligente:** Al recuperar el internet, un sync worker despacha la cola hacia Supabase con *backoff exponencial* y resolución de conflictos por dependencias.
 - **Online-First Refresh:** Refresh silencioso desde Supabase al cargar, manteniendo datos actualizados.
 
-### 🤖 Asistente de IA — CIE-10
-- **Gemini 2.0 Flash:** Lee los síntomas en tiempo real y sugiere diagnósticos con códigos **CIE-10** contextualizados.
+### 🤖 Asistente de IA — CIE-11
+- **Gemini 2.0 Flash:** Lee los síntomas en tiempo real y sugiere diagnósticos con códigos **CIE-11** contextualizados.
 - Rate Limiting por RPC Postgres — endpoint protegido por función que limita el uso por tenant.
 
 ### 🔍 Búsqueda Full-Text
@@ -129,6 +132,41 @@ Con arquitectura multi-tenant de grado empresarial, Glyphix automatiza la factur
 
 ---
 
+## 💼 Planes, Roles y Enrutamiento Base
+
+El proyecto se distribuye bajo un modelo SaaS con dos niveles de suscripción manejados vía Stripe, los cuales dictan el acceso y los roles disponibles dentro de la plataforma.
+
+### 1. Plan Profesional Independiente
+Diseñado para médicos con consultorio propio o atención en un solo asiento.
+- **Características:** Pacientes ilimitados, consultas sin restricciones, sugerencias diagnósticas IA (CIE-11), sincronización offline-first, PDF profesional y soporte básico.
+- **Roles:** El médico es el administrador de su propio espacio de trabajo.
+- **Flujo:** Al registrarse, entra directo al *Onboarding* individual y su entorno es completamente privado y aislado.
+
+### 2. Plan Clínica (Multi-Tenant)
+Diseñado para centros médicos, clínicas y agrupaciones con múltiples profesionales trabajando bajo la misma marca.
+- **Características:** Incluye todo lo del Plan Profesional, más la capacidad de agrupar médicos, centralizar facturación, compartir base de pacientes (opcional), flujo de caja unificado y reportes gerenciales.
+- **Roles y Permisos:**
+  - **Dueño / Super Administrador:** Acceso total. Puede invitar personal, ver facturación central (Stripe), ver reportes de ingresos (`/clinic-dashboard`) y acceder a todas las configuraciones.
+  - **Médico Adscrito:** Tiene acceso a la agenda, a crear pacientes, iniciar consultas (Wizard) y ver su propio historial. No ve métricas financieras de la clínica ni facturación.
+  - **Administrativo / Recepcionista:** Puede agendar citas, admitir pacientes, y abrir/cerrar turnos de caja (`cash_shifts`), pero no puede alterar historias clínicas.
+  - **Técnico de Laboratorio:** Acceso restringido al módulo `/laboratorio` para subir PDFs de resultados y enviarlos por WhatsApp.
+
+### Estructura de Rutas Clave (App Router)
+La navegación está protegida por un **Route Guard (`src/proxy.ts`)** que intercepta las sesiones SSR en lugar del frágil `middleware.ts`.
+- **Rutas Públicas:** `/` (Landing), `/login`, `/registro` (bifurcado por `?plan=`), `/recuperar`, `/terminos`.
+- **Rutas Privadas (`/dashboard/`)**:
+  - `/dashboard`: Panel central del médico (Métricas, atajos ⌘K, citas del día).
+  - `/clinic-dashboard`: Panel gerencial exclusivo para dueños de clínicas.
+  - `/agenda`: Calendario reactivo, gestión de "walk-ins" y recordatorios (WhatsApp).
+  - `/consultas`: Wizard paso a paso (Anamnesis, Examen, CIE-11, Receta).
+  - `/pacientes`: Base de pacientes sincronizada offline (IndexedDB).
+  - `/laboratorio`: Procesamiento de órdenes médicas y envío directo al paciente.
+  - `/caja`: Control de turnos de efectivo (`cash_shifts`) con apertura y cierre aislado.
+  - `/ajustes`: Drag & Drop de plantillas médicas (Rompecabezas) y gestión de equipo (invitaciones por Resend).
+  - `/billing`: Customer Portal de Stripe incrustado.
+
+---
+
 ## 🏗️ Arquitectura del Sistema
 
 ```mermaid
@@ -143,6 +181,7 @@ graph TD
     Stripe[💳 Stripe Billing & Webhooks]
     Push[🔔 Web Push / VAPID]
     Email[📧 Resend / Email]
+    WhatsApp[💬 WhatsApp Cloud API]
     RT[📡 Supabase Realtime]
     i18n[🌐 next-intl ES/EN]
 
@@ -153,12 +192,13 @@ graph TD
     SW -->|Upsert + Audit Log| SupabaseDB
     SW -->|Refresh + Pruning| IDB
     Client -->|JWT Sessions| Auth
-    Client -->|Análisis CIE-10| AI
+    Client -->|Análisis CIE-11| AI
     Client -->|Gestión Suscripción| Stripe
     Client -->|Locale| i18n
     Stripe -->|Webhooks Verificados| SupabaseDB
     SupabaseDB -->|pg_cron 7am| Email
     SupabaseDB -->|pg_cron 8am| Push
+    Client -->|API Recordatorios/PDFs| WhatsApp
     SupabaseDB -->|WebSocket| RT
     RT -->|INSERT/UPDATE/DELETE| Client
 ```
@@ -234,18 +274,24 @@ src/
 ├── app/                    # Next.js App Router — páginas y API routes
 │   ├── (auth)/             # Login, registro, recuperación de contraseña
 │   ├── (dashboard)/        # Dashboard, pacientes, consultas, agenda, admin, ajustes, tratamientos, docs
-│   ├── api/                # Stripe, push, email, search, IA CIE-10, clinic, locale, auth
+│   ├── api/                # Stripe, push, email, search, IA CIE-11, clinic, locale, auth
 │   ├── landing-client.tsx  # Landing page con Sticky Scroll Showcase
 │   ├── privacidad/         # Página de política de privacidad
 │   └── terminos/           # Página de términos y condiciones
 ├── features/               # Lógica de negocio por dominio (Vertical Slice)
 │   ├── admin/              # Panel super admin
-│   ├── agenda/             # Calendario, citas, modales de agenda
+│   ├── agenda/             # Calendario, citas, modales de agenda, Recordatorios WhatsApp
 │   ├── auth/               # Formularios y flujos de autenticación
 │   ├── billing/            # Integración Stripe + portal
+│   ├── cash-flow/          # Flujo de caja y control de turnos aislados
+│   ├── clinic-admin/       # Dashboard administrativo de clínicas
 │   ├── consultations/      # Wizard, PDF, IA CIE, plantillas, realtime
 │   ├── dashboard/          # Métricas, búsqueda global Ctrl+K, Topnav, letterhead, equipo, onboarding guard
+│   ├── lab-orders/         # Gestión de órdenes de laboratorio, envíos de resultados vía WhatsApp
+│   ├── onboarding/         # Setup de nuevos tenants y doctores
 │   ├── patients/           # CRUD pacientes, ExportZip, realtime hooks
+│   ├── referrals/          # Catálogo referencial de especialidades/CIE
+│   ├── settings/           # Configuración de cuenta, integraciones
 │   └── sync/               # Bootstrap del sync worker
 ├── i18n/                   # Configuración de next-intl
 ├── lib/

@@ -91,7 +91,7 @@ export default function DocsPage() {
             </div>
             <div className="border-l-2 border-accent pl-4">
               <h4 className="font-bold text-ink">4. Diagnóstico (Asistido por IA)</h4>
-              <p className="text-sm text-ink-soft">Escriba su impresión diagnóstica clínica. Presione el botón de la IA y el sistema le sugerirá el código CIE-10 exacto basándose en el texto de la consulta.</p>
+              <p className="text-sm text-ink-soft">Escriba su impresión diagnóstica clínica. Presione el botón de la IA y el sistema le sugerirá el código CIE-11 exacto basándose en el texto de la consulta.</p>
             </div>
             <div className="border-l-2 border-accent pl-4">
               <h4 className="font-bold text-ink">5. Posología</h4>
