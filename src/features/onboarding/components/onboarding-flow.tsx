@@ -6,6 +6,7 @@ import { useTenant } from "@/lib/supabase/tenant-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getSupabaseClient } from "@/lib/supabase/client";
+import { createTenantProfileWithTrial } from "@/lib/supabase/actions";
 import { CheckCircle2, ChevronRight, Users, FileText, DollarSign, User } from "lucide-react";
 
 export function OnboardingFlow() {
@@ -40,34 +41,29 @@ export function OnboardingFlow() {
         if (!user) throw new Error("No hay usuario autenticado.");
         doctorId = user.id;
 
-        // Ensure a profile is created if it doesn't exist
-        const { error: insertError } = await supabase
-          .from("profiles")
-          .upsert({
-            doctor_id: doctorId,
-            clinic_id: crypto.randomUUID(), // New clinic ID
-            full_name: fullName,
-            specialty: [specialty],
-            plan: "individual",
-            payment_config: { default_fee: Number(fee), consultation_name: consultationName },
-            onboarding_state: { step: 4, completed: true }
-          });
+        // Ensure a profile is created via server action (bypasses RLS & creates clinic)
+        const result = await createTenantProfileWithTrial({
+          clinicId: crypto.randomUUID(),
+          fullName: fullName,
+          specialties: [specialty],
+          plan: "individual"
+        });
         
-        if (insertError) throw insertError;
-      } else {
-        // Update existing profile
-        const { error: profileError } = await supabase
-          .from("profiles")
-          .update({
-            full_name: fullName,
-            specialty: [specialty],
-            payment_config: { default_fee: Number(fee), consultation_name: consultationName },
-            onboarding_state: { step: 4, completed: true }
-          })
-          .eq("doctor_id", doctorId);
-
-        if (profileError) throw profileError;
+        if (!result.success) throw new Error(result.error || "Error al crear perfil");
       }
+
+      // Update existing profile (whether we just created it or it already existed)
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update({
+          full_name: fullName,
+          specialty: [specialty],
+          payment_config: { default_fee: Number(fee), consultation_name: consultationName },
+          onboarding_state: { step: 4, completed: true }
+        })
+        .eq("doctor_id", doctorId);
+
+      if (profileError) throw profileError;
 
       // We will skip inserting into treatment_templates for now as it's Phase 5,
       // but we can mock the UI success.
