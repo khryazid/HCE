@@ -32,14 +32,6 @@ const loginSchema = z.object({
   plan: z.enum(["basic", "clinic"]).optional(),
   clinicName: z.string().optional(),
   termsAccepted: z.boolean().optional(),
-}).refine(data => {
-  if (data.plan === "clinic" && (!data.clinicName || data.clinicName.trim() === "")) {
-    return false;
-  }
-  return true;
-}, {
-  message: "El nombre de la clínica es obligatorio para el plan Clínica.",
-  path: ["clinicName"],
 });
 
 const registerSchema = loginSchema.extend({
@@ -53,6 +45,14 @@ const registerSchema = loginSchema.extend({
   termsAccepted: z.boolean().refine((val) => val === true, {
     message: "Debes aceptar los Términos y Condiciones.",
   }),
+}).refine(data => {
+  if (data.plan === "clinic" && (!data.clinicName || data.clinicName.trim() === "")) {
+    return false;
+  }
+  return true;
+}, {
+  message: "El nombre de la clínica es obligatorio para el plan Clínica.",
+  path: ["clinicName"],
 });
 
 type AuthFormData = z.infer<typeof registerSchema>;
