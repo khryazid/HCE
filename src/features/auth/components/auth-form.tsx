@@ -36,7 +36,7 @@ const loginSchema = z.object({
 
 const registerSchema = loginSchema.extend({
   fullName: z.string().min(1, "El nombre completo es obligatorio."),
-  specialties: z.array(z.string()).min(1, "Selecciona al menos una especialidad."),
+  specialties: z.array(z.string()).optional(),
   password: z.string()
     .min(8, "La contraseña debe tener al menos 8 caracteres.")
     .regex(/[A-Z]/, "Debe contener al menos una letra mayúscula.")
@@ -53,6 +53,14 @@ const registerSchema = loginSchema.extend({
 }, {
   message: "El nombre de la clínica es obligatorio para el plan Clínica.",
   path: ["clinicName"],
+}).refine(data => {
+  if (data.plan === "basic" && (!data.specialties || data.specialties.length === 0)) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Selecciona al menos una especialidad.",
+  path: ["specialties"],
 });
 
 type AuthFormData = z.infer<typeof registerSchema>;
@@ -328,96 +336,98 @@ export function AuthForm({ mode }: AuthFormProps) {
               ) : null}
             </div>
 
-            <fieldset
-              aria-describedby={errors.specialties ? "field-error-specialties" : undefined}
-              className="gx-field relative"
-              ref={dropdownRef}
-            >
-              <legend className="gx-label" style={{marginBottom: 8}}>Especialidades</legend>
-
-              <div
-                className="gx-input"
-                style={{display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, padding: "8px 12px", minHeight: 44, cursor: "text"}}
-                onClick={() => setIsSpecialtyDropdownOpen(true)}
+            {watch("plan") !== "clinic" && (
+              <fieldset
+                aria-describedby={errors.specialties ? "field-error-specialties" : undefined}
+                className="gx-field relative"
+                ref={dropdownRef}
               >
-                {watchSpecialties.map((entry) => (
-                  <span
-                    key={`selected-${entry}`}
-                    className="inline-flex items-center gap-1.5 rounded-full bg-accent/10 px-2.5 py-1 text-xs font-semibold text-accent"
-                  >
-                    {entry}
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleSpecialty(entry);
-                      }}
-                      className="rounded-full p-0.5 hover:bg-accent/20 focus:outline-none transition-colors"
-                      aria-label={`Quitar ${entry}`}
+                <legend className="gx-label" style={{marginBottom: 8}}>Especialidades</legend>
+
+                <div
+                  className="gx-input"
+                  style={{display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, padding: "8px 12px", minHeight: 44, cursor: "text"}}
+                  onClick={() => setIsSpecialtyDropdownOpen(true)}
+                >
+                  {watchSpecialties.map((entry) => (
+                    <span
+                      key={`selected-${entry}`}
+                      className="inline-flex items-center gap-1.5 rounded-full bg-accent/10 px-2.5 py-1 text-xs font-semibold text-accent"
                     >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                      </svg>
-                    </button>
-                  </span>
-                ))}
-                <input
-                  type="text"
-                  value={specialtySearch}
-                  onChange={(event) => {
-                    setSpecialtySearch(event.target.value);
-                    setIsSpecialtyDropdownOpen(true);
-                  }}
-                  onFocus={() => setIsSpecialtyDropdownOpen(true)}
-                  placeholder={watchSpecialties.length === 0 ? "Buscar y seleccionar..." : ""}
-                  className="flex-1 bg-transparent px-1 py-0.5 text-sm outline-none placeholder:text-ink-soft/70 min-w-[120px]"
-                  style={{border: "none", outline: "none", background: "transparent"}}
-                  aria-label="Buscar especialidad"
-                />
-              </div>
-
-              {isSpecialtyDropdownOpen && (
-                <div style={{position: "absolute", top: "100%", left: 0, width: "100%", zIndex: 10, marginTop: 4, maxHeight: 220, overflowY: "auto", background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: "var(--radius)", boxShadow: "0 12px 32px rgba(0,0,0,0.1)", padding: 4}}>
-                  {filteredSpecialties.filter((s) => !watchSpecialties.includes(s)).length > 0 ? (
-                    <ul role="listbox" className="flex flex-col gap-0.5">
-                      {filteredSpecialties
-                        .filter((s) => !watchSpecialties.includes(s))
-                        .map((entry) => (
-                          <li key={entry}>
-                            <button
-                              type="button"
-                              role="option"
-                              aria-selected={false}
-                              onClick={() => {
-                                toggleSpecialty(entry);
-                                setSpecialtySearch("");
-                                setIsSpecialtyDropdownOpen(false);
-                              }}
-                              className="w-full rounded px-3 py-2 text-left text-sm text-ink transition-colors focus:outline-none"
-                              style={{background: "transparent"}}
-                              onMouseEnter={(e) => e.currentTarget.style.background = "var(--bg-soft)"}
-                              onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
-                            >
-                              {entry}
-                            </button>
-                          </li>
-                        ))}
-                    </ul>
-                  ) : (
-                    <p className="px-3 py-4 text-center text-sm text-ink-soft">
-                      {specialtySearch ? "No se encontraron coincidencias" : "Todas las opciones seleccionadas"}
-                    </p>
-                  )}
+                      {entry}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleSpecialty(entry);
+                        }}
+                        className="rounded-full p-0.5 hover:bg-accent/20 focus:outline-none transition-colors"
+                        aria-label={`Quitar ${entry}`}
+                      >
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <line x1="18" y1="6" x2="6" y2="18"></line>
+                          <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                      </button>
+                    </span>
+                  ))}
+                  <input
+                    type="text"
+                    value={specialtySearch}
+                    onChange={(event) => {
+                      setSpecialtySearch(event.target.value);
+                      setIsSpecialtyDropdownOpen(true);
+                    }}
+                    onFocus={() => setIsSpecialtyDropdownOpen(true)}
+                    placeholder={watchSpecialties.length === 0 ? "Buscar y seleccionar..." : ""}
+                    className="flex-1 bg-transparent px-1 py-0.5 text-sm outline-none placeholder:text-ink-soft/70 min-w-[120px]"
+                    style={{border: "none", outline: "none", background: "transparent"}}
+                    aria-label="Buscar especialidad"
+                  />
                 </div>
-              )}
 
-              {errors.specialties ? (
-                <p id="field-error-specialties" className="text-xs text-red-700" role="alert">
-                  {errors.specialties.message}
-                </p>
-              ) : null}
-            </fieldset>
+                {isSpecialtyDropdownOpen && (
+                  <div style={{position: "absolute", top: "100%", left: 0, width: "100%", zIndex: 10, marginTop: 4, maxHeight: 220, overflowY: "auto", background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: "var(--radius)", boxShadow: "0 12px 32px rgba(0,0,0,0.1)", padding: 4}}>
+                    {filteredSpecialties.filter((s) => !watchSpecialties.includes(s)).length > 0 ? (
+                      <ul role="listbox" className="flex flex-col gap-0.5">
+                        {filteredSpecialties
+                          .filter((s) => !watchSpecialties.includes(s))
+                          .map((entry) => (
+                            <li key={entry}>
+                              <button
+                                type="button"
+                                role="option"
+                                aria-selected={false}
+                                onClick={() => {
+                                  toggleSpecialty(entry);
+                                  setSpecialtySearch("");
+                                  setIsSpecialtyDropdownOpen(false);
+                                }}
+                                className="w-full rounded px-3 py-2 text-left text-sm text-ink transition-colors focus:outline-none"
+                                style={{background: "transparent"}}
+                                onMouseEnter={(e) => e.currentTarget.style.background = "var(--bg-soft)"}
+                                onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+                              >
+                                {entry}
+                              </button>
+                            </li>
+                          ))}
+                      </ul>
+                    ) : (
+                      <p className="px-3 py-4 text-center text-sm text-ink-soft">
+                        {specialtySearch ? "No se encontraron coincidencias" : "Todas las opciones seleccionadas"}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {errors.specialties ? (
+                  <p id="field-error-specialties" className="text-xs text-red-700" role="alert">
+                    {errors.specialties.message}
+                  </p>
+                ) : null}
+              </fieldset>
+            )}
 
             <fieldset className="gx-field" style={{marginBottom: 24}}>
               <legend className="gx-label" style={{marginBottom: 8}}>Selecciona tu Plan</legend>
