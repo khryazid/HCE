@@ -30,7 +30,16 @@ const loginSchema = z.object({
   fullName: z.string().optional(),
   specialties: z.array(z.string()).optional(),
   plan: z.enum(["basic", "clinic"]).optional(),
+  clinicName: z.string().optional(),
   termsAccepted: z.boolean().optional(),
+}).refine(data => {
+  if (data.plan === "clinic" && (!data.clinicName || data.clinicName.trim() === "")) {
+    return false;
+  }
+  return true;
+}, {
+  message: "El nombre de la clínica es obligatorio para el plan Clínica.",
+  path: ["clinicName"],
 });
 
 const registerSchema = loginSchema.extend({
@@ -72,6 +81,7 @@ export function AuthForm({ mode }: AuthFormProps) {
       email: "",
       password: "",
       fullName: "",
+      clinicName: "",
       specialties: [],
       plan: "basic",
       termsAccepted: false,
@@ -172,6 +182,7 @@ export function AuthForm({ mode }: AuthFormProps) {
           const result = await createTenantProfileWithTrial({
             clinicId: normalizedClinicId,
             fullName: data.fullName?.trim() || "",
+            clinicName: data.clinicName?.trim(),
             specialties: data.specialties || [],
             plan: data.plan as "basic" | "clinic",
           });
@@ -448,8 +459,27 @@ export function AuthForm({ mode }: AuthFormProps) {
               </div>
             </fieldset>
 
+            {watch("plan") === "clinic" && (
+              <fieldset className="gx-field" style={{marginBottom: 24}}>
+                <legend className="gx-label" style={{marginBottom: 8}}>Nombre de la Clínica</legend>
+                <Input
+                  {...register("clinicName")}
+                  placeholder="Ej. Centro Médico San Juan"
+                  aria-invalid={!!errors.clinicName}
+                  aria-describedby="field-error-clinicName"
+                  className="gx-input"
+                  autoComplete="off"
+                />
+                {errors.clinicName ? (
+                  <p id="field-error-clinicName" className="text-xs text-red-700" role="alert" style={{marginTop: 8}}>
+                    {errors.clinicName.message}
+                  </p>
+                ) : null}
+              </fieldset>
+            )}
+
             <p style={{fontSize: "0.8125rem", color: "var(--ink-soft)", background: "var(--bg-soft)", padding: "8px 12px", borderRadius: 8, marginTop: 16}}>
-              El espacio de clínica se crea automáticamente para ti durante el registro.
+              {watch("plan") === "clinic" ? "Tu espacio de clínica será creado con el nombre que elijas." : "El espacio de clínica se crea automáticamente para ti durante el registro."}
             </p>
           </>
         ) : null}

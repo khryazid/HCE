@@ -23,6 +23,7 @@ export async function createTenantProfileWithTrial(input: {
   fullName: string;
   specialties: string[];
   plan?: "basic" | "clinic";
+  clinicName?: string;
 }): Promise<{ success: true } | { success: false; error: string }> {
   try {
     // 1. Verify the caller is authenticated via their own session
@@ -52,9 +53,10 @@ export async function createTenantProfileWithTrial(input: {
     }
 
     // 4. Ensure the clinic exists in the clinics table. We upsert just in case.
+    const finalClinicName = input.clinicName?.trim() || "Clínica de " + input.fullName.trim();
     const { error: clinicError } = await (adminClient as any)
       .from("clinics")
-      .upsert({ id: input.clinicId, name: "Clínica de " + input.fullName.trim() })
+      .upsert({ id: input.clinicId, name: finalClinicName })
       .select()
       .single();
 
