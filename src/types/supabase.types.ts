@@ -761,6 +761,7 @@ export type Database = {
           subscription_expires_at: string | null
           subscription_status: string | null
           terms_accepted_at: string | null
+          terms_accepted_version: string | null
           terms_version: string | null
           ui_preferences: Json
           updated_at: string
@@ -780,6 +781,7 @@ export type Database = {
           subscription_expires_at?: string | null
           subscription_status?: string | null
           terms_accepted_at?: string | null
+          terms_accepted_version?: string | null
           terms_version?: string | null
           ui_preferences?: Json
           updated_at?: string
@@ -799,6 +801,7 @@ export type Database = {
           subscription_expires_at?: string | null
           subscription_status?: string | null
           terms_accepted_at?: string | null
+          terms_accepted_version?: string | null
           terms_version?: string | null
           ui_preferences?: Json
           updated_at?: string
