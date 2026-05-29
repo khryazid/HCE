@@ -78,6 +78,8 @@ create table if not exists public.profiles (
   plan                    text        not null default 'basic' check (plan in ('basic', 'clinic')),
   payment_config          jsonb       not null default '{}'::jsonb,
   ui_preferences          jsonb       not null default '{}'::jsonb,
+  terms_accepted_at       timestamptz default null,
+  terms_version           text        default null,
   created_at              timestamptz not null default now(),
   updated_at              timestamptz not null default now(),
   unique (clinic_id, doctor_id)
@@ -257,6 +259,8 @@ create table if not exists public.clinic_members (
   role            text        not null check (role in ('admin', 'doctor', 'assistant')),
   invited_by      uuid        references auth.users (id) on delete set null,
   joined_at       timestamptz not null default now(),
+  terms_accepted_at timestamptz default null,
+  terms_version   text        default null,
   created_at      timestamptz not null default now(),
   unique (clinic_id, doctor_id)
 );

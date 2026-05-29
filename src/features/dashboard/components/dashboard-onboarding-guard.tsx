@@ -5,6 +5,9 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTenant } from "@/lib/supabase/tenant-context";
 import { isOnboardingProfileComplete, readOnboardingProfile } from "@/lib/supabase/onboarding";
 import { getSupabaseClient } from "@/lib/supabase/client";
+import { CURRENT_TERMS_VERSION } from "@/lib/constants/app";
+import { getActiveTermsVersion } from "@/lib/supabase/actions";
+import { TermsAcceptanceModal } from "./terms-acceptance-modal";
 
 export function DashboardOnboardingGuard() {
   const router = useRouter();
@@ -12,6 +15,7 @@ export function DashboardOnboardingGuard() {
   const searchParams = useSearchParams();
   const { tenant, loading } = useTenant();
   const [ready, setReady] = useState(false);
+  const [needsTerms, setNeedsTerms] = useState(false);
   const supabase = getSupabaseClient();
 
   useEffect(() => {
@@ -98,13 +102,29 @@ export function DashboardOnboardingGuard() {
         }
       }
 
-      setReady(true);
+      // 3. Verify Terms Version
+      getActiveTermsVersion().then((activeVersion) => {
+        if (tenant.terms_version !== activeVersion) {
+          setNeedsTerms(true);
+        }
+        setReady(true);
+      }).catch(() => {
+        // En caso de error de red, usamos la constante como respaldo seguro
+        if (tenant.terms_version !== CURRENT_TERMS_VERSION) {
+          setNeedsTerms(true);
+        }
+        setReady(true);
+      });
+      
     }).catch(() => {
       router.replace("/login");
     });
   }, [loading, tenant, pathname, router, supabase, searchParams]);
 
   if (ready) {
+    if (needsTerms) {
+      return <TermsAcceptanceModal isOpen={true} />;
+    }
     return null;
   }
 

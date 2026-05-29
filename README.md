@@ -62,7 +62,8 @@ Con arquitectura multi-tenant de grado empresarial, Glyphix automatiza la factur
 | **Integraciones Core** | Meta Graph API (WhatsApp) para recordatorios y PDFs. Resend para invitaciones corporativas (Magic Links). |
 | **Exportación ZIP** | Historia clínica completa: JSON + un PDF por consulta, 100% client-side |
 | **Facturación** | Stripe Checkout, Webhooks firmados, Customer Portal |
-| **Admin Panel** | Métricas de tenants, control de acceso por `ADMIN_EMAIL` |
+| **Admin Panel** | Métricas de tenants, control de acceso por `ADMIN_EMAIL`. Gestión masiva de clínicas. |
+| **Config. Global** | T&C Dinámicos en Markdown, Modo Mantenimiento Global, Avisos Persistentes en Dashboard. |
 | **Rate Limiting** | Por RPC Postgres en `/api/push/send` y `/api/stripe/*` |
 | **Auditoría** | Hash criptográfico encadenado en cada consulta sellada |
 | **Validación de Fechas** | Utilidad `toISODateString` — previene error PostgreSQL 22008 en todos los formularios |
@@ -76,6 +77,8 @@ Con arquitectura multi-tenant de grado empresarial, Glyphix automatiza la factur
 
 ### Últimas mejoras (mayo 2026)
 
+- **Expansión del Super Admin** — Gestión masiva de clínicas y suscripciones. Configuración de avisos globales y "Modo Mantenimiento".
+- **T&C en Markdown** — Los términos y condiciones ahora se pueden editar directamente desde el panel subiendo archivos `.md` y versionándolos de forma dinámica sin tocar código.
 - **Rediseño completo de UI** — Landing page con secciones animadas y Sticky Scroll, auth centrada, dashboard con Topnav, agenda high-density, settings con navegación lateral, modales de cita rediseñados.
 - **Onboarding forzado** — Wizard de configuración secuencial obligatoria para nuevos médicos.
 - **Auto-healing de perfiles** — Si el perfil del tenant falta, se recrea automáticamente al guardar perfil profesional.

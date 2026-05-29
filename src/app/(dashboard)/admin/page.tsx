@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
-import { verifySuperAdmin, getAllUsersWithProfiles, getAbandonedSyncItems } from "@/features/admin/actions";
+import { verifySuperAdmin, getAllUsersWithProfiles, getAbandonedSyncItems, getAllClinics, getGlobalConfig } from "@/features/admin/actions";
 import { AdminPanelClient } from "./admin-client";
 import { APP_NAME } from "@/lib/constants/app";
 import { getPublicPricing } from "@/lib/config";
@@ -57,16 +57,20 @@ async function AdminDataLayer({
   const page = typeof params.page === "string" ? parseInt(params.page, 10) : 1;
   const limit = 50;
 
-  const [{ users, stats, totalItems, totalPages }, abandonedItems, pricing] = await Promise.all([
+  const [{ users, stats, totalItems, totalPages }, abandonedItems, pricing, clinics, globalConfig] = await Promise.all([
     getAllUsersWithProfiles(page, limit),
     getAbandonedSyncItems(),
-    getPublicPricing()
+    getPublicPricing(),
+    getAllClinics(),
+    getGlobalConfig(),
   ]);
   return <AdminPanelClient 
     initialUsers={users} 
     stats={stats} 
     abandonedItems={abandonedItems} 
     pricing={pricing}
+    initialClinics={clinics}
+    globalConfig={globalConfig}
     currentPage={page}
     totalPages={totalPages}
     totalItems={totalItems}

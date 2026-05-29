@@ -7,8 +7,9 @@ import { SyncStatusBanner } from "@/features/sync/components/sync-status-banner"
 import { SubscriptionBanner } from "@/features/dashboard/components/subscription-banner";
 import { TenantProvider } from "@/lib/supabase/tenant-context";
 import { ClinicalProvider } from "@/features/consultations/context/clinical-context";
+import { getPublicGlobalConfig } from "@/lib/supabase/actions";
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Plus, AlertTriangle } from "lucide-react";
 
 /**
  * Todas las páginas privadas del dashboard heredan noindex de este layout.
@@ -18,9 +19,24 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default function DashboardLayout({
+export default async function DashboardLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const globalConfig = await getPublicGlobalConfig();
+
+  if (globalConfig.maintenance_mode) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-bg text-ink p-6 text-center">
+        <AlertTriangle className="w-16 h-16 text-accent mb-6 animate-pulse" />
+        <h1 className="text-3xl font-bold tracking-tight mb-4">Estamos en Mantenimiento</h1>
+        <p className="text-ink-soft max-w-md">
+          Nuestros servidores están en mantenimiento programado para mejorar tu experiencia. 
+          Estaremos de vuelta en unos minutos. Gracias por tu paciencia.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <TenantProvider>
       <ClinicalProvider>
@@ -38,6 +54,13 @@ export default function DashboardLayout({
           {/* Main content area */}
           <div className="flex-1 flex flex-col relative w-full">
             <DashboardOnboardingGuard />
+
+            {globalConfig.global_notice && (
+              <div className="w-full bg-accent/10 border-b border-accent/20 px-4 py-3 flex items-center justify-center text-accent text-sm font-medium text-center">
+                <AlertTriangle className="w-4 h-4 mr-2 flex-shrink-0" />
+                <span>{globalConfig.global_notice}</span>
+              </div>
+            )}
 
             <main className="flex-1 p-4 pb-24 sm:p-6 lg:p-8">
               <div className="mx-auto w-full max-w-[1440px]">

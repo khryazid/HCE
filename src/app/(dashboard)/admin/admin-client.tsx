@@ -2,8 +2,8 @@
 
 import { useState, useMemo, useTransition, useCallback, useEffect } from "react";
 import { toast } from "sonner";
-import type { AdminUserRecord, AdminStats } from "@/features/admin/actions";
-import { setSubscriptionStatus, deleteUserAccount } from "@/features/admin/actions";
+import type { AdminUserRecord, AdminStats, AdminClinicRecord } from "@/features/admin/actions";
+import { setSubscriptionStatus, deleteUserAccount, setClinicSubscriptionStatus } from "@/features/admin/actions";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
@@ -23,6 +23,13 @@ type Props = {
   stats: AdminStats;
   abandonedItems: AbandonedItem[];
   pricing: { proPrice: number; clinicPrice: number };
+  initialClinics: AdminClinicRecord[];
+  globalConfig: {
+    terms_version: string;
+    terms_content: string;
+    maintenance_mode: boolean;
+    global_notice: string;
+  };
   currentPage: number;
   totalPages: number;
   totalItems: number;
@@ -279,6 +286,73 @@ function PlanEditor({
   );
 }
 
+// ─── CLINIC PLAN EDITOR ───────────────────────────────────────────────────────
+
+function ClinicPlanEditor({
+  clinic, onApply, loadingId,
+}: {
+  clinic: AdminClinicRecord;
+  onApply: (clinic: AdminClinicRecord, plan: PlanDraft) => void;
+  loadingId: string | null;
+}) {
+  const [selectedStatus, setSelectedStatus] = useState<PlanDraft["status"]>("active");
+  const [days, setDays] = useState<number>(30);
+  const [selectedPlan, setSelectedPlan] = useState<PlanDraft["plan"]>((clinic.dominant_plan as "basic" | "clinic") || "clinic");
+  const isLoading = loadingId === clinic.id;
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 justify-end">
+      <select
+        className="hce-input text-xs py-1 px-2 w-auto"
+        value={selectedPlan}
+        onChange={(e) => setSelectedPlan(e.target.value as PlanDraft["plan"])}
+      >
+        <option value="basic">Básico</option>
+        <option value="clinic">Clínica</option>
+      </select>
+
+      <select
+        className="hce-input text-xs py-1 px-2 w-auto"
+        value={selectedStatus}
+        onChange={(e) => setSelectedStatus(e.target.value as PlanDraft["status"])}
+      >
+        <option value="active">Activo</option>
+        <option value="lifetime">Lifetime ∞</option>
+        <option value="canceled">Cancelar (Revocar a todos)</option>
+      </select>
+
+      {selectedStatus === "active" && (
+        <select
+          className="hce-input text-xs py-1 px-2 w-auto"
+          value={days}
+          onChange={(e) => setDays(Number(e.target.value))}
+        >
+          <option value={7}>7 días</option>
+          <option value={15}>15 días</option>
+          <option value={30}>30 días</option>
+          <option value={90}>3 meses</option>
+          <option value={180}>6 meses</option>
+          <option value={365}>1 año</option>
+        </select>
+      )}
+
+      <button
+        disabled={isLoading}
+        onClick={() =>
+          onApply(clinic, {
+            status: selectedStatus,
+            days: selectedStatus === "active" ? days : undefined,
+            plan: selectedPlan,
+          })
+        }
+        className="px-3 py-1 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold transition-colors disabled:opacity-50"
+      >
+        {isLoading ? "…" : "Aplicar a Clínica"}
+      </button>
+    </div>
+  );
+}
+
 // ─── STATUS FILTER PILLS ──────────────────────────────────────────────────────
 
 const FILTER_OPTIONS: { value: StatusFilter; label: string }[] = [
@@ -293,16 +367,23 @@ const FILTER_OPTIONS: { value: StatusFilter; label: string }[] = [
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 
-export function AdminPanelClient({ initialUsers, stats, abandonedItems, pricing, currentPage, totalPages, totalItems }: Props) {
+export function AdminPanelClient({ initialUsers, stats, abandonedItems, pricing, initialClinics, globalConfig, currentPage, totalPages, totalItems }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParamsHook = useSearchParams();
+  const [activeTab, setActiveTab] = useState<"users" | "clinics" | "config">("users");
+  
   const [users, setUsers] = useState<AdminUserRecord[]>(initialUsers);
+  const [clinics, setClinics] = useState<AdminClinicRecord[]>(initialClinics);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [confirmTarget, setConfirmTarget] = useState<{
     user: AdminUserRecord;
+    plan: PlanDraft;
+  } | null>(null);
+  const [confirmClinicTarget, setConfirmClinicTarget] = useState<{
+    clinic: AdminClinicRecord;
     plan: PlanDraft;
   } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AdminUserRecord | null>(null);
@@ -311,6 +392,10 @@ export function AdminPanelClient({ initialUsers, stats, abandonedItems, pricing,
   const [proPrice, setProPrice] = useState(pricing?.proPrice ?? 29);
   const [clinicPrice, setClinicPrice] = useState(pricing?.clinicPrice ?? 99);
   const [isSavingPricing, setIsSavingPricing] = useState(false);
+
+  // Global Config state
+  const [config, setConfig] = useState(globalConfig);
+  const [isSavingConfig, setIsSavingConfig] = useState(false);
 
   const handleSavePricing = async () => {
     setIsSavingPricing(true);
@@ -325,12 +410,41 @@ export function AdminPanelClient({ initialUsers, stats, abandonedItems, pricing,
     }
   };
 
+  const handleSaveConfig = async () => {
+    setIsSavingConfig(true);
+    try {
+      const { updateGlobalConfig } = await import("@/features/admin/actions");
+      await updateGlobalConfig(config.terms_version, config.terms_content, config.maintenance_mode, config.global_notice);
+      toast.success("Configuración global actualizada.");
+    } catch (e) {
+      toast.error("Error al actualizar configuración: " + (e instanceof Error ? e.message : String(e)));
+    } finally {
+      setIsSavingConfig(false);
+    }
+  };
+
   const [isPending, startTransition] = useTransition();
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target?.result;
+      if (typeof content === "string") {
+        setConfig(prev => ({ ...prev, terms_content: content }));
+        toast.success("Archivo Markdown cargado en el editor.");
+      }
+    };
+    reader.onerror = () => toast.error("Error al leer el archivo.");
+    reader.readAsText(file);
+  };
 
   // Derived: how many new in last 48h
   const recentCount = useMemo(
@@ -392,6 +506,40 @@ export function AdminPanelClient({ initialUsers, stats, abandonedItems, pricing,
     });
   };
 
+  const handleClinicApply = (clinic: AdminClinicRecord, plan: PlanDraft) => {
+    setConfirmClinicTarget({ clinic, plan });
+  };
+
+  const handleClinicConfirm = () => {
+    if (!confirmClinicTarget) return;
+    const { clinic, plan } = confirmClinicTarget;
+
+    startTransition(async () => {
+      setLoadingId(clinic.id);
+      try {
+        const result = await setClinicSubscriptionStatus(clinic.id, plan.status, plan.days, plan.plan);
+        setClinics((prev) =>
+          prev.map((c) =>
+            c.id === clinic.id
+              ? {
+                  ...c,
+                  dominant_status: plan.status,
+                  dominant_expires_at: result.expires_at ?? null,
+                  dominant_plan: plan.plan,
+                }
+              : c,
+          ),
+        );
+        toast.success("Suscripción de clínica actualizada. Todos los miembros han sido actualizados ✓");
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Error al actualizar la clínica");
+      } finally {
+        setLoadingId(null);
+        setConfirmClinicTarget(null);
+      }
+    });
+  };
+
   const handleDelete = () => {
     if (!deleteTarget) return;
     const target = deleteTarget;
@@ -413,8 +561,38 @@ export function AdminPanelClient({ initialUsers, stats, abandonedItems, pricing,
 
   return (
     <>
-      {/* ── STAT CARDS (clickables como filtros) ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+      {/* ── TABS NAVEGACIÓN ── */}
+      <div className="flex border-b border-border mb-6">
+        <button
+          onClick={() => setActiveTab("users")}
+          className={`px-4 py-2 text-sm font-semibold border-b-2 transition-colors ${
+            activeTab === "users" ? "border-accent text-accent" : "border-transparent text-ink-soft hover:text-ink"
+          }`}
+        >
+          Usuarios
+        </button>
+        <button
+          onClick={() => setActiveTab("clinics")}
+          className={`px-4 py-2 text-sm font-semibold border-b-2 transition-colors ${
+            activeTab === "clinics" ? "border-accent text-accent" : "border-transparent text-ink-soft hover:text-ink"
+          }`}
+        >
+          Clínicas
+        </button>
+        <button
+          onClick={() => setActiveTab("config")}
+          className={`px-4 py-2 text-sm font-semibold border-b-2 transition-colors ${
+            activeTab === "config" ? "border-accent text-accent" : "border-transparent text-ink-soft hover:text-ink"
+          }`}
+        >
+          Config. Global
+        </button>
+      </div>
+
+      {activeTab === "users" && (
+        <>
+          {/* ── STAT CARDS (clickables como filtros) ── */}
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         <StatCard
           label="Total Usuarios" value={stats.total} color="text-ink"
           active={statusFilter === "all"}
@@ -644,6 +822,183 @@ export function AdminPanelClient({ initialUsers, stats, abandonedItems, pricing,
           </div>
         )}
       </div>
+      </>
+      )}
+
+      {/* ── CLINICS TAB ── */}
+      {activeTab === "clinics" && (
+        <div className="hce-surface rounded-xl overflow-hidden border border-border">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left">
+              <thead className="bg-bg-soft text-ink-soft border-b border-border text-xs uppercase tracking-wider">
+                <tr>
+                  <th className="px-5 py-3">Clínica</th>
+                  <th className="px-5 py-3">ID</th>
+                  <th className="px-5 py-3">Miembros</th>
+                  <th className="px-5 py-3">Estado Dominante</th>
+                  <th className="px-5 py-3">Registro</th>
+                  <th className="px-5 py-3 text-right">Aplicar en Bloque a Clínica</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {clinics.map((clinic) => (
+                  <tr key={clinic.id} className="hover:bg-bg-soft/50 transition-colors">
+                    <td className="px-5 py-4 font-medium text-ink whitespace-nowrap">
+                      {clinic.name}
+                    </td>
+                    <td className="px-5 py-4 text-xs font-mono text-ink-soft">
+                      {clinic.id.slice(0, 8)}…
+                      <CopyButton text={clinic.id} />
+                    </td>
+                    <td className="px-5 py-4 text-ink font-semibold">
+                      {clinic.member_count}
+                    </td>
+                    <td className="px-5 py-4">
+                      <StatusBadge status={clinic.dominant_status} />
+                    </td>
+                    <td className="px-5 py-4 text-xs text-ink-soft whitespace-nowrap">
+                      {new Date(clinic.created_at).toLocaleDateString("es-ES")}
+                    </td>
+                    <td className="px-5 py-4">
+                      <ClinicPlanEditor
+                        clinic={clinic}
+                        onApply={handleClinicApply}
+                        loadingId={loadingId}
+                      />
+                    </td>
+                  </tr>
+                ))}
+                {clinics.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-10 text-center text-ink-soft">
+                      No hay clínicas registradas.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {activeTab === "config" && (
+        <div className="space-y-6 max-w-2xl">
+          <div className="hce-surface rounded-xl overflow-hidden border border-border p-5">
+            <h2 className="text-lg font-bold text-ink mb-1">Políticas Legales y Configuración Global</h2>
+            <p className="text-sm text-ink-soft mb-6">
+              Gestiona aspectos que afectan a toda la plataforma. Al cambiar la versión de los T&C, forzarás a todos los usuarios que no la hayan aceptado a confirmar las nuevas reglas.
+            </p>
+
+            <div className="space-y-5">
+              <div>
+                <label className="block text-sm font-semibold text-ink mb-1">Versión Actual de Términos y Condiciones</label>
+                <p className="text-xs text-ink-soft mb-2">Incrementa este número (Ej. 1.0.0 a 1.1.0) cuando actualices las reglas legales para solicitar re-aceptación masiva.</p>
+                <input
+                  type="text"
+                  value={config.terms_version}
+                  onChange={(e) => setConfig({ ...config, terms_version: e.target.value })}
+                  className="hce-input w-full"
+                  placeholder="1.0.0"
+                />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-sm font-semibold text-ink">Contenido de Términos (Markdown)</label>
+                  <label className="cursor-pointer px-3 py-1 bg-bg-soft hover:bg-border text-ink-soft hover:text-ink border border-border rounded text-xs font-medium transition-colors">
+                    <span>Subir archivo .md</span>
+                    <input 
+                      type="file" 
+                      accept=".md" 
+                      className="hidden" 
+                      onChange={handleFileUpload}
+                    />
+                  </label>
+                </div>
+                <p className="text-xs text-ink-soft mb-2">
+                  Puedes pegar el contenido en formato Markdown aquí o subir un archivo directamente. 
+                  Este contenido se mostrará públicamente en <a href="/terminos" target="_blank" className="text-accent hover:underline">/terminos</a>.
+                </p>
+                <textarea
+                  value={config.terms_content}
+                  onChange={(e) => setConfig({ ...config, terms_content: e.target.value })}
+                  className="hce-input w-full min-h-[200px] font-mono text-xs"
+                  placeholder="# Términos y Condiciones..."
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-ink mb-1 flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={config.maintenance_mode}
+                    onChange={(e) => setConfig({ ...config, maintenance_mode: e.target.checked })}
+                    className="rounded border-border text-accent focus:ring-accent"
+                  />
+                  Activar Modo Mantenimiento
+                </label>
+                <p className="text-xs text-ink-soft ml-6">Bloqueará el acceso al Dashboard a todos los usuarios mostrando una pantalla de mantenimiento.</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-ink mb-1">Anuncio Global en el Dashboard</label>
+                <p className="text-xs text-ink-soft mb-2">Escribe un mensaje aquí para mostrarlo de forma persistente a todos los usuarios (déjalo vacío para ocultarlo).</p>
+                <textarea
+                  value={config.global_notice}
+                  onChange={(e) => setConfig({ ...config, global_notice: e.target.value })}
+                  className="hce-input w-full min-h-[80px]"
+                  placeholder="Ej. Realizaremos mantenimiento programado esta madrugada a las 3:00 AM..."
+                />
+              </div>
+
+              <div className="pt-2 border-t border-border">
+                <button
+                  onClick={handleSaveConfig}
+                  disabled={isSavingConfig}
+                  className="px-5 py-2.5 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold transition-colors disabled:opacity-50"
+                >
+                  {isSavingConfig ? "Guardando..." : "Guardar Cambios Globales"}
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          {/* Aquí movemos la parte de Precios a la pestaña Configuración */}
+          <div className="hce-surface rounded-xl overflow-hidden border border-border p-5">
+            <h2 className="text-lg font-bold text-ink mb-1">Configuración Pública (Landing)</h2>
+            <p className="text-sm text-ink-soft mb-4">
+              Modifica los precios mostrados en el Landing Page en tiempo real.
+            </p>
+            <div className="flex flex-wrap gap-4 items-end">
+              <div>
+                <label className="block text-xs font-medium text-ink-soft mb-1">Plan Profesional ($)</label>
+                <input
+                  type="number"
+                  value={proPrice}
+                  onChange={(e) => setProPrice(Number(e.target.value))}
+                  className="hce-input w-32"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-ink-soft mb-1">Plan Clínica ($)</label>
+                <input
+                  type="number"
+                  value={clinicPrice}
+                  onChange={(e) => setClinicPrice(Number(e.target.value))}
+                  className="hce-input w-32"
+                />
+              </div>
+              <button
+                onClick={handleSavePricing}
+                disabled={isSavingPricing}
+                className="px-4 py-2 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold transition-colors disabled:opacity-50"
+              >
+                {isSavingPricing ? "Guardando..." : "Guardar Precios"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── ABANDONED SYNC ITEMS ── */}
       <div className="mt-12 hce-surface rounded-xl overflow-hidden border border-border">
@@ -722,6 +1077,17 @@ export function AdminPanelClient({ initialUsers, stats, abandonedItems, pricing,
           loading={isPending || loadingId === confirmTarget.user.id}
           onConfirm={handleConfirm}
           onCancel={() => setConfirmTarget(null)}
+        />
+      )}
+
+      {/* ── CLINIC CONFIRM MODAL ── */}
+      {confirmClinicTarget && (
+        <ConfirmDialog
+          user={{ full_name: `toda la ${confirmClinicTarget.clinic.name}`, email: "Clínica", id: "" } as any}
+          plan={confirmClinicTarget.plan}
+          loading={isPending || loadingId === confirmClinicTarget.clinic.id}
+          onConfirm={handleClinicConfirm}
+          onCancel={() => setConfirmClinicTarget(null)}
         />
       )}
 

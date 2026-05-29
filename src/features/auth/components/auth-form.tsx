@@ -27,9 +27,10 @@ type AuthFormProps = {
 const loginSchema = z.object({
   email: z.string().min(1, "El correo es obligatorio.").email("Ingresa un correo valido."),
   password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres."),
-  fullName: z.string(),
-  specialties: z.array(z.string()),
-  plan: z.enum(["individual", "clinic"]),
+  fullName: z.string().optional(),
+  specialties: z.array(z.string()).optional(),
+  plan: z.enum(["individual", "clinic"]).optional(),
+  termsAccepted: z.boolean().optional(),
 });
 
 const registerSchema = loginSchema.extend({
@@ -40,6 +41,9 @@ const registerSchema = loginSchema.extend({
     .regex(/[A-Z]/, "Debe contener al menos una letra mayúscula.")
     .regex(/[0-9]/, "Debe contener al menos un número.")
     .regex(/[^A-Za-z0-9]/, "Debe contener al menos un carácter especial."),
+  termsAccepted: z.boolean().refine((val) => val === true, {
+    message: "Debes aceptar los Términos y Condiciones.",
+  }),
 });
 
 type AuthFormData = z.infer<typeof registerSchema>;
@@ -63,13 +67,14 @@ export function AuthForm({ mode }: AuthFormProps) {
     watch,
     formState: { errors, isSubmitting },
   } = useForm<AuthFormData>({
-    resolver: zodResolver(isSignUp ? registerSchema : loginSchema),
+    resolver: zodResolver(isSignUp ? registerSchema : loginSchema) as any,
     defaultValues: {
       email: "",
       password: "",
       fullName: "",
       specialties: [],
       plan: "individual",
+      termsAccepted: false,
     },
   });
 
@@ -146,6 +151,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                 specialties: data.specialties,
                 clinic_id: normalizedClinicId,
                 plan: data.plan,
+                terms_accepted: true,
               },
             },
           })
@@ -511,6 +517,23 @@ export function AuthForm({ mode }: AuthFormProps) {
             <p className="text-xs text-red-700 mt-1">{errors.password.message}</p>
           ) : null}
         </div>
+
+        {isSignUp && (
+          <div className="gx-field" style={{ marginTop: 24, marginBottom: 8, flexDirection: "row", alignItems: "flex-start", gap: 8 }}>
+            <input 
+              type="checkbox" 
+              id="terms-checkbox" 
+              {...register("termsAccepted")}
+              style={{ marginTop: 4, accentColor: "var(--accent)", width: 16, height: 16 }}
+            />
+            <label htmlFor="terms-checkbox" style={{ fontSize: "0.875rem", color: "var(--ink-soft)", lineHeight: 1.5, flex: 1, cursor: "pointer" }}>
+              He leído y acepto los <Link href="/terminos" target="_blank" style={{ color: "var(--accent)", textDecoration: "underline" }}>Términos y Condiciones</Link> y la Política de Privacidad de {APP_NAME}.
+            </label>
+            {errors.termsAccepted && (
+              <p className="text-xs text-red-700 w-full" style={{ marginTop: 4 }}>{errors.termsAccepted.message}</p>
+            )}
+          </div>
+        )}
 
         {error ? (
           <p className="hce-alert-error" role="alert">{error}</p>

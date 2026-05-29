@@ -12,6 +12,7 @@ export type TenantProfile = {
   role: "admin" | "doctor" | "assistant";
   ui_preferences?: Record<string, unknown>;
   onboarding_state: { step: number; completed: boolean };
+  terms_version?: string | null;
 };
 
 type EnsureTenantProfileInput = {
@@ -56,6 +57,7 @@ function withSpecialties(profile: {
   role?: "admin" | "doctor" | "assistant";
   ui_preferences?: Record<string, unknown> | unknown;
   onboarding_state?: unknown;
+  terms_version?: string | null;
 }): TenantProfile {
   // Map the DB column name `specialty` to the canonical `specialties` field.
   const { specialty, role, ui_preferences, onboarding_state, ...rest } = profile;
@@ -71,6 +73,7 @@ function withSpecialties(profile: {
     role: role || "admin",
     ui_preferences: (ui_preferences as Record<string, unknown>) || {},
     onboarding_state: parsedOnboardingState,
+    terms_version: profile.terms_version ?? null,
   };
 }
 
@@ -82,7 +85,7 @@ export async function loadTenantProfile(userId: string): Promise<TenantProfile |
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from("profiles")
-    .select("doctor_id, clinic_id, full_name, specialty, subscription_status, subscription_expires_at, plan, ui_preferences, onboarding_state")
+    .select("doctor_id, clinic_id, full_name, specialty, subscription_status, subscription_expires_at, plan, ui_preferences, onboarding_state, terms_version")
     .eq("doctor_id", userId)
     .maybeSingle();
 
@@ -150,7 +153,7 @@ export async function ensureTenantProfile(
       // desde el cliente. Solo createTenantProfileWithTrial (service_role) puede
       // asignarlos. Esto previene que un usuario manipule su propio trial status.
     } satisfies ProfileInsert)
-    .select("doctor_id, clinic_id, full_name, specialty, subscription_status, subscription_expires_at, plan, ui_preferences, onboarding_state")
+    .select("doctor_id, clinic_id, full_name, specialty, subscription_status, subscription_expires_at, plan, ui_preferences, onboarding_state, terms_version")
     .single();
 
   // If there was no error and the profile was inserted, ensure the clinic and member exist

@@ -295,3 +295,129 @@ export async function updatePricing(proPrice: number, clinicPrice: number) {
   return { success: true };
 }
 
+// ─── CLINICS & GLOBAL CONFIG ───────────────────────────────────────────────────
+
+export type AdminClinicRecord = {
+  id: string;
+  name: string;
+  created_at: string;
+  member_count: number;
+  // Representamos el estado dominante de la clinica basado en sus miembros.
+  dominant_status: string;
+  dominant_expires_at: string | null;
+  dominant_plan: string;
+};
+
+export async function getAllClinics(): Promise<AdminClinicRecord[]> {
+  await verifySuperAdmin();
+  const admin = getSupabaseAdmin();
+
+  const { data: clinics, error: clinicsErr } = await admin
+    .from("clinics")
+    .select("id, name, created_at")
+    .order("created_at", { ascending: false });
+
+  if (clinicsErr) throw clinicsErr;
+
+  const { data: profiles, error: profErr } = await admin
+    .from("profiles")
+    .select("clinic_id, subscription_status, subscription_expires_at, plan");
+
+  if (profErr) throw profErr;
+
+  return clinics.map((c) => {
+    const members = profiles.filter((p) => p.clinic_id === c.id);
+    // Tomamos el primer miembro (usualmente el dueño) como referencia
+    const ref = members[0];
+    return {
+      id: c.id,
+      name: c.name,
+      created_at: c.created_at,
+      member_count: members.length,
+      dominant_status: ref?.subscription_status ?? "none",
+      dominant_expires_at: ref?.subscription_expires_at ?? null,
+      dominant_plan: ref?.plan ?? "basic",
+    };
+  });
+}
+
+/**
+ * Aplica un plan a TODOS los perfiles de una clinica especifica.
+ */
+export async function setClinicSubscriptionStatus(
+  clinicId: string,
+  status: string,
+  durationDays?: number,
+  plan?: string
+) {
+  await verifySuperAdmin();
+  const admin = getSupabaseAdmin();
+
+  let expires_at: string | null = null;
+  if (status === "lifetime") {
+    expires_at = null;
+  } else if (status === "active" && durationDays && durationDays > 0) {
+    const d = new Date();
+    d.setDate(d.getDate() + durationDays);
+    expires_at = d.toISOString();
+  } else if (status === "canceled") {
+    expires_at = null;
+  }
+
+  const updatePayload: { subscription_status: string; subscription_expires_at: string | null; plan?: string } = {
+    subscription_status: status,
+    subscription_expires_at: expires_at,
+  };
+
+  if (plan) updatePayload.plan = plan;
+
+  const { error } = await admin
+    .from("profiles")
+    .update(updatePayload)
+    .eq("clinic_id", clinicId);
+
+  if (error) throw error;
+  return { success: true, expires_at };
+}
+
+export async function getGlobalConfig() {
+  await verifySuperAdmin();
+  const admin = getSupabaseAdmin();
+  const { data, error } = await admin.from("app_config").select("key, value");
+  if (error) throw error;
+
+  const conf: Record<string, string> = {};
+  for (const row of data) conf[row.key] = row.value;
+
+  return {
+    terms_version: conf["terms_version"] || "1.0.0",
+    terms_content: conf["terms_content"] || "",
+    maintenance_mode: conf["maintenance_mode"] === "true",
+    global_notice: conf["global_notice"] || "",
+  };
+}
+
+export async function updateGlobalConfig(
+  termsVersion: string,
+  termsContent: string,
+  maintenanceMode: boolean,
+  globalNotice: string
+) {
+  await verifySuperAdmin();
+  const admin = getSupabaseAdmin();
+
+  const updates = [
+    { key: "terms_version", value: termsVersion, updated_at: new Date().toISOString() },
+    { key: "terms_content", value: termsContent, updated_at: new Date().toISOString() },
+    { key: "maintenance_mode", value: maintenanceMode ? "true" : "false", updated_at: new Date().toISOString() },
+    { key: "global_notice", value: globalNotice, updated_at: new Date().toISOString() },
+  ];
+
+  for (const payload of updates) {
+    const { error } = await admin.from("app_config").upsert(payload);
+    if (error) throw error;
+  }
+
+  return { success: true };
+}
+

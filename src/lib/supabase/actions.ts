@@ -2,6 +2,7 @@
 
 import { createClient as createBrowserClient, createAdminClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/supabase.types";
+import { CURRENT_TERMS_VERSION } from "@/lib/constants/app";
 
 type ProfileInsert = Database["public"]["Tables"]["profiles"]["Insert"];
 
@@ -28,58 +29,56 @@ export async function createTenantProfileWithTrial(input: {
     const browserClient = await createBrowserClient();
     const { data: { user }, error: authError } = await browserClient.auth.getUser();
 
-  if (authError || !user) {
-    return { success: false, error: "No autenticado" };
-  }
+    if (authError || !user) {
+      return { success: false, error: "No autenticado" };
+    }
 
-  const userId = user.id;
+    const userId = user.id;
 
-  // 2. Use service_role to bypass RLS for the insert
-  // R-07: Usar createAdminClient() centralizado en lugar de createClient inline
-  const adminClient = createAdminClient();
+    // 2. Use service_role to bypass RLS for the insert
+    // R-07: Usar createAdminClient() centralizado en lugar de createClient inline
+    const adminClient = createAdminClient();
 
-  // 3. Check if profile already exists — prevent trial manipulation
-  const { data: existing } = await adminClient
-    .from("profiles")
-    .select("doctor_id, subscription_status")
-    .eq("doctor_id", userId)
-    .maybeSingle();
+    // 3. Check if profile already exists — prevent trial manipulation
+    const { data: existing } = await adminClient
+      .from("profiles")
+      .select("doctor_id, subscription_status")
+      .eq("doctor_id", userId)
+      .maybeSingle();
 
-  if (existing) {
-    // Profile already exists — do not overwrite subscription_status
-    return { success: true };
-  }
+    if (existing) {
+      // Profile already exists — do not overwrite subscription_status
+      return { success: true };
+    }
 
-  // 4. (No existe tabla clinics en el schema de producción actual. 
-  // clinic_id es solo un UUID lógico para agrupar usuarios).
+    // 4. Ensure the clinic exists in the clinics table. We upsert just in case.
+    const { error: clinicError } = await (adminClient as any)
+      .from("clinics")
+      .upsert({ id: input.clinicId, name: "Clínica de " + input.fullName.trim() })
+      .select()
+      .single();
 
+    if (clinicError) {
+      console.error("[createTenantProfileWithTrial] Clinic upsert failed:", clinicError);
+      return { success: false, error: "Error al registrar la clínica" };
+    }
 
-  // 5. Ensure the clinic exists in the clinics table. We upsert just in case.
-  const { error: clinicError } = await (adminClient as any)
-    .from("clinics")
-    .upsert({ id: input.clinicId, name: "Clínica de " + input.fullName.trim() })
-    .select()
-    .single();
+    // 5. Create the profile with trial — server-controlled expiration date
+    const trialExpiresAt = new Date(Date.now() + TRIAL_DURATION_MS).toISOString();
 
-  if (clinicError) {
-    console.error("[createTenantProfileWithTrial] Clinic upsert failed:", clinicError);
-    return { success: false, error: "Error al registrar la clínica" };
-  }
-
-  // 6. Create the profile with trial — server-controlled expiration date
-  const trialExpiresAt = new Date(Date.now() + TRIAL_DURATION_MS).toISOString();
-
-  const { error: insertError } = await adminClient
-    .from("profiles")
-    .insert({
-      doctor_id: userId,
-      clinic_id: input.clinicId,
-      full_name: input.fullName.trim(),
-      specialty: input.specialties,
-      plan: input.plan ?? "individual",
-      subscription_status: "trialing",
-      subscription_expires_at: trialExpiresAt,
-    } satisfies ProfileInsert);
+    const { error: insertError } = await adminClient
+      .from("profiles")
+      .insert({
+        doctor_id: userId,
+        clinic_id: input.clinicId,
+        full_name: input.fullName.trim(),
+        specialty: input.specialties,
+        plan: input.plan ?? "individual",
+        subscription_status: "trialing",
+        subscription_expires_at: trialExpiresAt,
+        terms_version: CURRENT_TERMS_VERSION,
+        terms_accepted_at: new Date().toISOString(),
+      } satisfies ProfileInsert);
 
     if (insertError) {
       // Handle race condition: another request created the profile simultaneously
@@ -90,13 +89,15 @@ export async function createTenantProfileWithTrial(input: {
       return { success: false, error: "Error al crear perfil" };
     }
 
-    // 7. Add user to clinic_members as 'admin' if they are the creator
+    // 6. Add user to clinic_members as 'admin' if they are the creator
     const { error: memberError } = await (adminClient as any)
       .from("clinic_members")
       .upsert({
         clinic_id: input.clinicId,
         doctor_id: userId,
         role: "admin",
+        terms_version: CURRENT_TERMS_VERSION,
+        terms_accepted_at: new Date().toISOString(),
       });
 
     if (memberError) {
@@ -112,4 +113,104 @@ export async function createTenantProfileWithTrial(input: {
       error: error instanceof Error ? `Error interno: ${error.message}` : "Error interno desconocido" 
     };
   }
+}
+
+/**
+ * Registra la aceptación de los Términos y Condiciones actualizados para el usuario actual.
+ */
+export async function acceptTermsAction(): Promise<{ success: boolean; error?: string }> {
+  try {
+    const browserClient = await createBrowserClient();
+    const { data: { user }, error: authError } = await browserClient.auth.getUser();
+
+    if (authError || !user) {
+      return { success: false, error: "No autenticado" };
+    }
+
+    const adminClient = createAdminClient();
+    const activeVersion = await getActiveTermsVersion();
+
+    // Actualizar en profiles
+    const { error: profileError } = await adminClient
+      .from("profiles")
+      .update({
+        terms_version: activeVersion,
+        terms_accepted_at: new Date().toISOString(),
+      })
+      .eq("doctor_id", user.id);
+
+    if (profileError) {
+      console.error("[acceptTermsAction] Error updating profiles:", profileError);
+    }
+
+    // Actualizar en clinic_members (si aplica)
+    const { error: memberError } = await (adminClient as any)
+      .from("clinic_members")
+      .update({
+        terms_version: activeVersion,
+        terms_accepted_at: new Date().toISOString(),
+      })
+      .eq("doctor_id", user.id);
+
+    if (memberError) {
+      console.error("[acceptTermsAction] Error updating clinic_members:", memberError);
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.error("[TermsAcceptance] Error", err);
+    return { success: false, error: "Error del servidor" };
+  }
+}
+
+/**
+ * Consulta la configuración global desde la base de datos (app_config).
+ * Expone términos, modo de mantenimiento y anuncio global.
+ */
+export async function getPublicGlobalConfig(): Promise<{
+  terms_version: string;
+  terms_content: string;
+  maintenance_mode: boolean;
+  global_notice: string;
+}> {
+  const config: {
+    terms_version: string;
+    terms_content: string;
+    maintenance_mode: boolean;
+    global_notice: string;
+  } = {
+    terms_version: CURRENT_TERMS_VERSION,
+    terms_content: "",
+    maintenance_mode: false,
+    global_notice: "",
+  };
+
+  try {
+    const adminClient = createAdminClient();
+    const { data } = await adminClient
+      .from("app_config")
+      .select("key, value")
+      .in("key", ["terms_version", "terms_content", "maintenance_mode", "global_notice"]);
+      
+    if (data) {
+      for (const row of data) {
+        if (row.key === "terms_version") config.terms_version = row.value;
+        if (row.key === "terms_content") config.terms_content = row.value;
+        if (row.key === "maintenance_mode") config.maintenance_mode = row.value === "true";
+        if (row.key === "global_notice") config.global_notice = row.value;
+      }
+    }
+  } catch (e) {
+    console.warn("Failed to fetch global config from DB, falling back to defaults:", e);
+  }
+  
+  return config;
+}
+
+/**
+ * Consulta la versión activa de los Términos y Condiciones.
+ */
+export async function getActiveTermsVersion(): Promise<string> {
+  const cfg = await getPublicGlobalConfig();
+  return cfg.terms_version;
 }
