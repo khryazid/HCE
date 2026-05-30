@@ -333,14 +333,14 @@ export function CashFlowView({ clinicId, userId, tenant }: CashFlowViewProps) {
         </Card>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className={`grid gap-4 ${isHistoricalMode ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"}`}>
         {!isHistoricalMode && (
           <Card className="p-4 bg-bg-soft border-border">
             <p className="text-sm font-medium text-ink-soft flex items-center gap-2">Monto Base</p>
             <p className="text-2xl font-bold text-ink mt-1">${currentShift ? currentShift.initial_amount.toFixed(2) : '0.00'}</p>
           </Card>
         )}
-        <Card className={`p-4 bg-green-50/50 dark:bg-green-900/10 border-green-200 dark:border-green-900/30 ${isHistoricalMode || !currentShift ? "col-span-2" : ""}`}>
+        <Card className="p-4 bg-green-50/50 dark:bg-green-900/10 border-green-200 dark:border-green-900/30">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
             <div>
               <p className="text-sm font-medium text-green-800 dark:text-green-400 flex items-center gap-2"><ArrowUpCircle className="h-4 w-4" /> Ingresos Totales</p>
@@ -358,7 +358,7 @@ export function CashFlowView({ clinicId, userId, tenant }: CashFlowViewProps) {
             </div>
           </div>
         </Card>
-        <Card className={`p-4 bg-red-50/50 dark:bg-red-900/10 border-red-200 dark:border-red-900/30 ${isHistoricalMode || !currentShift ? "col-span-2" : ""}`}>
+        <Card className="p-4 bg-red-50/50 dark:bg-red-900/10 border-red-200 dark:border-red-900/30">
           <p className="text-sm font-medium text-red-800 dark:text-red-400 flex items-center gap-2"><ArrowDownCircle className="h-4 w-4" /> Egresos Totales</p>
           <p className="text-2xl font-bold text-red-900 dark:text-red-300 mt-1">${summary.expense.toFixed(2)}</p>
         </Card>
