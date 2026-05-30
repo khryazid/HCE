@@ -52,8 +52,9 @@ export default async function PlatformLayout({
   const navItems = [
     { href: "/platform/panel", label: "Dashboard", icon: LayoutDashboard },
     { href: "/platform/organizations", label: "Organizaciones", icon: Building2 },
-    { href: "/platform/users", label: "Usuarios", icon: Users },
-    { href: "/platform/subscriptions", label: "Suscripciones", icon: CreditCard },
+    // TODO: Implement platform-wide user and subscription management
+    // { href: "/platform/users", label: "Usuarios", icon: Users },
+    // { href: "/platform/subscriptions", label: "Suscripciones", icon: CreditCard },
   ];
 
   return (
