@@ -3146,9 +3146,7 @@ begin
 
     -- Crear perfil de admin
     insert into public.profiles (doctor_id, clinic_id, full_name, is_platform_admin, plan, subscription_status, terms_version, terms_accepted_at)
-    values (NEW.id, v_clinic_id, 'Platform Admin', true, 'clinic', 'active', 'v1', now())
-    on conflict (doctor_id) do update 
-    set is_platform_admin = true;
+    values (NEW.id, v_clinic_id, 'Platform Admin', true, 'clinic', 'active', 'v1', now());
   end if;
   return NEW;
 end;
