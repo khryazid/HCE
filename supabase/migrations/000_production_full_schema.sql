@@ -1280,6 +1280,7 @@ create trigger trg_doctor_settings_updated_at
 
 -- ── validate_invitation_token ────────────────────────────────
 -- Returns invitation details if token is valid and not expired.
+drop function if exists public.validate_invitation_token(text);
 create or replace function public.validate_invitation_token(p_token text)
 returns table (
   id uuid,

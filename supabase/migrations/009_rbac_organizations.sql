@@ -384,6 +384,7 @@ update public.clinics c
 -- ════════════════════════════════════════════════════════════
 
 -- Used by the invitation acceptance flow
+drop function if exists public.validate_invitation_token(text);
 create or replace function public.validate_invitation_token(p_token text)
 returns table (
   invitation_id uuid,
