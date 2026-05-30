@@ -3120,3 +3120,34 @@ alter table public.cash_transactions
 add column if not exists shift_id uuid references public.cash_shifts (id) on delete cascade;
 
 create index if not exists idx_cash_transactions_shift on public.cash_transactions (shift_id);
+
+-- ════════════════════════════════════════════════════════════
+-- PLATFORM ADMIN AUTO-PROVISIONING
+-- ════════════════════════════════════════════════════════════
+
+-- Crea o actualiza el perfil con is_platform_admin = true si el email coincide con app_config
+create or replace function public.handle_new_user_admin()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_admin_email text;
+begin
+  select value into v_admin_email from public.app_config where key = 'admin_email' limit 1;
+  
+  if NEW.email is not null and NEW.email = v_admin_email then
+    insert into public.profiles (doctor_id, full_name, is_platform_admin, plan, subscription_status, terms_version, terms_accepted_at)
+    values (NEW.id, 'Platform Admin', true, 'basic', 'active', 'v1', now())
+    on conflict (doctor_id) do update 
+    set is_platform_admin = true;
+  end if;
+  return NEW;
+end;
+$$;
+
+drop trigger if exists trg_auto_provision_admin on auth.users;
+create trigger trg_auto_provision_admin
+  after insert on auth.users
+  for each row execute function public.handle_new_user_admin();
