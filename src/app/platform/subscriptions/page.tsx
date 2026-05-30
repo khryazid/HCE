@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import { CreditCard, CalendarDays, ExternalLink, ShieldCheck } from "lucide-react";
+import { SubscriptionActions } from "./subscription-actions";
 
 export default async function PlatformSubscriptionsPage() {
   const adminClient = createAdminClient();
@@ -104,16 +105,7 @@ export default async function PlatformSubscriptionsPage() {
                       </span>
                       
                       {/* Hover Actions */}
-                      <div className="hidden group-hover:flex items-center gap-3">
-                        <button className="flex items-center gap-1 text-xs text-accent hover:text-accent-dark font-medium">
-                          <CalendarDays className="w-3 h-3" />
-                          +7 Días
-                        </button>
-                        <button className="flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-700 font-medium">
-                          <ShieldCheck className="w-3 h-3" />
-                          Lifetime
-                        </button>
-                      </div>
+                      <SubscriptionActions clinicId={clinic.id} />
                     </td>
                   </tr>
                 );
