@@ -164,6 +164,39 @@ export function OnboardingFlow() {
         throw new Error(profileError.message || "Error al actualizar el perfil.");
       }
 
+      // Sync legacy metadata and letterhead so settings page works correctly
+      try {
+        const { saveOnboardingProfile } = await import("@/lib/supabase/onboarding");
+        await saveOnboardingProfile({
+          professional_title: professionalTitle,
+          license_number: licenseNumber,
+          years_experience: Number(experienceYears) || 0,
+          primary_phone: mainPhone,
+          secondary_phone: secondaryPhone,
+          professional_address: address,
+          public_contact_email: publicEmail,
+          signature_name: signatureName,
+        });
+
+        const clinicId = tenant?.clinic_id || (await supabase.auth.getUser()).data.user?.user_metadata?.clinic_id;
+        if (clinicId && doctorId) {
+          const { saveLetterheadSettings } = await import("@/features/dashboard/lib/letterhead");
+          await saveLetterheadSettings(doctorId, clinicId, {
+            doctor_name: signatureName,
+            professional_title: professionalTitle,
+            specialties: specialties.join(", "),
+            address: address,
+            phone_primary: mainPhone,
+            phone_secondary: secondaryPhone,
+            contact_email: publicEmail,
+            logo_data_url: "",
+            signature_data_url: "",
+          });
+        }
+      } catch (syncError) {
+        console.warn("Could not sync metadata/letterhead:", syncError);
+      }
+
       // Hard redirect to force a full reload of the TenantContext and DB hooks
       window.location.href = "/dashboard";
     } catch (e) {
