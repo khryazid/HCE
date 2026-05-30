@@ -54,7 +54,7 @@ export async function createTenantProfileWithTrial(input: {
 
     // 4. Ensure the clinic exists in the clinics table. We upsert just in case.
     const finalClinicName = input.clinicName?.trim() || "Clínica de " + input.fullName.trim();
-    const { error: clinicError } = await (adminClient as any)
+    const { error: clinicError } = await adminClient
       .from("clinics")
       .upsert({ id: input.clinicId, name: finalClinicName })
       .select()
@@ -93,7 +93,7 @@ export async function createTenantProfileWithTrial(input: {
     }
 
     // 6. Add user to clinic_members as 'owner' (they are the creator)
-    const { error: memberError } = await (adminClient as any)
+    const { error: memberError } = await adminClient
       .from("clinic_members")
       .upsert({
         clinic_id: input.clinicId,
@@ -149,7 +149,7 @@ export async function acceptTermsAction(): Promise<{ success: boolean; error?: s
     }
 
     // Actualizar en clinic_members (si aplica)
-    const { error: memberError } = await (adminClient as any)
+    const { error: memberError } = await adminClient
       .from("clinic_members")
       .update({
         terms_version: activeVersion,

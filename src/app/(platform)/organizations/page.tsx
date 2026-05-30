@@ -7,10 +7,7 @@ import { Building2, ExternalLink } from "lucide-react";
  */
 export default async function PlatformOrganizationsPage() {
   const adminClient = createAdminClient();
-  // Cast through any for new columns not yet in supabase.types.ts
-  const ac = adminClient as any;
-
-  const { data: orgs, error } = await ac
+  const { data: orgs, error } = await adminClient
     .from("clinics")
     .select("id, name, plan_type, subscription_status, created_at, owner_user_id, updated_at")
     .order("created_at", { ascending: false });
@@ -39,7 +36,7 @@ export default async function PlatformOrganizationsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {orgs?.map((org: any) => (
+              {orgs?.map((org) => (
                 <tr key={org.id} className="hover:bg-bg-soft transition-colors">
                   <td className="px-5 py-4 font-medium text-ink flex items-center gap-2">
                     <Building2 className="w-4 h-4 text-ink-soft" />

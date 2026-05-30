@@ -311,9 +311,12 @@ export type Database = {
         Row: {
           clinic_id: string
           created_at: string
+          custom_permissions: Json
           doctor_id: string
           id: string
           invited_by: string | null
+          invited_by_member_id: string | null
+          is_active: boolean
           joined_at: string
           role: string
           terms_accepted_at: string | null
@@ -322,9 +325,12 @@ export type Database = {
         Insert: {
           clinic_id: string
           created_at?: string
+          custom_permissions?: Json
           doctor_id: string
           id?: string
           invited_by?: string | null
+          invited_by_member_id?: string | null
+          is_active?: boolean
           joined_at?: string
           role: string
           terms_accepted_at?: string | null
@@ -333,9 +339,12 @@ export type Database = {
         Update: {
           clinic_id?: string
           created_at?: string
+          custom_permissions?: Json
           doctor_id?: string
           id?: string
           invited_by?: string | null
+          invited_by_member_id?: string | null
+          is_active?: boolean
           joined_at?: string
           role?: string
           terms_accepted_at?: string | null
@@ -347,6 +356,13 @@ export type Database = {
             columns: ["clinic_id"]
             isOneToOne: false
             referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinic_members_invited_by_member_id_fkey"
+            columns: ["invited_by_member_id"]
+            isOneToOne: false
+            referencedRelation: "clinic_members"
             referencedColumns: ["id"]
           },
         ]
@@ -457,21 +473,85 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          owner_user_id: string | null
+          plan_type: string
+          subscription_status: string | null
           updated_at: string
         }
         Insert: {
           created_at?: string
           id?: string
           name?: string
+          owner_user_id?: string | null
+          plan_type?: string
+          subscription_status?: string | null
           updated_at?: string
         }
         Update: {
           created_at?: string
           id?: string
           name?: string
+          owner_user_id?: string | null
+          plan_type?: string
+          subscription_status?: string | null
           updated_at?: string
         }
         Relationships: []
+      }
+      doctor_settings: {
+        Row: {
+          created_at: string
+          id: string
+          member_id: string
+          organization_id: string
+          receptionist_enabled: boolean
+          updated_at: string
+          vacation_mode: boolean
+          vacation_redirect_member_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          member_id: string
+          organization_id: string
+          receptionist_enabled?: boolean
+          updated_at?: string
+          vacation_mode?: boolean
+          vacation_redirect_member_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          member_id?: string
+          organization_id?: string
+          receptionist_enabled?: boolean
+          updated_at?: string
+          vacation_mode?: boolean
+          vacation_redirect_member_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doctor_settings_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: true
+            referencedRelation: "clinic_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "doctor_settings_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "doctor_settings_vacation_redirect_member_id_fkey"
+            columns: ["vacation_redirect_member_id"]
+            isOneToOne: false
+            referencedRelation: "clinic_members"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       follow_up_tasks: {
         Row: {
@@ -530,6 +610,60 @@ export type Database = {
             columns: ["patient_id"]
             isOneToOne: false
             referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invitations: {
+        Row: {
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by_member_id: string | null
+          joined_at: string | null
+          organization_id: string
+          role: string
+          status: string
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          expires_at: string
+          id?: string
+          invited_by_member_id?: string | null
+          joined_at?: string | null
+          organization_id: string
+          role: string
+          status?: string
+          token: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by_member_id?: string | null
+          joined_at?: string | null
+          organization_id?: string
+          role?: string
+          status?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invitations_invited_by_member_id_fkey"
+            columns: ["invited_by_member_id"]
+            isOneToOne: false
+            referencedRelation: "clinic_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invitations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
             referencedColumns: ["id"]
           },
         ]
@@ -752,6 +886,7 @@ export type Database = {
           doctor_id: string
           full_name: string
           id: string
+          is_platform_admin: boolean
           onboarding_state: Json
           payment_config: Json
           plan: string
@@ -772,6 +907,7 @@ export type Database = {
           doctor_id: string
           full_name: string
           id?: string
+          is_platform_admin?: boolean
           onboarding_state?: Json
           payment_config?: Json
           plan?: string
@@ -792,6 +928,7 @@ export type Database = {
           doctor_id?: string
           full_name?: string
           id?: string
+          is_platform_admin?: boolean
           onboarding_state?: Json
           payment_config?: Json
           plan?: string
@@ -1017,12 +1154,16 @@ export type Database = {
         }
         Returns: boolean
       }
+      expire_old_invitations: { Args: never; Returns: undefined }
       expire_stale_trials: { Args: never; Returns: undefined }
       get_config_secret: { Args: { p_key: string }; Returns: string }
+      get_member_role: { Args: { check_clinic_id: string }; Returns: string }
       get_user_id_by_email: { Args: { email_input: string }; Returns: string }
       has_active_subscription: { Args: { c_id: string }; Returns: boolean }
       is_clinic_admin: { Args: { check_clinic_id: string }; Returns: boolean }
       is_clinic_member: { Args: { check_clinic_id: string }; Returns: boolean }
+      is_org_owner: { Args: { check_clinic_id: string }; Returns: boolean }
+      is_platform_admin: { Args: never; Returns: boolean }
       is_super_admin: { Args: never; Returns: boolean }
       log_audit_event:
         | {
@@ -1079,6 +1220,18 @@ export type Database = {
       set_config_secret: {
         Args: { p_key: string; p_value: string }
         Returns: undefined
+      }
+      validate_invitation_token: {
+        Args: { p_token: string }
+        Returns: {
+          email: string
+          expires_at: string
+          id: string
+          organization_id: string
+          organization_name: string
+          role: string
+          status: string
+        }[]
       }
     }
     Enums: {

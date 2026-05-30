@@ -45,7 +45,7 @@ export async function POST(req: Request) {
 
     // NOTE: `invitations` table not yet in supabase.types.ts — cast through `any`
     // until `npm run db:types` is run after the migration is applied.
-    const invitationsTable = (adminClient as any).from("invitations");
+    const invitationsTable = adminClient.from("invitations");
 
     // 1. Validate the invitation
     const { data: invitation, error: invError } = await invitationsTable
@@ -138,7 +138,7 @@ export async function POST(req: Request) {
           subscription_status: "active",
           terms_version: CURRENT_TERMS_VERSION,
           terms_accepted_at: new Date().toISOString(),
-        } as any);
+        });
 
       if (profileError && profileError.code !== "23505") {
         log.error("invitations:accept", "Failed to create profile", {
@@ -148,7 +148,7 @@ export async function POST(req: Request) {
     }
 
     // 3. Insert organization_member
-    const { error: memberError } = await (adminClient as any)
+    const { error: memberError } = await adminClient
       .from("clinic_members")
       .upsert({
         clinic_id: invitation.organization_id,

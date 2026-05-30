@@ -41,7 +41,7 @@ export default async function DashboardLayout({
           .select("is_platform_admin")
           .eq("doctor_id", user.id)
           .maybeSingle();
-        if (profileData && (profileData as any).is_platform_admin === true) {
+        if (profileData && profileData.is_platform_admin === true) {
           isSuperAdmin = true;
         }
       }

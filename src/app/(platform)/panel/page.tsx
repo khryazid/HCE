@@ -3,7 +3,6 @@ import {
   Building2,
   Users,
   CreditCard,
-  TrendingUp,
   Activity,
 } from "lucide-react";
 
@@ -20,25 +19,22 @@ export default async function PlatformDashboardPage() {
   const adminClient = createAdminClient();
 
   // Fetch global metrics using service_role (bypasses RLS)
-  // NOTE: New columns (plan_type, subscription_status on clinics; is_active on clinic_members)
-  // are not yet in supabase.types.ts — cast through `any`.
-  const ac = adminClient as any;
   const [orgResult, profileResult, memberResult] = await Promise.all([
-    ac.from("clinics").select("id, subscription_status, plan_type", { count: "exact" }),
+    adminClient.from("clinics").select("id, subscription_status, plan_type", { count: "exact" }),
     adminClient.from("profiles").select("doctor_id, subscription_status", { count: "exact" }),
-    ac.from("clinic_members").select("id, role, is_active", { count: "exact" }),
+    adminClient.from("clinic_members").select("id, role, is_active", { count: "exact" }),
   ]);
 
   const totalOrgs = orgResult.count || 0;
   const activeOrgs = orgResult.data?.filter(
-    (o: any) => o.subscription_status === "active" || o.subscription_status === "trial"
+    (o) => o.subscription_status === "active" || o.subscription_status === "trial"
   ).length || 0;
   const totalUsers = profileResult.count || 0;
   const activeSubscriptions = profileResult.data?.filter(
-    (p: any) => p.subscription_status === "active"
+    (p) => p.subscription_status === "active"
   ).length || 0;
   const totalMembers = memberResult.count || 0;
-  const activeMembers = memberResult.data?.filter((m: any) => m.is_active).length || 0;
+  const activeMembers = memberResult.data?.filter((m) => m.is_active).length || 0;
 
   const stats = [
     {
@@ -74,7 +70,7 @@ export default async function PlatformDashboardPage() {
   ];
 
   // Recent organizations
-  const { data: recentOrgs } = await ac
+  const { data: recentOrgs } = await adminClient
     .from("clinics")
     .select("id, name, plan_type, subscription_status, created_at, owner_user_id")
     .order("created_at", { ascending: false })
@@ -134,7 +130,7 @@ export default async function PlatformDashboardPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {recentOrgs?.map((org: any) => (
+              {recentOrgs?.map((org) => (
                 <tr key={org.id} className="hover:bg-bg-soft transition-colors">
                   <td className="px-5 py-4 font-medium text-ink">
                     {org.name || "Sin nombre"}

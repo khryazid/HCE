@@ -135,7 +135,7 @@ export async function updateSession(request: NextRequest) {
         .eq("doctor_id", user.id)
         .maybeSingle();
 
-      if (profileData && (profileData as any).is_platform_admin === true) {
+      if (profileData && profileData.is_platform_admin === true) {
         // Platform admin → redirect to /platform/panel
         const url = request.nextUrl.clone();
         url.pathname = "/platform/panel";
@@ -154,7 +154,7 @@ export async function updateSession(request: NextRequest) {
         .limit(1)
         .maybeSingle();
 
-      if (!memberData || !(memberData as any).is_active) {
+      if (!memberData || !memberData.is_active) {
         // No active membership → /sin-plan
         const url = request.nextUrl.clone();
         url.pathname = "/sin-plan";
@@ -184,7 +184,7 @@ export async function updateSession(request: NextRequest) {
         .eq("doctor_id", user.id)
         .maybeSingle();
 
-      if (!profileData || (profileData as any).is_platform_admin !== true) {
+      if (!profileData || profileData.is_platform_admin !== true) {
         // Not a platform admin → redirect to their dashboard
         const url = request.nextUrl.clone();
         url.pathname = "/dashboard";

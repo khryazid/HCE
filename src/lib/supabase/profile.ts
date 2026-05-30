@@ -123,9 +123,8 @@ export function createClinicId() {
 
 export async function loadTenantProfile(userId: string): Promise<TenantProfile | null> {
   const supabase = getSupabaseClient();
-  // NOTE: Columns `is_platform_admin` (profiles) and `is_active`, `custom_permissions` (clinic_members)
-  // are not yet in supabase.types.ts — cast through `any` until `npm run db:types` is run.
-  const { data, error } = await (supabase as any)
+  // Load profile with platform admin flag
+  const { data, error } = await supabase
     .from("profiles")
     .select("doctor_id, clinic_id, full_name, specialty, subscription_status, subscription_expires_at, plan, ui_preferences, onboarding_state, terms_version, is_platform_admin")
     .eq("doctor_id", userId)
@@ -140,7 +139,7 @@ export async function loadTenantProfile(userId: string): Promise<TenantProfile |
   }
 
   // Load role, is_active, and custom_permissions from clinic_members
-  const { data: memberData } = await (supabase as any)
+  const { data: memberData } = await supabase
     .from("clinic_members")
     .select("id, role, is_active, custom_permissions")
     .eq("clinic_id", data.clinic_id)

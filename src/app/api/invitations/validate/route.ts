@@ -23,7 +23,7 @@ export async function GET(req: Request) {
 
     // NOTE: `invitations` table not yet in supabase.types.ts — cast through `any`
     // until `npm run db:types` is run after the migration is applied.
-    const invitationsTable = (adminClient as any).from("invitations");
+    const invitationsTable = adminClient.from("invitations");
 
     // Look up the invitation by token
     const { data: invitation, error } = await invitationsTable

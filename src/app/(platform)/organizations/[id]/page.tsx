@@ -23,18 +23,15 @@ export default async function PlatformOrganizationDetailPage({
 
   if (!org) notFound();
 
-  // Cast through any for new columns not yet in supabase.types.ts
-  const ac = adminClient as any;
-
   // Fetch members
-  const { data: members } = await ac
+  const { data: members } = await adminClient
     .from("clinic_members")
     .select("id, doctor_id, role, is_active, custom_permissions, joined_at, created_at")
     .eq("clinic_id", id)
     .order("created_at", { ascending: true });
 
   // Fetch member profiles for names
-  const memberIds = members?.map((m: any) => m.doctor_id) || [];
+  const memberIds = members?.map((m) => m.doctor_id) || [];
   const { data: profiles } = memberIds.length > 0
     ? await adminClient
         .from("profiles")
@@ -43,11 +40,11 @@ export default async function PlatformOrganizationDetailPage({
     : { data: [] };
 
   const profileMap = new Map(
-    (profiles || []).map((p: any) => [p.doctor_id, p])
+    (profiles || []).map((p) => [p.doctor_id, p])
   );
 
   // Fetch invitations
-  const { data: invitations } = await ac
+  const { data: invitations } = await adminClient
     .from("invitations")
     .select("*")
     .eq("organization_id", id)
@@ -68,28 +65,28 @@ export default async function PlatformOrganizationDetailPage({
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-ink">
-            {(org as any).name || "Organización"}
+            {org.name || "Organización"}
           </h1>
           <div className="flex items-center gap-3 mt-1">
             <span
               className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                (org as any).plan_type === "clinica"
+                org.plan_type === "clinica"
                   ? "bg-indigo-50 text-indigo-700"
                   : "bg-gray-100 text-gray-700"
               }`}
             >
-              Plan: {(org as any).plan_type === "clinica" ? "Clínica" : "Individual"}
+              Plan: {org.plan_type === "clinica" ? "Clínica" : "Individual"}
             </span>
             <span
               className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                (org as any).subscription_status === "active"
+                org.subscription_status === "active"
                   ? "bg-green-50 text-green-700"
-                  : (org as any).subscription_status === "trial"
+                  : org.subscription_status === "trial"
                   ? "bg-amber-50 text-amber-700"
                   : "bg-red-50 text-red-700"
               }`}
             >
-              {(org as any).subscription_status || "trial"}
+              {org.subscription_status || "trial"}
             </span>
           </div>
         </div>
@@ -116,8 +113,8 @@ export default async function PlatformOrganizationDetailPage({
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {members?.map((member: any) => {
-                const profile = profileMap.get(member.doctor_id) as any;
+              {members?.map((member) => {
+                const profile = profileMap.get(member.doctor_id);
                 return (
                   <tr
                     key={member.id}
@@ -188,7 +185,7 @@ export default async function PlatformOrganizationDetailPage({
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {invitations.map((inv: any) => (
+                {invitations.map((inv) => (
                   <tr key={inv.id} className="hover:bg-bg-soft transition-colors">
                     <td className="px-5 py-4 font-medium text-ink">
                       {inv.email}

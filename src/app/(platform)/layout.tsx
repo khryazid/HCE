@@ -41,7 +41,7 @@ export default async function PlatformLayout({
     .from("profiles")
     .select("is_platform_admin, full_name")
     .eq("doctor_id", user.id)
-    .maybeSingle() as any;
+    .maybeSingle();
 
   if (!profileData || !profileData.is_platform_admin) {
     redirect("/dashboard");
