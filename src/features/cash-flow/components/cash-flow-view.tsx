@@ -315,7 +315,7 @@ export function CashFlowView({ clinicId, userId, tenant }: CashFlowViewProps) {
                 value={initialAmount}
                 onChange={(e) => setInitialAmount(e.target.value)}
                 placeholder="Ej. 100.00"
-                className="bg-white h-10"
+                className="bg-transparent h-10"
               />
             </div>
             <Button type="submit" className="h-10 px-6 shrink-0" disabled={openShift.isPending}>
@@ -437,8 +437,8 @@ export function CashFlowView({ clinicId, userId, tenant }: CashFlowViewProps) {
               <div className="space-y-2">
                 <label className="text-xs font-semibold uppercase text-ink-soft">Tipo</label>
                 <div className="flex gap-2">
-                  <button type="button" onClick={() => setType("income")} className={`flex-1 py-2 rounded-md border text-sm font-medium transition ${type === "income" ? "bg-green-100 border-green-500 text-green-800" : "bg-white text-ink-soft hover:bg-gray-50"}`}>Ingreso</button>
-                  <button type="button" onClick={() => setType("expense")} className={`flex-1 py-2 rounded-md border text-sm font-medium transition ${type === "expense" ? "bg-red-100 border-red-500 text-red-800" : "bg-white text-ink-soft hover:bg-gray-50"}`}>Egreso</button>
+                  <button type="button" onClick={() => setType("income")} className={`flex-1 py-2 rounded-md border text-sm font-medium transition ${type === "income" ? "bg-green-100 border-green-500 text-green-800 dark:bg-green-900/30 dark:text-green-300" : "bg-transparent text-ink-soft hover:bg-bg-soft"}`}>Ingreso</button>
+                  <button type="button" onClick={() => setType("expense")} className={`flex-1 py-2 rounded-md border text-sm font-medium transition ${type === "expense" ? "bg-red-100 border-red-500 text-red-800 dark:bg-red-900/30 dark:text-red-300" : "bg-transparent text-ink-soft hover:bg-bg-soft"}`}>Egreso</button>
                 </div>
               </div>
 
@@ -452,7 +452,7 @@ export function CashFlowView({ clinicId, userId, tenant }: CashFlowViewProps) {
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   placeholder="0.00"
-                  className="bg-white"
+                  className="bg-transparent"
                 />
               </div>
 
@@ -463,7 +463,7 @@ export function CashFlowView({ clinicId, userId, tenant }: CashFlowViewProps) {
                   value={concept}
                   onChange={(e) => setConcept(e.target.value)}
                   placeholder="Ej. Consulta Médica, Compra de Insumos..."
-                  className="bg-white"
+                  className="bg-transparent"
                 />
               </div>
 
@@ -472,7 +472,7 @@ export function CashFlowView({ clinicId, userId, tenant }: CashFlowViewProps) {
               <select 
                 value={paymentMethod}
                 onChange={(e) => setPaymentMethod(e.target.value)}
-                className="w-full px-3 py-2 bg-white border border-border rounded-lg text-sm text-ink focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
+                className="w-full px-3 py-2 bg-transparent border border-border rounded-lg text-sm text-ink focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
               >
                 <option value="">Selecciona medio de pago...</option>
                 {paymentConfig?.methods.map((method, i) => (
@@ -484,7 +484,7 @@ export function CashFlowView({ clinicId, userId, tenant }: CashFlowViewProps) {
               <div className="space-y-2">
                 <label className="text-xs font-semibold uppercase text-ink-soft">Paciente (Opcional)</label>
                 <select 
-                  className="w-full bg-white border border-input px-3 py-2 text-sm rounded-md ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  className="w-full bg-transparent border border-input px-3 py-2 text-sm rounded-md ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   value={patientId}
                   onChange={(e) => setPatientId(e.target.value)}
                 >
@@ -501,7 +501,7 @@ export function CashFlowView({ clinicId, userId, tenant }: CashFlowViewProps) {
                   value={reference}
                   onChange={(e) => setReference(e.target.value)}
                   placeholder="Nro Factura, Transferencia..."
-                  className="bg-white"
+                  className="bg-transparent"
                 />
               </div>
             </div>
@@ -519,15 +519,15 @@ export function CashFlowView({ clinicId, userId, tenant }: CashFlowViewProps) {
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-lighter" />
         <Input 
           placeholder="Buscar concepto o paciente..." 
-          className="pl-9 bg-white"
+          className="pl-9 bg-transparent"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div className="bg-card rounded-xl border border-border overflow-hidden">
         <table className="w-full text-sm text-left">
-          <thead className="bg-gray-50 border-b border-gray-200 text-xs uppercase text-ink-soft">
+          <thead className="bg-bg-soft border-b border-border text-xs uppercase text-ink-soft">
             <tr>
               <th className="px-6 py-3 font-semibold">Fecha</th>
               <th className="px-6 py-3 font-semibold">Concepto / Paciente</th>
@@ -545,7 +545,7 @@ export function CashFlowView({ clinicId, userId, tenant }: CashFlowViewProps) {
               </tr>
             ) : (
               filteredTransactions.map((tx) => (
-                <tr key={tx.id} className={`hover:bg-gray-50 ${tx.status === "voided" ? "opacity-50" : ""}`}>
+                <tr key={tx.id} className="border-b border-border last:border-0 hover:bg-bg-soft transition">
                   <td className="px-6 py-4 whitespace-nowrap">
                     {format(new Date(tx.created_at), "dd MMM yyyy HH:mm", { locale: es })}
                   </td>
