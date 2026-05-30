@@ -105,7 +105,11 @@ export default async function PlatformSubscriptionsPage() {
                       </span>
                       
                       {/* Hover Actions */}
-                      <SubscriptionActions clinicId={clinic.id} />
+                      <SubscriptionActions 
+                        clinicId={clinic.id} 
+                        currentStatus={clinic.subscription_status || "trial"}
+                        currentPlan={clinic.plan_type || "basic"}
+                      />
                     </td>
                   </tr>
                 );
