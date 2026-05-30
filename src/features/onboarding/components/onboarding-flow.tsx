@@ -191,8 +191,8 @@ export function OnboardingFlow() {
             const Icon = s.icon;
             
             return (
-              <div key={s.id} className="flex flex-col items-center bg-bg relative z-10 px-2">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-colors ${isCompleted ? 'bg-accent border-accent text-white' : isCurrent ? 'border-accent bg-bg text-accent' : 'border-accent/20 bg-bg text-ink-soft'}`}>
+              <div key={s.id} className="flex flex-col items-center bg-card relative z-10 px-2">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-colors ${isCompleted ? 'bg-accent border-accent text-white' : isCurrent ? 'border-accent bg-card text-accent' : 'border-accent/20 bg-card text-ink-soft'}`}>
                   {isCompleted ? <CheckCircle2 className="w-5 h-5" /> : <Icon className="w-5 h-5" />}
                 </div>
                 <span className={`text-xs mt-2 font-medium ${isCurrent ? 'text-ink' : 'text-ink-soft'}`}>{s.title}</span>
