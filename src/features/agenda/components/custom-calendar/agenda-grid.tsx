@@ -136,14 +136,30 @@ export function AgendaGrid({
                     onEventClick(ev);
                   }}
                 >
-                  <div className="gx-at-title" style={height < 30 ? {whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis"} : {}}>
-                    {ev.patient_name || ev.title}
+                  <div className="flex flex-col overflow-hidden leading-tight h-full justify-start w-full pointer-events-none" style={{ gap: height < 40 ? '0' : '2px' }}>
+                    {height < 40 ? (
+                      <div className="truncate text-[10px] sm:text-xs font-semibold">
+                        {format(ev.start, "HH:mm")} • {ev.patient_name || ev.title}
+                      </div>
+                    ) : (
+                      <>
+                        <div className="truncate text-[10px] font-bold opacity-90 flex items-center gap-1.5">
+                          {format(ev.start, "HH:mm")}
+                          {ev.status === "completed" && <span title="Completada">✓</span>}
+                          {ev.payment_status === "paid" && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" title="Pagado"></span>}
+                          {ev.payment_status === "pending" && <span className="w-1.5 h-1.5 rounded-full bg-orange-400 inline-block" title="Pendiente"></span>}
+                        </div>
+                        <div className="truncate text-xs sm:text-[13px] font-bold tracking-tight">
+                          {ev.patient_name || ev.title}
+                        </div>
+                        {height >= 55 && ev.consultation_type && (
+                          <div className="truncate text-[10px] sm:text-[11px] opacity-80 font-medium">
+                            {ev.consultation_type}
+                          </div>
+                        )}
+                      </>
+                    )}
                   </div>
-                  {height >= 45 && (
-                    <div className="gx-at-sub">
-                      {format(ev.start, "HH:mm")} - {ev.consultation_type}
-                    </div>
-                  )}
                 </div>
               );
             })}
