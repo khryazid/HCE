@@ -335,37 +335,37 @@ export function CashFlowView({ clinicId, userId, tenant }: CashFlowViewProps) {
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {!isHistoricalMode && (
-          <Card className="p-4 bg-gray-50 border-gray-200">
-            <p className="text-sm font-medium text-gray-600 flex items-center gap-2">Monto Base</p>
-            <p className="text-2xl font-bold text-gray-900 mt-1">${currentShift ? currentShift.initial_amount.toFixed(2) : '0.00'}</p>
+          <Card className="p-4 bg-bg-soft border-border">
+            <p className="text-sm font-medium text-ink-soft flex items-center gap-2">Monto Base</p>
+            <p className="text-2xl font-bold text-ink mt-1">${currentShift ? currentShift.initial_amount.toFixed(2) : '0.00'}</p>
           </Card>
         )}
-        <Card className={`p-4 bg-green-50 border-green-100 ${isHistoricalMode || !currentShift ? "col-span-2" : ""}`}>
+        <Card className={`p-4 bg-green-50/50 dark:bg-green-900/10 border-green-200 dark:border-green-900/30 ${isHistoricalMode || !currentShift ? "col-span-2" : ""}`}>
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
             <div>
-              <p className="text-sm font-medium text-green-800 flex items-center gap-2"><ArrowUpCircle className="h-4 w-4" /> Ingresos Totales</p>
-              <p className="text-2xl font-bold text-green-900 mt-1">${summary.income.toFixed(2)}</p>
+              <p className="text-sm font-medium text-green-800 dark:text-green-400 flex items-center gap-2"><ArrowUpCircle className="h-4 w-4" /> Ingresos Totales</p>
+              <p className="text-2xl font-bold text-green-900 dark:text-green-300 mt-1">${summary.income.toFixed(2)}</p>
             </div>
-            <div className="text-xs text-green-800 bg-green-100/50 rounded-lg p-2 space-y-1 w-full sm:w-auto">
+            <div className="text-xs text-green-800 dark:text-green-400 bg-green-100/50 dark:bg-green-900/20 rounded-lg p-2 space-y-1 w-full sm:w-auto">
               {Object.entries(summary.income_by_method).map(([method, amount]) => (
                 <div key={method} className="flex justify-between gap-4">
                   <span>{method}:</span> <strong>${amount.toFixed(2)}</strong>
                 </div>
               ))}
               {Object.keys(summary.income_by_method).length === 0 && (
-                <div className="text-green-800/60 italic">Sin ingresos</div>
+                <div className="text-green-800/60 dark:text-green-400/60 italic">Sin ingresos</div>
               )}
             </div>
           </div>
         </Card>
-        <Card className={`p-4 bg-red-50 border-red-100 ${isHistoricalMode || !currentShift ? "col-span-2" : ""}`}>
-          <p className="text-sm font-medium text-red-800 flex items-center gap-2"><ArrowDownCircle className="h-4 w-4" /> Egresos Totales</p>
-          <p className="text-2xl font-bold text-red-900 mt-1">${summary.expense.toFixed(2)}</p>
+        <Card className={`p-4 bg-red-50/50 dark:bg-red-900/10 border-red-200 dark:border-red-900/30 ${isHistoricalMode || !currentShift ? "col-span-2" : ""}`}>
+          <p className="text-sm font-medium text-red-800 dark:text-red-400 flex items-center gap-2"><ArrowDownCircle className="h-4 w-4" /> Egresos Totales</p>
+          <p className="text-2xl font-bold text-red-900 dark:text-red-300 mt-1">${summary.expense.toFixed(2)}</p>
         </Card>
         {!isHistoricalMode && (
-          <Card className="p-4 bg-blue-50 border-blue-100 ring-2 ring-blue-500/20">
-            <p className="text-sm font-medium text-blue-800 flex items-center gap-2"><DollarSign className="h-4 w-4" /> Efectivo Esperado</p>
-            <p className="text-2xl font-bold text-blue-900 mt-1">${summary.total_cash.toFixed(2)}</p>
+          <Card className="p-4 bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-900/30 ring-2 ring-blue-500/20">
+            <p className="text-sm font-medium text-blue-800 dark:text-blue-400 flex items-center gap-2"><DollarSign className="h-4 w-4" /> Efectivo Esperado</p>
+            <p className="text-2xl font-bold text-blue-900 dark:text-blue-300 mt-1">${summary.total_cash.toFixed(2)}</p>
           </Card>
         )}
       </div>
