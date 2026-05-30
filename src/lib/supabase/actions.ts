@@ -65,7 +65,26 @@ export async function createTenantProfileWithTrial(input: {
       return { success: false, error: "Error al registrar la clínica" };
     }
 
-    // 5. Create the profile with trial — server-controlled expiration date
+    // 5. Check if user should be platform admin based on app_config
+    let isPlatformAdmin = false;
+    try {
+      const [{ data: userData }, { data: configData }] = await Promise.all([
+        adminClient.auth.admin.getUserById(userId),
+        adminClient.from("app_config").select("value").eq("key", "admin_email").maybeSingle()
+      ]);
+      
+      if (
+        userData?.user?.email && 
+        configData?.value && 
+        userData.user.email.toLowerCase() === configData.value.toLowerCase()
+      ) {
+        isPlatformAdmin = true;
+      }
+    } catch (e) {
+      console.error("[createTenantProfileWithTrial] Error checking platform admin status:", e);
+    }
+
+    // 6. Create the profile with trial — server-controlled expiration date
     const trialExpiresAt = new Date(Date.now() + TRIAL_DURATION_MS).toISOString();
 
     const { error: insertError } = await adminClient
@@ -81,6 +100,7 @@ export async function createTenantProfileWithTrial(input: {
         terms_version: CURRENT_TERMS_VERSION,
         terms_accepted_at: new Date().toISOString(),
         onboarding_state: input.plan === "clinic" ? { step: 4, completed: true } : { step: 1, completed: false },
+        is_platform_admin: isPlatformAdmin,
       } satisfies ProfileInsert);
 
     if (insertError) {
@@ -92,7 +112,7 @@ export async function createTenantProfileWithTrial(input: {
       return { success: false, error: "Error al crear perfil" };
     }
 
-    // 6. Add user to clinic_members as 'owner' (they are the creator)
+    // 7. Add user to clinic_members as 'owner' (they are the creator)
     const { error: memberError } = await adminClient
       .from("clinic_members")
       .upsert({
