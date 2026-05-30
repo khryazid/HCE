@@ -226,7 +226,11 @@ export function AuthForm({ mode }: AuthFormProps) {
             setError(result.error);
             return;
           }
-          router.replace("/dashboard"); // owner role default
+          if (result.isPlatformAdmin) {
+            router.replace("/platform/panel");
+          } else {
+            router.replace("/dashboard"); // owner role default
+          }
           return;
         }
 

@@ -24,7 +24,7 @@ export async function createTenantProfileWithTrial(input: {
   specialties: string[];
   plan?: "basic" | "clinic";
   clinicName?: string;
-}): Promise<{ success: true } | { success: false; error: string }> {
+}): Promise<{ success: true; isPlatformAdmin?: boolean } | { success: false; error: string }> {
   try {
     // 1. Verify the caller is authenticated via their own session
     const browserClient = await createBrowserClient();
@@ -106,7 +106,7 @@ export async function createTenantProfileWithTrial(input: {
     if (insertError) {
       // Handle race condition: another request created the profile simultaneously
       if (insertError.code === "23505") {
-        return { success: true };
+        return { success: true, isPlatformAdmin };
       }
       console.error("[createTenantProfileWithTrial] Insert profile failed:", insertError);
       return { success: false, error: "Error al crear perfil" };
@@ -130,7 +130,7 @@ export async function createTenantProfileWithTrial(input: {
       // We don't fail the whole registration, but log it.
     }
 
-    return { success: true };
+    return { success: true, isPlatformAdmin };
   } catch (error) {
     console.error("[createTenantProfileWithTrial] Unhandled error:", error);
     return { 
