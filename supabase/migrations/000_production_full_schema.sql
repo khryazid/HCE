@@ -3134,12 +3134,19 @@ set search_path = public
 as $$
 declare
   v_admin_email text;
+  v_clinic_id uuid;
 begin
   select value into v_admin_email from public.app_config where key = 'admin_email' limit 1;
   
   if NEW.email is not null and NEW.email = v_admin_email then
-    insert into public.profiles (doctor_id, full_name, is_platform_admin, plan, subscription_status, terms_version, terms_accepted_at)
-    values (NEW.id, 'Platform Admin', true, 'basic', 'active', 'v1', now())
+    -- Crear clínica de sistema (requerida por el schema)
+    insert into public.clinics (name, plan_type, subscription_status)
+    values ('Platform Administration', 'clinica', 'active')
+    returning id into v_clinic_id;
+
+    -- Crear perfil de admin
+    insert into public.profiles (doctor_id, clinic_id, full_name, is_platform_admin, plan, subscription_status, terms_version, terms_accepted_at)
+    values (NEW.id, v_clinic_id, 'Platform Admin', true, 'clinic', 'active', 'v1', now())
     on conflict (doctor_id) do update 
     set is_platform_admin = true;
   end if;
