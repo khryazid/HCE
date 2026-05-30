@@ -11,6 +11,7 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { TeamPanel } from "@/features/dashboard/components/team-panel";
 import { PaymentSettingsPanel } from "@/features/dashboard/components/payment-settings-panel";
 import { ClinicalFormBuilderPanel } from "@/features/dashboard/components/clinical-form-builder-panel";
+import { CashRegisterSettingsPanel } from "@/features/dashboard/components/cash-register-settings-panel";
 
 type TabId = "perfil" | "consultas" | "facturacion" | "equipo" | "avanzado";
 
@@ -143,6 +144,14 @@ export function AjustesClient({ isOnboarding = false }: { isOnboarding?: boolean
                 <p className="text-sm text-ink-soft">Configura tus datos bancarios y Zelle para recibir pagos de tus pacientes.</p>
               </div>
               <PaymentSettingsPanel />
+            </div>
+
+            <div className="pt-8 border-t border-border">
+              <div className="mb-6">
+                <h2 className="text-xl font-bold text-ink mb-2">Automatización de Caja</h2>
+                <p className="text-sm text-ink-soft">Configura horarios y montos predeterminados para la apertura del turno de caja diario.</p>
+              </div>
+              <CashRegisterSettingsPanel />
             </div>
 
             {isOnboarding && (

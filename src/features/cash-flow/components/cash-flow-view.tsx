@@ -36,7 +36,13 @@ export function CashFlowView({ clinicId, userId, tenant }: CashFlowViewProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const { data: paymentConfig } = usePaymentConfig();
   const [showForm, setShowForm] = useState(false);
-  const [initialAmount, setInitialAmount] = useState("");
+  const [initialAmount, setInitialAmount] = useState(() => {
+    const prefs = tenant?.ui_preferences?.cash_register_settings;
+    if (prefs?.auto_open) {
+      return prefs.default_initial_amount?.toString() || "0";
+    }
+    return "";
+  });
   
   // Form State
   const [type, setType] = useState<"income" | "expense">("income");
@@ -300,7 +306,9 @@ export function CashFlowView({ clinicId, userId, tenant }: CashFlowViewProps) {
             <div>
               <h3 className="text-lg font-bold text-ink">El turno de caja está cerrado</h3>
               <p className="text-sm text-ink-soft">
-                Abre un nuevo turno para poder registrar ingresos y egresos de hoy.
+                {tenant?.ui_preferences?.cash_register_settings?.auto_open 
+                  ? "Se ha precargado el monto inicial según tus ajustes de automatización. Haz clic en Abrir Turno." 
+                  : "Abre un nuevo turno para poder registrar ingresos y egresos de hoy."}
               </p>
             </div>
           </div>
