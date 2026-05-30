@@ -20,7 +20,7 @@ export default async function PlatformDashboardPage() {
 
   // Fetch global metrics using service_role (bypasses RLS)
   const [orgResult, profileResult, memberResult] = await Promise.all([
-    adminClient.from("clinics").select("id, subscription_status, plan_type", { count: "exact" }),
+    adminClient.from("clinics").select("id, subscription_status, plan_type", { count: "exact" }).neq("name", "Platform Administration"),
     adminClient.from("profiles").select("doctor_id, subscription_status", { count: "exact" }).neq("is_platform_admin", true),
     adminClient.from("clinic_members").select("id, role, is_active", { count: "exact" }),
   ]);
@@ -73,6 +73,7 @@ export default async function PlatformDashboardPage() {
   const { data: recentOrgs } = await adminClient
     .from("clinics")
     .select("id, name, plan_type, subscription_status, created_at, owner_user_id")
+    .neq("name", "Platform Administration")
     .order("created_at", { ascending: false })
     .limit(10);
 
