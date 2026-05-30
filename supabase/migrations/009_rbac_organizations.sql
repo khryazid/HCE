@@ -28,10 +28,17 @@ begin;
 -- 1. EXTEND clinic_members WITH NEW ROLES
 -- ════════════════════════════════════════════════════════════
 
--- Drop the old constraint and add the expanded role set
+-- Drop the old constraint
 alter table public.clinic_members
   drop constraint if exists clinic_members_role_check;
 
+-- ── DATA MIGRATION: convert legacy 'admin' → 'owner' ──
+-- Must run BEFORE the new constraint is added!
+update public.clinic_members
+  set role = 'owner'
+  where role = 'admin';
+
+-- Now add the expanded role set (no longer includes 'admin')
 alter table public.clinic_members
   add constraint clinic_members_role_check
   check (role in (
@@ -258,7 +265,7 @@ as $$
     select 1 from public.clinic_members
     where clinic_id = check_clinic_id
       and doctor_id = auth.uid()
-      and role in ('admin', 'owner', 'clinic_admin')
+      and role in ('owner', 'clinic_admin')
       and is_active = true
   );
 $$;
