@@ -35,10 +35,15 @@ create extension if not exists "pgcrypto";
 -- ── clinics ──────────────────────────────────────────────────
 -- Catálogo principal de clínicas para integridad referencial.
 create table if not exists public.clinics (
-  id          uuid        primary key default gen_random_uuid(),
-  name        text        not null default 'Clínica',
-  created_at  timestamptz not null default now(),
-  updated_at  timestamptz not null default now()
+  id                  uuid        primary key default gen_random_uuid(),
+  name                text        not null default 'Clínica',
+  plan_type           text        not null default 'individual'
+    check (plan_type in ('individual', 'clinica')),
+  subscription_status text        default 'trial'
+    check (subscription_status in ('active', 'trial', 'cancelled', 'past_due', 'paused')),
+  owner_user_id       uuid        references auth.users(id) on delete set null,
+  created_at          timestamptz not null default now(),
+  updated_at          timestamptz not null default now()
 );
 
 -- ⚠️  NOTA: Limpieza de Supabase Storage (bucket clinic_assets)
@@ -78,12 +83,18 @@ create table if not exists public.profiles (
   plan                    text        not null default 'basic' check (plan in ('basic', 'clinic')),
   payment_config          jsonb       not null default '{}'::jsonb,
   ui_preferences          jsonb       not null default '{}'::jsonb,
+  is_platform_admin       boolean     not null default false,
   terms_accepted_at       timestamptz default null,
   terms_version           text        default null,
   created_at              timestamptz not null default now(),
   updated_at              timestamptz not null default now(),
   unique (clinic_id, doctor_id)
 );
+
+-- Index for fast platform admin lookup during login
+create index if not exists idx_profiles_platform_admin
+  on public.profiles (doctor_id)
+  where is_platform_admin = true;
 
 -- Parche para migraciones: agregar columna plan si no existe
 do $$
@@ -251,26 +262,77 @@ create table if not exists public.treatment_templates (
 );
 
 -- ── clinic_members ───────────────────────────────────────────
--- Miembros de una clínica para acceso compartido (multi-doctor).
+-- Miembros de una clínica/organización. Soporta 8 roles RBAC.
 create table if not exists public.clinic_members (
-  id              uuid        primary key default gen_random_uuid(),
-  clinic_id       uuid        not null,
-  doctor_id       uuid        not null references auth.users (id) on delete cascade,
-  role            text        not null check (role in ('admin', 'doctor', 'assistant')),
-  invited_by      uuid        references auth.users (id) on delete set null,
-  joined_at       timestamptz not null default now(),
-  terms_accepted_at timestamptz default null,
-  terms_version   text        default null,
-  created_at      timestamptz not null default now(),
+  id                    uuid        primary key default gen_random_uuid(),
+  clinic_id             uuid        not null,
+  doctor_id             uuid        not null references auth.users (id) on delete cascade,
+  role                  text        not null check (role in (
+    'owner', 'doctor', 'assistant', 'clinic_admin',
+    'receptionist', 'lab', 'imaging', 'surgery'
+  )),
+  is_active             boolean     not null default true,
+  custom_permissions    jsonb       not null default '{}'::jsonb,
+  invited_by            uuid        references auth.users (id) on delete set null,
+  invited_by_member_id  uuid        references public.clinic_members(id) on delete set null,
+  joined_at             timestamptz not null default now(),
+  terms_accepted_at     timestamptz default null,
+  terms_version         text        default null,
+  created_at            timestamptz not null default now(),
   unique (clinic_id, doctor_id)
 );
 
--- Parche para migraciones: actualizar constraint de roles
+-- Parche para migraciones: actualizar constraint de roles y migrar admin→owner
 do $$
 begin
   alter table public.clinic_members drop constraint if exists clinic_members_role_check;
-  alter table public.clinic_members add constraint clinic_members_role_check check (role in ('admin', 'doctor', 'assistant'));
+  update public.clinic_members set role = 'owner' where role = 'admin';
+  alter table public.clinic_members add constraint clinic_members_role_check
+    check (role in ('owner', 'doctor', 'assistant', 'clinic_admin', 'receptionist', 'lab', 'imaging', 'surgery'));
 end $$;
+
+-- ── invitations ──────────────────────────────────────────────
+-- Token-based invitation system for org membership.
+create table if not exists public.invitations (
+  id                    uuid primary key default gen_random_uuid(),
+  organization_id       uuid not null references public.clinics(id) on delete cascade,
+  email                 varchar(255) not null,
+  role                  text not null check (role in (
+    'owner', 'doctor', 'assistant', 'clinic_admin',
+    'receptionist', 'lab', 'imaging', 'surgery'
+  )),
+  token                 varchar(255) unique not null,
+  status                text not null default 'pending' check (status in ('pending', 'accepted', 'expired')),
+  expires_at            timestamptz not null,
+  invited_by_member_id  uuid references public.clinic_members(id) on delete set null,
+  joined_at             timestamptz,
+  created_at            timestamptz not null default now()
+);
+
+create index if not exists idx_invitations_token
+  on public.invitations (token) where status = 'pending';
+create index if not exists idx_invitations_org
+  on public.invitations (organization_id, status);
+create index if not exists idx_invitations_email
+  on public.invitations (email, status);
+
+-- ── doctor_settings ──────────────────────────────────────────
+-- Per-doctor configuration within an organization.
+create table if not exists public.doctor_settings (
+  id                            uuid primary key default gen_random_uuid(),
+  member_id                     uuid not null unique references public.clinic_members(id) on delete cascade,
+  organization_id               uuid not null references public.clinics(id) on delete cascade,
+  receptionist_enabled          boolean not null default false,
+  vacation_mode                 boolean not null default false,
+  vacation_redirect_member_id   uuid references public.clinic_members(id) on delete set null,
+  created_at                    timestamptz not null default now(),
+  updated_at                    timestamptz not null default now()
+);
+
+create index if not exists idx_doctor_settings_member
+  on public.doctor_settings (member_id);
+create index if not exists idx_doctor_settings_org
+  on public.doctor_settings (organization_id);
 
 -- ════════════════════════════════════════════════════════════
 -- 2. COMPATIBILIDAD (columnas añadidas en versiones anteriores)
@@ -710,6 +772,7 @@ as $$
     select 1 from public.clinic_members
     where clinic_id = check_clinic_id
       and doctor_id = auth.uid()
+      and is_active = true
   );
 $$;
 
@@ -723,7 +786,49 @@ as $$
     select 1 from public.clinic_members
     where clinic_id = check_clinic_id
       and doctor_id = auth.uid()
-      and role = 'admin'
+      and role in ('owner', 'clinic_admin')
+      and is_active = true
+  );
+$$;
+
+create or replace function public.is_org_owner(check_clinic_id uuid)
+returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1 from public.clinic_members
+    where clinic_id = check_clinic_id
+      and doctor_id = auth.uid()
+      and role = 'owner'
+      and is_active = true
+  );
+$$;
+
+create or replace function public.get_member_role(check_clinic_id uuid)
+returns text
+language sql
+security definer
+set search_path = public
+as $$
+  select role from public.clinic_members
+  where clinic_id = check_clinic_id
+    and doctor_id = auth.uid()
+    and is_active = true
+  limit 1;
+$$;
+
+create or replace function public.is_platform_admin()
+returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1 from public.profiles
+    where doctor_id = auth.uid()
+      and is_platform_admin = true
   );
 $$;
 
@@ -742,6 +847,8 @@ alter table public.api_rate_limits      enable row level security;
 alter table public.push_subscriptions   enable row level security;
 alter table public.treatment_templates  enable row level security;
 alter table public.clinic_members       enable row level security;
+alter table public.invitations          enable row level security;
+alter table public.doctor_settings      enable row level security;
 alter table public.appointments         enable row level security;
 
 -- ── clinics ──────────────────────────────────────────────────
@@ -1033,6 +1140,84 @@ create policy "clinic_members_write"
   using  (public.is_clinic_admin(public.clinic_members.clinic_id))
   with check (public.is_clinic_admin(public.clinic_members.clinic_id));
 
+-- ── invitations ──────────────────────────────────────────────
+drop policy if exists "invitations_select" on public.invitations;
+create policy "invitations_select"
+  on public.invitations for select to authenticated
+  using (
+    organization_id in (
+      select clinic_id from public.profiles where doctor_id = auth.uid()
+      union
+      select clinic_id from public.clinic_members where doctor_id = auth.uid()
+    )
+  );
+
+drop policy if exists "invitations_insert" on public.invitations;
+create policy "invitations_insert"
+  on public.invitations for insert to authenticated
+  with check (
+    public.is_clinic_admin(organization_id)
+    or exists (
+      select 1 from public.clinic_members
+      where clinic_id = organization_id
+        and doctor_id = auth.uid()
+        and role = 'owner'
+    )
+  );
+
+drop policy if exists "invitations_update" on public.invitations;
+create policy "invitations_update"
+  on public.invitations for update to authenticated
+  using (
+    public.is_clinic_admin(organization_id)
+    or exists (
+      select 1 from public.clinic_members
+      where clinic_id = organization_id
+        and doctor_id = auth.uid()
+        and role = 'owner'
+    )
+  );
+
+-- ── doctor_settings ──────────────────────────────────────────
+drop policy if exists "doctor_settings_select" on public.doctor_settings;
+create policy "doctor_settings_select"
+  on public.doctor_settings for select to authenticated
+  using (
+    organization_id in (
+      select clinic_id from public.profiles where doctor_id = auth.uid()
+      union
+      select clinic_id from public.clinic_members where doctor_id = auth.uid()
+    )
+  );
+
+drop policy if exists "doctor_settings_write" on public.doctor_settings;
+create policy "doctor_settings_write"
+  on public.doctor_settings for all to authenticated
+  using (
+    member_id in (
+      select id from public.clinic_members where doctor_id = auth.uid()
+    )
+    or public.is_clinic_admin(organization_id)
+    or exists (
+      select 1 from public.clinic_members
+      where clinic_id = organization_id
+        and doctor_id = auth.uid()
+        and role = 'owner'
+    )
+  )
+  with check (
+    member_id in (
+      select id from public.clinic_members where doctor_id = auth.uid()
+    )
+    or public.is_clinic_admin(organization_id)
+    or exists (
+      select 1 from public.clinic_members
+      where clinic_id = organization_id
+        and doctor_id = auth.uid()
+        and role = 'owner'
+    )
+  );
+
 -- ════════════════════════════════════════════════════════════
 -- 5. FUNCIONES Y TRIGGERS
 -- ════════════════════════════════════════════════════════════
@@ -1087,6 +1272,60 @@ drop trigger if exists trg_treatment_templates_updated_at on public.treatment_te
 create trigger trg_treatment_templates_updated_at
   before update on public.treatment_templates
   for each row execute function public.bump_updated_at();
+
+drop trigger if exists trg_doctor_settings_updated_at on public.doctor_settings;
+create trigger trg_doctor_settings_updated_at
+  before update on public.doctor_settings
+  for each row execute function public.bump_updated_at();
+
+-- ── validate_invitation_token ────────────────────────────────
+-- Returns invitation details if token is valid and not expired.
+create or replace function public.validate_invitation_token(p_token text)
+returns table (
+  id uuid,
+  organization_id uuid,
+  email varchar,
+  role text,
+  status text,
+  expires_at timestamptz,
+  organization_name text
+)
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  return query
+    select
+      i.id,
+      i.organization_id,
+      i.email,
+      i.role,
+      i.status,
+      i.expires_at,
+      c.name as organization_name
+    from public.invitations i
+    join public.clinics c on c.id = i.organization_id
+    where i.token = p_token
+    limit 1;
+end;
+$$;
+
+-- ── expire_old_invitations ───────────────────────────────────
+-- Auto-expire invitations past their expires_at. Called by pg_cron.
+create or replace function public.expire_old_invitations()
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  update public.invitations
+    set status = 'expired'
+    where status = 'pending'
+      and expires_at < now();
+end;
+$$;
 
 -- ── log_audit_event ──────────────────────────────────────────
 -- Inserta en audit_logs con hash encadenado (estilo blockchain).
@@ -1814,11 +2053,11 @@ $$;
 REVOKE EXECUTE ON FUNCTION public.get_user_id_by_email(TEXT) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.get_user_id_by_email(TEXT) FROM anon;
 
--- Fix B-05: has_active_subscription ahora prioriza el perfil del admin de la clínica
--- (el que tiene stripe_customer_id o el role='admin' en clinic_members)
+-- Fix B-05: has_active_subscription ahora prioriza el perfil del owner de la clínica
+-- (el que tiene stripe_customer_id o el role='owner' en clinic_members)
 -- en lugar de asumir que el primer perfil creado es el owner.
 -- Estrategia de lookup (en orden):
---   1. El perfil del doctor con role='admin' en clinic_members para esa clínica.
+--   1. El perfil del doctor con role='owner' en clinic_members para esa clínica.
 --   2. Cualquier perfil de esa clínica con stripe_customer_id NOT NULL (tiene billing).
 --   3. Fallback: el perfil más antiguo (comportamiento anterior).
 CREATE OR REPLACE FUNCTION has_active_subscription(c_id UUID)
@@ -1831,18 +2070,18 @@ DECLARE
   sub_status  TEXT;
   sub_expires TIMESTAMPTZ;
 BEGIN
-  -- 1. Intentar obtener el perfil del admin de la clínica
+  -- 1. Intentar obtener el perfil del owner de la clínica
   SELECT p.subscription_status, p.subscription_expires_at
     INTO sub_status, sub_expires
   FROM public.profiles p
   INNER JOIN public.clinic_members cm
     ON cm.clinic_id = c_id
    AND cm.doctor_id = p.doctor_id
-   AND cm.role = 'admin'
+   AND cm.role = 'owner'
   WHERE p.clinic_id = c_id
   LIMIT 1;
 
-  -- 2. Si no hay admin en clinic_members, usar el perfil con stripe_customer_id
+  -- 2. Si no hay owner en clinic_members, usar el perfil con stripe_customer_id
   IF sub_status IS NULL THEN
     SELECT subscription_status, subscription_expires_at
       INTO sub_status, sub_expires
