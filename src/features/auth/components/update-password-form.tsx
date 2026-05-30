@@ -53,9 +53,9 @@ export function UpdatePasswordForm() {
     <section className="mx-auto w-full max-w-xl rounded-3xl border border-border bg-card/90 p-6 shadow-2xl backdrop-blur-sm sm:p-8">
       <div className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-widest text-accent">{APP_NAME}</p>
-        <h2 className="text-2xl font-extrabold tracking-tight text-ink">Actualiza tu contraseña</h2>
+        <h2 className="text-2xl font-extrabold tracking-tight text-ink">Establece tu contraseña</h2>
         <p className="text-sm leading-6 text-ink-soft">
-          Ingresa tu nueva contraseña para recuperar el acceso a tu cuenta.
+          Ingresa una nueva contraseña para acceder de forma segura a tu cuenta en la plataforma.
         </p>
       </div>
 

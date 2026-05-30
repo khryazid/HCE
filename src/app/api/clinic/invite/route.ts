@@ -125,7 +125,7 @@ export async function POST(req: Request) {
       type: 'invite',
       email,
       options: {
-        redirectTo: `${serverEnv.NEXT_PUBLIC_SITE_URL}/login`,
+        redirectTo: `${serverEnv.NEXT_PUBLIC_SITE_URL}/recuperar/actualizar`,
       }
     });
 
