@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { createTenantProfileWithTrial } from "@/lib/supabase/actions";
 import { CheckCircle2, ChevronRight, DollarSign, User, Upload, X, FileText, Users } from "lucide-react";
+import { MEDICAL_SPECIALTIES } from "@/lib/constants/medical-specialties";
 
 export function OnboardingFlow() {
   const router = useRouter();
@@ -28,6 +29,10 @@ export function OnboardingFlow() {
   const [publicEmail, setPublicEmail] = useState("");
   const [address, setAddress] = useState("");
   const [pdfSpecialtyInput, setPdfSpecialtyInput] = useState("");
+  const [isSpecialtyDropdownOpen, setIsSpecialtyDropdownOpen] = useState(false);
+  const filteredSpecialties = MEDICAL_SPECIALTIES.filter((entry) =>
+    entry.toLowerCase().includes(pdfSpecialtyInput.trim().toLowerCase())
+  );
 
   // Step 2: Métodos de Cobro
   const [consultationTypes, setConsultationTypes] = useState([{ name: "Consulta General", price: 50, duration: 60 }]);
@@ -226,7 +231,18 @@ export function OnboardingFlow() {
                 <div className="p-4 grid gap-4 sm:grid-cols-2">
                   <div className="space-y-1.5">
                     <label className="text-xs font-semibold text-ink-soft">Título profesional</label>
-                    <Input value={professionalTitle} onChange={(e) => setProfessionalTitle(e.target.value)} placeholder="Dr. / Dra." />
+                    <select
+                      value={professionalTitle}
+                      onChange={(e) => setProfessionalTitle(e.target.value)}
+                      className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring md:text-sm text-ink"
+                    >
+                      <option value="Dr.">Dr. (Doctor)</option>
+                      <option value="Dra.">Dra. (Doctora)</option>
+                      <option value="Lic.">Lic. (Licenciado/a)</option>
+                      <option value="Mgtr.">Mgtr. (Magíster)</option>
+                      <option value="Ph.D.">Ph.D. (Doctorado)</option>
+                      <option value="">Sin título</option>
+                    </select>
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-xs font-semibold text-ink-soft">Número de licencia profesional</label>
@@ -276,41 +292,70 @@ export function OnboardingFlow() {
                 <div className="p-4 space-y-4">
                   <div className="space-y-1.5">
                     <label className="text-xs font-semibold text-ink-soft">Especialidades para membrete PDF</label>
-                    <div className="flex flex-wrap gap-2 mb-2">
-                      {specialties.map((spec, i) => (
-                        <div key={i} className="flex items-center gap-1 bg-accent/10 text-accent px-2 py-1 rounded-md text-xs font-medium">
-                          {spec}
-                          <button type="button" onClick={() => setSpecialties(specialties.filter((_, idx) => idx !== i))} className="hover:bg-accent/20 rounded-full p-0.5">
-                            <X className="h-3 w-3" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="flex gap-2">
-                      <Input 
-                        value={pdfSpecialtyInput} 
-                        onChange={(e) => setPdfSpecialtyInput(e.target.value)} 
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" && pdfSpecialtyInput.trim()) {
-                            e.preventDefault();
-                            setSpecialties([...specialties, pdfSpecialtyInput.trim()]);
-                            setPdfSpecialtyInput("");
-                          }
-                        }}
-                        placeholder="Escribe una especialidad y presiona Enter" 
-                      />
-                      <Button 
-                        type="button" 
-                        variant="secondary" 
-                        onClick={() => {
-                          if (pdfSpecialtyInput.trim()) {
-                            setSpecialties([...specialties, pdfSpecialtyInput.trim()]);
-                            setPdfSpecialtyInput("");
-                          }
-                        }}
+                    <div className="relative">
+                      <div
+                        className="flex h-auto w-full flex-wrap items-center gap-2 rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-sm min-h-[40px] cursor-text focus-within:ring-1 focus-within:ring-ring"
+                        onClick={() => setIsSpecialtyDropdownOpen(true)}
                       >
-                        Añadir
-                      </Button>
+                        {specialties.map((spec, i) => (
+                          <div key={i} className="flex items-center gap-1 bg-accent/10 text-accent px-2 py-1 rounded-md text-xs font-medium">
+                            {spec}
+                            <button 
+                              type="button" 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSpecialties(specialties.filter((_, idx) => idx !== i));
+                              }} 
+                              className="hover:bg-accent/20 rounded-full p-0.5"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ))}
+                        <input
+                          type="text"
+                          value={pdfSpecialtyInput}
+                          onChange={(e) => {
+                            setPdfSpecialtyInput(e.target.value);
+                            setIsSpecialtyDropdownOpen(true);
+                          }}
+                          onFocus={() => setIsSpecialtyDropdownOpen(true)}
+                          placeholder={specialties.length === 0 ? "Buscar y seleccionar..." : ""}
+                          className="flex-1 bg-transparent px-1 py-0 outline-none placeholder:text-muted-foreground min-w-[120px] text-sm text-ink"
+                        />
+                      </div>
+                      
+                      {isSpecialtyDropdownOpen && (
+                        <div className="absolute top-full left-0 w-full z-10 mt-1 max-h-[220px] overflow-y-auto rounded-md border border-border bg-card p-1 shadow-lg">
+                          {filteredSpecialties.filter((s) => !specialties.includes(s)).length > 0 ? (
+                            <ul role="listbox" className="flex flex-col gap-0.5">
+                              {filteredSpecialties
+                                .filter((s) => !specialties.includes(s))
+                                .map((entry) => (
+                                  <li key={entry}>
+                                    <button
+                                      type="button"
+                                      role="option"
+                                      aria-selected={false}
+                                      onClick={() => {
+                                        setSpecialties([...specialties, entry]);
+                                        setPdfSpecialtyInput("");
+                                        setIsSpecialtyDropdownOpen(false);
+                                      }}
+                                      className="flex w-full cursor-pointer select-none items-center rounded-sm px-3 py-2 text-sm text-ink hover:bg-bg-soft"
+                                    >
+                                      {entry}
+                                    </button>
+                                  </li>
+                                ))}
+                            </ul>
+                          ) : (
+                            <div className="px-3 py-2 text-sm text-ink-soft">
+                              {pdfSpecialtyInput ? "No se encontraron coincidencias" : "Todas las opciones seleccionadas"}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
 
