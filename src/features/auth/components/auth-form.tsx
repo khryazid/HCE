@@ -242,7 +242,19 @@ export function AuthForm({ mode }: AuthFormProps) {
         return;
       } else {
         if (action.data.user) {
-          // Role-based redirect after login
+          // 1. Check if platform admin first
+          const { data: profileData } = await supabase
+            .from("profiles")
+            .select("is_platform_admin")
+            .eq("doctor_id", action.data.user.id)
+            .maybeSingle();
+
+          if (profileData?.is_platform_admin) {
+            router.replace("/platform/panel");
+            return;
+          }
+
+          // 2. Normal role-based redirect after login
           const profile = await bootstrapTenantProfileFromMetadata(
             action.data.user.id,
             action.data.user.user_metadata
