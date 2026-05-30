@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { LogoutButton } from "@/features/auth/components/logout-button";
 import { APP_NAME } from "@/lib/constants/app";
 import {
   LayoutDashboard,
@@ -90,13 +91,7 @@ export default async function PlatformLayout({
         {/* Admin info */}
         <div className="px-4 py-4 border-t border-border">
           <p className="text-xs text-ink-faint truncate">{adminName}</p>
-          <Link
-            href="/login"
-            className="flex items-center gap-2 mt-2 text-xs text-ink-soft hover:text-ink transition-colors"
-          >
-            <LogOut className="w-3 h-3" />
-            Cerrar sesión
-          </Link>
+          <LogoutButton mode="sidebar" />
         </div>
       </aside>
 

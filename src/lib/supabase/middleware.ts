@@ -110,6 +110,7 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/invite/");
 
   const isAuthRoute =
+    request.nextUrl.pathname === "/" ||
     request.nextUrl.pathname.startsWith("/login") ||
     request.nextUrl.pathname.startsWith("/registro");
 
