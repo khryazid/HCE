@@ -220,69 +220,20 @@ export function useConsultationSave() {
         });
       }
 
-      // --- Cierre de Cita y Registro de Caja ---
+      // --- Cierre de Cita ---
       if (form.appointmentId) {
         const supabase = getSupabaseClient();
         
-        // 1. Actualizar estado de cita
+        // 1. Actualizar estado de cita a completada
+        // NOTA: Ya no modificamos el payment_status ni creamos cash_transactions porque es labor del asistente.
         await supabase
           .from("appointments")
           .update({ 
             status: "completed", 
             patient_id: form.patientId, 
-            payment_status: form.paymentStatus,
-            payment_method: form.paymentStatus === "paid" ? form.paymentMethod : null,
-            amount: form.paymentStatus === "paid" ? form.paymentAmount : (form.paymentStatus === "honorific" ? 0 : null),
             updated_at: timestamp 
           })
           .eq("id", form.appointmentId);
-          
-        // 2. Registrar en Caja si fue cobrado
-        if (form.paymentStatus === "paid" && form.paymentAmount > 0) {
-          // Buscar turno abierto
-          const { data: shift } = await (supabase as any)
-            .from("cash_shifts")
-            .select("id")
-            .eq("clinic_id", tenant.clinic_id)
-            .eq("user_id", tenant.doctor_id)
-            .eq("status", "open")
-            .maybeSingle();
-            
-          let shiftId = shift?.id;
-          
-          // Auto-crear turno si no hay uno abierto
-          if (!shiftId) {
-            const { data: newShift } = await (supabase as any)
-              .from("cash_shifts")
-              .insert({
-                clinic_id: tenant.clinic_id,
-                user_id: tenant.doctor_id,
-                initial_amount: 0,
-                status: "open"
-              })
-              .select("id")
-              .single();
-              
-            shiftId = newShift?.id;
-          }
-          
-          if (shiftId) {
-            const patientName = patients.find(p => p.id === form.patientId)?.full_name ?? "Paciente";
-            await (supabase as any)
-              .from("cash_transactions")
-              .insert({
-                clinic_id: tenant.clinic_id,
-                user_id: tenant.doctor_id,
-                shift_id: shiftId,
-                patient_id: form.patientId,
-                type: "income",
-                amount: form.paymentAmount,
-                payment_method: form.paymentMethod,
-                concept: `Consulta ${form.consultationType.replace("-", " ")}: ${patientName}`,
-                status: "completed"
-              });
-          }
-        }
       }
 
       // --- PDF (opcional, en Web Worker) ---
