@@ -10,6 +10,7 @@ export default async function PlatformOrganizationsPage() {
   const { data: orgs, error } = await adminClient
     .from("clinics")
     .select("id, name, plan_type, subscription_status, created_at, owner_user_id, updated_at")
+    .neq("name", "Platform Administration")
     .order("created_at", { ascending: false });
 
   return (
