@@ -9,37 +9,14 @@ type AppointmentInsert = Database["public"]["Tables"]["appointments"]["Insert"];
 const REALTIME_POLL_SUPPRESSION_MS = 20_000;
 
 
+import { usePaymentConfig } from "@/lib/use-payment-config";
+
 export function useAgenda() {
   const supabase = getSupabaseClient();
   const queryClient = useQueryClient();
 
   // Obtener configuración de pagos del médico
-  const { data: config = { methods: [], consultationTypes: [] } } = useQuery({
-    queryKey: ["payment_config"],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return { methods: [], consultationTypes: [] };
-
-      const { data } = await supabase
-        .from("profiles")
-        .select("payment_config")
-        .eq("doctor_id", user.id)
-        .maybeSingle();
-        
-      const conf = (data?.payment_config as Record<string, unknown>) || {};
-      let methods = [{ name: "Efectivo", details: "" }, { name: "Transferencia", details: "" }];
-      let consultationTypes: { name: string; price: number; duration?: number }[] = [{ name: "Consulta General", price: 40, duration: 60 }];
-
-      if (conf.methods && Array.isArray(conf.methods)) {
-        methods = conf.methods.map((m: unknown) => typeof m === "string" ? { name: m, details: "" } : m as { name: string; details: string });
-      }
-      if (conf.consultationTypes && Array.isArray(conf.consultationTypes)) {
-        consultationTypes = conf.consultationTypes.map((c: unknown) => typeof c === "string" ? { name: c, price: 0, duration: 60 } : c as { name: string; price: number; duration?: number });
-      }
-
-      return { methods, consultationTypes };
-    },
-  });
+  const { data: config = { methods: [], consultationTypes: [] } } = usePaymentConfig();
 
   // Obtener citas
   // refetchInterval → polling cada 30s como respaldo si Realtime no está activo.

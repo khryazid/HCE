@@ -442,8 +442,8 @@ html {
 .bg-teal-500  { background-color: var(--accent); }
 
 /* Borders */
-.border-teal-100, .border-teal-200  { border-color: rgba(196,96,42,.20); }
-.border-teal-300, .border-teal-400  { border-color: rgba(196,96,42,.35); }
+.border-teal-100, .border-teal-200  { border-color: color-mix(in srgb, var(--accent) 20%, transparent); }
+.border-teal-300, .border-teal-400  { border-color: color-mix(in srgb, var(--accent) 35%, transparent); }
 .border-teal-500, .border-teal-600  { border-color: var(--accent); }
 
 /* Hover */
@@ -455,16 +455,16 @@ html {
 
 /* Opacity variants */
 .bg-teal-500\/10  { background-color: var(--accent-dim); }
-.bg-teal-500\/20  { background-color: rgba(196,96,42,.18); }
-.hover\:bg-teal-500\/20:hover { background-color: rgba(196,96,42,.18); }
-.border-teal-500\/30  { border-color: rgba(196,96,42,.30); }
-.border-teal-500\/50  { border-color: rgba(196,96,42,.50); }
-.border-teal-700\/40  { border-color: rgba(196,96,42,.35); }
-.border-teal-900\/50  { border-color: rgba(196,96,42,.25); }
-.dark\:border-teal-500\/30 { border-color: rgba(196,96,42,.28); }
-.dark\:bg-teal-900\/30 { background-color: rgba(196,96,42,.12); }
-.dark\:bg-teal-950\/20 { background-color: rgba(196,96,42,.08); }
-.dark\:border-teal-900\/50 { border-color: rgba(196,96,42,.2); }
+.bg-teal-500\/20  { background-color: color-mix(in srgb, var(--accent) 18%, transparent); }
+.hover\:bg-teal-500\/20:hover { background-color: color-mix(in srgb, var(--accent) 18%, transparent); }
+.border-teal-500\/30  { border-color: color-mix(in srgb, var(--accent) 30%, transparent); }
+.border-teal-500\/50  { border-color: color-mix(in srgb, var(--accent) 50%, transparent); }
+.border-teal-700\/40  { border-color: color-mix(in srgb, var(--accent) 35%, transparent); }
+.border-teal-900\/50  { border-color: color-mix(in srgb, var(--accent) 25%, transparent); }
+.dark\:border-teal-500\/30 { border-color: color-mix(in srgb, var(--accent) 28%, transparent); }
+.dark\:bg-teal-900\/30 { background-color: color-mix(in srgb, var(--accent) 12%, transparent); }
+.dark\:bg-teal-950\/20 { background-color: color-mix(in srgb, var(--accent) 8%, transparent); }
+.dark\:border-teal-900\/50 { border-color: color-mix(in srgb, var(--accent) 20%, transparent); }
 .dark\:text-teal-400 { color: color-mix(in srgb, var(--accent) 80%, var(--ink)); }
 .dark\:text-teal-300 { color: color-mix(in srgb, var(--accent) 85%, var(--ink)); }
 
@@ -477,7 +477,7 @@ html {
 
 /* Misc */
 .accent-teal-600 { accent-color: var(--accent); }
-.shadow-teal-500\/20 { --tw-shadow-color: rgba(196,96,42,.20); }
+.shadow-teal-500\/20 { --tw-shadow-color: color-mix(in srgb, var(--accent) 20%, transparent); }
 
 /* ── Animación de entrada de página ─────────────────────────────────── */
 @keyframes hce-page-enter {

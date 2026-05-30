@@ -20,8 +20,8 @@ export function ProfileSectionAccessControls() {
     }
   }, [tenant]);
 
-  // Si no es admin/titular, no puede ver estos controles
-  if (tenant?.role !== "admin" && tenant?.role !== "doctor") return null;
+  // Si no es owner/admin/doctor, no puede ver estos controles
+  if (tenant?.role !== "owner" && tenant?.role !== "clinic_admin" && tenant?.role !== "doctor") return null;
 
   const handleTogglePrint = async () => {
     if (!tenant) return;

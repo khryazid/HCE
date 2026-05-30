@@ -130,7 +130,7 @@ export function TeamPanel() {
     return <div className="text-muted-foreground text-sm">Cargando equipo...</div>;
   }
 
-  const isAdmin = tenant?.role === "admin";
+  const isAdmin = tenant?.role === "owner" || tenant?.role === "clinic_admin";
 
   return (
     <div className="space-y-6">

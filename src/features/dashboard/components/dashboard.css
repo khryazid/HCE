@@ -142,14 +142,14 @@
   gap: 12px;
   padding: 10px 16px;
   background: var(--accent-dim);
-  border: 1px solid rgba(196,96,42,0.12);
+  border: 1px solid var(--accent-glow);
   border-radius: var(--radius);
   margin-top: 20px;
 }
 .gx-trial-icon {
   width: 28px; height: 28px;
   border-radius: 50%;
-  background: rgba(196,96,42,0.12);
+  background: var(--accent-dim);
   display: flex; align-items: center; justify-content: center;
   color: var(--accent);
   flex-shrink: 0;

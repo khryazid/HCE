@@ -41,7 +41,7 @@ export default async function BillingPage() {
       .eq("doctor_id", user.id)
       .maybeSingle();
 
-    isAdmin = (ownerRow?.doctor_id === user.id) || (memberRow?.role === "admin");
+    isAdmin = (ownerRow?.doctor_id === user.id) || (memberRow?.role === "owner") || (memberRow?.role === "clinic_admin");
   }
 
   return <BillingView proPrice={pricing.proPrice} isAdmin={isAdmin} />;

@@ -17,6 +17,8 @@ import {
 import { createTenantProfileWithTrial } from "@/lib/supabase/actions";
 import { MEDICAL_SPECIALTIES } from "@/lib/constants/medical-specialties";
 import { APP_NAME } from "@/lib/constants/app";
+import { getDashboardForRole } from "@/lib/guards/route-guard";
+import type { OrgRole } from "@/lib/supabase/profile";
 
 type AuthMode = "login" | "register";
 
@@ -26,7 +28,7 @@ type AuthFormProps = {
 
 const loginSchema = z.object({
   email: z.string().min(1, "El correo es obligatorio.").email("Ingresa un correo valido."),
-  password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres."),
+  password: z.string().min(1, "La contraseña es obligatoria."),
   fullName: z.string().optional(),
   specialties: z.array(z.string()).optional(),
   plan: z.enum(["basic", "clinic"]).optional(),
@@ -42,9 +44,13 @@ const registerSchema = loginSchema.extend({
     .regex(/[A-Z]/, "Debe contener al menos una letra mayúscula.")
     .regex(/[0-9]/, "Debe contener al menos un número.")
     .regex(/[^A-Za-z0-9]/, "Debe contener al menos un carácter especial."),
+  confirmPassword: z.string().min(1, "Confirma tu contraseña."),
   termsAccepted: z.boolean().refine((val) => val === true, {
     message: "Debes aceptar los Términos y Condiciones.",
   }),
+}).refine(data => data.password === data.confirmPassword, {
+  message: "Las contraseñas no coinciden.",
+  path: ["confirmPassword"],
 }).refine(data => {
   if (data.plan === "clinic" && (!data.clinicName || data.clinicName.trim() === "")) {
     return false;
@@ -134,6 +140,26 @@ export function AuthForm({ mode }: AuthFormProps) {
     );
   }, [mode, searchParams, setValue]);
 
+  useEffect(() => {
+    let urlError = searchParams.get("error_description") || searchParams.get("error");
+    
+    if (!urlError && typeof window !== "undefined" && window.location.hash) {
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      urlError = hashParams.get("error_description") || hashParams.get("error");
+    }
+
+    if (urlError) {
+      let errorMsg = decodeURIComponent(urlError).replace(/\+/g, " ");
+      if (errorMsg.includes("Email link is invalid or has expired") || errorMsg.includes("access_denied")) {
+        errorMsg = "El enlace de confirmación ha expirado o ya fue utilizado. Si tu cuenta no está verificada, inicia sesión y haz clic en 'Reenviar confirmación'.";
+      }
+      setError(errorMsg);
+      if (typeof window !== "undefined") {
+        window.history.replaceState(null, "", window.location.pathname);
+      }
+    }
+  }, [searchParams]);
+
   const filteredSpecialties = MEDICAL_SPECIALTIES.filter((entry) =>
     entry.toLowerCase().includes(specialtySearch.trim().toLowerCase())
   );
@@ -164,10 +190,12 @@ export function AuthForm({ mode }: AuthFormProps) {
             email: data.email,
             password: data.password,
             options: {
+              emailRedirectTo: `${window.location.origin}/api/auth/callback`,
               data: {
                 full_name: data.fullName?.trim(),
                 specialties: data.specialties,
                 clinic_id: normalizedClinicId,
+                clinic_name: data.clinicName?.trim(),
                 plan: data.plan,
                 terms_accepted: true,
               },
@@ -198,7 +226,7 @@ export function AuthForm({ mode }: AuthFormProps) {
             setError(result.error);
             return;
           }
-          router.replace("/dashboard");
+          router.replace("/dashboard"); // owner role default
           return;
         }
 
@@ -210,12 +238,17 @@ export function AuthForm({ mode }: AuthFormProps) {
         return;
       } else {
         if (action.data.user) {
-          await bootstrapTenantProfileFromMetadata(
+          // Role-based redirect after login
+          const profile = await bootstrapTenantProfileFromMetadata(
             action.data.user.id,
             action.data.user.user_metadata
           );
+          const role = (profile?.role || "owner") as OrgRole;
+          const dashboard = getDashboardForRole(role);
+          router.replace(dashboard);
+        } else {
+          router.replace("/dashboard");
         }
-        router.replace("/dashboard");
       }
     } catch (authError) {
       if (authError instanceof Error && authError.message.toLowerCase().includes("email not confirmed")) {
@@ -299,6 +332,73 @@ export function AuthForm({ mode }: AuthFormProps) {
     <div aria-label={isSignUp ? "Formulario de registro" : "Formulario de inicio de sesión"}>
 
       <form onSubmit={handleSubmit(onSubmit)}>
+        {isSignUp && (
+          <>
+            <fieldset className="gx-field" style={{marginBottom: 24}}>
+              <legend className="gx-label" style={{marginBottom: 8}}>Selecciona tu Plan</legend>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <label
+                  className="relative flex cursor-pointer rounded-xl border p-4 transition-colors focus:outline-none"
+                  style={{
+                    borderColor: watch("plan") === "basic" ? "var(--accent)" : "var(--border)",
+                    background: watch("plan") === "basic" ? "var(--accent-dim)" : "var(--bg)",
+                  }}
+                >
+                  <input type="radio" value="basic" {...register("plan")} className="sr-only" />
+                  <div className="flex w-full flex-col">
+                    <span className="flex items-center justify-between">
+                      <span className="text-sm font-semibold text-ink">Individual</span>
+                    </span>
+                    <span className="mt-1 flex items-center text-xs text-ink-soft">
+                      Hasta 2 Asistentes.
+                    </span>
+                  </div>
+                </label>
+                <label
+                  className="relative flex cursor-pointer rounded-xl border p-4 transition-colors focus:outline-none"
+                  style={{
+                    borderColor: watch("plan") === "clinic" ? "var(--accent)" : "var(--border)",
+                    background: watch("plan") === "clinic" ? "var(--accent-dim)" : "var(--bg)",
+                  }}
+                >
+                  <input type="radio" value="clinic" {...register("plan")} className="sr-only" />
+                  <div className="flex w-full flex-col">
+                    <span className="flex items-center justify-between">
+                      <span className="text-sm font-semibold text-ink">Clínica</span>
+                    </span>
+                    <span className="mt-1 flex items-center text-xs text-ink-soft">
+                      Múltiples Doctores.
+                    </span>
+                  </div>
+                </label>
+              </div>
+            </fieldset>
+
+            {watch("plan") === "clinic" && (
+              <fieldset className="gx-field" style={{marginBottom: 24}}>
+                <legend className="gx-label" style={{marginBottom: 8}}>Nombre de la Clínica</legend>
+                <Input
+                  {...register("clinicName")}
+                  placeholder="Ej. Centro Médico San Juan"
+                  aria-invalid={!!errors.clinicName}
+                  aria-describedby="field-error-clinicName"
+                  className="gx-input"
+                  autoComplete="off"
+                />
+                {errors.clinicName ? (
+                  <p id="field-error-clinicName" className="text-xs text-red-700" role="alert" style={{marginTop: 8}}>
+                    {errors.clinicName.message}
+                  </p>
+                ) : null}
+              </fieldset>
+            )}
+
+            <p style={{fontSize: "0.8125rem", color: "var(--ink-soft)", background: "var(--bg-soft)", padding: "8px 12px", borderRadius: 8, marginBottom: 24}}>
+              {watch("plan") === "clinic" ? "Tu espacio de clínica será creado con el nombre que elijas." : "El espacio de clínica se crea automáticamente para ti durante el registro."}
+            </p>
+          </>
+        )}
+
         <div className="gx-field">
           <label className="gx-label">Correo Electrónico</label>
           <Input
@@ -429,74 +529,12 @@ export function AuthForm({ mode }: AuthFormProps) {
               </fieldset>
             )}
 
-            <fieldset className="gx-field" style={{marginBottom: 24}}>
-              <legend className="gx-label" style={{marginBottom: 8}}>Selecciona tu Plan</legend>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <label
-                  className="relative flex cursor-pointer rounded-xl border p-4 transition-colors focus:outline-none"
-                  style={{
-                    borderColor: watch("plan") === "basic" ? "var(--accent)" : "var(--border)",
-                    background: watch("plan") === "basic" ? "var(--accent-dim)" : "var(--bg)",
-                  }}
-                >
-                  <input type="radio" value="basic" {...register("plan")} className="sr-only" />
-                  <div className="flex w-full flex-col">
-                    <span className="flex items-center justify-between">
-                      <span className="text-sm font-semibold text-ink">Individual</span>
-                    </span>
-                    <span className="mt-1 flex items-center text-xs text-ink-soft">
-                      Hasta 2 Asistentes.
-                    </span>
-                  </div>
-                </label>
-                <label
-                  className="relative flex cursor-pointer rounded-xl border p-4 transition-colors focus:outline-none"
-                  style={{
-                    borderColor: watch("plan") === "clinic" ? "var(--accent)" : "var(--border)",
-                    background: watch("plan") === "clinic" ? "var(--accent-dim)" : "var(--bg)",
-                  }}
-                >
-                  <input type="radio" value="clinic" {...register("plan")} className="sr-only" />
-                  <div className="flex w-full flex-col">
-                    <span className="flex items-center justify-between">
-                      <span className="text-sm font-semibold text-ink">Clínica</span>
-                    </span>
-                    <span className="mt-1 flex items-center text-xs text-ink-soft">
-                      Múltiples Doctores.
-                    </span>
-                  </div>
-                </label>
-              </div>
-            </fieldset>
-
-            {watch("plan") === "clinic" && (
-              <fieldset className="gx-field" style={{marginBottom: 24}}>
-                <legend className="gx-label" style={{marginBottom: 8}}>Nombre de la Clínica</legend>
-                <Input
-                  {...register("clinicName")}
-                  placeholder="Ej. Centro Médico San Juan"
-                  aria-invalid={!!errors.clinicName}
-                  aria-describedby="field-error-clinicName"
-                  className="gx-input"
-                  autoComplete="off"
-                />
-                {errors.clinicName ? (
-                  <p id="field-error-clinicName" className="text-xs text-red-700" role="alert" style={{marginTop: 8}}>
-                    {errors.clinicName.message}
-                  </p>
-                ) : null}
-              </fieldset>
-            )}
-
-            <p style={{fontSize: "0.8125rem", color: "var(--ink-soft)", background: "var(--bg-soft)", padding: "8px 12px", borderRadius: 8, marginTop: 16}}>
-              {watch("plan") === "clinic" ? "Tu espacio de clínica será creado con el nombre que elijas." : "El espacio de clínica se crea automáticamente para ti durante el registro."}
-            </p>
           </>
         ) : null}
 
         <div className="gx-field">
-          <label className="gx-label" htmlFor="password-field">
-            Contraseña
+          <div className="gx-label">
+            <label htmlFor="password-field">Contraseña</label>
             {!isSignUp && (
               <Link
                 href="/recuperar"
@@ -505,13 +543,13 @@ export function AuthForm({ mode }: AuthFormProps) {
                 ¿Olvidaste tu contraseña?
               </Link>
             )}
-          </label>
+          </div>
           <div style={{position: "relative"}}>
             <Input
               id="password-field"
               type={showPassword ? "text" : "password"}
               autoComplete={isSignUp ? "new-password" : "current-password"}
-              placeholder={isSignUp ? "Mínimo 8 caracteres, números y especiales" : "Mínimo 6 caracteres"}
+              placeholder={isSignUp ? "Mínimo 8 caracteres, números y especiales" : "Tu contraseña"}
               {...register("password")}
               className="gx-input"
               style={{paddingRight: 80}}
@@ -559,16 +597,39 @@ export function AuthForm({ mode }: AuthFormProps) {
         </div>
 
         {isSignUp && (
-          <div className="gx-field" style={{ marginTop: 24, marginBottom: 8, flexDirection: "row", alignItems: "flex-start", gap: 8 }}>
-            <input 
-              type="checkbox" 
-              id="terms-checkbox" 
-              {...register("termsAccepted")}
-              style={{ marginTop: 4, accentColor: "var(--accent)", width: 16, height: 16 }}
-            />
-            <label htmlFor="terms-checkbox" style={{ fontSize: "0.875rem", color: "var(--ink-soft)", lineHeight: 1.5, flex: 1, cursor: "pointer" }}>
-              He leído y acepto los <Link href="/terminos" target="_blank" style={{ color: "var(--accent)", textDecoration: "underline" }}>Términos y Condiciones</Link> y la Política de Privacidad de {APP_NAME}.
-            </label>
+          <div className="gx-field">
+            <label className="gx-label" htmlFor="confirmPassword-field">Confirmar Contraseña</label>
+            <div style={{position: "relative"}}>
+              <Input
+                id="confirmPassword-field"
+                type={showPassword ? "text" : "password"}
+                autoComplete="new-password"
+                placeholder="Repite tu contraseña"
+                {...register("confirmPassword")}
+                className="gx-input"
+              />
+            </div>
+            {errors.confirmPassword ? (
+              <p className="text-xs text-red-700 mt-1">{errors.confirmPassword.message}</p>
+            ) : null}
+          </div>
+        )}
+
+        {isSignUp && (
+          <div className="gx-field" style={{ marginTop: 24, marginBottom: 8 }}>
+            <div style={{ display: "flex", flexDirection: "row", alignItems: "flex-start", gap: 8 }}>
+              <input 
+                type="checkbox" 
+                id="terms-checkbox" 
+                {...register("termsAccepted")}
+                style={{ marginTop: 4, accentColor: "var(--accent)", width: 16, height: 16, cursor: "pointer" }}
+              />
+              <div style={{ fontSize: "0.875rem", color: "var(--ink-soft)", lineHeight: 1.5, flex: 1 }}>
+                <label htmlFor="terms-checkbox" style={{ cursor: "pointer" }}>He leído y acepto los </label>
+                <a href="/terminos" target="_blank" rel="noopener noreferrer" style={{ color: "var(--accent)", textDecoration: "underline" }} onClick={(e) => e.stopPropagation()}>Términos y Condiciones</a>
+                <label htmlFor="terms-checkbox" style={{ cursor: "pointer" }}> y la Política de Privacidad de {APP_NAME}.</label>
+              </div>
+            </div>
             {errors.termsAccepted && (
               <p className="text-xs text-red-700 w-full" style={{ marginTop: 4 }}>{errors.termsAccepted.message}</p>
             )}
@@ -582,19 +643,6 @@ export function AuthForm({ mode }: AuthFormProps) {
         {message ? (
           <p className="hce-alert-success" role="status">{message}</p>
         ) : null}
-
-        {isSignUp && (
-          <div className="gx-auth-footer" style={{marginTop: 16}}>
-            Al crear una cuenta, aceptas nuestros{" "}
-            <Link href="/terminos" target="_blank" className="gx-label-link">
-              Términos y Condiciones
-            </Link>{" "}
-            y la{" "}
-            <Link href="/privacidad" target="_blank" className="gx-label-link">
-              Política de Privacidad
-            </Link>.
-          </div>
-        )}
 
         <button
           type="submit"

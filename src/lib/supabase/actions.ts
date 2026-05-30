@@ -80,6 +80,7 @@ export async function createTenantProfileWithTrial(input: {
         subscription_expires_at: trialExpiresAt,
         terms_version: CURRENT_TERMS_VERSION,
         terms_accepted_at: new Date().toISOString(),
+        onboarding_state: input.plan === "clinic" ? { step: 4, completed: true } : { step: 1, completed: false },
       } satisfies ProfileInsert);
 
     if (insertError) {
@@ -91,13 +92,15 @@ export async function createTenantProfileWithTrial(input: {
       return { success: false, error: "Error al crear perfil" };
     }
 
-    // 6. Add user to clinic_members as 'admin' if they are the creator
+    // 6. Add user to clinic_members as 'owner' (they are the creator)
     const { error: memberError } = await (adminClient as any)
       .from("clinic_members")
       .upsert({
         clinic_id: input.clinicId,
         doctor_id: userId,
-        role: "admin",
+        role: "owner",
+        is_active: true,
+        custom_permissions: {},
         terms_version: CURRENT_TERMS_VERSION,
         terms_accepted_at: new Date().toISOString(),
       });

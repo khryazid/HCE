@@ -9,7 +9,7 @@ import { CURRENT_TERMS_VERSION } from "@/lib/constants/app";
 import { getActiveTermsVersion } from "@/lib/supabase/actions";
 import { TermsAcceptanceModal } from "./terms-acceptance-modal";
 
-export function DashboardOnboardingGuard() {
+export function DashboardOnboardingGuard({ isAdmin = false }: { isAdmin?: boolean }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -20,6 +20,12 @@ export function DashboardOnboardingGuard() {
 
   useEffect(() => {
     if (loading) return;
+
+    // Si es super admin, saltarse todas las protecciones clínicas
+    if (isAdmin) {
+      const t = setTimeout(() => setReady(true), 0);
+      return () => clearTimeout(t);
+    }
 
     // /admin is the super-admin panel — skip all clinical checks.
     if (pathname === "/admin") {
@@ -93,11 +99,43 @@ export function DashboardOnboardingGuard() {
         return;
       }
 
+      // clinic_admin or owner of a clinic plan → restrict to admin routes
+      if (isReady && (tenant.role === "clinic_admin" || (tenant.role === "owner" && tenant.plan === "clinic"))) {
+        const adminAllowedRoutes = ["/administracion", "/pacientes", "/caja", "/ajustes", "/docs"];
+        const isAllowed = adminAllowedRoutes.some(r => pathname === r || pathname.startsWith(r + "/"));
+        if (!isAllowed && !isBillingPage && !isProfileSetupPage) {
+          router.replace("/administracion");
+          return;
+        }
+      }
+
+      if (isReady && tenant.plan === "clinic" && pathname === "/dashboard") {
+        router.replace("/administracion");
+        return;
+      }
+
       if (isReady && tenant.role === "assistant") {
         const assistantAllowedRoutes = ["/agenda", "/pacientes", "/caja", "/ajustes", "/docs"];
         const isAllowed = assistantAllowedRoutes.some(r => pathname === r || pathname.startsWith(r + "/"));
         if (!isAllowed && !isBillingPage && !isProfileSetupPage) {
           router.replace("/agenda");
+          return;
+        }
+      }
+
+      // Specialized roles → redirect to their dashboard
+      if (isReady && ["receptionist", "lab", "imaging", "surgery"].includes(tenant.role)) {
+        const roleDashboards: Record<string, string> = {
+          receptionist: "/recepcion",
+          lab: "/laboratorio",
+          imaging: "/imagen",
+          surgery: "/cirugia",
+        };
+        const myDash = roleDashboards[tenant.role] || "/dashboard";
+        const roleAllowedRoutes = [myDash, "/caja", "/docs"];
+        const isAllowed = roleAllowedRoutes.some(r => pathname === r || pathname.startsWith(r + "/"));
+        if (!isAllowed && !isBillingPage && !isProfileSetupPage) {
+          router.replace(myDash);
           return;
         }
       }

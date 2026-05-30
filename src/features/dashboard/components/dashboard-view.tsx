@@ -35,6 +35,7 @@ import {
   calculateMetrics,
   buildActivityFeed,
 } from "@/features/dashboard/lib/metrics";
+import { DateRangeFilter, DateFilterValue, getDefaultDateFilter } from "@/components/ui/date-range-filter";
 
 // ─── Page Container ───────────────────────────────────────────────────────────
 
@@ -44,6 +45,7 @@ export default function DashboardView() {
   const [metrics, setMetrics] = useState<DashboardMetrics>(EMPTY_METRICS);
   const [activity, setActivity] = useState<ActivityItem[]>([]);
   const [followUpFilter, setFollowUpFilter] = useState<FollowUpPanelFilter>("urgentes");
+  const [dateFilter, setDateFilter] = useState<DateFilterValue>(getDefaultDateFilter("today"));
 
   // React Query fetch (cached, auto-invalidated)
   const { data: patientsData = [], isLoading: patientsLoading } = usePatients(tenant);
@@ -77,8 +79,8 @@ export default function DashboardView() {
             failedOrAbandoned: queue.filter(
               (i) => i.status === "failed" || i.status === "abandoned",
             ).length,
-          }));
-          setActivity(buildActivityFeed(patientsData, recordsData));
+          }, dateFilter.start, dateFilter.end));
+          setActivity(buildActivityFeed(patientsData, recordsData, dateFilter.start, dateFilter.end));
         }
       } catch (err) {
         console.error("Error loading sync queue", err);
@@ -93,7 +95,7 @@ export default function DashboardView() {
       active = false; 
       clearInterval(interval);
     };
-  }, [tenant, tenantLoading, loading, patientsData, recordsData]);
+  }, [tenant, tenantLoading, loading, patientsData, recordsData, dateFilter]);
 
   const followUpItems = useMemo(() => {
     const patientById = new Map(patientsData.map((p) => [p.id, p]));
@@ -200,9 +202,12 @@ export default function DashboardView() {
               {tenant?.specialties?.[0] || "Medicina General"} · {todayLabel}
             </span>
           </div>
-          <div className="gx-header-right flex-wrap sm:flex-nowrap">
-            <Link href="/consultas" className="gx-btn gx-btn-p">Nueva consulta</Link>
-            <Link href="/agenda" className="gx-btn gx-btn-s">Mi Agenda</Link>
+          <div className="gx-header-right flex-wrap sm:flex-nowrap gap-3 items-center">
+            <DateRangeFilter value={dateFilter} onChange={setDateFilter} />
+            <div className="flex gap-2">
+              <Link href="/consultas" className="gx-btn gx-btn-p">Nueva consulta</Link>
+              <Link href="/agenda" className="gx-btn gx-btn-s">Mi Agenda</Link>
+            </div>
           </div>
         </header>
 
@@ -212,28 +217,13 @@ export default function DashboardView() {
           </div>
         )}
 
-        {/* Trial Banner */}
-        {isTrialActive && (
-          <div className="gx-trial gx-s gx-s2">
-            <div className="gx-trial-icon">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            </div>
-            <div className="gx-trial-body">
-              <div className="gx-trial-title">
-                {daysLeft === 0 ? "Prueba gratuita — último día" : `Prueba gratuita (${daysLeft} día${daysLeft !== 1 ? "s" : ""} restante${daysLeft !== 1 ? "s" : ""})`}
-              </div>
-              <div className="gx-trial-text">Motor clínico completo. Activa tu suscripción para acceso permanente.</div>
-            </div>
-            <Link href="/billing" className="gx-btn gx-btn-p bg-accent text-white hover:bg-accent-hover text-center px-4 py-1.5 flex items-center justify-center border-0" style={{ border: "none" }}>Activar cuenta</Link>
-          </div>
-        )}
+
 
         {/* Metrics Strip */}
         <div className="gx-metrics gx-s gx-s2">
           <div className="gx-m">
-            <span className="gx-mv gx-mv-a">{metrics.consultationsToday}</span>
-            {todayAppointmentsCount > 0 && <span className="gx-mf">/{todayAppointmentsCount}</span>}
-            <span className="gx-ml">consultas hoy</span>
+            <span className="gx-mv gx-mv-a">{metrics.consultationsInPeriod}</span>
+            <span className="gx-ml">consultas en el periodo</span>
           </div>
           <div className="gx-m">
             <span className="gx-mv">{metrics.activePatients}</span>

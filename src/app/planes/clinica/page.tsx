@@ -52,7 +52,7 @@ export default function PlanClinicaPage() {
               <div style={{color: "var(--ink)", marginTop: 2}}><Ico d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></div>
               <div>
                 <strong style={{display: "block", fontSize: "1.125rem", color: "var(--ink)", marginBottom: 4}}>Panel Gerencial y Cajas</strong>
-                <p style={{color: "var(--ink-soft)", margin: 0, lineHeight: 1.5}}>Accede a un Dashboard exclusivo para dueños (`/clinic-dashboard`) donde puedes auditar el flujo de efectivo (`cash_shifts`), ingresos por médico y estadísticas generales.</p>
+                <p style={{color: "var(--ink-soft)", margin: 0, lineHeight: 1.5}}>Accede a un Dashboard exclusivo para dueños (`/administracion`) donde puedes auditar el flujo de efectivo (`cash_shifts`), ingresos por médico y estadísticas generales.</p>
               </div>
             </li>
 

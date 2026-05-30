@@ -46,7 +46,7 @@ export async function POST(req: Request) {
       .eq("doctor_id", user.id)
       .maybeSingle();
 
-    const isAdmin = profileData || (memberData && memberData.role === "admin");
+    const isAdmin = profileData || (memberData && (memberData.role === "owner" || memberData.role === "clinic_admin"));
 
     if (!isAdmin) {
       return NextResponse.json(

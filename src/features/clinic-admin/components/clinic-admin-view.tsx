@@ -1,7 +1,7 @@
 import React from "react";
 import { useClinicMembers, useClinicStats } from "../lib/use-clinic-admin";
 import { Card } from "@/components/ui/card";
-import { Loader2, Users, FileText, UserPlus, TrendingUp, Settings, Crown, Activity } from "lucide-react";
+import { Loader2, Users, FileText, UserPlus, TrendingUp, Settings, Crown, Activity, Star, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface ClinicAdminViewProps {
@@ -29,7 +29,7 @@ export function ClinicAdminView({ clinicId }: ClinicAdminViewProps) {
     );
   }
 
-  const activeDoctors = members?.filter(m => m.doctor_profile?.is_active && (m.role === "admin" || m.role === "doctor")).length || 0;
+  const activeDoctors = members?.filter(m => (m.role === "owner" || m.role === "doctor")).length || 0;
 
   return (
     <div className="space-y-6">
@@ -87,7 +87,58 @@ export function ClinicAdminView({ clinicId }: ClinicAdminViewProps) {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+        <Card className="p-5">
+          <h3 className="font-semibold text-lg flex items-center gap-2 mb-4">
+            <Star className="h-5 w-5 text-amber-500" /> Mejores Médicos (por consultas)
+          </h3>
+          <div className="space-y-4">
+            {stats?.topDoctors.length === 0 ? (
+              <p className="text-sm text-ink-soft">No hay consultas registradas aún.</p>
+            ) : (
+              stats?.topDoctors.map((doc, idx) => {
+                const member = members?.find(m => m.doctor_id === doc.doctor_id);
+                const name = member?.doctor_profile?.full_name || "Médico Pendiente";
+                return (
+                  <div key={doc.doctor_id} className="flex justify-between items-center bg-gray-50/50 p-3 rounded-lg border border-gray-100">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-blue-700 font-bold text-xs">
+                        {idx + 1}
+                      </div>
+                      <span className="font-medium">{name}</span>
+                    </div>
+                    <span className="text-sm font-semibold bg-white px-2 py-1 rounded-md border border-gray-200">
+                      {doc.count} consultas
+                    </span>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </Card>
+
+        <Card className="p-5">
+          <h3 className="font-semibold text-lg flex items-center gap-2 mb-4">
+            <BarChart3 className="h-5 w-5 text-indigo-500" /> Consultas por Especialidad
+          </h3>
+          <div className="space-y-4">
+            {stats?.topSpecialties.length === 0 ? (
+              <p className="text-sm text-ink-soft">No hay especialidades registradas aún.</p>
+            ) : (
+              stats?.topSpecialties.map((spec, idx) => (
+                <div key={spec.specialty} className="flex justify-between items-center bg-gray-50/50 p-3 rounded-lg border border-gray-100">
+                  <span className="font-medium capitalize">{spec.specialty}</span>
+                  <span className="text-sm font-semibold bg-white px-2 py-1 rounded-md border border-gray-200">
+                    {spec.count} consultas
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
         <Card className="col-span-1 lg:col-span-2 p-0 overflow-hidden">
           <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
             <h3 className="font-semibold text-lg">Miembros del Equipo</h3>
@@ -106,7 +157,7 @@ export function ClinicAdminView({ clinicId }: ClinicAdminViewProps) {
                 {members?.map(member => (
                   <tr key={member.id} className="hover:bg-gray-50/50">
                     <td className="px-5 py-4 font-medium flex items-center gap-2">
-                      {member.role === "admin" && <Crown className="h-4 w-4 text-amber-500" />}
+                      {member.role === "owner" && <Crown className="h-4 w-4 text-amber-500" />}
                       {member.doctor_profile?.full_name || "Usuario Pendiente"}
                     </td>
                     <td className="px-5 py-4">
@@ -118,11 +169,7 @@ export function ClinicAdminView({ clinicId }: ClinicAdminViewProps) {
                       {member.doctor_profile?.specialties?.join(", ") || "N/A"}
                     </td>
                     <td className="px-5 py-4 text-right">
-                      {member.doctor_profile?.is_active ? (
                         <span className="inline-flex items-center rounded-full bg-green-50 px-2.5 py-0.5 text-xs font-medium text-green-700">Activo</span>
-                      ) : (
-                        <span className="inline-flex items-center rounded-full bg-gray-50 px-2.5 py-0.5 text-xs font-medium text-gray-600">Inactivo</span>
-                      )}
                     </td>
                   </tr>
                 ))}

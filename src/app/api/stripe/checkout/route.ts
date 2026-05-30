@@ -122,7 +122,7 @@ export async function POST(req: Request) {
         .eq("doctor_id", user.id)
         .maybeSingle();
         
-      const isAdmin = (ownerRow?.doctor_id === user.id) || (memberRow?.role === "admin");
+      const isAdmin = (ownerRow?.doctor_id === user.id) || (memberRow?.role === "owner") || (memberRow?.role === "clinic_admin");
       if (!isAdmin) {
         return NextResponse.json(
           { error: "Solo los administradores de la clínica pueden modificar la suscripción." },

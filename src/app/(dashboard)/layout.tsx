@@ -8,6 +8,7 @@ import { SubscriptionBanner } from "@/features/dashboard/components/subscription
 import { TenantProvider } from "@/lib/supabase/tenant-context";
 import { ClinicalProvider } from "@/features/consultations/context/clinical-context";
 import { getPublicGlobalConfig } from "@/lib/supabase/actions";
+import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { Plus, AlertTriangle } from "lucide-react";
 
@@ -23,6 +24,31 @@ export default async function DashboardLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   const globalConfig = await getPublicGlobalConfig();
+  
+  let isSuperAdmin = false;
+  try {
+    const supabase = await createSupabaseServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      // Check legacy env-based admin
+      if (user.email && process.env.ADMIN_EMAIL && user.email === process.env.ADMIN_EMAIL) {
+        isSuperAdmin = true;
+      }
+      // Check DB-based platform admin (new RBAC system)
+      if (!isSuperAdmin) {
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("is_platform_admin")
+          .eq("doctor_id", user.id)
+          .maybeSingle();
+        if (profileData && (profileData as any).is_platform_admin === true) {
+          isSuperAdmin = true;
+        }
+      }
+    }
+  } catch (e) {
+    // ignore
+  }
 
   if (globalConfig.maintenance_mode) {
     return (
@@ -53,7 +79,7 @@ export default async function DashboardLayout({
 
           {/* Main content area */}
           <div className="flex-1 flex flex-col relative w-full">
-            <DashboardOnboardingGuard />
+            <DashboardOnboardingGuard isAdmin={isSuperAdmin} />
 
             {globalConfig.global_notice && (
               <div className="w-full bg-accent/10 border-b border-accent/20 px-4 py-3 flex items-center justify-center text-accent text-sm font-medium text-center">

@@ -250,19 +250,18 @@ export default function TreatmentsView() {
         </table>
       </div>
 
-      {/* ── SLIDE-OVER FORMULARIO ── */}
+      {/* ── MODAL FORMULARIO ── */}
       {isSlideoverOpen && (
-        <>
-          <div className="gx-slideover-backdrop" onClick={closeSlideover} />
-          <div className="gx-slideover-panel">
-            <div className="gx-slideover-header">
-              <h2 className="gx-slideover-title">{editing ? "Editar Plantilla" : "Nueva Plantilla"}</h2>
-              <button className="gx-slideover-close" onClick={closeSlideover}>
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200" onClick={closeSlideover}>
+          <div className="w-full max-w-2xl max-h-[90vh] overflow-hidden rounded-2xl border border-border bg-card shadow-2xl flex flex-col animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+            <div className="border-b border-border p-5 flex items-center justify-between bg-bg-soft">
+              <h2 className="font-display font-bold text-lg text-ink">{editing ? "Editar Plantilla" : "Nueva Plantilla"}</h2>
+              <button className="text-ink-soft hover:text-ink transition-colors p-1 rounded-full hover:bg-border/50" onClick={closeSlideover}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
               </button>
             </div>
             
-            <div className="gx-slideover-body">
+            <div className="overflow-y-auto p-6 flex-1">
               <form id="template-form" onSubmit={(e) => void handleSave(e)}>
                 {formError && (
                   <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
@@ -365,8 +364,7 @@ export default function TreatmentsView() {
                 </div>
               </form>
             </div>
-            
-            <div className="gx-slideover-footer">
+            <div className="border-t border-border p-5 bg-bg-soft flex justify-end gap-3">
               <button className="gx-btn gx-btn-s" onClick={closeSlideover} type="button" disabled={saving}>
                 Cancelar
               </button>
@@ -375,7 +373,7 @@ export default function TreatmentsView() {
               </button>
             </div>
           </div>
-        </>
+        </div>
       )}
 
       {/* ── MODAL DE HISTORIAL DE VERSIONES ── */}

@@ -1,4 +1,4 @@
-﻿/* 
+/* 
  * ═══════════════════════════════════════════════════════════════
  *  GLYPHIX — Landing Page Styles
  *  Ferric Meridian v3.0 Design System
@@ -14,28 +14,9 @@
   --font-ui: 'Outfit', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 
-  --bg: #FAFAF8;
-  --bg-soft: #F2F2EF;
-  --bg-hover: #EBEBE7;
-  --bg-elevated: #FFFFFF;
-
-  --ink: #111111;
-  --ink-soft: #444444;
-  --ink-faint: #888888;
-
   --border: rgba(0,0,0,0.1);
   --border-subtle: rgba(0,0,0,0.05);
   --border-hover: rgba(0,0,0,0.2);
-
-  --accent: #C4602A;
-  --accent-hover: #A85020;
-  --accent-dim: rgba(196,96,42,0.1);
-  --accent-glow: rgba(196,96,42,0.3);
-
-  --state-ok: #2A8C60;
-  --state-ok-bg: rgba(42,140,96,0.1);
-  --state-warn: #D97706;
-  --state-warn-bg: rgba(217,119,6,0.1);
 
   --shadow-sm: 0 2px 8px rgba(0,0,0,0.05);
   --shadow-md: 0 8px 24px rgba(0,0,0,0.08);

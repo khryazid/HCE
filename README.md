@@ -36,9 +36,9 @@ Con arquitectura multi-tenant de grado empresarial, Glyphix automatiza la factur
 
 ---
 
-## ✅ Estado Actual del Proyecto *(2026-05-28)*
+## ✅ Estado Actual del Proyecto *(2026-05-30)*
 
-> Build limpio · 0 errores TypeScript · Build de producción OK · **Versión 1.0.0 (Producción)**
+> Build limpio · 0 errores TypeScript · Build de producción OK · **Versión 1.1.0 (RBAC Multi-Tenant)**
 
 ### Features entregadas
 
@@ -49,8 +49,10 @@ Con arquitectura multi-tenant de grado empresarial, Glyphix automatiza la factur
 | **Constructor Posología** | Parsea texto libre con viñetas y lo convierte en tarjetas de medicación estructuradas. |
 | **Offline-First** | IndexedDB + sync worker con backoff exponencial. Eliminaciones remotas se propagan al cache local. |
 | **Realtime Sync** | Supabase WebSocket Realtime en 5 tablas (pacientes, citas, consultas, equipo, plantillas). |
-| **Agenda Reactiva** | Calendario con polling 30s + `refetchOnWindowFocus` + Realtime — el médico ve citas nuevas al instante. Diseño high-density clínico con notificaciones contextuales. |
-| **Plan Multi-Doctor** | Multi-tenant para Clínicas, roles (admin/doctor/viewer) y billing multi-seat. |
+| **Agenda Reactiva** | Calendario con polling 30s + `refetchOnWindowFocus` + Realtime — el médico ve citas nuevas al instante. |
+| **RBAC 8 Roles** | Sistema de roles: owner, doctor, assistant, clinic_admin, receptionist, lab, imaging, surgery. |
+| **Platform Admin** | Panel global `/platform/*` con métricas de orgs, usuarios, suscripciones y detalle de miembros. |
+| **Invitaciones Token** | Sistema de invitaciones con token único, 72h expiración, soporte nuevos usuarios y existentes. |
 | **IA CIE-11** | Gemini 2.0 Flash sugiere diagnósticos en tiempo real |
 | **Plantillas** | Multi-dispositivo en Supabase, versionado JSONB, historial restaurable |
 | **Búsqueda Global** | `Ctrl+K` — FTS PostgreSQL con índices GIN + `websearch_to_tsquery` |
@@ -59,31 +61,27 @@ Con arquitectura multi-tenant de grado empresarial, Glyphix automatiza la factur
 | **Recordatorios Email** | Resend API + cron SQL 7am UTC, template HTML branded |
 | **Caja y Turnos** | Control de flujo de caja aislado (`cash_shifts`), auditoría de ingresos/egresos y cuadre final. |
 | **Laboratorio** | Órdenes de laboratorio, adjunto de resultados técnicos y envío de PDFs por WhatsApp al paciente. |
-| **Integraciones Core** | Meta Graph API (WhatsApp) para recordatorios y PDFs. Resend para invitaciones corporativas (Magic Links). |
+| **Integraciones Core** | Meta Graph API (WhatsApp) para recordatorios y PDFs. Resend para invitaciones corporativas. |
 | **Exportación ZIP** | Historia clínica completa: JSON + un PDF por consulta, 100% client-side |
 | **Facturación** | Stripe Checkout, Webhooks firmados, Customer Portal |
-| **Admin Panel** | Métricas de tenants, control de acceso por `ADMIN_EMAIL`. Gestión masiva de clínicas. |
 | **Config. Global** | T&C Dinámicos en Markdown, Modo Mantenimiento Global, Avisos Persistentes en Dashboard. |
 | **Rate Limiting** | Por RPC Postgres en `/api/push/send` y `/api/stripe/*` |
 | **Auditoría** | Hash criptográfico encadenado en cada consulta sellada |
-| **Validación de Fechas** | Utilidad `toISODateString` — previene error PostgreSQL 22008 en todos los formularios |
-| **Recuperación de Contraseña** | Flujo completo de reset vía email con Supabase Auth (`/recuperar`) |
-| **Onboarding Wizard** | Secuencia forzada de configuración inicial — perfil profesional, especialidad, membrete — antes de acceder al dashboard |
+| **Onboarding Wizard** | Secuencia forzada de configuración inicial — perfil, especialidad, membrete. |
 | **i18n (ES/EN)** | Internacionalización con `next-intl`, mensajes en español e inglés |
 | **Cifrado & GDPR** | Migraciones de cifrado de datos sensibles y cumplimiento de protección de datos |
-| **Notificaciones de Agenda** | Cron SQL para recordatorios automáticos de citas próximas |
-| **Documentación In-App** | Manual HTML para médicos accesible desde `/docs` dentro del dashboard |
-| **UX/UI Premium** | Navegación Topnav, landing page rediseñada con Sticky Scroll Showcase, auth centrada en card, settings con sidebar, animaciones fluidas y Skeletons |
+| **UX/UI Premium** | Topnav, landing con Sticky Scroll, auth centrada, settings sidebar, skeletons |
 
 ### Últimas mejoras (mayo 2026)
 
-- **Expansión del Super Admin** — Gestión masiva de clínicas y suscripciones. Configuración de avisos globales y "Modo Mantenimiento".
-- **T&C en Markdown** — Los términos y condiciones ahora se pueden editar directamente desde el panel subiendo archivos `.md` y versionándolos de forma dinámica sin tocar código.
-- **Rediseño completo de UI** — Landing page con secciones animadas y Sticky Scroll, auth centrada, dashboard con Topnav, agenda high-density, settings con navegación lateral, modales de cita rediseñados.
-- **Onboarding forzado** — Wizard de configuración secuencial obligatoria para nuevos médicos.
-- **Auto-healing de perfiles** — Si el perfil del tenant falta, se recrea automáticamente al guardar perfil profesional.
-- **Autocomplete de especialidades** — Dropdown con búsqueda en ajustes del perfil.
-- **Correcciones de hydration SSR** — Resueltos todos los mismatches de hydration en ThemeScript, SyncStatusBanner y layout.
+- **🆕 RBAC 8 Roles** — Sistema completo de roles con `owner`, `doctor`, `assistant`, `clinic_admin`, `receptionist`, `lab`, `imaging`, `surgery`. Cada rol tiene su dashboard, navegación y permisos propios.
+- **🆕 Platform Admin** — Panel de administración global (`/platform/*`) con sidebar dedicado, métricas de organizaciones/usuarios/suscripciones, y vista detallada de miembros e invitaciones por organización.
+- **🆕 Sistema de Invitaciones** — Invitaciones por token con expiración de 72h, soporte para usuarios nuevos (registro inline) y existentes (aceptación directa), API atómica de validación y aceptación.
+- **🆕 Route Guards** — Sistema de guardas de ruta de 4 pasos (server + client) con mapa de acceso por rol, permisos customizables via JSONB, y componente `<RoleGuard>` reutilizable.
+- **🆕 Migración admin→owner** — Todos los chequeos de rol `"admin"` migrados a `"owner"`/`"clinic_admin"` en 14 archivos (APIs, páginas, guardas).
+- **Expansión del Super Admin** — Gestión masiva de clínicas y suscripciones.
+- **T&C en Markdown** — Edición dinámica de términos sin tocar código.
+- **Rediseño completo de UI** — Landing page, auth, dashboard, agenda, settings.
 
 ---
 
@@ -142,31 +140,52 @@ El proyecto se distribuye bajo un modelo SaaS con dos niveles de suscripción ma
 ### 1. Plan Profesional Independiente
 Diseñado para médicos con consultorio propio o atención en un solo asiento.
 - **Características:** Pacientes ilimitados, consultas sin restricciones, sugerencias diagnósticas IA (CIE-11), sincronización offline-first, PDF profesional y soporte básico.
-- **Roles:** El médico es el administrador de su propio espacio de trabajo.
+- **Roles:** El médico es `owner` de su propio espacio de trabajo.
 - **Flujo:** Al registrarse, entra directo al *Onboarding* individual y su entorno es completamente privado y aislado.
 
 ### 2. Plan Clínica (Multi-Tenant)
 Diseñado para centros médicos, clínicas y agrupaciones con múltiples profesionales trabajando bajo la misma marca.
 - **Características:** Incluye todo lo del Plan Profesional, más la capacidad de agrupar médicos, centralizar facturación, compartir base de pacientes (opcional), flujo de caja unificado y reportes gerenciales.
-- **Roles y Permisos:**
-  - **Dueño / Super Administrador:** Acceso total. Puede invitar personal, ver facturación central (Stripe), ver reportes de ingresos (`/clinic-dashboard`) y acceder a todas las configuraciones.
-  - **Médico Adscrito:** Tiene acceso a la agenda, a crear pacientes, iniciar consultas (Wizard) y ver su propio historial. No ve métricas financieras de la clínica ni facturación.
-  - **Administrativo / Recepcionista:** Puede agendar citas, admitir pacientes, y abrir/cerrar turnos de caja (`cash_shifts`), pero no puede alterar historias clínicas.
-  - **Técnico de Laboratorio:** Acceso restringido al módulo `/laboratorio` para subir PDFs de resultados y enviarlos por WhatsApp.
+- **Roles y Permisos (8 roles):**
+
+  | Rol | Dashboard | Permisos |
+  |-----|-----------|----------|
+  | `owner` | `/dashboard` | Acceso total. Invita personal, ve facturación Stripe, reportes gerenciales, configuraciones. |
+  | `doctor` | `/dashboard` | Agenda, pacientes, consultas (Wizard), historial propio. Sin métricas financieras. |
+  | `assistant` | `/agenda` | Agenda, pacientes, caja. No puede crear/editar consultas. |
+  | `clinic_admin` | `/administracion` | Gestión administrativa de la clínica, equipo, pacientes, caja. |
+  | `receptionist` | `/recepcion` | Agenda de citas, admisión de pacientes, turnos de caja. |
+  | `lab` | `/laboratorio` | Órdenes de laboratorio, subida de resultados, envío por WhatsApp. |
+  | `imaging` | `/imagen` | Módulo de imagenología (próximamente). |
+  | `surgery` | `/cirugia` | Módulo de cirugía (próximamente). |
+
+- **Permisos Customizables:** Cada miembro tiene un campo `custom_permissions` (JSONB) para permisos granulares como `can_view_patients`, `can_print_prescriptions`, etc.
+
+### 3. Platform Admin (Super Admin de Plataforma)
+Un único operador de Glyphix con acceso global:
+- **Activación:** `is_platform_admin = true` en `profiles` (no pertenece a ninguna organización).
+- **Panel:** `/platform/*` con dashboard de métricas globales, lista de organizaciones, detalle de miembros e invitaciones.
+- **Detección:** El middleware detecta `is_platform_admin` en el paso 1 del flujo de 6 pasos.
 
 ### Estructura de Rutas Clave (App Router)
-La navegación está protegida por un **Route Guard (`src/proxy.ts`)** que intercepta las sesiones SSR en lugar del frágil `middleware.ts`.
-- **Rutas Públicas:** `/` (Landing), `/login`, `/registro` (bifurcado por `?plan=`), `/recuperar`, `/terminos`.
-- **Rutas Privadas (`/dashboard/`)**:
-  - `/dashboard`: Panel central del médico (Métricas, atajos ⌘K, citas del día).
-  - `/clinic-dashboard`: Panel gerencial exclusivo para dueños de clínicas.
-  - `/agenda`: Calendario reactivo, gestión de "walk-ins" y recordatorios (WhatsApp).
+La navegación está protegida por un **Route Guard de 4 pasos** (`src/lib/guards/route-guard.ts`) + middleware SSR (`src/lib/supabase/middleware.ts`).
+- **Rutas Públicas:** `/` (Landing), `/login`, `/registro`, `/recuperar`, `/terminos`, `/invite/[token]`.
+- **Rutas de Dashboard (`/(dashboard)/`)**:
+  - `/dashboard`: Panel central del médico (owner/doctor).
+  - `/administracion`: Panel gerencial para clinic_admin/owner.
+  - `/agenda`: Calendario reactivo, gestión de "walk-ins" y recordatorios.
   - `/consultas`: Wizard paso a paso (Anamnesis, Examen, CIE-11, Receta).
   - `/pacientes`: Base de pacientes sincronizada offline (IndexedDB).
-  - `/laboratorio`: Procesamiento de órdenes médicas y envío directo al paciente.
-  - `/caja`: Control de turnos de efectivo (`cash_shifts`) con apertura y cierre aislado.
-  - `/ajustes`: Drag & Drop de plantillas médicas (Rompecabezas) y gestión de equipo (invitaciones por Resend).
-  - `/billing`: Customer Portal de Stripe incrustado.
+  - `/laboratorio`: Procesamiento de órdenes médicas.
+  - `/caja`: Control de turnos de efectivo (`cash_shifts`).
+  - `/ajustes`: Plantillas médicas y gestión de equipo.
+  - `/billing`: Customer Portal de Stripe.
+- **Rutas de Plataforma (`/(platform)/`)**:
+  - `/platform/panel`: Métricas globales (orgs, usuarios, suscripciones).
+  - `/platform/organizations`: Lista de todas las organizaciones.
+  - `/platform/organizations/[id]`: Detalle de org con miembros e invitaciones.
+- **Rutas de Invitación (`/(auth)/`)**:
+  - `/invite/[token]`: Página de aceptación de invitación (usuarios nuevos y existentes).
 
 ---
 
@@ -275,43 +294,49 @@ npm run test:e2e -- tests/e2e/search.spec.ts
 ```
 src/
 ├── app/                    # Next.js App Router — páginas y API routes
-│   ├── (auth)/             # Login, registro, recuperación de contraseña
-│   ├── (dashboard)/        # Dashboard, pacientes, consultas, agenda, admin, ajustes, tratamientos, docs
-│   ├── api/                # Stripe, push, email, search, IA CIE-11, clinic, locale, auth
-│   ├── landing-client.tsx  # Landing page con Sticky Scroll Showcase
-│   ├── privacidad/         # Página de política de privacidad
-│   └── terminos/           # Página de términos y condiciones
+│   ├── (auth)/             # Login, registro, recuperación, invitaciones
+│   │   └── invite/[token]/ # 🆕 Aceptación de invitaciones por token
+│   ├── (dashboard)/        # Dashboard, pacientes, consultas, agenda, admin, ajustes
+│   ├── (platform)/         # 🆕 Panel de administración global de la plataforma
+│   │   ├── layout.tsx      # 🆕 Sidebar con guarda is_platform_admin
+│   │   ├── dashboard/      # 🆕 Métricas globales (orgs, usuarios, subs)
+│   │   └── organizations/  # 🆕 Lista + detalle de organizaciones
+│   ├── api/
+│   │   ├── invitations/    # 🆕 Validación y aceptación de invitaciones
+│   │   ├── clinic/         # Invite, members CRUD
+│   │   ├── stripe/         # Checkout, webhooks, portal
+│   │   └── ...             # push, email, search, IA, locale, auth
+│   ├── sin-plan/           # 🆕 Página para usuarios sin membresía activa
+│   └── landing-client.tsx  # Landing page con Sticky Scroll Showcase
 ├── features/               # Lógica de negocio por dominio (Vertical Slice)
 │   ├── admin/              # Panel super admin
-│   ├── agenda/             # Calendario, citas, modales de agenda, Recordatorios WhatsApp
+│   ├── agenda/             # Calendario, citas, modales, Recordatorios WhatsApp
 │   ├── auth/               # Formularios y flujos de autenticación
 │   ├── billing/            # Integración Stripe + portal
 │   ├── cash-flow/          # Flujo de caja y control de turnos aislados
-│   ├── clinic-admin/       # Dashboard administrativo de clínicas
+│   ├── clinic-admin/       # Dashboard administrativo de clínicas (8 roles)
 │   ├── consultations/      # Wizard, PDF, IA CIE, plantillas, realtime
-│   ├── dashboard/          # Métricas, búsqueda global Ctrl+K, Topnav, letterhead, equipo, onboarding guard
-│   ├── lab-orders/         # Gestión de órdenes de laboratorio, envíos de resultados vía WhatsApp
+│   ├── dashboard/          # Métricas, Ctrl+K, Topnav, letterhead, equipo, onboarding guard
+│   ├── lab-orders/         # Órdenes de laboratorio, envíos vía WhatsApp
 │   ├── onboarding/         # Setup de nuevos tenants y doctores
 │   ├── patients/           # CRUD pacientes, ExportZip, realtime hooks
 │   ├── referrals/          # Catálogo referencial de especialidades/CIE
 │   ├── settings/           # Configuración de cuenta, integraciones
 │   └── sync/               # Bootstrap del sync worker
-├── i18n/                   # Configuración de next-intl
+├── components/
+│   ├── guards/             # 🆕 RoleGuard — componente de guarda RBAC client-side
+│   └── ui/                 # ThemeToggle, ThemeScript, EmptyState, Skeletons, Sheet
 ├── lib/
-│   ├── api/                # Utilidades de API compartidas
-│   ├── config.ts           # Configuración global de la app
+│   ├── api/                # Utilidades de API compartidas (guards, schemas)
+│   ├── guards/             # 🆕 route-guard.ts — RBAC de 4 pasos, mapa de acceso por rol
 │   ├── constants/          # Especialidades médicas y constantes
-│   ├── db/                 # IndexedDB schema + queries locales con pruning remoto
-│   ├── env.ts              # Validación de variables de entorno al arrancar
-│   ├── hooks/              # Hooks reutilizables (dark mode, etc.)
+│   ├── db/                 # IndexedDB schema + queries locales
+│   ├── env.ts              # Validación de variables de entorno
 │   ├── observability/      # Logger de errores, usage-tracker
-│   ├── supabase/           # Cliente SSR/browser, profile, tenant, onboarding, auth-actions
+│   ├── supabase/           # Cliente SSR/browser, profile (8 roles), tenant, middleware
 │   ├── sync/               # Sync worker con backoff exponencial
-│   ├── ui/                 # Utilidades UI (feedback-copy, format-date)
-│   ├── utils/              # Validación/conversión de fechas, utilidades generales
-│   └── whatsapp/           # Formateador de mensajes WhatsApp
-├── components/ui/          # ThemeToggle, ThemeScript, EmptyState, ConfirmModal, Skeletons, Sheet, etc.
-├── proxy.ts                # Proxy SSR de Next.js 16 (reemplaza middleware.ts)
+│   └── utils/              # Fechas, utilidades generales
+├── proxy.ts                # Proxy SSR de Next.js 16
 └── types/supabase.types.ts # Generado con npm run db:types
 messages/
 ├── es.json                 # Traducciones en español
@@ -320,17 +345,17 @@ worker/
 └── index.ts                # Service Worker / Sync Worker
 supabase/
 └── migrations/
-    ├── 000_production_full_schema.sql   # Única fuente de verdad del schema
+    ├── 000_production_full_schema.sql       # Fuente de verdad del schema
     ├── 001_add_client_timestamp_to_audit.sql
-    ├── 001_encryption_and_gdpr.sql      # Cifrado + cumplimiento GDPR
-    └── 002_agenda_notifications.sql     # Notificaciones automáticas de citas
+    ├── 001_encryption_and_gdpr.sql          # Cifrado + GDPR
+    ├── 002_agenda_notifications.sql         # Notificaciones de citas
+    └── 009_rbac_organizations.sql           # 🆕 RBAC 8 roles + invitaciones
 tests/
 ├── e2e/                    # Playwright specs (9 archivos)
-│   └── helpers/            # Helper compartido de autenticación
-├── api/                    # Tests de API routes (Stripe webhook)
-├── features/               # Tests de features (wizard-domain)
-├── integration/            # Tests de integración (tenant RLS)
-└── *.test.ts               # Vitest: 125 tests unitarios/integración
+├── api/                    # Tests de API routes
+├── features/               # Tests de features
+├── integration/            # Tests de integración
+└── *.test.ts               # Vitest: 125 tests
 docs/
 ├── SETUP.md                # Guía de instalación
 ├── ARCHITECTURE.md         # Decisiones de arquitectura

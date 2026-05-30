@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useTenant } from "@/lib/supabase/tenant-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { createTenantProfileWithTrial } from "@/lib/supabase/actions";
-import { CheckCircle2, ChevronRight, Users, FileText, DollarSign, User } from "lucide-react";
+import { CheckCircle2, ChevronRight, DollarSign, User, Upload, X, FileText, Users } from "lucide-react";
 
 export function OnboardingFlow() {
   const router = useRouter();
@@ -16,12 +16,68 @@ export function OnboardingFlow() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Form State
+  // Step 1: Perfil (Identidad, Contacto, PDF)
   const [fullName, setFullName] = useState(tenant?.full_name || "");
-  const [specialty, setSpecialty] = useState(tenant?.specialties?.[0] || "");
-  const [consultationName, setConsultationName] = useState("Consulta General");
-  const [fee, setFee] = useState("50");
+  const [specialties, setSpecialties] = useState<string[]>([]);
+  const [professionalTitle, setProfessionalTitle] = useState("Dr. / Dra.");
+  const [licenseNumber, setLicenseNumber] = useState("");
+  const [experienceYears, setExperienceYears] = useState("0");
+  const [signatureName, setSignatureName] = useState("");
+  const [mainPhone, setMainPhone] = useState("");
+  const [secondaryPhone, setSecondaryPhone] = useState("");
+  const [publicEmail, setPublicEmail] = useState("");
+  const [address, setAddress] = useState("");
+  const [pdfSpecialtyInput, setPdfSpecialtyInput] = useState("");
+
+  // Step 2: Métodos de Cobro
+  const [consultationTypes, setConsultationTypes] = useState([{ name: "Consulta General", price: 50, duration: 60 }]);
+  const [paymentMethods, setPaymentMethods] = useState([
+    { name: "Efectivo", details: "" },
+    { name: "Transferencia", details: "" }
+  ]);
+
+  // Step 3: Plantillas
+  const [templateSections, setTemplateSections] = useState({
+    vital_signs: true,
+    family_history: false,
+    personal_history: false,
+    habits: false,
+    female_history: false,
+    pediatric_history: false,
+    review_of_systems: false,
+    physical_exam: true,
+    diagnosis: true,
+    treatment_plan: true,
+    medical_orders: true,
+    paraclinicals: false
+  });
+
+  // Step 4: Equipo
   const [assistants, setAssistants] = useState(["", ""]);
+
+  // Sync state when tenant profile loads or fallback to user_metadata
+  useEffect(() => {
+    async function loadDefaults() {
+      if (tenant) {
+        setFullName(prev => prev || tenant.full_name || "");
+        if (tenant.specialties && tenant.specialties.length > 0) {
+          setSpecialties(tenant.specialties);
+        }
+      } else {
+        // Fallback to auth metadata if profile hasn't been created yet
+        const supabase = getSupabaseClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user?.user_metadata) {
+          setFullName(prev => prev || user.user_metadata.full_name || "");
+          const metaSpecialties = user.user_metadata.specialties;
+          if (Array.isArray(metaSpecialties) && metaSpecialties.length > 0) {
+            setSpecialties(metaSpecialties);
+          }
+        }
+      }
+    }
+    loadDefaults();
+  }, [tenant]);
 
   const totalSteps = 4;
 
@@ -41,35 +97,70 @@ export function OnboardingFlow() {
         if (!user) throw new Error("No hay usuario autenticado.");
         doctorId = user.id;
 
+        const plan = user.user_metadata?.plan || "basic";
+        const clinicName = user.user_metadata?.clinic_name || undefined;
+        const metaClinicId = user.user_metadata?.clinic_id;
+        const finalClinicId = typeof metaClinicId === "string" && metaClinicId.length > 0 ? metaClinicId : crypto.randomUUID();
+
         // Ensure a profile is created via server action (bypasses RLS & creates clinic)
         const result = await createTenantProfileWithTrial({
-          clinicId: crypto.randomUUID(),
+          clinicId: finalClinicId,
           fullName: fullName,
-          specialties: [specialty],
-          plan: "basic"
+          clinicName: clinicName,
+          specialties: specialties.length > 0 ? specialties : ["Medicina General"],
+          plan: plan
         });
         
         if (!result.success) throw new Error(result.error || "Error al crear perfil");
       }
+
+      const ui_preferences = {
+        professional_title: professionalTitle,
+        license_number: licenseNumber,
+        experience_years: experienceYears,
+        signature_name: signatureName,
+        main_phone: mainPhone,
+        secondary_phone: secondaryPhone,
+        public_email: publicEmail,
+        address: address,
+        pdf_specialties: specialties,
+        // Almacenamos qué secciones NO quieren ver
+        hide_vital_signs: !templateSections.vital_signs,
+        hide_family_history: !templateSections.family_history,
+        hide_personal_history: !templateSections.personal_history,
+        hide_habits: !templateSections.habits,
+        hide_female_history: !templateSections.female_history,
+        hide_pediatric_history: !templateSections.pediatric_history,
+        hide_review_of_systems: !templateSections.review_of_systems,
+        hide_physical_exam: !templateSections.physical_exam,
+        hide_diagnosis: !templateSections.diagnosis,
+        hide_treatment_plan: !templateSections.treatment_plan,
+        hide_medical_orders: !templateSections.medical_orders,
+        hide_paraclinicals: !templateSections.paraclinicals,
+      };
 
       // Update existing profile (whether we just created it or it already existed)
       const { error: profileError } = await supabase
         .from("profiles")
         .update({
           full_name: fullName,
-          specialty: [specialty],
-          payment_config: { default_fee: Number(fee), consultation_name: consultationName },
+          specialty: specialties,
+          ui_preferences,
+          payment_config: { 
+            consultationTypes, 
+            methods: paymentMethods
+          },
           onboarding_state: { step: 4, completed: true }
         })
         .eq("doctor_id", doctorId);
 
-      if (profileError) throw profileError;
+      if (profileError) {
+        console.error("Profile update error:", profileError);
+        throw new Error(profileError.message || "Error al actualizar el perfil.");
+      }
 
-      // We will skip inserting into treatment_templates for now as it's Phase 5,
-      // but we can mock the UI success.
-
-      router.replace("/dashboard");
-      router.refresh();
+      // Hard redirect to force a full reload of the TenantContext and DB hooks
+      window.location.href = "/dashboard";
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error al completar el onboarding.");
     } finally {
@@ -79,7 +170,7 @@ export function OnboardingFlow() {
 
   const steps = [
     { id: 1, title: "Perfil", icon: User },
-    { id: 2, title: "Tarifas", icon: DollarSign },
+    { id: 2, title: "Cobro", icon: DollarSign },
     { id: 3, title: "Plantilla", icon: FileText },
     { id: 4, title: "Equipo", icon: Users },
   ];
@@ -120,41 +211,262 @@ export function OnboardingFlow() {
       {/* Step Content */}
       <div className="min-h-[250px] py-4">
         {step === 1 && (
-          <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300 max-w-4xl">
             <div>
-              <h2 className="text-xl font-semibold text-ink">Verifica tu perfil</h2>
-              <p className="text-sm text-ink-soft mt-1">Asegúrate de que tus datos profesionales sean correctos. Esto aparecerá en tus recetas médicas.</p>
+              <h2 className="text-xl font-bold text-ink">Tu Perfil Profesional</h2>
+              <p className="text-sm text-ink-soft mt-1">Estos datos aparecerán en los PDFs de tus historias clínicas y recetas.</p>
             </div>
-            <div className="space-y-4 max-w-md">
-              <div className="gx-field">
-                <label className="gx-label">Nombre para recetas (Prefijo + Nombre)</label>
-                <Input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Ej: Dr. Juan Pérez" />
+            
+            <div className="space-y-6">
+              {/* Identidad Profesional */}
+              <div className="rounded-xl border border-border bg-white overflow-hidden">
+                <div className="bg-bg-soft px-4 py-3 border-b border-border">
+                  <h3 className="font-semibold text-sm text-ink">Identidad Profesional</h3>
+                </div>
+                <div className="p-4 grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-ink-soft">Título profesional</label>
+                    <Input value={professionalTitle} onChange={(e) => setProfessionalTitle(e.target.value)} placeholder="Dr. / Dra." />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-ink-soft">Número de licencia profesional</label>
+                    <Input value={licenseNumber} onChange={(e) => setLicenseNumber(e.target.value)} placeholder="Ej: 123456" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-ink-soft">Años de experiencia</label>
+                    <Input type="number" value={experienceYears} onChange={(e) => setExperienceYears(e.target.value)} placeholder="0" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-ink-soft">Nombre para firma y membrete</label>
+                    <Input value={signatureName} onChange={(e) => setSignatureName(e.target.value)} placeholder={fullName || "Ej: Dr. Juan Pérez"} />
+                  </div>
+                </div>
               </div>
-              <div className="gx-field">
-                <label className="gx-label">Especialidad Principal</label>
-                <Input value={specialty} onChange={(e) => setSpecialty(e.target.value)} placeholder="Ej: Medicina General" />
-                <p className="text-xs text-ink-soft mt-1">Puedes modificar o asignar tu especialidad principal.</p>
+
+              {/* Contacto y Ubicación */}
+              <div className="rounded-xl border border-border bg-white overflow-hidden">
+                <div className="bg-bg-soft px-4 py-3 border-b border-border">
+                  <h3 className="font-semibold text-sm text-ink">Contacto y Ubicación</h3>
+                </div>
+                <div className="p-4 grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-ink-soft">Teléfono principal</label>
+                    <Input value={mainPhone} onChange={(e) => setMainPhone(e.target.value)} placeholder="+1 234 567 890" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-ink-soft">Teléfono secundario (opcional)</label>
+                    <Input value={secondaryPhone} onChange={(e) => setSecondaryPhone(e.target.value)} placeholder="" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-ink-soft">Correo público de contacto (opcional)</label>
+                    <Input value={publicEmail} onChange={(e) => setPublicEmail(e.target.value)} placeholder="dr.juan@email.com" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-ink-soft">Dirección profesional</label>
+                    <Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Ej: Clínica Centro, Consultorio 10" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Configuración PDF */}
+              <div className="rounded-xl border border-border bg-white overflow-hidden">
+                <div className="bg-bg-soft px-4 py-3 border-b border-border">
+                  <h3 className="font-semibold text-sm text-ink">Configuración de Documentos (PDF)</h3>
+                </div>
+                <div className="p-4 space-y-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-ink-soft">Especialidades para membrete PDF</label>
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      {specialties.map((spec, i) => (
+                        <div key={i} className="flex items-center gap-1 bg-accent/10 text-accent px-2 py-1 rounded-md text-xs font-medium">
+                          {spec}
+                          <button type="button" onClick={() => setSpecialties(specialties.filter((_, idx) => idx !== i))} className="hover:bg-accent/20 rounded-full p-0.5">
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <Input 
+                        value={pdfSpecialtyInput} 
+                        onChange={(e) => setPdfSpecialtyInput(e.target.value)} 
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && pdfSpecialtyInput.trim()) {
+                            e.preventDefault();
+                            setSpecialties([...specialties, pdfSpecialtyInput.trim()]);
+                            setPdfSpecialtyInput("");
+                          }
+                        }}
+                        placeholder="Escribe una especialidad y presiona Enter" 
+                      />
+                      <Button 
+                        type="button" 
+                        variant="secondary" 
+                        onClick={() => {
+                          if (pdfSpecialtyInput.trim()) {
+                            setSpecialties([...specialties, pdfSpecialtyInput.trim()]);
+                            setPdfSpecialtyInput("");
+                          }
+                        }}
+                      >
+                        Añadir
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-2 mt-4">
+                    <div className="border border-dashed border-border rounded-lg p-4 bg-bg-soft/50 space-y-2">
+                      <p className="text-xs font-semibold text-ink">Logo profesional para PDF</p>
+                      <p className="text-[10px] text-ink-soft">Se guarda en este navegador, sin enviarse a Supabase.</p>
+                      <label className="cursor-pointer flex items-center justify-center gap-2 border border-border bg-white rounded-md p-2 text-xs font-medium text-ink-soft hover:bg-bg-soft transition-colors mt-2">
+                        <Upload className="h-3 w-3" /> Subir Logo
+                        <input type="file" className="hidden" accept="image/*" />
+                      </label>
+                    </div>
+                    <div className="border border-dashed border-border rounded-lg p-4 bg-bg-soft/50 space-y-2">
+                      <p className="text-xs font-semibold text-ink">Firma profesional para PDF</p>
+                      <p className="text-[10px] text-ink-soft">Dibuja tu firma en papel blanco, tómale foto y súbela.</p>
+                      <label className="cursor-pointer flex items-center justify-center gap-2 border border-border bg-white rounded-md p-2 text-xs font-medium text-ink-soft hover:bg-bg-soft transition-colors mt-2">
+                        <Upload className="h-3 w-3" /> Subir Firma
+                        <input type="file" className="hidden" accept="image/*" />
+                      </label>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         )}
 
         {step === 2 && (
-          <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300 max-w-4xl">
             <div>
-              <h2 className="text-xl font-semibold text-ink">Tarifas Base</h2>
-              <p className="text-sm text-ink-soft mt-1">Define el costo estándar de tus consultas para llevar un control automático en tu caja.</p>
+              <h2 className="text-xl font-bold text-ink">Métodos de Cobro</h2>
+              <p className="text-sm text-ink-soft mt-1">Configura tus servicios, datos bancarios y Zelle para recibir pagos.</p>
             </div>
-            <div className="space-y-4 max-w-md">
-              <div className="gx-field">
-                <label className="gx-label">Nombre de la Consulta</label>
-                <Input value={consultationName} onChange={(e) => setConsultationName(e.target.value)} placeholder="Ej: Consulta Pediátrica" />
+            
+            <div className="space-y-6">
+              {/* Tipos de Consulta */}
+              <div className="rounded-xl border border-border bg-white overflow-hidden">
+                <div className="bg-bg-soft px-4 py-3 border-b border-border flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <DollarSign className="h-4 w-4 text-accent" />
+                    <h3 className="font-semibold text-sm text-ink">Tipos de Consulta</h3>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="h-7 text-xs bg-white"
+                    onClick={() => setConsultationTypes([...consultationTypes, { name: "", price: 0, duration: 60 }])}
+                  >
+                    + Agregar Tipo
+                  </Button>
+                </div>
+                <div className="p-4 space-y-3">
+                  {consultationTypes.map((ctype, i) => (
+                    <div key={i} className="flex flex-col sm:flex-row sm:items-end gap-3 pb-3 border-b border-border last:border-0 last:pb-0">
+                      <div className="flex-1 space-y-1.5">
+                        <label className="text-[10px] font-bold text-ink-soft uppercase tracking-widest">Nombre del Servicio</label>
+                        <Input 
+                          value={ctype.name} 
+                          onChange={(e) => {
+                            const copy = [...consultationTypes];
+                            copy[i].name = e.target.value;
+                            setConsultationTypes(copy);
+                          }} 
+                          placeholder="Ej: Consulta General" 
+                        />
+                      </div>
+                      <div className="w-full sm:w-28 space-y-1.5">
+                        <label className="text-[10px] font-bold text-ink-soft uppercase tracking-widest">Precio ($)</label>
+                        <Input 
+                          type="number" 
+                          value={ctype.price} 
+                          onChange={(e) => {
+                            const copy = [...consultationTypes];
+                            copy[i].price = parseFloat(e.target.value) || 0;
+                            setConsultationTypes(copy);
+                          }} 
+                        />
+                      </div>
+                      <div className="w-full sm:w-28 space-y-1.5">
+                        <label className="text-[10px] font-bold text-ink-soft uppercase tracking-widest">Duración (Min)</label>
+                        <Input 
+                          type="number" 
+                          value={ctype.duration} 
+                          onChange={(e) => {
+                            const copy = [...consultationTypes];
+                            copy[i].duration = parseInt(e.target.value) || 0;
+                            setConsultationTypes(copy);
+                          }} 
+                        />
+                      </div>
+                      <Button 
+                        variant="ghost" 
+                        className="text-red-500 hover:bg-red-50 p-0 h-9 w-9 shrink-0 sm:mb-0 mb-2"
+                        onClick={() => setConsultationTypes(consultationTypes.filter((_, idx) => idx !== i))}
+                        disabled={consultationTypes.length === 1}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="gx-field">
-                <label className="gx-label">Costo de Consulta ($)</label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-soft">$</span>
-                  <Input type="number" value={fee} onChange={(e) => setFee(e.target.value)} className="pl-7" />
+
+              {/* Medios de Pago Permitidos */}
+              <div className="rounded-xl border border-border bg-white overflow-hidden">
+                <div className="bg-bg-soft px-4 py-3 border-b border-border flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <svg className="h-4 w-4 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                    <h3 className="font-semibold text-sm text-ink">Medios de Pago Permitidos</h3>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="h-7 text-xs bg-white"
+                    onClick={() => setPaymentMethods([...paymentMethods, { name: "", details: "" }])}
+                  >
+                    + Agregar Medio
+                  </Button>
+                </div>
+                <div className="p-4 space-y-3">
+                  {paymentMethods.map((method, i) => (
+                    <div key={i} className="flex flex-col sm:flex-row sm:items-end gap-3 pb-3 border-b border-border last:border-0 last:pb-0">
+                      <div className="w-full sm:w-1/3 space-y-1.5">
+                        <label className="text-[10px] font-bold text-ink-soft uppercase tracking-widest">Método</label>
+                        <Input 
+                          value={method.name} 
+                          onChange={(e) => {
+                            const copy = [...paymentMethods];
+                            copy[i].name = e.target.value;
+                            setPaymentMethods(copy);
+                          }} 
+                          placeholder="Ej: Zelle" 
+                        />
+                      </div>
+                      <div className="flex-1 space-y-1.5">
+                        <label className="text-[10px] font-bold text-ink-soft uppercase tracking-widest">Datos / Instrucciones (Opcional)</label>
+                        <Input 
+                          value={method.details} 
+                          onChange={(e) => {
+                            const copy = [...paymentMethods];
+                            copy[i].details = e.target.value;
+                            setPaymentMethods(copy);
+                          }} 
+                          placeholder="Ej: dr.juan@email.com - Juan Pérez" 
+                        />
+                      </div>
+                      <Button 
+                        variant="ghost" 
+                        className="text-red-500 hover:bg-red-50 p-0 h-9 w-9 shrink-0 sm:mb-0 mb-2"
+                        onClick={() => setPaymentMethods(paymentMethods.filter((_, idx) => idx !== i))}
+                        disabled={paymentMethods.length === 1}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
@@ -162,32 +474,61 @@ export function OnboardingFlow() {
         )}
 
         {step === 3 && (
-          <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300 max-w-4xl">
             <div>
-              <h2 className="text-xl font-semibold text-ink">Plantilla Clínica</h2>
-              <p className="text-sm text-ink-soft mt-1">Hemos detectado tu especialidad y pre-configurado tu historia clínica.</p>
+              <h2 className="text-xl font-bold text-ink">Plantilla de Historia Clínica</h2>
+              <p className="text-sm text-ink-soft mt-1">Selecciona qué bloques deseas que aparezcan por defecto cuando atiendas a un paciente.</p>
             </div>
-            <div className="rounded-xl border border-accent/20 bg-accent/5 p-6 text-center">
-              <FileText className="w-12 h-12 text-accent mx-auto mb-3" />
-              <h3 className="font-semibold text-ink text-lg">Plantilla de {specialty || 'Medicina'}</h3>
-              <p className="text-sm text-ink-soft mt-2">Incluye: Motivo de consulta, Signos Vitales Básicos, Examen Físico, Diagnóstico CIE-11 y Receta.</p>
-              <div className="mt-4 inline-flex items-center text-xs font-medium text-accent bg-accent/10 px-3 py-1 rounded-full">
-                Podrás crear plantillas modulares (Rompecabezas) en el panel de Ajustes más adelante.
+            
+            <div className="rounded-xl border border-border bg-white overflow-hidden">
+              <div className="bg-bg-soft px-4 py-3 border-b border-border">
+                <h3 className="font-semibold text-sm text-ink">Secciones Visibles</h3>
               </div>
+              <div className="p-6 grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+                {Object.entries({
+                  vital_signs: "Signos Vitales",
+                  physical_exam: "Examen Físico",
+                  diagnosis: "Diagnóstico",
+                  treatment_plan: "Plan de Tratamiento",
+                  medical_orders: "Órdenes Médicas",
+                  paraclinicals: "Paraclínicos",
+                  family_history: "Antecedentes Familiares",
+                  personal_history: "Antecedentes Personales",
+                  habits: "Hábitos",
+                  female_history: "Antecedentes Ginecológicos",
+                  pediatric_history: "Antecedentes Pediátricos",
+                  review_of_systems: "Revisión por Sistemas",
+                }).map(([key, label]) => (
+                  <label key={key} className="flex items-center gap-3 cursor-pointer p-3 border border-border rounded-lg hover:bg-bg-soft transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={templateSections[key as keyof typeof templateSections]}
+                      onChange={(e) => setTemplateSections({ ...templateSections, [key]: e.target.checked })}
+                      className="h-4 w-4 rounded border-gray-300 text-accent focus:ring-accent"
+                    />
+                    <span className="text-sm font-medium text-ink">{label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div className="flex justify-end mt-4">
+              <p className="text-xs text-ink-soft bg-accent/10 text-accent px-3 py-1 rounded-full font-medium inline-block">
+                Podrás cambiar esto y crear múltiples plantillas más adelante.
+              </p>
             </div>
           </div>
         )}
 
         {step === 4 && (
-          <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300 max-w-4xl">
             <div>
-              <h2 className="text-xl font-semibold text-ink">Invita a tu equipo</h2>
-              <p className="text-sm text-ink-soft mt-1">Puedes invitar hasta 2 asistentes. Recibirán un Magic Link para configurar su cuenta.</p>
+              <h2 className="text-xl font-bold text-ink">Invita a tu equipo</h2>
+              <p className="text-sm text-ink-soft mt-1">Puedes invitar hasta 2 asistentes. Recibirán un Magic Link para configurar su cuenta (Opcional).</p>
             </div>
             <div className="space-y-4 max-w-md">
               {assistants.map((email, idx) => (
                 <div key={idx} className="gx-field">
-                  <label className="gx-label">Correo Asistente {idx + 1} (Opcional)</label>
+                  <label className="gx-label">Correo Asistente {idx + 1}</label>
                   <Input 
                     type="email" 
                     placeholder="correo@ejemplo.com" 

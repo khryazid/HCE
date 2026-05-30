@@ -1,5 +1,5 @@
 export type CashTransactionType = "income" | "expense";
-export type CashPaymentMethod = "cash" | "card" | "transfer" | "other";
+export type CashPaymentMethod = string;
 export type CashTransactionStatus = "completed" | "voided";
 
 export interface CashTransaction {

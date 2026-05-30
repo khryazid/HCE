@@ -8,30 +8,47 @@ export function useClinicMembers(clinicId: string) {
     queryFn: async () => {
       const supabase = getSupabaseClient();
       
-      const { data, error } = await supabase
+      const { data: members, error: membersError } = await supabase
         .from("clinic_members")
         .select(`
           id,
           clinic_id,
           doctor_id,
           role,
-          created_at,
-          doctor_profile:profiles!clinic_members_doctor_id_fkey (
-            full_name,
-            specialties,
-            is_active
-          )
+          created_at
         `)
         .eq("clinic_id", clinicId)
         .order("created_at", { ascending: true });
 
-      if (error) throw error;
+      if (membersError) throw membersError;
       
-      return data as unknown as ClinicMemberProfile[];
+      if (!members || members.length === 0) return [];
+
+      const doctorIds = members.map(m => m.doctor_id);
+      
+      const { data: profiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("doctor_id, full_name, specialty")
+        .in("doctor_id", doctorIds);
+        
+      if (profilesError) throw profilesError;
+
+      const profileMap = new Map();
+      profiles?.forEach(p => profileMap.set(p.doctor_id, p));
+
+      return members.map(m => ({
+        ...m,
+        doctor_profile: profileMap.get(m.doctor_id) || {
+          full_name: "Usuario Desconocido",
+          specialty: []
+        }
+      })) as unknown as ClinicMemberProfile[];
     },
     enabled: !!clinicId,
   });
 }
+
+
 
 export function useClinicStats(clinicId: string) {
   return useQuery({
@@ -39,11 +56,9 @@ export function useClinicStats(clinicId: string) {
     queryFn: async () => {
       const supabase = getSupabaseClient();
       
-      // We will perform multiple count queries in parallel.
       const [patientsRes, recordsRes, incomeRes] = await Promise.all([
         supabase.from("patients").select("id", { count: "exact", head: true }).eq("clinic_id", clinicId),
-        supabase.from("clinical_records").select("id", { count: "exact", head: true }).eq("clinic_id", clinicId),
-        // Simplification for income: get all completed incomes for the current month
+        supabase.from("clinical_records").select("doctor_id, specialty_kind").eq("clinic_id", clinicId),
         (supabase as any).from("cash_transactions")
           .select("amount")
           .eq("clinic_id", clinicId)
@@ -53,14 +68,39 @@ export function useClinicStats(clinicId: string) {
       ]);
 
       const totalPatients = patientsRes.count || 0;
-      const totalConsultations = recordsRes.count || 0;
+      
+      const records = recordsRes.data || [];
+      const totalConsultations = records.length;
+      
+      const doctorCounts: Record<string, number> = {};
+      const specialtyCounts: Record<string, number> = {};
+      
+      records.forEach(r => {
+        doctorCounts[r.doctor_id] = (doctorCounts[r.doctor_id] || 0) + 1;
+        if (r.specialty_kind) {
+          specialtyCounts[r.specialty_kind] = (specialtyCounts[r.specialty_kind] || 0) + 1;
+        }
+      });
+      
+      const topDoctors = Object.entries(doctorCounts)
+        .map(([doctor_id, count]) => ({ doctor_id, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 5);
+        
+      const topSpecialties = Object.entries(specialtyCounts)
+        .map(([specialty, count]) => ({ specialty, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 5);
+
       const monthlyIncome = incomeRes.data?.reduce((acc: number, tx: any) => acc + Number(tx.amount), 0) || 0;
 
       return {
         totalPatients,
         totalConsultations,
         monthlyIncome,
-        activeDoctors: 0, // This will be calculated from the members query below in the component
+        activeDoctors: 0, 
+        topDoctors,
+        topSpecialties
       } as ClinicStats;
     },
     enabled: !!clinicId,

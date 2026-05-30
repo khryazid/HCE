@@ -114,6 +114,10 @@ export type WizardForm = {
   prognosisVital: "bueno" | "reservado" | "malo" | "";
   prognosisFunctional: "bueno" | "reservado" | "malo" | "";
 
+  paymentStatus: "paid" | "pending" | "honorific" | "";
+  paymentMethod: string;
+  paymentAmount: number;
+
   pediatricData: {
     headCircumference: string;
     developmentStage: string;

@@ -2,29 +2,30 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { CashTransaction, CashTransactionInsert, CashShift, CashShiftInsert } from "../types";
 
-export function useCashTransactions(clinicId: string) {
+export function useCashTransactions(clinicId: string, startDate?: Date, endDate?: Date) {
   return useQuery({
-    queryKey: ["cash-flow", clinicId],
+    queryKey: ["cash-flow", clinicId, startDate?.toISOString(), endDate?.toISOString()],
     queryFn: async () => {
       const supabase = getSupabaseClient();
-      const { data, error } = await (supabase as any)
+      let query = (supabase as any)
         .from("cash_transactions")
         .select(`
           *,
           patients (
             full_name
-          ),
-          profiles:user_id (
-            full_name
           )
         `)
-        .eq("clinic_id", clinicId)
-        .order("created_at", { ascending: false });
+        .eq("clinic_id", clinicId);
+
+      if (startDate && endDate) {
+        query = query.gte("created_at", startDate.toISOString()).lte("created_at", endDate.toISOString());
+      }
+
+      const { data, error } = await query.order("created_at", { ascending: false });
 
       if (error) throw error;
       return data as (CashTransaction & {
         patients: { full_name: string } | null;
-        profiles: { full_name: string } | null;
       })[];
     },
     enabled: !!clinicId,
@@ -48,6 +49,35 @@ export function useCurrentCashShift(clinicId: string, userId: string) {
       return data as CashShift | null;
     },
     enabled: !!clinicId && !!userId,
+  });
+}
+
+export function useAppointmentsMetrics(clinicId: string, doctorId: string, startDate?: Date, endDate?: Date) {
+  return useQuery({
+    queryKey: ["appointments-metrics", clinicId, doctorId, startDate?.toISOString(), endDate?.toISOString()],
+    queryFn: async () => {
+      const supabase = getSupabaseClient();
+      let query = (supabase as any)
+        .from("appointments")
+        .select("payment_status, payment_method, amount, status")
+        .eq("clinic_id", clinicId)
+        .eq("doctor_id", doctorId)
+        .eq("status", "completed");
+
+      if (startDate && endDate) {
+        query = query.gte("updated_at", startDate.toISOString()).lte("updated_at", endDate.toISOString());
+      } else {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        query = query.gte("updated_at", today.toISOString());
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+      return data as { payment_status: string | null, payment_method: string | null, amount: number | null }[];
+    },
+    enabled: !!clinicId && !!doctorId,
   });
 }
 

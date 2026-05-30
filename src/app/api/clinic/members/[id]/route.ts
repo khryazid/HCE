@@ -42,7 +42,7 @@ async function assertIsClinicAdmin(
     .eq("doctor_id", userId)
     .maybeSingle();
 
-  return memberRow?.role === "admin";
+  return memberRow?.role === "owner" || memberRow?.role === "clinic_admin";
 }
 
 // HAL-02: Mensajes de error genéricos en producción
@@ -57,8 +57,8 @@ function sanitizeDbError(error: { code?: string; message?: string }): string {
 }
 
 const patchBodySchema = z.object({
-  role: z.enum(["admin", "doctor", "assistant"] as const, {
-    error: () => "Rol debe ser 'admin', 'doctor' o 'assistant'",
+  role: z.enum(["owner", "doctor", "assistant", "clinic_admin", "receptionist", "lab", "imaging", "surgery"] as const, {
+    error: () => "Rol inválido",
   }),
 });
 

@@ -1,8 +1,10 @@
+import type { OrgRole } from "@/lib/supabase/profile";
+
 export interface ClinicMemberProfile {
   id: string; // member record id
   clinic_id: string;
   doctor_id: string;
-  role: "admin" | "doctor" | "assistant" | "receptionist";
+  role: OrgRole;
   created_at: string;
   doctor_profile: {
     full_name: string;
@@ -16,4 +18,6 @@ export interface ClinicStats {
   totalConsultations: number;
   activeDoctors: number;
   monthlyIncome: number;
+  topDoctors: { doctor_id: string; count: number }[];
+  topSpecialties: { specialty: string; count: number }[];
 }

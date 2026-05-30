@@ -24,7 +24,7 @@
   content: "";
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 50% 0%, rgba(196,96,42,0.08) 0%, transparent 60%);
+  background: radial-gradient(circle at 50% 0%, var(--accent-dim) 0%, transparent 60%);
   z-index: 0;
   pointer-events: none;
 }
@@ -63,7 +63,7 @@
   font-family: var(--font-mono); font-size: 0.6875rem; font-weight: 600;
   color: var(--accent); background: var(--accent-dim);
   padding: 4px 12px; border-radius: 100px; margin-bottom: 16px;
-  border: 1px solid rgba(196,96,42,0.2); 
+  border: 1px solid var(--accent-glow);
 }
 
 .gx-auth-header {
