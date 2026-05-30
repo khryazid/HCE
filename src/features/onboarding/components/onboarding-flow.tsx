@@ -219,7 +219,7 @@ export function OnboardingFlow() {
             
             <div className="space-y-6">
               {/* Identidad Profesional */}
-              <div className="rounded-xl border border-border bg-white overflow-hidden">
+              <div className="rounded-xl border border-border bg-card overflow-hidden">
                 <div className="bg-bg-soft px-4 py-3 border-b border-border">
                   <h3 className="font-semibold text-sm text-ink">Identidad Profesional</h3>
                 </div>
@@ -244,7 +244,7 @@ export function OnboardingFlow() {
               </div>
 
               {/* Contacto y Ubicación */}
-              <div className="rounded-xl border border-border bg-white overflow-hidden">
+              <div className="rounded-xl border border-border bg-card overflow-hidden">
                 <div className="bg-bg-soft px-4 py-3 border-b border-border">
                   <h3 className="font-semibold text-sm text-ink">Contacto y Ubicación</h3>
                 </div>
@@ -269,7 +269,7 @@ export function OnboardingFlow() {
               </div>
 
               {/* Configuración PDF */}
-              <div className="rounded-xl border border-border bg-white overflow-hidden">
+              <div className="rounded-xl border border-border bg-card overflow-hidden">
                 <div className="bg-bg-soft px-4 py-3 border-b border-border">
                   <h3 className="font-semibold text-sm text-ink">Configuración de Documentos (PDF)</h3>
                 </div>
@@ -318,7 +318,7 @@ export function OnboardingFlow() {
                     <div className="border border-dashed border-border rounded-lg p-4 bg-bg-soft/50 space-y-2">
                       <p className="text-xs font-semibold text-ink">Logo profesional para PDF</p>
                       <p className="text-[10px] text-ink-soft">Se guarda en este navegador, sin enviarse a Supabase.</p>
-                      <label className="cursor-pointer flex items-center justify-center gap-2 border border-border bg-white rounded-md p-2 text-xs font-medium text-ink-soft hover:bg-bg-soft transition-colors mt-2">
+                      <label className="cursor-pointer flex items-center justify-center gap-2 border border-border bg-card rounded-md p-2 text-xs font-medium text-ink-soft hover:bg-bg-soft transition-colors mt-2">
                         <Upload className="h-3 w-3" /> Subir Logo
                         <input type="file" className="hidden" accept="image/*" />
                       </label>
@@ -326,7 +326,7 @@ export function OnboardingFlow() {
                     <div className="border border-dashed border-border rounded-lg p-4 bg-bg-soft/50 space-y-2">
                       <p className="text-xs font-semibold text-ink">Firma profesional para PDF</p>
                       <p className="text-[10px] text-ink-soft">Dibuja tu firma en papel blanco, tómale foto y súbela.</p>
-                      <label className="cursor-pointer flex items-center justify-center gap-2 border border-border bg-white rounded-md p-2 text-xs font-medium text-ink-soft hover:bg-bg-soft transition-colors mt-2">
+                      <label className="cursor-pointer flex items-center justify-center gap-2 border border-border bg-card rounded-md p-2 text-xs font-medium text-ink-soft hover:bg-bg-soft transition-colors mt-2">
                         <Upload className="h-3 w-3" /> Subir Firma
                         <input type="file" className="hidden" accept="image/*" />
                       </label>
@@ -347,7 +347,7 @@ export function OnboardingFlow() {
             
             <div className="space-y-6">
               {/* Tipos de Consulta */}
-              <div className="rounded-xl border border-border bg-white overflow-hidden">
+              <div className="rounded-xl border border-border bg-card overflow-hidden">
                 <div className="bg-bg-soft px-4 py-3 border-b border-border flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <DollarSign className="h-4 w-4 text-accent" />
@@ -356,7 +356,7 @@ export function OnboardingFlow() {
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    className="h-7 text-xs bg-white"
+                    className="h-7 text-xs bg-card"
                     onClick={() => setConsultationTypes([...consultationTypes, { name: "", price: 0, duration: 60 }])}
                   >
                     + Agregar Tipo
@@ -415,7 +415,7 @@ export function OnboardingFlow() {
               </div>
 
               {/* Medios de Pago Permitidos */}
-              <div className="rounded-xl border border-border bg-white overflow-hidden">
+              <div className="rounded-xl border border-border bg-card overflow-hidden">
                 <div className="bg-bg-soft px-4 py-3 border-b border-border flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <svg className="h-4 w-4 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
@@ -424,7 +424,7 @@ export function OnboardingFlow() {
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    className="h-7 text-xs bg-white"
+                    className="h-7 text-xs bg-card"
                     onClick={() => setPaymentMethods([...paymentMethods, { name: "", details: "" }])}
                   >
                     + Agregar Medio
@@ -480,7 +480,7 @@ export function OnboardingFlow() {
               <p className="text-sm text-ink-soft mt-1">Selecciona qué bloques deseas que aparezcan por defecto cuando atiendas a un paciente.</p>
             </div>
             
-            <div className="rounded-xl border border-border bg-white overflow-hidden">
+            <div className="rounded-xl border border-border bg-card overflow-hidden">
               <div className="bg-bg-soft px-4 py-3 border-b border-border">
                 <h3 className="font-semibold text-sm text-ink">Secciones Visibles</h3>
               </div>
