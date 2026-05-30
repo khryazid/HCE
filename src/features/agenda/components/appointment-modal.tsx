@@ -451,7 +451,7 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
                   <User className="absolute left-3 top-3 h-4 w-4 text-ink-soft" />
                   <input
                     {...form.register("patient_first_name")}
-                    className="w-full pl-9 pr-3 py-2.5 bg-white border border-border rounded-lg text-sm text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all"
+                    className="w-full pl-9 pr-3 py-2.5 bg-transparent border border-border rounded-lg text-sm text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all"
                     placeholder="Ej. Juan"
                   />
                 </div>
@@ -463,7 +463,7 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
                   <User className="absolute left-3 top-3 h-4 w-4 text-ink-soft" />
                   <input
                     {...form.register("patient_last_name")}
-                    className="w-full pl-9 pr-3 py-2.5 bg-white border border-border rounded-lg text-sm text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all"
+                    className="w-full pl-9 pr-3 py-2.5 bg-transparent border border-border rounded-lg text-sm text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all"
                     placeholder="Ej. Pérez"
                   />
                 </div>
@@ -476,7 +476,7 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
                   <Phone className="absolute left-3 top-3 h-4 w-4 text-ink-soft" />
                   <input
                     {...form.register("patient_phone")}
-                    className="w-full pl-9 pr-3 py-2.5 bg-white border border-border rounded-lg text-sm text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all"
+                    className="w-full pl-9 pr-3 py-2.5 bg-transparent border border-border rounded-lg text-sm text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all"
                     placeholder="Ej. +34 600..."
                   />
                 </div>
@@ -487,7 +487,7 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
                 <div className="relative mt-1">
                   <input
                     {...form.register("patient_document")}
-                    className="w-full px-3 py-2.5 bg-white border border-border rounded-lg text-sm text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all"
+                    className="w-full px-3 py-2.5 bg-transparent border border-border rounded-lg text-sm text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all"
                     placeholder="Ej. 0912345678"
                   />
                 </div>
@@ -503,7 +503,7 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
                       <input
                         type="text"
                         placeholder="DD/MM/AAAA"
-                        className="w-full px-3 py-2.5 bg-white border border-border rounded-lg text-sm text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all"
+                        className="w-full px-3 py-2.5 bg-transparent border border-border rounded-lg text-sm text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all"
                         value={
                           (field.value || "").includes("-") && (field.value || "").length === 10
                             ? (field.value || "").split("-").reverse().join("/")
@@ -561,7 +561,7 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
                 className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition-all ${
                   isWalkIn
                     ? 'border-accent bg-accent-dim text-accent'
-                    : 'border-border bg-white text-ink-soft hover:bg-bg-soft'
+                    : 'border-border bg-transparent text-ink-soft hover:bg-bg-soft'
                 }`}
               >
                 <Users className="h-3.5 w-3.5" />
@@ -579,22 +579,22 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
                 </p>
                 <div className="mt-4 space-y-1.5">
                   <label className="text-[13px] font-bold text-ink tracking-tight">Fecha</label>
-                  <input type="date" {...form.register("start_date")} className="w-full px-3 py-2.5 bg-white border border-border rounded-lg text-sm text-ink focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all" />
+                  <input type="date" {...form.register("start_date")} className="w-full px-3 py-2.5 bg-transparent border border-border rounded-lg text-sm text-ink focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all" />
                 </div>
               </div>
             ) : (
               <div className="grid gap-4 sm:grid-cols-3">
                 <div className="space-y-1.5">
                   <label className="text-[13px] font-bold text-ink tracking-tight">Fecha</label>
-                  <input type="date" {...form.register("start_date")} className="w-full px-3 py-2.5 bg-white border border-border rounded-lg text-sm text-ink focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all" />
+                  <input type="date" {...form.register("start_date")} className="w-full px-3 py-2.5 bg-transparent border border-border rounded-lg text-sm text-ink focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all" />
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[13px] font-bold text-ink tracking-tight">Inicio</label>
-                  <input type="time" {...form.register("start_time")} className="w-full px-3 py-2.5 bg-white border border-border rounded-lg text-sm text-ink focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all" />
+                  <input type="time" {...form.register("start_time")} className="w-full px-3 py-2.5 bg-transparent border border-border rounded-lg text-sm text-ink focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all" />
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[13px] font-bold text-ink tracking-tight">Fin</label>
-                  <input type="time" {...form.register("end_time")} className="w-full px-3 py-2.5 bg-white border border-border rounded-lg text-sm text-ink focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all" />
+                  <input type="time" {...form.register("end_time")} className="w-full px-3 py-2.5 bg-transparent border border-border rounded-lg text-sm text-ink focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all" />
                 </div>
               </div>
             )}
@@ -607,7 +607,7 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <label className="text-[13px] font-bold text-ink tracking-tight">Estado de la Cita</label>
-                <select {...form.register("status")} className="w-full px-3 py-2.5 bg-white border border-border rounded-lg text-sm text-ink focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all appearance-none">
+                <select {...form.register("status")} className="w-full px-3 py-2.5 bg-transparent border border-border rounded-lg text-sm text-ink focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all appearance-none">
                   <option value="scheduled">🟢 Programada</option>
                   <option value="completed">☑️ Completada</option>
                   <option value="no_show">🔴 No asistió</option>
@@ -616,7 +616,7 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
               </div>
               <div className="space-y-1.5">
                 <label className="text-[13px] font-bold text-ink tracking-tight">Motivo / Notas</label>
-                <input {...form.register("notes")} className="w-full px-3 py-2.5 bg-white border border-border rounded-lg text-sm text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all" placeholder="Consulta general, control..." />
+                <input {...form.register("notes")} className="w-full px-3 py-2.5 bg-transparent border border-border rounded-lg text-sm text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all" placeholder="Consulta general, control..." />
               </div>
             </div>
           </div>
@@ -633,7 +633,7 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
             <div className="grid gap-4 sm:grid-cols-3">
               <div className="space-y-1.5">
                 <label className="text-[13px] font-bold text-ink tracking-tight">Estado de Pago</label>
-                <select {...form.register("payment_status")} className="w-full px-3 py-2.5 bg-white border border-border rounded-lg text-sm text-ink focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all appearance-none">
+                <select {...form.register("payment_status")} className="w-full px-3 py-2.5 bg-transparent border border-border rounded-lg text-sm text-ink focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all appearance-none">
                   <option value="pending">🟠 Pendiente</option>
                   <option value="paid">✅ Pagado</option>
                   <option value="partial">⏳ Parcial / Abono</option>
@@ -648,7 +648,7 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
                 </label>
                 <select
                   {...form.register("payment_method")}
-                  className="w-full px-3 py-2.5 bg-white border border-border rounded-lg text-sm text-ink focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all appearance-none disabled:bg-bg-soft"
+                  className="w-full px-3 py-2.5 bg-transparent border border-border rounded-lg text-sm text-ink focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all appearance-none disabled:bg-bg-soft"
                   disabled={isHonorary}
                 >
                   <option value="">No especificado</option>
@@ -669,7 +669,7 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
                     type="number"
                     step="0.01"
                     {...form.register("amount")}
-                    className="w-full pl-7 pr-3 py-2.5 bg-white border border-border rounded-lg text-sm text-ink focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all disabled:bg-bg-soft"
+                    className="w-full pl-7 pr-3 py-2.5 bg-transparent border border-border rounded-lg text-sm text-ink focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all disabled:bg-bg-soft"
                     placeholder={isHonorary ? "0.00" : "0.00"}
                     disabled={isHonorary}
                   />
@@ -682,7 +682,7 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
                 <label className="text-[13px] font-bold text-ink tracking-tight">
                   Tipo de Consulta
                 </label>
-                <select {...form.register("consultation_type")} className="w-full px-3 py-2.5 bg-white border border-border rounded-lg text-sm text-ink focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all appearance-none">
+                <select {...form.register("consultation_type")} className="w-full px-3 py-2.5 bg-transparent border border-border rounded-lg text-sm text-ink focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all appearance-none">
                   <option value="">Selecciona un tipo...</option>
                   {config.consultationTypes.map((ctype, i) => (
                     <option key={i} value={ctype.name}>{ctype.name} (${ctype.price})</option>
