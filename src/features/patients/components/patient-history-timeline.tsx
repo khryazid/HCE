@@ -412,13 +412,15 @@ export function PatientHistoryTimeline({
                         </>
                       )}
 
-                      <button
-                        type="button"
-                        onClick={() => onDeleteRecordRequest(record)}
-                        className="inline-flex items-center gap-1.5 rounded-xl border border-red-200 bg-white px-3.5 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
-                      >
-                        Eliminar
-                      </button>
+                      {tenant?.role !== "assistant" && (
+                        <button
+                          type="button"
+                          onClick={() => onDeleteRecordRequest(record)}
+                          className="inline-flex items-center gap-1.5 rounded-xl border border-red-200 bg-white px-3.5 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+                        >
+                          Eliminar
+                        </button>
+                      )}
                     </div>
                   </div>
                 )}

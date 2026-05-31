@@ -440,7 +440,7 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
 
             <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4 pt-4 border-t border-border/50">
               <div className="flex justify-center sm:justify-start order-last sm:order-first">
-                {onDelete && (
+                {onDelete && tenant?.role !== "assistant" && (
                   <button
                     type="button"
                     onClick={() => setShowDeleteConfirm(true)}
@@ -489,14 +489,16 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
                 >
                   Modificar Cita
                 </button>
-                <button
-                  type="button"
-                  onClick={handleStartConsultation}
-                  className="hce-btn-primary gap-2 w-full sm:w-auto justify-center"
-                >
-                  <Check className="h-4 w-4" />
-                  Iniciar Consulta
-                </button>
+                {tenant?.role !== "assistant" && (
+                  <button
+                    type="button"
+                    onClick={handleStartConsultation}
+                    className="hce-btn-primary gap-2 w-full sm:w-auto justify-center"
+                  >
+                    <Check className="h-4 w-4" />
+                    Iniciar Consulta
+                  </button>
+                )}
               </div>
             </div>
           </div>
