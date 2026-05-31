@@ -161,7 +161,7 @@ export function CalendarView() {
             onDateSelect={setCurrentDate}
             filters={filters}
             setFilters={setFilters}
-            doctorName={tenantProfile.full_name || "Doctor"}
+            doctorName={tenantProfile.role === "assistant" ? "Agenda General" : tenantProfile.full_name || "Doctor"}
             stats={stats}
           />
           

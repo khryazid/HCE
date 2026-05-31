@@ -233,9 +233,11 @@ export default function PatientsView() {
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
-            <Link href="/consultas" className="hce-btn-primary">
-              Crear consulta
-            </Link>
+            {tenant?.role !== "assistant" && (
+              <Link href="/consultas" className="hce-btn-primary">
+                Crear consulta
+              </Link>
+            )}
             <Link href="/dashboard" className="hce-btn-secondary">
               Volver al panel
             </Link>

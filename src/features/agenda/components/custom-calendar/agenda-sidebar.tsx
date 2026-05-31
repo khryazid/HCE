@@ -153,7 +153,7 @@ export function AgendaSidebar({
       </div>
 
       <div className="gx-fs">
-        <div className="gx-fs-title">Especialistas</div>
+        <div className="gx-fs-title">Calendario de</div>
         <label className="gx-f-item">
           <div className="gx-f-lbl">
             <input type="checkbox" className="gx-f-box" defaultChecked />

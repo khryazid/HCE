@@ -194,12 +194,14 @@ export function PatientHistoryTimeline({
             records={records}
             tenant={tenant}
           />
-          <Link
-            href={`/consultas?mode=consulta&patientId=${selectedPatientId}`}
-            className="hce-btn-secondary"
-          >
-            Nueva atencion
-          </Link>
+          {tenant?.role !== "assistant" && (
+            <Link
+              href={`/consultas?mode=consulta&patientId=${selectedPatientId}`}
+              className="hce-btn-secondary"
+            >
+              Nueva atencion
+            </Link>
+          )}
         </div>
       </div>
 
@@ -354,12 +356,14 @@ export function PatientHistoryTimeline({
 
                     {/* Acciones del registro */}
                     <div className="mt-8 flex flex-wrap items-center gap-3 border-t border-border pt-4">
-                      <Link
-                        href={`/consultas?mode=seguimiento&patientId=${record.patient_id}&recordId=${record.id}`}
-                        className="inline-flex rounded-xl border border-teal-500/50 bg-teal-500/10 px-3 py-2 text-xs font-semibold text-teal-900 dark:text-teal-100 transition hover:bg-teal-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
-                      >
-                        Crear seguimiento
-                      </Link>
+                      {tenant?.role !== "assistant" && (
+                        <Link
+                          href={`/consultas?mode=seguimiento&patientId=${record.patient_id}&recordId=${record.id}`}
+                          className="inline-flex rounded-xl border border-teal-500/50 bg-teal-500/10 px-3 py-2 text-xs font-semibold text-teal-900 dark:text-teal-100 transition hover:bg-teal-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+                        >
+                          Crear seguimiento
+                        </Link>
+                      )}
                       <button
                         type="button"
                         disabled={isPdfGenerating}
