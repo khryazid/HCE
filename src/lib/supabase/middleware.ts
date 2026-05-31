@@ -106,6 +106,8 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/terminos/") ||
     request.nextUrl.pathname.startsWith("/privacidad/") ||
     request.nextUrl.pathname.startsWith("/docs/") ||
+    request.nextUrl.pathname.startsWith("/recuperar/") ||
+    request.nextUrl.pathname.startsWith("/recuperar") ||
     // Invitation tokens in the path: /invite/:token
     request.nextUrl.pathname.startsWith("/invite/");
 
