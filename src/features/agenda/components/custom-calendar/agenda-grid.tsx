@@ -32,10 +32,10 @@ export function AgendaGrid({
         isToday: isToday(currentDate)
       }];
     }
-    // Week view (Lunes a Viernes o Lunes a Domingo)
-    // Mostraremos 5 días (Lun-Vie) o 7 (Lun-Dom)
+    // Week view (Lunes a Domingo)
+    // Mostraremos los 7 días de la semana
     const weekStart = startOfWeek(currentDate, { locale: es, weekStartsOn: 1 });
-    return Array.from({ length: 5 }, (_, i) => { // 5 days for clinical density
+    return Array.from({ length: 7 }, (_, i) => { 
       const d = addDays(weekStart, i);
       return {
         date: d,
