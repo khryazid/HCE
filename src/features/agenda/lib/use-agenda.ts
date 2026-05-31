@@ -10,13 +10,15 @@ const REALTIME_POLL_SUPPRESSION_MS = 20_000;
 
 
 import { usePaymentConfig } from "@/lib/use-payment-config";
+import { useTenant } from "@/lib/supabase/tenant-context";
 
 export function useAgenda() {
   const supabase = getSupabaseClient();
   const queryClient = useQueryClient();
+  const { tenant } = useTenant();
 
   // Obtener configuración de pagos del médico
-  const { data: config = { methods: [], consultationTypes: [] } } = usePaymentConfig();
+  const { data: config = { methods: [], consultationTypes: [] } } = usePaymentConfig(tenant?.doctor_id);
 
   // Obtener citas
   // refetchInterval → polling cada 30s como respaldo si Realtime no está activo.

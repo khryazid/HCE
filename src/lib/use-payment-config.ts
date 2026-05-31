@@ -1,19 +1,24 @@
 import { useQuery } from "@tanstack/react-query";
 import { getSupabaseClient } from "@/lib/supabase/client";
 
-export function usePaymentConfig() {
+export function usePaymentConfig(doctorId?: string) {
   const supabase = getSupabaseClient();
 
   return useQuery({
-    queryKey: ["payment_config"],
+    queryKey: ["payment_config", doctorId],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return { methods: [], consultationTypes: [] };
+      let targetDoctorId = doctorId;
+
+      if (!targetDoctorId) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return { methods: [], consultationTypes: [] };
+        targetDoctorId = user.id;
+      }
 
       const { data } = await supabase
         .from("profiles")
         .select("payment_config")
-        .eq("doctor_id", user.id)
+        .eq("doctor_id", targetDoctorId)
         .maybeSingle();
         
       const conf = (data?.payment_config as Record<string, unknown>) || {};
