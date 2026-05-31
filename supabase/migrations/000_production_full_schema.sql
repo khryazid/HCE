@@ -1369,14 +1369,17 @@ begin
 
   v_new_hash := encode(
     digest(
-      v_prev_hash         || '|' ||
-      p_clinic_id::text   || '|' ||
-      p_doctor_id::text   || '|' ||
-      p_event_type        || '|' ||
-      p_resource_type     || '|' ||
-      p_resource_id::text || '|' ||
-      p_changes::text     || '|' ||
-      now()::text,
+      convert_to(
+        v_prev_hash         || '|' ||
+        p_clinic_id::text   || '|' ||
+        p_doctor_id::text   || '|' ||
+        p_event_type        || '|' ||
+        p_resource_type     || '|' ||
+        p_resource_id::text || '|' ||
+        p_changes::text     || '|' ||
+        now()::text,
+        'utf8'
+      ),
       'sha256'
     ),
     'hex'
