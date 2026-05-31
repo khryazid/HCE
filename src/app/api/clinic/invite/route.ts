@@ -6,7 +6,7 @@ import { inviteBodySchema } from "@/lib/api/guards";
 import { serverLog } from "@/lib/observability/server-logger";
 import Stripe from "stripe";
 import { Resend } from "resend";
-import { APP_NAME, APP_FROM_EMAIL, APP_URL } from "@/lib/constants/app";
+import { APP_NAME, APP_FROM_EMAIL, APP_URL, CURRENT_TERMS_VERSION } from "@/lib/constants/app";
 
 export async function POST(req: Request) {
   const reqId = req.headers.get("x-request-id") ?? "";
@@ -248,6 +248,27 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "El usuario ya es miembro de esta clínica" }, { status: 400 });
       }
       throw insertError;
+    }
+
+    // A-14: Crear un perfil básico para el usuario invitado si no tiene uno.
+    // Esto evita que los asistentes tengan que pasar por el flujo de onboarding y crear una clínica nueva.
+    const { data: existingProfile } = await adminClient
+      .from("profiles")
+      .select("doctor_id")
+      .eq("doctor_id", invitedUserId)
+      .maybeSingle();
+
+    if (!existingProfile) {
+      await adminClient.from("profiles").insert({
+        doctor_id: invitedUserId,
+        clinic_id: clinic_id,
+        full_name: email.split("@")[0], // Nombre por defecto basado en el correo
+        specialty: [],
+        plan: ownerProfile?.plan ?? "basic",
+        subscription_status: "active", // Los invitados no pagan
+        onboarding_state: { step: 4, completed: true }, // Marcar onboarding como completado
+        terms_version: CURRENT_TERMS_VERSION,
+      });
     }
 
     // Optional: Send a custom email via Resend
