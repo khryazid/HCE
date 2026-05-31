@@ -68,7 +68,7 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
 
   const { tenant } = useTenant();
   const userId = tenant?.doctor_id || tenantInfo.doctor_id;
-  const { data: currentShift } = useCurrentCashShift(tenantInfo.clinic_id, userId);
+  const { data: currentShift } = useCurrentCashShift(tenantInfo.clinic_id);
   const createTx = useCreateTransaction();
 
   const form = useForm<AppointmentFormValues>({

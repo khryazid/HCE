@@ -32,23 +32,24 @@ export function useCashTransactions(clinicId: string, startDate?: Date, endDate?
   });
 }
 
-export function useCurrentCashShift(clinicId: string, userId: string) {
+export function useCurrentCashShift(clinicId: string) {
   return useQuery({
-    queryKey: ["cash-shift", clinicId, userId],
+    queryKey: ["cash-shift", clinicId],
     queryFn: async () => {
       const supabase = getSupabaseClient();
       const { data, error } = await (supabase as any)
         .from("cash_shifts")
         .select("*")
         .eq("clinic_id", clinicId)
-        .eq("user_id", userId)
         .eq("status", "open")
+        .order("opened_at", { ascending: false })
+        .limit(1)
         .maybeSingle();
 
       if (error) throw error;
       return data as CashShift | null;
     },
-    enabled: !!clinicId && !!userId,
+    enabled: !!clinicId,
   });
 }
 
@@ -140,7 +141,7 @@ export function useOpenShift() {
       return data;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["cash-shift", variables.clinic_id, variables.user_id] });
+      queryClient.invalidateQueries({ queryKey: ["cash-shift", variables.clinic_id] });
     },
   });
 }
@@ -162,7 +163,7 @@ export function useCloseShift() {
       return data;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["cash-shift", variables.clinicId, variables.userId] });
+      queryClient.invalidateQueries({ queryKey: ["cash-shift", variables.clinicId] });
     },
   });
 }

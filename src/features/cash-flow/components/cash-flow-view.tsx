@@ -25,7 +25,7 @@ export function CashFlowView({ clinicId, userId, tenant }: CashFlowViewProps) {
   const { data: transactions, isLoading, error } = useCashTransactions(clinicId, isHistoricalMode ? dateFilter.start : undefined, isHistoricalMode ? dateFilter.end : undefined);
   const { data: patients } = usePatients(tenant);
   
-  const { data: currentShift, isLoading: shiftLoading } = useCurrentCashShift(clinicId, userId);
+  const { data: currentShift, isLoading: shiftLoading } = useCurrentCashShift(clinicId);
   const { data: aptMetrics } = useAppointmentsMetrics(clinicId, userId, isHistoricalMode ? dateFilter.start : undefined, isHistoricalMode ? dateFilter.end : undefined);
   
   const createTx = useCreateTransaction();
