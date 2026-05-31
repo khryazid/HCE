@@ -93,7 +93,9 @@ export function CashFlowView({ clinicId, userId, tenant }: CashFlowViewProps) {
   const summary = useMemo(() => {
     if (!transactions) return { 
       income: 0, expense: 0, balance: 0, total_cash: 0,
-      income_by_method: {} as Record<string, number>
+      income_by_method: {} as Record<string, number>,
+      expense_by_method: {} as Record<string, number>,
+      balance_by_method: {} as Record<string, number>
     };
     
     let shiftTransactions = [];
@@ -111,25 +113,36 @@ export function CashFlowView({ clinicId, userId, tenant }: CashFlowViewProps) {
     const totals = shiftTransactions.reduce((acc, tx) => {
       if (tx.status === "voided") return acc;
       
-      const method = tx.payment_method || "No especificado";
+      let method = tx.payment_method || "No especificado";
+      if (method === "other" && tx.concept.includes(" - Pago con ")) {
+        method = tx.concept.split(" - Pago con ")[1] || "other";
+      }
+
       const isCash = method === "cash" || method.toLowerCase().includes("efectivo");
+      const displayMethod = isCash ? "Efectivo" : method;
       
       if (tx.type === "income") {
         acc.income += tx.amount;
         acc.balance += tx.amount;
         if (isCash) acc.total_cash += tx.amount;
         
-        acc.income_by_method[method] = (acc.income_by_method[method] || 0) + tx.amount;
+        acc.income_by_method[displayMethod] = (acc.income_by_method[displayMethod] || 0) + tx.amount;
+        acc.balance_by_method[displayMethod] = (acc.balance_by_method[displayMethod] || 0) + tx.amount;
       } else {
         acc.expense += tx.amount;
         acc.balance -= tx.amount;
         if (isCash) acc.total_cash -= tx.amount;
+
+        acc.expense_by_method[displayMethod] = (acc.expense_by_method[displayMethod] || 0) + tx.amount;
+        acc.balance_by_method[displayMethod] = (acc.balance_by_method[displayMethod] || 0) - tx.amount;
       }
       return acc;
     }, { 
       income: 0, expense: 0, balance: 0, 
       total_cash: !isHistoricalMode && currentShift ? currentShift.initial_amount : 0,
-      income_by_method: {} as Record<string, number>
+      income_by_method: {} as Record<string, number>,
+      expense_by_method: {} as Record<string, number>,
+      balance_by_method: { "Efectivo": !isHistoricalMode && currentShift ? currentShift.initial_amount : 0 } as Record<string, number>
     });
     
     return totals;
@@ -374,6 +387,25 @@ export function CashFlowView({ clinicId, userId, tenant }: CashFlowViewProps) {
           </Card>
         )}
       </div>
+
+      {!isHistoricalMode && Object.keys(summary.balance_by_method).length > 0 && (
+        <Card className="p-5 border-accent/20 bg-accent/5">
+          <h3 className="text-lg font-bold text-ink mb-4 flex items-center gap-2">
+            <Activity className="h-5 w-5 text-accent" />
+            Monto Esperado por Medio de Pago (Cierre de Caja)
+          </h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {Object.entries(summary.balance_by_method as Record<string, number>).map(([method, amount]) => (
+              <div key={method} className="bg-white dark:bg-bg-soft border border-border rounded-xl p-4 shadow-sm">
+                <p className="text-xs font-semibold text-ink-soft uppercase tracking-wider">{method}</p>
+                <p className={`text-xl font-bold mt-1 ${amount >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                  ${amount.toFixed(2)}
+                </p>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
 
       {dailyData.length > 0 && (
         <div className="pt-4">
