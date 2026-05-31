@@ -9,14 +9,27 @@ export async function getClinicPaymentConfigAction(clinicId: string) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // Get the owner of the clinic
-    const { data: cData } = await supabaseAdmin
-      .from("clinics")
-      .select("owner_user_id")
-      .eq("id", clinicId)
+    // Get the owner of the clinic from clinic_members
+    const { data: memberData } = await supabaseAdmin
+      .from("clinic_members")
+      .select("doctor_id")
+      .eq("clinic_id", clinicId)
+      .eq("role", "owner")
       .maybeSingle();
 
-    if (!cData?.owner_user_id) {
+    let ownerId = memberData?.doctor_id;
+
+    if (!ownerId) {
+      // Fallback in case owner is directly in clinics (future-proofing)
+      const { data: cData } = await supabaseAdmin
+        .from("clinics")
+        .select("owner_user_id")
+        .eq("id", clinicId)
+        .maybeSingle();
+      ownerId = cData?.owner_user_id;
+    }
+
+    if (!ownerId) {
       return { config: {} };
     }
 
@@ -24,7 +37,7 @@ export async function getClinicPaymentConfigAction(clinicId: string) {
     const { data } = await supabaseAdmin
       .from("profiles")
       .select("payment_config")
-      .eq("doctor_id", cData.owner_user_id)
+      .eq("doctor_id", ownerId)
       .maybeSingle();
 
     return { config: data?.payment_config || {} };
