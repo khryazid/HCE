@@ -274,13 +274,18 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
         if (!wasPaid && isNowPaid && payload.amount && payload.amount > 0) {
           if (currentShift) {
             try {
+              const validMethods = ["cash", "card", "transfer", "other"];
+              const rawMethod = payload.payment_method || "cash";
+              const mappedMethod = validMethods.includes(rawMethod) ? rawMethod : "other";
+              const conceptSuffix = mappedMethod === "other" && rawMethod !== "other" ? ` - Pago con ${rawMethod}` : "";
+
               await createTx.mutateAsync({
                 clinic_id: payload.clinic_id,
                 user_id: userId,
                 type: "income",
                 amount: payload.amount,
-                concept: `Consulta: ${payload.patient_name} (${payload.consultation_type || 'General'})`,
-                payment_method: payload.payment_method || "cash",
+                concept: `Consulta: ${payload.patient_name} (${payload.consultation_type || 'General'})${conceptSuffix}`,
+                payment_method: mappedMethod as any,
                 shift_id: currentShift.id,
                 status: "completed"
               });
@@ -301,13 +306,18 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
         if (isNowPaid && payload.amount && payload.amount > 0) {
           if (currentShift) {
             try {
+              const validMethods = ["cash", "card", "transfer", "other"];
+              const rawMethod = payload.payment_method || "cash";
+              const mappedMethod = validMethods.includes(rawMethod) ? rawMethod : "other";
+              const conceptSuffix = mappedMethod === "other" && rawMethod !== "other" ? ` - Pago con ${rawMethod}` : "";
+
               await createTx.mutateAsync({
                 clinic_id: payload.clinic_id,
                 user_id: userId,
                 type: "income",
                 amount: payload.amount,
-                concept: `Consulta: ${payload.patient_name} (${payload.consultation_type || 'General'})`,
-                payment_method: payload.payment_method || "cash",
+                concept: `Consulta: ${payload.patient_name} (${payload.consultation_type || 'General'})${conceptSuffix}`,
+                payment_method: mappedMethod as any,
                 shift_id: currentShift.id,
                 status: "completed"
               });
