@@ -34,7 +34,7 @@ export function CashFlowView({ clinicId, userId, tenant }: CashFlowViewProps) {
   const closeShift = useCloseShift();
 
   const [searchTerm, setSearchTerm] = useState("");
-  const { data: paymentConfig } = usePaymentConfig(tenant?.doctor_id);
+  const { data: paymentConfig } = usePaymentConfig(tenant?.clinic_id);
   const [showForm, setShowForm] = useState(false);
   const [initialAmount, setInitialAmount] = useState(() => {
     const prefs = tenant?.ui_preferences?.cash_register_settings;

@@ -18,7 +18,7 @@ export function useAgenda() {
   const { tenant } = useTenant();
 
   // Obtener configuración de pagos del médico
-  const { data: config = { methods: [], consultationTypes: [] } } = usePaymentConfig(tenant?.doctor_id);
+  const { data: config = { methods: [], consultationTypes: [] } } = usePaymentConfig(tenant?.clinic_id);
 
   // Obtener citas
   // refetchInterval → polling cada 30s como respaldo si Realtime no está activo.
