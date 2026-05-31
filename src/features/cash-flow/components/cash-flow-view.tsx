@@ -112,7 +112,7 @@ export function CashFlowView({ clinicId, userId, tenant }: CashFlowViewProps) {
       if (tx.status === "voided") return acc;
       
       const method = tx.payment_method || "No especificado";
-      const isCash = method.toLowerCase().includes("efectivo");
+      const isCash = method === "cash" || method.toLowerCase().includes("efectivo");
       
       if (tx.type === "income") {
         acc.income += tx.amount;
@@ -184,13 +184,18 @@ export function CashFlowView({ clinicId, userId, tenant }: CashFlowViewProps) {
     e.preventDefault();
     if (!amount || !concept || !currentShift) return;
 
+    const validMethods = ["cash", "card", "transfer", "other"];
+    const rawMethod = paymentMethod || "cash";
+    const mappedMethod = validMethods.includes(rawMethod) ? rawMethod : "other";
+    const conceptSuffix = mappedMethod === "other" && rawMethod !== "other" ? ` - Pago con ${rawMethod}` : "";
+
     await createTx.mutateAsync({
       clinic_id: clinicId,
       user_id: userId,
       type,
       amount: parseFloat(amount),
-      concept,
-      payment_method: paymentMethod,
+      concept: concept + conceptSuffix,
+      payment_method: mappedMethod as any,
       patient_id: patientId || null,
       reference_code: reference || null,
       shift_id: currentShift.id,
