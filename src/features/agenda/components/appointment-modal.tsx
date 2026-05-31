@@ -55,6 +55,9 @@ type Props = {
 };
 
 import { ConfirmModal } from "@/components/ui/confirm-modal";
+import { useTenant } from "@/lib/supabase/tenant-context";
+import { useCurrentCashShift, useCreateTransaction } from "@/features/cash-flow/lib/use-cash-flow";
+import { toast } from "sonner";
 
 export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialData, selectedSlot, tenantInfo, config, allAppointments = [] }: Props) {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -62,6 +65,11 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const router = useRouter();
+
+  const { tenant } = useTenant();
+  const userId = tenant?.doctor_id || tenantInfo.doctor_id;
+  const { data: currentShift } = useCurrentCashShift(tenantInfo.clinic_id, userId);
+  const createTx = useCreateTransaction();
 
   const form = useForm<AppointmentFormValues>({
     resolver: zodResolver(appointmentSchema),
@@ -259,8 +267,59 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
 
       if (initialData) {
         await onSave({ ...payload, id: initialData.id });
+        
+        // Agregar a caja si acaba de ser pagado
+        const wasPaid = initialData.payment_status === "paid";
+        const isNowPaid = payload.payment_status === "paid";
+        if (!wasPaid && isNowPaid && payload.amount && payload.amount > 0) {
+          if (currentShift) {
+            try {
+              await createTx.mutateAsync({
+                clinic_id: payload.clinic_id,
+                user_id: userId,
+                type: "income",
+                amount: payload.amount,
+                concept: `Consulta: ${payload.patient_name} (${payload.consultation_type || 'General'})`,
+                payment_method: payload.payment_method || "cash",
+                shift_id: currentShift.id,
+                status: "completed"
+              });
+              toast.success("Pago registrado en la caja");
+            } catch (err) {
+              console.error(err);
+              toast.error("No se pudo registrar el pago en la caja");
+            }
+          } else {
+            toast.warning("El pago se guardó, pero no se sumó a la caja porque no tienes un turno abierto.");
+          }
+        }
       } else {
         await onSave(payload);
+
+        // Agregar a caja si se creó como pagado
+        const isNowPaid = payload.payment_status === "paid";
+        if (isNowPaid && payload.amount && payload.amount > 0) {
+          if (currentShift) {
+            try {
+              await createTx.mutateAsync({
+                clinic_id: payload.clinic_id,
+                user_id: userId,
+                type: "income",
+                amount: payload.amount,
+                concept: `Consulta: ${payload.patient_name} (${payload.consultation_type || 'General'})`,
+                payment_method: payload.payment_method || "cash",
+                shift_id: currentShift.id,
+                status: "completed"
+              });
+              toast.success("Pago registrado en la caja");
+            } catch (err) {
+              console.error(err);
+              toast.error("No se pudo registrar el pago en la caja");
+            }
+          } else {
+            toast.warning("La cita se guardó, pero no se sumó a la caja porque no tienes un turno abierto.");
+          }
+        }
       }
       onClose();
     } catch (error: unknown) {
