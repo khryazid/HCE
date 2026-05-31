@@ -50,13 +50,32 @@ export function UpdatePasswordForm() {
 
   async function onSubmit(data: UpdateFormData) {
     setError(null);
-    const result = await updateUserPassword(data.password);
+    try {
+      const supabase = getSupabaseClient();
+      
+      // 1. Verificamos que la sesión local exista (el cliente ya debió procesar el hash de la URL)
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        setError("Tu sesión ha expirado o el enlace no es válido. Por favor, solicita una nueva invitación.");
+        return;
+      }
 
-    if (result.success) {
-      // Redirigir al dashboard u otra zona segura
+      // 2. Actualizamos la contraseña directamente desde el cliente
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: data.password
+      });
+
+      if (updateError) {
+        setError(updateError.message);
+        return;
+      }
+
+      // 3. Redirigimos al dashboard si todo salió bien
       router.replace("/dashboard");
-    } else {
-      setError(result.error);
+    } catch (err) {
+      console.error(err);
+      setError("Ocurrió un error al intentar actualizar la contraseña.");
     }
   }
 
