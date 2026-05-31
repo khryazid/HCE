@@ -248,10 +248,14 @@ export function CashFlowView({ clinicId, userId, tenant }: CashFlowViewProps) {
   const handleCloseShift = async () => {
     if (!currentShift) return;
     
+    const breakdown = Object.entries(summary.balance_by_method as Record<string, number>)
+      .map(([method, amount]) => `${method}: $${amount.toFixed(2)}`)
+      .join('\n');
+
     setConfirmModal({
       open: true,
       title: "Cerrar Turno de Caja",
-      description: `¿Estás seguro de cerrar el turno de caja?\n\nMonto en Efectivo Esperado: $${summary.total_cash.toFixed(2)}`,
+      description: `¿Estás seguro de cerrar el turno de caja?\n\nResumen Esperado:\n${breakdown}`,
       variant: "warning",
       onConfirm: async () => {
         await closeShift.mutateAsync({
