@@ -129,27 +129,44 @@ export async function POST(req: Request) {
       }
     });
 
+    let inviteDataResult;
+
     if (inviteError) {
       // If user already exists, find their ID via RPC
       const { data: foundId } = await adminClient.rpc('get_user_id_by_email', { email_input: email });
       
       if (foundId) {
-        return NextResponse.json({ 
-          error: "El usuario ya existe en la plataforma. Para asociarlo a tu clínica, este debe aceptar la invitación desde su panel de control.",
-          status: "pending_acceptance"
-        }, { status: 409 });
+        // El usuario ya existe (ej. fue eliminado de la clínica pero su cuenta auth sigue ahí).
+        // Generamos un magic link en lugar de una invitación nueva para que pueda entrar y establecer clave si lo necesita.
+        const { data: magicData, error: magicError } = await adminClient.auth.admin.generateLink({
+          type: 'magiclink',
+          email,
+          options: {
+            redirectTo: `${serverEnv.NEXT_PUBLIC_SITE_URL}/recuperar/actualizar`,
+          }
+        });
+
+        if (magicError) {
+          log.error("clinic:invite", "generateLink magiclink failed", { error: magicError.message });
+          return NextResponse.json({ error: "No se pudo generar el acceso para el usuario existente" }, { status: 400 });
+        }
+        
+        inviteDataResult = magicData;
+        invitedUserId = foundId;
       } else {
         // R-01: No exponer inviteError.message — puede contener detalles internos de Supabase Auth
         log.error("clinic:invite", "generateLink failed", { error: inviteError.message });
         return NextResponse.json({ error: "No se pudo generar la invitación" }, { status: 400 });
       }
     } else {
+      inviteDataResult = inviteData;
       invitedUserId = inviteData.user.id;
-      
-      // Enviar email personalizado con Resend
-      const resend = new Resend(serverEnv.RESEND_API_KEY);
-      const actionLink = inviteData.properties.action_link;
-      const fromAddress = process.env.RESEND_FROM_EMAIL ?? APP_FROM_EMAIL;
+    }
+
+    // Enviar email personalizado con Resend
+    const resend = new Resend(serverEnv.RESEND_API_KEY);
+    const actionLink = inviteDataResult.properties.action_link;
+    const fromAddress = process.env.RESEND_FROM_EMAIL ?? APP_FROM_EMAIL;
       
       // Obtener el nombre de la clínica para el correo
       const { data: clinicData } = await adminClient
@@ -172,7 +189,6 @@ export async function POST(req: Request) {
         // No fallamos la request porque el usuario ya fue invitado en Auth,
         // pero idealmente deberíamos notificar o reintentar
       }
-    }
 
     // Metered Billing: Actualizar cantidad en Stripe si es un doctor
     let doctorCount = 0;
