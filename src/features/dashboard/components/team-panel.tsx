@@ -135,6 +135,30 @@ export function TeamPanel() {
 
   const isAdmin = tenant?.role === "owner" || tenant?.role === "clinic_admin";
 
+  // ── Limits logic ──
+  const PLAN_LIMITS: Record<string, { maxDoctors: number; maxAssistants: number }> = {
+    basic:      { maxDoctors: 0,   maxAssistants: 2  },
+    clinic:     { maxDoctors: 5,   maxAssistants: 10 },
+    enterprise: { maxDoctors: 999, maxAssistants: 999 },
+  };
+
+  const plan = tenant?.plan || "basic";
+  const limits = PLAN_LIMITS[plan] || PLAN_LIMITS.basic;
+
+  const currentAssistantsCount = members?.filter((m) => m.role === "assistant").length || 0;
+  const remainingAssistants = Math.max(0, limits.maxAssistants - currentAssistantsCount);
+  const assistantsLimitReached = remainingAssistants === 0;
+
+  const currentDoctorsCount = members?.filter((m) => m.role === "doctor" && m.doctor_id !== tenant?.doctor_id).length || 0;
+  const remainingDoctors = Math.max(0, limits.maxDoctors - currentDoctorsCount);
+  const doctorsLimitReached = remainingDoctors === 0;
+  
+  // Decide if submit is disabled based on role selected
+  const isSubmitDisabled = 
+    inviteMutation.isPending ||
+    (inviteRole === "assistant" && assistantsLimitReached) ||
+    (inviteRole === "doctor" && doctorsLimitReached);
+
   return (
     <div className="space-y-6">
       {isAdmin && (
@@ -161,6 +185,16 @@ export function TeamPanel() {
                 className="w-full h-11 px-4 rounded-xl border border-input/60 bg-background/50 focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent text-sm transition-all shadow-sm"
               />
             </div>
+            <div className="w-full sm:w-48 space-y-1.5">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Clave temporal</label>
+              <input
+                type="text"
+                value={invitePassword}
+                onChange={(e) => setInvitePassword(e.target.value)}
+                placeholder="(Opcional)"
+                className="w-full h-11 px-4 rounded-xl border border-input/60 bg-background/50 focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent text-sm transition-all shadow-sm"
+              />
+            </div>
             <div className="w-full sm:w-36 space-y-1.5">
               <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Rol</label>
               <select
@@ -174,29 +208,26 @@ export function TeamPanel() {
                 <option className="bg-bg text-ink" value="assistant">Asistente</option>
               </select>
             </div>
-            <div className="w-full sm:w-48 space-y-1.5">
-              <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Clave temporal</label>
-              <input
-                type="text"
-                value={invitePassword}
-                onChange={(e) => setInvitePassword(e.target.value)}
-                placeholder="(Opcional)"
-                className="w-full h-11 px-4 rounded-xl border border-input/60 bg-background/50 focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent text-sm transition-all shadow-sm"
-              />
-            </div>
             <button
               type="submit"
-              disabled={inviteMutation.isPending}
+              disabled={isSubmitDisabled}
               className="w-full sm:w-auto h-11 px-6 bg-ink text-bg font-semibold rounded-xl hover:bg-ink/90 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 disabled:opacity-50 text-sm whitespace-nowrap transition-all shadow-sm"
             >
               {inviteMutation.isPending ? "Invitando..." : "Invitar miembro"}
             </button>
           </div>
-          {tenant?.plan === "basic" && (
-            <p className="text-[11px] text-accent/80 font-medium leading-tight">
-              * El plan individual solo permite invitar asistentes. Actualiza al plan clínica para invitar a otros médicos.
+          <div className="flex flex-col gap-1.5 pt-1">
+            <p className={`text-[11px] font-semibold leading-tight flex items-center gap-1.5 ${assistantsLimitReached ? 'text-red-500/90' : 'text-emerald-600/90'}`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${assistantsLimitReached ? 'bg-red-500' : 'bg-emerald-500'}`}></span>
+              Espacio para asistentes: {remainingAssistants} de {limits.maxAssistants} disponibles.
             </p>
-          )}
+            {tenant?.plan === "basic" && (
+              <p className="text-[11px] text-accent/80 font-medium leading-tight flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-accent/80"></span>
+                El plan individual solo permite invitar asistentes. Actualiza al plan clínica para invitar a médicos.
+              </p>
+            )}
+          </div>
         </form>
       )}
 
