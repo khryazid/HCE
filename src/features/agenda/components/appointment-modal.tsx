@@ -633,7 +633,7 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
             <div className="grid gap-4 sm:grid-cols-3">
               <div className="space-y-1.5">
                 <label className="text-[13px] font-bold text-ink tracking-tight">Estado de Pago</label>
-                <select {...form.register("payment_status")} className="w-full px-3 py-2.5 bg-transparent border border-border rounded-lg text-sm text-ink focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all appearance-none">
+                <select {...form.register("payment_status")} className="w-full px-3 py-2.5 bg-white dark:bg-bg border border-input/60 rounded-xl shadow-sm text-sm text-ink focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all appearance-none">
                   <option value="pending">🟠 Pendiente</option>
                   <option value="paid">✅ Pagado</option>
                   <option value="partial">⏳ Parcial / Abono</option>
@@ -648,7 +648,7 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
                 </label>
                 <select
                   {...form.register("payment_method")}
-                  className="w-full px-3 py-2.5 bg-transparent border border-border rounded-lg text-sm text-ink focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all appearance-none disabled:bg-bg-soft"
+                  className="w-full px-3 py-2.5 bg-white dark:bg-bg border border-input/60 rounded-xl shadow-sm text-sm text-ink focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all appearance-none disabled:bg-bg-soft"
                   disabled={isHonorary}
                 >
                   <option value="">No especificado</option>
@@ -669,7 +669,7 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
                     type="number"
                     step="0.01"
                     {...form.register("amount")}
-                    className="w-full pl-7 pr-3 py-2.5 bg-transparent border border-border rounded-lg text-sm text-ink focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all disabled:bg-bg-soft"
+                    className="w-full pl-7 pr-3 py-2.5 bg-white dark:bg-bg border border-input/60 rounded-xl shadow-sm text-sm text-ink focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all disabled:bg-bg-soft"
                     placeholder={isHonorary ? "0.00" : "0.00"}
                     disabled={isHonorary}
                   />
@@ -682,7 +682,7 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
                 <label className="text-[13px] font-bold text-ink tracking-tight">
                   Tipo de Consulta
                 </label>
-                <select {...form.register("consultation_type")} className="w-full px-3 py-2.5 bg-transparent border border-border rounded-lg text-sm text-ink focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all appearance-none">
+                <select {...form.register("consultation_type")} className="w-full px-3 py-2.5 bg-white dark:bg-bg border border-input/60 rounded-xl shadow-sm text-sm text-ink focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all appearance-none">
                   <option value="">Selecciona un tipo...</option>
                   {config.consultationTypes.map((ctype, i) => (
                     <option key={i} value={ctype.name}>{ctype.name} (${ctype.price})</option>
