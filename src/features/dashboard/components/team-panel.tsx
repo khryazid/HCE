@@ -16,6 +16,7 @@ export function TeamPanel() {
 
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("assistant");
+  const [invitePassword, setInvitePassword] = useState("");
   const [inviteError, setInviteError] = useState("");
 
   const { data: members, isLoading } = useQuery({
@@ -81,6 +82,7 @@ export function TeamPanel() {
           email: inviteEmail,
           role: inviteRole,
           clinic_id: tenant?.clinic_id,
+          password: invitePassword ? invitePassword : undefined,
         }),
       });
       const data = await res.json();
@@ -89,6 +91,7 @@ export function TeamPanel() {
     },
     onSuccess: () => {
       setInviteEmail("");
+      setInvitePassword("");
       queryClient.invalidateQueries({ queryKey: ["clinic-members"] });
     },
     onError: (err: Error) => {
@@ -166,6 +169,16 @@ export function TeamPanel() {
                 {tenant?.plan === "clinic" && <option className="bg-bg text-ink" value="admin">Admin</option>}
                 <option className="bg-bg text-ink" value="assistant">Asistente</option>
               </select>
+            </div>
+            <div className="flex-1 space-y-1 w-full max-w-[200px]">
+              <label className="text-xs font-medium text-muted-foreground">Clave temporal</label>
+              <input
+                type="text"
+                value={invitePassword}
+                onChange={(e) => setInvitePassword(e.target.value)}
+                placeholder="(Opcional)"
+                className="w-full h-10 px-3 rounded-md border border-input bg-background focus:outline-none focus:ring-2 focus:ring-ring text-sm"
+              />
             </div>
             <button
               type="submit"

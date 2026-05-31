@@ -22,7 +22,7 @@ export async function POST(req: Request) {
         { status: 400 },
       );
     }
-    const { email, role, clinic_id } = parsed.data;
+    const { email, role, clinic_id, password } = parsed.data;
 
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -118,54 +118,72 @@ export async function POST(req: Request) {
     const adminClient = createAdminClient();
 
     let invitedUserId: string | undefined;
+    let actionLinkForEmail = `${serverEnv.NEXT_PUBLIC_SITE_URL}/login`;
 
-    // Invite the user or get their ID if they already exist
-    // Let's use generateLink instead of inviteUserByEmail to send custom email via Resend
-    const { data: inviteData, error: inviteError } = await adminClient.auth.admin.generateLink({
-      type: 'invite',
-      email,
-      options: {
-        redirectTo: `${serverEnv.NEXT_PUBLIC_SITE_URL}/recuperar/actualizar`,
-      }
-    });
+    if (password) {
+      // 1. Crear usuario directamente con clave
+      const { data: createData, error: createError } = await adminClient.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+      });
 
-    let inviteDataResult;
-
-    if (inviteError) {
-      // If user already exists, find their ID via RPC
-      const { data: foundId } = await adminClient.rpc('get_user_id_by_email', { email_input: email });
-      
-      if (foundId) {
-        // El usuario ya existe (ej. fue eliminado de la clínica pero su cuenta auth sigue ahí).
-        // Generamos un magic link en lugar de una invitación nueva para que pueda entrar y establecer clave si lo necesita.
-        const { data: magicData, error: magicError } = await adminClient.auth.admin.generateLink({
-          type: 'magiclink',
-          email,
-          options: {
-            redirectTo: `${serverEnv.NEXT_PUBLIC_SITE_URL}/recuperar/actualizar`,
-          }
-        });
-
-        if (magicError) {
-          log.error("clinic:invite", "generateLink magiclink failed", { error: magicError.message });
-          return NextResponse.json({ error: "No se pudo generar el acceso para el usuario existente" }, { status: 400 });
+      if (createError) {
+        // Podría fallar si ya existe
+        const { data: foundId } = await adminClient.rpc('get_user_id_by_email', { email_input: email });
+        if (foundId) {
+          invitedUserId = foundId;
+          // Al ya existir, no le sobreescribimos la clave, simplemente le enviamos al login
+        } else {
+          log.error("clinic:invite", "createUser failed", { error: createError.message });
+          return NextResponse.json({ error: "No se pudo crear el usuario con la contraseña indicada" }, { status: 400 });
         }
-        
-        inviteDataResult = magicData;
-        invitedUserId = foundId;
       } else {
-        // R-01: No exponer inviteError.message — puede contener detalles internos de Supabase Auth
-        log.error("clinic:invite", "generateLink failed", { error: inviteError.message });
-        return NextResponse.json({ error: "No se pudo generar la invitación" }, { status: 400 });
+        invitedUserId = createData.user.id;
       }
     } else {
-      inviteDataResult = inviteData;
-      invitedUserId = inviteData.user.id;
+      // 2. Flujo de invitación tradicional (magic link)
+      const { data: inviteData, error: inviteError } = await adminClient.auth.admin.generateLink({
+        type: 'invite',
+        email,
+        options: {
+          redirectTo: `${serverEnv.NEXT_PUBLIC_SITE_URL}/recuperar/actualizar`,
+        }
+      });
+
+      if (inviteError) {
+        // If user already exists, find their ID via RPC
+        const { data: foundId } = await adminClient.rpc('get_user_id_by_email', { email_input: email });
+        
+        if (foundId) {
+          // El usuario ya existe. Generamos magic link.
+          const { data: magicData, error: magicError } = await adminClient.auth.admin.generateLink({
+            type: 'magiclink',
+            email,
+            options: {
+              redirectTo: `${serverEnv.NEXT_PUBLIC_SITE_URL}/recuperar/actualizar`,
+            }
+          });
+
+          if (magicError) {
+            log.error("clinic:invite", "generateLink magiclink failed", { error: magicError.message });
+            return NextResponse.json({ error: "No se pudo generar el acceso para el usuario existente" }, { status: 400 });
+          }
+          
+          invitedUserId = foundId;
+          actionLinkForEmail = magicData.properties.action_link;
+        } else {
+          log.error("clinic:invite", "generateLink failed", { error: inviteError.message });
+          return NextResponse.json({ error: "No se pudo generar la invitación" }, { status: 400 });
+        }
+      } else {
+        invitedUserId = inviteData.user.id;
+        actionLinkForEmail = inviteData.properties.action_link;
+      }
     }
 
     // Enviar email personalizado con Resend
     const resend = new Resend(serverEnv.RESEND_API_KEY);
-    const actionLink = inviteDataResult.properties.action_link;
     const fromAddress = process.env.RESEND_FROM_EMAIL ?? APP_FROM_EMAIL;
       
       // Obtener el nombre de la clínica para el correo
@@ -180,8 +198,8 @@ export async function POST(req: Request) {
       const { error: resendError } = await resend.emails.send({
         from: fromAddress,
         to: [email],
-        subject: `Has sido invitado a unirte a ${clinicName} en ${APP_NAME}`,
-        html: buildInviteEmailHtml({ clinicName, actionLink }),
+        subject: password ? `Has sido invitado a unirte a ${clinicName} en ${APP_NAME}` : `Invitación a unirte a ${clinicName} en ${APP_NAME}`,
+        html: buildInviteEmailHtml({ clinicName, actionLink: actionLinkForEmail, password }),
       });
       
       if (resendError) {
@@ -245,7 +263,7 @@ export async function POST(req: Request) {
   }
 }
 
-function buildInviteEmailHtml({ clinicName, actionLink }: { clinicName: string; actionLink: string }): string {
+function buildInviteEmailHtml({ clinicName, actionLink, password }: { clinicName: string; actionLink: string; password?: string }): string {
   return `<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -268,10 +286,17 @@ function buildInviteEmailHtml({ clinicName, actionLink }: { clinicName: string; 
               <p style="margin:0 0 8px;font-size:22px;font-weight:700;color:#15212b;">
                 Hola 👋
               </p>
-              <p style="margin:0 0 28px;font-size:15px;color:#51606d;line-height:1.7;">
-                Has sido invitado a formar parte del equipo de <strong>${clinicName}</strong> en nuestra plataforma.
-              </p>
-              <table cellpadding="0" cellspacing="0" style="margin-bottom: 24px;">
+                  <p style="margin:0 0 24px 0;font-size:16px;line-height:24px;color:#4b5563;">
+                    Has sido invitado a unirte al equipo de <strong>${clinicName}</strong> como miembro del personal clínico.
+                  </p>
+                  ${password ? `
+                  <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px;margin-bottom:24px;">
+                    <p style="margin:0 0 8px 0;font-size:14px;color:#166534;font-weight:600;">Tus credenciales de acceso temporal:</p>
+                    <p style="margin:0;font-size:16px;color:#15803d;"><strong>Contraseña:</strong> ${password}</p>
+                    <p style="margin:8px 0 0 0;font-size:13px;color:#166534;">Ingresa con esta contraseña y tu correo electrónico. Podrás cambiarla luego en tus ajustes.</p>
+                  </div>
+                  ` : ''}
+                  <div style="text-align:center;margin-bottom:32px;">
                 <tr>
                   <td style="background:#0f766e;border-radius:10px;">
                     <a href="${actionLink}"

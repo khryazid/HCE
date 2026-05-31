@@ -76,6 +76,7 @@ export const inviteBodySchema = z.object({
     { message: "Rol inválido" }
   ),
   clinic_id: z.string().uuid("clinic_id debe ser un UUID válido"),
+  password:  z.string().min(6, "La contraseña debe tener al menos 6 caracteres").optional(),
 });
 
 /** POST /api/push/subscribe */
