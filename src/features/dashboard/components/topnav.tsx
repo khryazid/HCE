@@ -32,11 +32,10 @@ type NavItem = {
 };
 
 function getNavItems(role?: string, plan?: string): NavItem[] {
-  // ── clinic_admin (Plan Clínica): administration-focused view ──
-  if (role === "clinic_admin") {
+  // ── clinic_admin OR owner of Clinic Plan: administration-focused view ──
+  if (role === "clinic_admin" || (role === "owner" && plan === "clinic")) {
     return [
       { href: "/administracion", label: "Administración", icon: <Building2 className="w-[16px] h-[16px]" /> },
-      { href: "/caja",           label: "Caja",           icon: <Receipt className="w-[16px] h-[16px]" /> },
       { href: "/ajustes",        label: "Ajustes",        icon: <Settings className="w-[16px] h-[16px]" /> },
       { href: "/docs",           label: "Manual",         icon: <HelpCircle className="w-[16px] h-[16px]" /> },
     ];

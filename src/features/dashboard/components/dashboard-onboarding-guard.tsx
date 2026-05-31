@@ -101,7 +101,7 @@ export function DashboardOnboardingGuard({ isAdmin = false }: { isAdmin?: boolea
 
       // clinic_admin or owner of a clinic plan → restrict to admin routes
       if (isReady && (tenant.role === "clinic_admin" || (tenant.role === "owner" && tenant.plan === "clinic"))) {
-        const adminAllowedRoutes = ["/administracion", "/pacientes", "/caja", "/ajustes", "/docs"];
+        const adminAllowedRoutes = ["/administracion", "/ajustes", "/docs"];
         const isAllowed = adminAllowedRoutes.some(r => pathname === r || pathname.startsWith(r + "/"));
         if (!isAllowed && !isBillingPage && !isProfileSetupPage) {
           router.replace("/administracion");
