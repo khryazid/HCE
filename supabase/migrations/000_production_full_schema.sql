@@ -218,6 +218,10 @@ create table if not exists public.appointments (
   updated_at      timestamptz not null default now()
 );
 
+-- Habilitar REPLICA IDENTITY FULL para que Supabase Realtime reciba las filas completas
+-- en UPDATE/DELETE y pueda evaluar filtros como clinic_id=eq...
+alter table public.appointments replica identity full;
+
 -- ── api_rate_limits ──────────────────────────────────────────
 -- Contador de rate-limiting por scope+usuario dentro de una ventana de tiempo.
 -- Usado por claim_api_rate_limit() para proteger el endpoint de CIE-AI.

@@ -33,18 +33,35 @@ export function DateRangeFilter({ value, onChange, className = "" }: DateRangeFi
   const [customStart, setCustomStart] = useState<string>(format(value.start, "yyyy-MM-dd"));
   const [customEnd, setCustomEnd] = useState<string>(format(value.end, "yyyy-MM-dd"));
 
+  useEffect(() => {
+    if (value.type !== "custom") {
+      setCustomStart(format(value.start, "yyyy-MM-dd"));
+      setCustomEnd(format(value.end, "yyyy-MM-dd"));
+    }
+  }, [value.start, value.end, value.type]);
+
   const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newType = e.target.value as DateFilterType;
     if (newType === "custom") {
-      onChange({ type: "custom", start: startOfDay(new Date(customStart)), end: endOfDay(new Date(customEnd)) });
+      if (customStart && customEnd) {
+        const parsedStart = new Date(customStart + "T00:00:00");
+        const parsedEnd = new Date(customEnd + "T00:00:00");
+        if (!isNaN(parsedStart.getTime()) && !isNaN(parsedEnd.getTime())) {
+          onChange({ type: "custom", start: startOfDay(parsedStart), end: endOfDay(parsedEnd) });
+        }
+      }
     } else {
       onChange(getDefaultDateFilter(newType));
     }
   };
 
   useEffect(() => {
-    if (value.type === "custom") {
-      onChange({ type: "custom", start: startOfDay(new Date(customStart)), end: endOfDay(new Date(customEnd)) });
+    if (value.type === "custom" && customStart && customEnd) {
+      const parsedStart = new Date(customStart + "T00:00:00");
+      const parsedEnd = new Date(customEnd + "T00:00:00");
+      if (!isNaN(parsedStart.getTime()) && !isNaN(parsedEnd.getTime())) {
+        onChange({ type: "custom", start: startOfDay(parsedStart), end: endOfDay(parsedEnd) });
+      }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [customStart, customEnd]);

@@ -2,7 +2,7 @@ import React, { useState, useMemo } from "react";
 import { useCashTransactions, useCreateTransaction, useVoidTransaction, useCurrentCashShift, useOpenShift, useCloseShift, useAppointmentsMetrics } from "../lib/use-cash-flow";
 import { usePatients } from "@/features/patients/lib/use-patients-queries";
 import { Card } from "@/components/ui/card";
-import { Loader2, Plus, ArrowDownCircle, ArrowUpCircle, XCircle, Search, DollarSign, Activity, FileText, CheckCircle2, Clock } from "lucide-react";
+import { Loader2, Plus, ArrowDownCircle, ArrowUpCircle, XCircle, Search, DollarSign, Activity, FileText, CheckCircle2, Clock, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
@@ -11,12 +11,32 @@ import { DateRangeFilter, DateFilterValue, getDefaultDateFilter } from "@/compon
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from "recharts";
 import { usePaymentConfig } from "@/lib/use-payment-config";
+import { exportCashFlowPdf } from "../lib/cash-flow-pdf";
 
 interface CashFlowViewProps {
   clinicId: string;
   userId: string;
   tenant: any; // Using any for simplicity as it comes from context
 }
+
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-card border border-border p-3 rounded-lg shadow-md min-w-[120px]">
+        <p className="text-ink-soft text-xs font-semibold uppercase mb-2">{label}</p>
+        {payload.map((entry: any, index: number) => (
+          <div key={index} className="flex justify-between gap-4 text-sm mt-1">
+            <span style={{ color: entry.color }} className="font-medium">{entry.name}:</span>
+            <span className="font-bold text-ink">
+              ${Number(entry.value).toFixed(2)}
+            </span>
+          </div>
+        ))}
+      </div>
+    );
+  }
+  return null;
+};
 
 export function CashFlowView({ clinicId, userId, tenant }: CashFlowViewProps) {
   const [dateFilter, setDateFilter] = useState<DateFilterValue>(getDefaultDateFilter("today"));
@@ -304,6 +324,20 @@ export function CashFlowView({ clinicId, userId, tenant }: CashFlowViewProps) {
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
           <DateRangeFilter value={dateFilter} onChange={setDateFilter} />
           
+          <Button 
+            variant="outline" 
+            onClick={() => {
+              const periodInfo = isHistoricalMode || !currentShift
+                ? `Periodo: ${format(dateFilter.start, "dd MMM")} - ${format(dateFilter.end, "dd MMM yyyy")}`
+                : `Turno abierto: ${format(new Date(currentShift.opened_at), "dd MMM yyyy, HH:mm", { locale: es })}`;
+              exportCashFlowPdf(filteredTransactions, summary, periodInfo, tenant?.name || "Clínica");
+            }}
+            className="flex items-center gap-2"
+          >
+            <Printer className="h-4 w-4" />
+            <span className="hidden sm:inline">Exportar PDF</span>
+          </Button>
+
           {!isHistoricalMode && currentShift && (
             <div className="flex items-center gap-2">
               <Button onClick={handleCloseShift} variant="destructive" className="flex items-center gap-2">
@@ -357,37 +391,37 @@ export function CashFlowView({ clinicId, userId, tenant }: CashFlowViewProps) {
 
       <div className={`grid gap-4 ${isHistoricalMode ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"}`}>
         {!isHistoricalMode && (
-          <Card className="p-4 bg-bg-soft border-border">
+          <Card className="p-4 bg-card border-border shadow-sm">
             <p className="text-sm font-medium text-ink-soft flex items-center gap-2">Monto Base</p>
             <p className="text-2xl font-bold text-ink mt-1">${currentShift ? currentShift.initial_amount.toFixed(2) : '0.00'}</p>
           </Card>
         )}
-        <Card className="p-4 bg-green-50/50 dark:bg-green-900/10 border-green-200 dark:border-green-900/30">
+        <Card className="p-4 bg-card border-border shadow-sm">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
             <div>
-              <p className="text-sm font-medium text-green-800 dark:text-green-400 flex items-center gap-2"><ArrowUpCircle className="h-4 w-4" /> Ingresos Totales</p>
-              <p className="text-2xl font-bold text-green-900 dark:text-green-300 mt-1">${summary.income.toFixed(2)}</p>
+              <p className="text-sm font-medium text-ink-soft flex items-center gap-2"><ArrowUpCircle className="h-4 w-4 text-emerald-500" /> Ingresos Totales</p>
+              <p className="text-2xl font-bold text-ink mt-1">${summary.income.toFixed(2)}</p>
             </div>
-            <div className="text-xs text-green-800 dark:text-green-400 bg-green-100/50 dark:bg-green-900/20 rounded-lg p-2 space-y-1 w-full sm:w-auto">
+            <div className="text-xs text-ink-soft bg-bg-soft rounded-lg p-2 space-y-1 w-full sm:w-auto border border-border">
               {Object.entries(summary.income_by_method).map(([method, amount]) => (
                 <div key={method} className="flex justify-between gap-4">
-                  <span>{method}:</span> <strong>${amount.toFixed(2)}</strong>
+                  <span>{method}:</span> <strong className="text-ink">${amount.toFixed(2)}</strong>
                 </div>
               ))}
               {Object.keys(summary.income_by_method).length === 0 && (
-                <div className="text-green-800/60 dark:text-green-400/60 italic">Sin ingresos</div>
+                <div className="text-ink-lighter italic">Sin ingresos</div>
               )}
             </div>
           </div>
         </Card>
-        <Card className="p-4 bg-red-50/50 dark:bg-red-900/10 border-red-200 dark:border-red-900/30">
-          <p className="text-sm font-medium text-red-800 dark:text-red-400 flex items-center gap-2"><ArrowDownCircle className="h-4 w-4" /> Egresos Totales</p>
-          <p className="text-2xl font-bold text-red-900 dark:text-red-300 mt-1">${summary.expense.toFixed(2)}</p>
+        <Card className="p-4 bg-card border-border shadow-sm">
+          <p className="text-sm font-medium text-ink-soft flex items-center gap-2"><ArrowDownCircle className="h-4 w-4 text-red-500" /> Egresos Totales</p>
+          <p className="text-2xl font-bold text-ink mt-1">${summary.expense.toFixed(2)}</p>
         </Card>
         {!isHistoricalMode && (
-          <Card className="p-4 bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-900/30 ring-2 ring-blue-500/20">
-            <p className="text-sm font-medium text-blue-800 dark:text-blue-400 flex items-center gap-2"><DollarSign className="h-4 w-4" /> Efectivo Esperado</p>
-            <p className="text-2xl font-bold text-blue-900 dark:text-blue-300 mt-1">${summary.total_cash.toFixed(2)}</p>
+          <Card className="p-4 bg-card border-border shadow-sm ring-1 ring-accent/10">
+            <p className="text-sm font-medium text-ink-soft flex items-center gap-2"><DollarSign className="h-4 w-4 text-blue-500" /> Efectivo Esperado</p>
+            <p className="text-2xl font-bold text-ink mt-1">${summary.total_cash.toFixed(2)}</p>
           </Card>
         )}
       </div>
@@ -418,10 +452,10 @@ export function CashFlowView({ clinicId, userId, tenant }: CashFlowViewProps) {
               <Activity className="h-5 w-5 text-accent" />
               Rendimiento Diario
             </h3>
-            <div className="h-72 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={dailyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+            <div className="h-72 w-full bg-transparent">
+              <ResponsiveContainer width="100%" height="100%" className="bg-transparent">
+                <BarChart data={dailyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }} className="!bg-transparent">
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" fill="transparent" className="opacity-10" />
                   <XAxis 
                     dataKey="name" 
                     axisLine={false} 
@@ -436,13 +470,12 @@ export function CashFlowView({ clinicId, userId, tenant }: CashFlowViewProps) {
                     tickFormatter={(value) => `$${value}`}
                   />
                   <RechartsTooltip 
-                    cursor={{ fill: '#f3f4f6' }}
-                    contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                    formatter={(value: any) => [`$${Number(value || 0).toFixed(2)}`, undefined as any]}
+                    cursor={{ fill: 'currentColor', opacity: 0.05 }}
+                    content={<CustomTooltip />}
                   />
                   <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px' }} />
-                  <Bar dataKey="Ingresos" fill="#16a34a" radius={[4, 4, 0, 0]} maxBarSize={50} />
-                  <Bar dataKey="Egresos" fill="#dc2626" radius={[4, 4, 0, 0]} maxBarSize={50} />
+                  <Bar dataKey="Ingresos" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={50} />
+                  <Bar dataKey="Egresos" fill="#ef4444" radius={[4, 4, 0, 0]} maxBarSize={50} />
                 </BarChart>
               </ResponsiveContainer>
             </div>

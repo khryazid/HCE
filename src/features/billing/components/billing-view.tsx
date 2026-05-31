@@ -110,11 +110,11 @@ export default function BillingView({ proPrice = 29, clinicPrice = 99, isAdmin =
             <span className="text-sm font-semibold text-ink-soft">/mes</span>
           </p>
           <ul className="mt-6 flex flex-col gap-3 text-sm text-ink-soft flex-1">
+            <li className="font-semibold text-ink">✓ 1 Asistente (Gestión de agenda y caja)</li>
             <li>✓ Pacientes y consultas ilimitados</li>
-            <li>✓ Sugerencias CIE-11 con IA</li>
-            <li>✓ PDF clínico profesional</li>
-            <li>✓ Sync offline automático</li>
-            <li>✓ Soporte por email</li>
+            <li>✓ Sugerencias de diagnóstico con IA</li>
+            <li>✓ Evoluciones médicas y PDF clínico</li>
+            <li>✓ Funcionamiento Offline sin internet</li>
           </ul>
           {!PRO_PRICE_ID && (
             <p className="mt-4 rounded bg-yellow-100 px-3 py-2 text-sm text-yellow-800">
@@ -145,10 +145,10 @@ export default function BillingView({ proPrice = 29, clinicPrice = 99, isAdmin =
             <span className="text-sm font-semibold text-ink-soft">/mes</span>
           </p>
           <ul className="mt-6 flex flex-col gap-3 text-sm text-ink-soft flex-1">
+            <li className="font-semibold text-ink">✓ Múltiples Médicos y Asistentes</li>
             <li>✓ Todo lo del plan Profesional</li>
-            <li>✓ Múltiples doctores</li>
-            <li>✓ Reportes consolidados</li>
-            <li>✓ Soporte prioritario</li>
+            <li>✓ Reportes consolidados de clínica</li>
+            <li>✓ Soporte prioritario 24/7</li>
           </ul>
           {!CLINIC_PRICE_ID && (
             <p className="mt-4 rounded bg-yellow-100 px-3 py-2 text-sm text-yellow-800">

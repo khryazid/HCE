@@ -163,6 +163,8 @@ export function CalendarView() {
             setFilters={setFilters}
             doctorName={tenantProfile.role === "assistant" ? "Agenda General" : tenantProfile.full_name || "Doctor"}
             stats={stats}
+            events={filteredEvents}
+            onEventClick={handleSelectEvent}
           />
           
           <AgendaGrid 

@@ -64,6 +64,8 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [isCharging, setIsCharging] = useState(false);
+  const [chargePayments, setChargePayments] = useState<{method: string; amount: string}[]>([]);
   const router = useRouter();
 
   const { tenant } = useTenant();
@@ -135,6 +137,7 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
       if (initialData) {
         // Modo Edición
         setIsEditing(false);
+        setIsCharging(false);
         const startD = new Date(initialData.start_time);
         const endD = new Date(initialData.end_time);
         const wasWalkIn = initialData.consultation_type === 'walk-in';
@@ -374,6 +377,65 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
     router.push(url);
   }
 
+  const handleQuickCharge = async () => {
+    if (!initialData) return;
+    if (!currentShift) {
+      setSubmitError("Debes tener un turno de caja abierto para registrar pagos.");
+      return;
+    }
+    setIsSubmitting(true);
+    setSubmitError(null);
+    try {
+      const totalAmount = chargePayments.reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
+      if (totalAmount <= 0) {
+        throw new Error("El monto total a cobrar debe ser mayor a 0");
+      }
+
+      // Validar métodos vacíos
+      if (chargePayments.some(p => !p.method || !p.amount)) {
+        throw new Error("Todos los pagos deben tener un método y un monto.");
+      }
+
+      // Update appointment
+      await onSave({
+        id: initialData.id,
+        payment_status: "paid",
+        payment_method: chargePayments.length > 1 ? "multiple" : chargePayments[0].method,
+        amount: totalAmount,
+      } as any);
+
+      // Create transactions in Cash Flow
+      for (const p of chargePayments) {
+        const amt = parseFloat(p.amount);
+        if (amt > 0) {
+          const validMethods = ["cash", "card", "transfer", "other"];
+          const rawMethod = p.method || "cash";
+          const mappedMethod = validMethods.includes(rawMethod) ? rawMethod : "other";
+          const conceptSuffix = chargePayments.length > 1 ? ` (Pago Múltiple - ${rawMethod})` : (mappedMethod === "other" && rawMethod !== "other" ? ` - Pago con ${rawMethod}` : "");
+
+          await createTx.mutateAsync({
+            clinic_id: tenantInfo.clinic_id,
+            user_id: userId,
+            type: "income",
+            amount: amt,
+            concept: `Consulta: ${initialData.patient_name} (${initialData.consultation_type || 'General'})${conceptSuffix}`,
+            payment_method: mappedMethod as any,
+            shift_id: currentShift.id,
+            status: "completed"
+          });
+        }
+      }
+      toast.success("Cobro procesado correctamente en la caja");
+      setIsCharging(false);
+      onClose();
+    } catch (error: any) {
+      console.error(error);
+      setSubmitError(error.message || "No se pudo procesar el cobro");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="sm:max-w-[700px] p-0 overflow-hidden bg-[#FAFAFA] dark:bg-bg border-none shadow-2xl rounded-2xl" aria-describedby={undefined}>
@@ -386,8 +448,89 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
 
         {initialData && !isEditing ? (
           <div className="p-6 space-y-6 max-h-[80vh] overflow-y-auto">
-            {/* Detalles de la cita (View Mode) */}
-            <div className="space-y-4">
+            {isCharging ? (
+              <div className="space-y-6">
+                <div className="bg-card border border-border p-5 rounded-2xl">
+                  <h3 className="font-bold text-ink mb-4 flex items-center gap-2">
+                    <DollarSign className="w-5 h-5 text-accent" />
+                    Procesar Cobro
+                  </h3>
+                  <div className="space-y-3">
+                    {chargePayments.map((p, idx) => (
+                      <div key={idx} className="flex gap-3 items-start">
+                        <div className="flex-1 space-y-1">
+                          <label className="text-[11px] font-bold text-ink-soft uppercase">Método</label>
+                          <select 
+                            className="w-full px-3 py-2 bg-transparent border border-border rounded-lg text-sm text-ink"
+                            value={p.method}
+                            onChange={(e) => {
+                               const newP = [...chargePayments];
+                               newP[idx].method = e.target.value;
+                               setChargePayments(newP);
+                            }}
+                          >
+                            <option value="">Seleccionar...</option>
+                            {config.methods.map((m, i) => <option key={i} value={m.name}>{m.name}</option>)}
+                          </select>
+                        </div>
+                        <div className="flex-1 space-y-1">
+                          <label className="text-[11px] font-bold text-ink-soft uppercase">Monto ($)</label>
+                          <input 
+                            type="number"
+                            step="0.01"
+                            className="w-full px-3 py-2 bg-transparent border border-border rounded-lg text-sm text-ink"
+                            value={p.amount}
+                            onChange={(e) => {
+                               const newP = [...chargePayments];
+                               newP[idx].amount = e.target.value;
+                               setChargePayments(newP);
+                            }}
+                          />
+                        </div>
+                        {chargePayments.length > 1 && (
+                          <div className="pt-5">
+                            <button 
+                              onClick={() => setChargePayments(chargePayments.filter((_, i) => i !== idx))}
+                              className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                    
+                    <button 
+                      onClick={() => setChargePayments([...chargePayments, { method: config.methods[0]?.name || 'cash', amount: '' }])}
+                      className="text-sm font-semibold text-accent hover:text-accent-hover flex items-center gap-1 mt-2"
+                    >
+                      + Agregar método de pago dividido
+                    </button>
+                  </div>
+                  
+                  <div className="mt-6 pt-4 border-t border-border flex justify-between items-center font-bold text-lg">
+                    <span className="text-ink-soft">Total a cobrar:</span>
+                    <span className="text-ink">${chargePayments.reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0).toFixed(2)}</span>
+                  </div>
+                </div>
+
+                {submitError && (
+                  <div className="rounded-lg bg-red-50 text-red-600 px-3 py-2 text-sm font-medium">
+                    {submitError}
+                  </div>
+                )}
+
+                <div className="flex justify-end gap-3 pt-4 border-t border-border/50">
+                  <button onClick={() => setIsCharging(false)} className="hce-btn-secondary" disabled={isSubmitting}>Cancelar</button>
+                  <button onClick={handleQuickCharge} className="hce-btn-primary" disabled={isSubmitting}>
+                    {isSubmitting ? "Procesando..." : "Confirmar Cobro"}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* Detalles de la cita (View Mode) */}
+                <div className="space-y-4">
               <div className="rounded-xl border border-border bg-card p-4 space-y-4">
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 shrink-0 rounded-full bg-accent/10 flex items-center justify-center text-accent font-bold text-lg">
@@ -499,6 +642,24 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
                 >
                   Modificar Cita
                 </button>
+                {initialData.payment_status !== 'paid' && initialData.payment_status !== 'honorary' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      let defaultAmt = initialData.amount || 0;
+                      if (!defaultAmt && initialData.consultation_type) {
+                        const t = config.consultationTypes.find(c => c.name === initialData.consultation_type);
+                        if (t) defaultAmt = t.price;
+                      }
+                      setChargePayments([{ method: config.methods[0]?.name || 'cash', amount: defaultAmt ? String(defaultAmt) : '' }]);
+                      setIsCharging(true);
+                    }}
+                    className="flex items-center gap-1.5 w-full sm:w-auto justify-center px-4 py-2 rounded-xl text-sm font-semibold bg-emerald-500 hover:bg-emerald-600 text-white transition-colors"
+                  >
+                    <DollarSign className="w-4 h-4" />
+                    Cobrar Cita
+                  </button>
+                )}
                 {tenant?.role !== "assistant" && (
                   <button
                     type="button"
@@ -511,6 +672,8 @@ export function AppointmentModal({ isOpen, onClose, onSave, onDelete, initialDat
                 )}
               </div>
             </div>
+            </>
+            )}
           </div>
         ) : (
           <form onSubmit={form.handleSubmit(onSubmit)} className="p-8 space-y-8 max-h-[80vh] overflow-y-auto bg-white dark:bg-bg">

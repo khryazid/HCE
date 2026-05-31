@@ -18,8 +18,8 @@ export function AgendaGrid({
   onEventClick,
   onSlotClick,
 }: AgendaGridProps) {
-  const startHour = 7;
-  const endHour = 20;
+  const startHour = 0;
+  const endHour = 23;
   const hours = Array.from({ length: endHour - startHour + 1 }, (_, i) => i + startHour);
 
   // Determinar los días a mostrar

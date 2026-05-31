@@ -81,6 +81,7 @@ Con arquitectura multi-tenant de grado empresarial, Glyphix automatiza la factur
 - **🆕 Migración admin→owner** — Todos los chequeos de rol `"admin"` migrados a `"owner"`/`"clinic_admin"` en 14 archivos (APIs, páginas, guardas).
 - **Expansión del Super Admin** — Gestión masiva de clínicas y suscripciones.
 - **T&C en Markdown** — Edición dinámica de términos sin tocar código.
+- **Pagos Divididos y Agenda Realtime** — Soporte para múltiples métodos de pago por consulta (ej. efectivo + transferencia) e interfaz de caja integrada en agenda, junto con fix de sincronización Realtime (REPLICA IDENTITY FULL).
 - **Rediseño completo de UI** — Landing page, auth, dashboard, agenda, settings.
 
 ---
