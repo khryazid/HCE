@@ -220,5 +220,5 @@
 - [x] Preparación de Commit unificado y orquestación de Git.
 - [x] Push a rama remota.
 
-**Commit Hash:** Confirmado en histórico de Git
-**Rama Actualizada:** `main`
+**Commit Hash:** `3d017d4`
+**Rama Actualizada:** `develop`
