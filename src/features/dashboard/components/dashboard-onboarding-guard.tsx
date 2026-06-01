@@ -92,7 +92,10 @@ export function DashboardOnboardingGuard({ isAdmin = false }: { isAdmin?: boolea
       }
 
       // El setup completo ahora requiere terminar el Onboarding (step 4 y completed=true)
-      const isReady = tenant.onboarding_state?.completed === true;
+      // FIX: Solo 'owner' y 'doctor' deben completar el flujo de onboarding médico.
+      // Roles invitados (receptionist, admin, assistant, etc) no tienen licencia médica ni precios.
+      const requiresOnboardingFlow = ["owner", "doctor"].includes(tenant.role);
+      const isReady = requiresOnboardingFlow ? tenant.onboarding_state?.completed === true : true;
 
       if (!isReady && !isProfileSetupPage && !isBillingPage && !pathname.startsWith("/onboarding")) {
         router.replace("/onboarding");

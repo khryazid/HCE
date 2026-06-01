@@ -30,11 +30,7 @@ create policy "Médicos pueden leer órdenes de su clínica"
   on public.lab_orders for select
   using (
     auth.uid() is not null
-    and clinic_id in (
-      select clinic_id from public.profiles where doctor_id = auth.uid()
-      union
-      select clinic_id from public.clinic_members where doctor_id = auth.uid()
-    )
+    and clinic_id = any (public.get_user_clinic_ids())
   );
 
 drop policy if exists "Médicos pueden insertar órdenes en su clínica" on public.lab_orders;
@@ -42,11 +38,7 @@ create policy "Médicos pueden insertar órdenes en su clínica"
   on public.lab_orders for insert
   with check (
     auth.uid() = doctor_id
-    and clinic_id in (
-      select clinic_id from public.profiles where doctor_id = auth.uid()
-      union
-      select clinic_id from public.clinic_members where doctor_id = auth.uid()
-    )
+    and clinic_id = any (public.get_user_clinic_ids())
   );
 
 drop policy if exists "Médicos pueden actualizar órdenes en su clínica" on public.lab_orders;
@@ -54,11 +46,7 @@ create policy "Médicos pueden actualizar órdenes en su clínica"
   on public.lab_orders for update
   using (
     auth.uid() is not null
-    and clinic_id in (
-      select clinic_id from public.profiles where doctor_id = auth.uid()
-      union
-      select clinic_id from public.clinic_members where doctor_id = auth.uid()
-    )
+    and clinic_id = any (public.get_user_clinic_ids())
   );
 
 drop policy if exists "Médicos pueden eliminar órdenes de su clínica" on public.lab_orders;
@@ -66,11 +54,7 @@ create policy "Médicos pueden eliminar órdenes de su clínica"
   on public.lab_orders for delete
   using (
     auth.uid() is not null
-    and clinic_id in (
-      select clinic_id from public.profiles where doctor_id = auth.uid()
-      union
-      select clinic_id from public.clinic_members where doctor_id = auth.uid()
-    )
+    and clinic_id = any (public.get_user_clinic_ids())
   );
 
 create index if not exists idx_lab_orders_tenant on public.lab_orders (clinic_id, doctor_id);
@@ -107,11 +91,7 @@ create policy "Médicos pueden leer referencias de su clínica"
   using (
     auth.uid() is not null
     and (
-      clinic_id in (
-        select clinic_id from public.profiles where doctor_id = auth.uid()
-        union
-        select clinic_id from public.clinic_members where doctor_id = auth.uid()
-      )
+      clinic_id = any (public.get_user_clinic_ids())
       or referred_doctor_id = auth.uid()
     )
   );
@@ -121,11 +101,7 @@ create policy "Médicos pueden crear referencias"
   on public.medical_referrals for insert
   with check (
     auth.uid() = referring_doctor_id
-    and clinic_id in (
-      select clinic_id from public.profiles where doctor_id = auth.uid()
-      union
-      select clinic_id from public.clinic_members where doctor_id = auth.uid()
-    )
+    and clinic_id = any (public.get_user_clinic_ids())
   );
 
 drop policy if exists "Médicos pueden actualizar referencias" on public.medical_referrals;
@@ -134,11 +110,7 @@ create policy "Médicos pueden actualizar referencias"
   using (
     auth.uid() is not null
     and (
-      clinic_id in (
-        select clinic_id from public.profiles where doctor_id = auth.uid()
-        union
-        select clinic_id from public.clinic_members where doctor_id = auth.uid()
-      )
+      clinic_id = any (public.get_user_clinic_ids())
       or referred_doctor_id = auth.uid()
     )
   );
@@ -148,11 +120,7 @@ create policy "Médicos pueden eliminar referencias"
   on public.medical_referrals for delete
   using (
     auth.uid() is not null
-    and clinic_id in (
-      select clinic_id from public.profiles where doctor_id = auth.uid()
-      union
-      select clinic_id from public.clinic_members where doctor_id = auth.uid()
-    )
+    and clinic_id = any (public.get_user_clinic_ids())
   );
 
 create index if not exists idx_medical_referrals_tenant on public.medical_referrals (clinic_id, referring_doctor_id);

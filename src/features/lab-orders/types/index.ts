@@ -1,7 +1,7 @@
-export type OrderType = "laboratory" | "imaging";
-export type OrderStatus = "pending" | "in_progress" | "completed" | "cancelled";
+type OrderType = "laboratory" | "imaging";
+type OrderStatus = "pending" | "in_progress" | "completed" | "cancelled";
 
-export interface LabOrderItem {
+interface LabOrderItem {
   name: string;
   code?: string;
   notes?: string;

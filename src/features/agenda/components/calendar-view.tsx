@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { X, Filter } from "lucide-react";
 import { useAgenda } from "@/features/agenda/lib/use-agenda";
 import { useAgendaRealtime } from "@/features/agenda/lib/use-agenda-realtime";
 import { AppointmentModal } from "@/features/agenda/components/appointment-modal";
@@ -26,6 +27,7 @@ export function CalendarView() {
 
   // Estado del Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<{ start: Date; end: Date } | undefined>();
   const [selectedEvent, setSelectedEvent] = useState<AppointmentRow | undefined>();
 
@@ -144,6 +146,7 @@ export function CalendarView() {
             setSelectedSlot(undefined);
             setIsModalOpen(true);
           }}
+          onToggleSidebar={() => setIsSidebarOpen(true)}
         />
 
         <div className="gx-layout relative">
@@ -156,16 +159,58 @@ export function CalendarView() {
             </div>
           )}
 
-          <AgendaSidebar 
-            currentDate={currentDate}
-            onDateSelect={setCurrentDate}
-            filters={filters}
-            setFilters={setFilters}
-            doctorName={tenantProfile.role === "assistant" ? "Agenda General" : tenantProfile.full_name || "Doctor"}
-            stats={stats}
-            events={filteredEvents}
-            onEventClick={handleSelectEvent}
-          />
+          {/* Desktop Sidebar */}
+          <div className="hidden lg:block">
+            <AgendaSidebar 
+              currentDate={currentDate}
+              onDateSelect={setCurrentDate}
+              filters={filters}
+              setFilters={setFilters}
+              doctorName={tenantProfile.role === "assistant" ? "Agenda General" : tenantProfile.full_name || "Doctor"}
+              stats={stats}
+              events={filteredEvents}
+              onEventClick={handleSelectEvent}
+            />
+          </div>
+
+          {/* Mobile Bottom Sheet Sidebar */}
+          {isSidebarOpen && (
+            <div className="fixed inset-0 z-[100] lg:hidden flex flex-col justify-end">
+              <div 
+                className="absolute inset-0 bg-ink/50 backdrop-blur-sm transition-opacity" 
+                onClick={() => setIsSidebarOpen(false)}
+              />
+              <div className="relative bg-bg w-full h-[85vh] rounded-t-3xl shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-full duration-300">
+                <div className="flex items-center justify-between p-4 border-b border-border">
+                  <h3 className="font-bold text-lg text-ink">Filtros y Calendario</h3>
+                  <button 
+                    onClick={() => setIsSidebarOpen(false)}
+                    className="p-2 bg-bg-soft rounded-full text-ink-soft hover:text-ink min-h-[44px] min-w-[44px] flex items-center justify-center"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                <div className="flex-1 overflow-y-auto">
+                  <AgendaSidebar 
+                    currentDate={currentDate}
+                    onDateSelect={(d) => {
+                      setCurrentDate(d);
+                      setIsSidebarOpen(false);
+                    }}
+                    filters={filters}
+                    setFilters={setFilters}
+                    doctorName={tenantProfile.role === "assistant" ? "Agenda General" : tenantProfile.full_name || "Doctor"}
+                    stats={stats}
+                    events={filteredEvents}
+                    onEventClick={(e) => {
+                      handleSelectEvent(e);
+                      setIsSidebarOpen(false);
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
           
           <AgendaGrid 
             currentDate={currentDate}

@@ -18,7 +18,7 @@ import type { OrgRole } from "@/lib/supabase/profile";
 // ROLE → DEFAULT DASHBOARD MAP
 // ═══════════════════════════════════════════════════════════════
 
-export const ROLE_DASHBOARDS: Record<OrgRole, string> = {
+const ROLE_DASHBOARDS: Record<OrgRole, string> = {
   owner:        "/dashboard",
   doctor:       "/dashboard",
   assistant:    "/agenda",
@@ -48,7 +48,7 @@ const ROUTE_ACCESS: Array<{ prefix: string; roles: OrgRole[] }> = [
   { prefix: "/pacientes",     roles: ["owner", "doctor", "assistant"] },
   { prefix: "/consultas",     roles: ["owner", "doctor"] },
   { prefix: "/tratamientos",  roles: ["owner", "doctor"] },
-  { prefix: "/caja",          roles: ["owner", "doctor", "assistant", "lab", "imaging", "surgery"] },
+  { prefix: "/caja",          roles: ["owner", "doctor", "assistant", "receptionist", "clinic_admin", "lab", "imaging", "surgery"] },
   { prefix: "/ajustes",       roles: ["owner", "doctor", "clinic_admin"] },
   
   // Clinic Admin routes — 100% administrative, NO clinical access
@@ -79,7 +79,7 @@ const ROUTE_ACCESS: Array<{ prefix: string; roles: OrgRole[] }> = [
  * Check if a given role has access to a specific route.
  * Returns true if the role is allowed, false otherwise.
  */
-export function roleHasRouteAccess(role: OrgRole, pathname: string): boolean {
+function roleHasRouteAccess(role: OrgRole, pathname: string): boolean {
   // Find the first matching route prefix
   const rule = ROUTE_ACCESS.find(
     (r) => pathname === r.prefix || pathname.startsWith(r.prefix + "/")
@@ -119,7 +119,7 @@ const PERMISSION_REQUIRED_ROUTES: Array<{
  * Check if custom permissions allow access to a route for a given role.
  * Returns true if no extra permission is needed, or if the permission is granted.
  */
-export function hasRequiredPermissions(
+function hasRequiredPermissions(
   role: OrgRole,
   pathname: string,
   customPermissions: Record<string, boolean>
@@ -139,7 +139,7 @@ export function hasRequiredPermissions(
 // FULL 4-STEP GUARD (for use in server components / middleware)
 // ═══════════════════════════════════════════════════════════════
 
-export type GuardResult =
+type GuardResult =
   | { allowed: true }
   | { allowed: false; redirect: string; reason: string }
   | { allowed: false; status: 403; reason: string };
@@ -155,7 +155,7 @@ export type GuardResult =
  * @param params.pathname - The requested route
  * @param params.isPlatformAdmin - Whether the user is a platform admin
  */
-export function evaluateRouteGuard(params: {
+function evaluateRouteGuard(params: {
   hasSession: boolean;
   isActive: boolean;
   subscriptionStatus: string | null | undefined;

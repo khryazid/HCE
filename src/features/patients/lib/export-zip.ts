@@ -25,7 +25,7 @@ import { generateConsultationPdf, type ConsultationPdfData } from "@/features/co
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export type ExportProgress = {
+type ExportProgress = {
   current: number;
   total: number;
   label: string;

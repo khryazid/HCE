@@ -119,16 +119,18 @@ export async function updateSession(request: NextRequest) {
   const isPlatformRoute = request.nextUrl.pathname.startsWith("/platform");
 
   const isServerAction = request.headers.has("next-action");
+  
+  const isApiRoute = request.nextUrl.pathname.startsWith("/api/");
 
-  // ── Step 1: No session → redirect to login (unless public route)
-  if (!user && !isPublicRoute && !isServerAction) {
+  // ── Step 1: No session → redirect to login (unless public route or API)
+  if (!user && !isPublicRoute && !isServerAction && !isApiRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
   }
 
   // ── Authenticated user on auth route → redirect based on role
-  if (user && isAuthRoute && !isServerAction) {
+  if (user && isAuthRoute && !isServerAction && !isApiRoute) {
     // 6-STEP LOGIN REDIRECT FLOW:
     // Step 2: Check if platform admin
     try {
@@ -179,7 +181,7 @@ export async function updateSession(request: NextRequest) {
   }
 
   // ── Platform routes: verify is_platform_admin
-  if (user && isPlatformRoute && !isServerAction) {
+  if (user && isPlatformRoute && !isServerAction && !isApiRoute) {
     try {
       const { data: profileData } = await supabase
         .from("profiles")
@@ -203,7 +205,7 @@ export async function updateSession(request: NextRequest) {
   // ── Step 3 (RBAC): Enforce role-based access on private routes ──
   // This is the server-side enforcement that complements the client-side RoleGuard.
   // Without this, users could bypass the client guard by navigating directly.
-  if (user && !isPublicRoute && !isAuthRoute && !isPlatformRoute && !isServerAction) {
+  if (user && !isPublicRoute && !isAuthRoute && !isPlatformRoute && !isServerAction && !isApiRoute) {
     try {
       const { data: memberData } = await supabase
         .from("clinic_members")
@@ -224,7 +226,7 @@ export async function updateSession(request: NextRequest) {
           { prefix: "/pacientes",      roles: ["owner", "doctor", "assistant"] },
           { prefix: "/consultas",      roles: ["owner", "doctor"] },
           { prefix: "/tratamientos",   roles: ["owner", "doctor"] },
-          { prefix: "/caja",           roles: ["owner", "doctor", "assistant", "lab", "imaging", "surgery"] },
+          { prefix: "/caja",           roles: ["owner", "doctor", "assistant", "receptionist", "clinic_admin", "lab", "imaging", "surgery"] },
           { prefix: "/ajustes",        roles: ["owner", "doctor", "clinic_admin"] },
           { prefix: "/administracion", roles: ["clinic_admin", "owner"] },
           { prefix: "/recepcion",      roles: ["receptionist"] },
@@ -248,7 +250,11 @@ export async function updateSession(request: NextRequest) {
         }
       }
     } catch {
-      // If role check fails, allow through — client-side guard is backup
+      // Si la verificación de roles falla, aplicar "Fail-Closed" en lugar de "Fail-Open"
+      const url = request.nextUrl.clone();
+      url.pathname = "/login";
+      url.searchParams.set("error", "timeout");
+      return NextResponse.redirect(url);
     }
   }
 

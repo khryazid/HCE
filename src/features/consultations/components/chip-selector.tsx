@@ -74,7 +74,7 @@ export function ChipSelector({ catalog, selected, onChange, placeholder = "Busca
             type="button"
             onClick={addCustom}
             disabled={!customInput.trim()}
-            className="flex items-center gap-1 text-xs font-bold uppercase tracking-wider bg-card border border-border px-2 py-1.5 rounded-lg text-ink hover:text-accent hover:border-accent disabled:opacity-50 disabled:hover:border-border disabled:hover:text-ink transition-colors shadow-sm"
+            className="flex items-center gap-1 text-xs font-bold uppercase tracking-wider bg-card border border-border px-3 py-2 min-h-[44px] rounded-lg text-ink hover:text-accent hover:border-accent disabled:opacity-50 disabled:hover:border-border disabled:hover:text-ink transition-colors shadow-sm"
           >
             <Plus className="h-3 w-3" /> Agregar
           </button>
@@ -95,7 +95,7 @@ export function ChipSelector({ catalog, selected, onChange, placeholder = "Busca
                     key={item}
                     type="button"
                     onClick={() => toggle(item)}
-                    className="rounded-full border border-border bg-card px-3 py-1.5 text-sm font-semibold text-ink-soft hover:border-teal-400 hover:text-teal-600 transition-colors shadow-sm"
+                    className="rounded-full border border-border bg-card px-4 py-2 min-h-[44px] flex items-center justify-center text-sm font-semibold text-ink-soft hover:border-teal-400 hover:text-teal-600 transition-colors shadow-sm"
                   >
                     + {item}
                   </button>
@@ -118,7 +118,7 @@ export function ChipSelector({ catalog, selected, onChange, placeholder = "Busca
                       toggle(item);
                       setCustomInput("");
                     }}
-                    className="rounded-full border border-teal-500/30 bg-teal-500/5 px-3 py-1.5 text-sm font-semibold text-teal-700 dark:text-teal-400 hover:bg-teal-500/20 transition-colors"
+                    className="rounded-full border border-teal-500/30 bg-teal-500/5 px-4 py-2 min-h-[44px] flex items-center justify-center text-sm font-semibold text-teal-700 dark:text-teal-400 hover:bg-teal-500/20 transition-colors"
                   >
                     + {item}
                   </button>
@@ -141,13 +141,13 @@ export function ChipSelector({ catalog, selected, onChange, placeholder = "Busca
             {selected.map((item) => (
               <span
                 key={item}
-                className="inline-flex items-center gap-1.5 rounded-md border border-teal-600/20 bg-teal-600/10 px-2.5 py-1.5 text-sm font-semibold text-teal-800 dark:text-teal-300 shadow-sm animate-in zoom-in-95 duration-200"
+                className="inline-flex items-center gap-1.5 rounded-md border border-teal-600/20 bg-teal-600/10 pl-3 pr-1 py-1 min-h-[44px] text-sm font-semibold text-teal-800 dark:text-teal-300 shadow-sm animate-in zoom-in-95 duration-200"
               >
                 {item}
                 <button
                   type="button"
                   aria-label={`Quitar ${item}`}
-                  className="rounded-sm hover:bg-teal-600/20 text-teal-600/70 hover:text-teal-800 dark:hover:text-teal-200 p-0.5 transition-colors"
+                  className="rounded-sm hover:bg-teal-600/20 text-teal-600/70 hover:text-teal-800 dark:hover:text-teal-200 min-h-[36px] min-w-[36px] flex items-center justify-center transition-colors"
                   onClick={() => remove(item)}
                 >
                   <X className="h-3 w-3" />

@@ -109,7 +109,7 @@ describe("stripe webhook route", () => {
 
   it("ignores duplicate events idempotently", async () => {
     mockConstructEvent.mockReturnValue({ id: "evt_123", type: "dummy" });
-    mockMaybeSingle.mockResolvedValueOnce({ data: { stripe_event_id: "evt_123" } });
+    mockInsert.mockResolvedValueOnce({ error: { code: "23505" } });
     
     const res = await POST(buildRequest("{}"));
     expect(res.status).toBe(200);

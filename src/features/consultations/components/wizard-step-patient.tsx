@@ -78,6 +78,7 @@ const WizardStepPatient = memo(function WizardStepPatient({
       ? "create"
       : "search"
   );
+  const [showExtraDetails, setShowExtraDetails] = useState(false);
 
   // Autocomplete: search by name, surname, or document number
   const suggestions = useMemo(() => {
@@ -140,111 +141,142 @@ const WizardStepPatient = memo(function WizardStepPatient({
           </div>
 
           <div className="space-y-4">
-            <h4 className="text-sm font-semibold text-ink">Datos complementarios para la consulta</h4>
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="space-y-1.5">
-                <div className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
-                  <label className="absolute left-3 top-2 flex items-center gap-1.5 text-sm font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
-                    <User className="h-3 w-3" /> Sexo Biológico <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    className="w-full bg-transparent px-3 pb-3 pt-7 text-base text-ink !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none"
-                    value={form.gender}
-                    onChange={(e) => setForm(c => ({ ...c, gender: e.target.value as "Hombre" | "Mujer" | "" }))}
-                  >
-                    <option value="">Seleccionar...</option>
-                    <option value="Hombre">Hombre</option>
-                    <option value="Mujer">Mujer</option>
-                  </select>
-                </div>
-                <p className="text-xs text-ink-soft px-1">
-                  Dato médico-legal obligatorio para valores de referencia de laboratorio.
-                </p>
-              </div>
-              <div className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
-                <label className="absolute left-3 top-2 flex items-center gap-1.5 text-sm font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
-                  <Briefcase className="h-3 w-3" /> Ocupación
-                </label>
-                <input
-                  className="w-full bg-transparent px-3 pb-3 pt-7 text-base text-ink !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none placeholder:text-ink-faint/30"
-                  placeholder="Ej: Docente, Arquitecto"
-                  value={form.occupation}
-                  onChange={(e) => setForm(c => ({ ...c, occupation: e.target.value }))}
-                />
-              </div>
-              <div className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
-                <label className="absolute left-3 top-2 flex items-center gap-1.5 text-sm font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
-                  <Shield className="h-3 w-3" /> Aseguradora / EPS
-                </label>
-                <input
-                  className="w-full bg-transparent px-3 pb-3 pt-7 text-base text-ink !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none placeholder:text-ink-faint/30"
-                  placeholder="Ej: Particular, IESS"
-                  value={form.insurance}
-                  onChange={(e) => setForm(c => ({ ...c, insurance: e.target.value }))}
-                />
-              </div>
-              <div className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
-                <label className="absolute left-3 top-2 flex items-center gap-1.5 text-sm font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
-                  <Droplet className="h-3 w-3" /> Tipo de Sangre
-                </label>
-                <select
-                  className="w-full bg-transparent px-3 pb-3 pt-7 text-base text-ink !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none"
-                  value={form.blood_type}
-                  onChange={(e) => setForm(c => ({ ...c, blood_type: e.target.value as typeof form.blood_type }))}
-                >
-                  <option value="">Desconocido</option>
-                  <option value="A+">A+</option>
-                  <option value="A-">A-</option>
-                  <option value="B+">B+</option>
-                  <option value="B-">B-</option>
-                  <option value="AB+">AB+</option>
-                  <option value="AB-">AB-</option>
-                  <option value="O+">O+</option>
-                  <option value="O-">O-</option>
-                </select>
-              </div>
-            </div>
-          </div>
+            <button
+              type="button"
+              className="flex items-center gap-2 text-sm font-semibold text-teal-600 hover:text-teal-700 transition-colors min-h-[44px] py-2"
+              onClick={() => setShowExtraDetails(prev => !prev)}
+              aria-expanded={showExtraDetails}
+              aria-controls="extra-details-panel"
+            >
+              <svg
+                className={`h-4 w-4 transform transition-transform ${showExtraDetails ? "rotate-180" : ""}`}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+              {showExtraDetails ? "Ocultar detalles complementarios" : "Mostrar detalles complementarios (Ocupación, Contacto de emergencia)"}
+            </button>
 
-          {/* Contacto de Emergencia */}
-          <div className="space-y-4">
-            <h4 className="text-sm font-semibold text-ink">Contacto de Emergencia</h4>
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
-                <label className="absolute left-3 top-2 flex items-center gap-1.5 text-sm font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
-                  <UserPlus className="h-3 w-3" /> Nombre
-                </label>
-                <input
-                  className="w-full bg-transparent px-3 pb-3 pt-7 text-base text-ink !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none placeholder:text-ink-faint/30"
-                  placeholder="Ej: Ana Gómez"
-                  value={form.emergency_contact.name}
-                  onChange={(e) => setForm(c => ({ ...c, emergency_contact: { ...c.emergency_contact, name: e.target.value } }))}
-                />
+            {showExtraDetails && (
+              <div id="extra-details-panel" className="space-y-4 pt-2 border-t border-border mt-4 animate-in fade-in slide-in-from-top-2">
+                <h4 className="text-sm font-semibold text-ink">Datos complementarios para la consulta</h4>
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <div className="space-y-1.5">
+                    <div className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
+                      <label className="absolute left-3 top-2 flex items-center gap-1.5 text-sm font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+                        <User className="h-3 w-3" /> Sexo Biológico <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        id="patient-gender"
+                        aria-label="Sexo Biológico"
+                        className="w-full bg-transparent px-3 pb-3 pt-7 text-base text-ink !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none"
+                        value={form.gender}
+                        onChange={(e) => setForm(c => ({ ...c, gender: e.target.value as "Hombre" | "Mujer" | "" }))}
+                      >
+                        <option value="">Seleccionar...</option>
+                        <option value="Hombre">Hombre</option>
+                        <option value="Mujer">Mujer</option>
+                      </select>
+                    </div>
+                    <p className="text-xs text-ink-soft px-1">
+                      Dato médico-legal obligatorio para valores de referencia de laboratorio.
+                    </p>
+                  </div>
+                  <div className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
+                    <label className="absolute left-3 top-2 flex items-center gap-1.5 text-sm font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+                      <Briefcase className="h-3 w-3" /> Ocupación
+                    </label>
+                    <input
+                      id="patient-occupation"
+                      aria-label="Ocupación"
+                      className="w-full bg-transparent px-3 pb-3 pt-7 text-base text-ink !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none placeholder:text-ink-faint/30"
+                      placeholder="Ej: Docente, Arquitecto"
+                      value={form.occupation}
+                      onChange={(e) => setForm(c => ({ ...c, occupation: e.target.value }))}
+                    />
+                  </div>
+                  <div className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
+                    <label className="absolute left-3 top-2 flex items-center gap-1.5 text-sm font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+                      <Shield className="h-3 w-3" /> Aseguradora / EPS
+                    </label>
+                    <input
+                      id="patient-insurance"
+                      aria-label="Aseguradora o EPS"
+                      className="w-full bg-transparent px-3 pb-3 pt-7 text-base text-ink !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none placeholder:text-ink-faint/30"
+                      placeholder="Ej: Particular, IESS"
+                      value={form.insurance}
+                      onChange={(e) => setForm(c => ({ ...c, insurance: e.target.value }))}
+                    />
+                  </div>
+                  <div className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
+                    <label className="absolute left-3 top-2 flex items-center gap-1.5 text-sm font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+                      <Droplet className="h-3 w-3" /> Tipo de Sangre
+                    </label>
+                    <select
+                      id="patient-blood-type"
+                      aria-label="Tipo de Sangre"
+                      className="w-full bg-transparent px-3 pb-3 pt-7 text-base text-ink !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none"
+                      value={form.blood_type}
+                      onChange={(e) => setForm(c => ({ ...c, blood_type: e.target.value as typeof form.blood_type }))}
+                    >
+                      <option value="">Desconocido</option>
+                      <option value="A+">A+</option>
+                      <option value="A-">A-</option>
+                      <option value="B+">B+</option>
+                      <option value="B-">B-</option>
+                      <option value="AB+">AB+</option>
+                      <option value="AB-">AB-</option>
+                      <option value="O+">O+</option>
+                      <option value="O-">O-</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Contacto de Emergencia */}
+                <h4 className="text-sm font-semibold text-ink mt-6">Contacto de Emergencia</h4>
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <div className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
+                    <label className="absolute left-3 top-2 flex items-center gap-1.5 text-sm font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+                      <UserPlus className="h-3 w-3" /> Nombre
+                    </label>
+                    <input
+                      aria-label="Nombre de contacto de emergencia"
+                      className="w-full bg-transparent px-3 pb-3 pt-7 text-base text-ink !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none placeholder:text-ink-faint/30"
+                      placeholder="Ej: Ana Gómez"
+                      value={form.emergency_contact.name}
+                      onChange={(e) => setForm(c => ({ ...c, emergency_contact: { ...c.emergency_contact, name: e.target.value } }))}
+                    />
+                  </div>
+                  <div className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
+                    <label className="absolute left-3 top-2 flex items-center gap-1.5 text-sm font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+                      <Users className="h-3 w-3" /> Parentesco
+                    </label>
+                    <input
+                      aria-label="Parentesco de contacto de emergencia"
+                      className="w-full bg-transparent px-3 pb-3 pt-7 text-base text-ink !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none placeholder:text-ink-faint/30"
+                      placeholder="Ej: Madre, Esposo, Amigo"
+                      value={form.emergency_contact.relationship}
+                      onChange={(e) => setForm(c => ({ ...c, emergency_contact: { ...c.emergency_contact, relationship: e.target.value } }))}
+                    />
+                  </div>
+                  <div className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
+                    <label className="absolute left-3 top-2 flex items-center gap-1.5 text-sm font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+                      <Phone className="h-3 w-3" /> Teléfono
+                    </label>
+                    <input
+                      aria-label="Teléfono de contacto de emergencia"
+                      className="w-full bg-transparent px-3 pb-3 pt-7 text-base text-ink !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none placeholder:text-ink-faint/30"
+                      type="tel"
+                      placeholder="Ej: +593 99 000 0000"
+                      value={form.emergency_contact.phone}
+                      onChange={(e) => setForm(c => ({ ...c, emergency_contact: { ...c.emergency_contact, phone: e.target.value } }))}
+                    />
+                  </div>
+                </div>
               </div>
-              <div className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
-                <label className="absolute left-3 top-2 flex items-center gap-1.5 text-sm font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
-                  <Users className="h-3 w-3" /> Parentesco
-                </label>
-                <input
-                  className="w-full bg-transparent px-3 pb-3 pt-7 text-base text-ink !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none placeholder:text-ink-faint/30"
-                  placeholder="Ej: Madre, Esposo, Amigo"
-                  value={form.emergency_contact.relationship}
-                  onChange={(e) => setForm(c => ({ ...c, emergency_contact: { ...c.emergency_contact, relationship: e.target.value } }))}
-                />
-              </div>
-              <div className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
-                <label className="absolute left-3 top-2 flex items-center gap-1.5 text-sm font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
-                  <Phone className="h-3 w-3" /> Teléfono
-                </label>
-                <input
-                  className="w-full bg-transparent px-3 pb-3 pt-7 text-base text-ink !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none placeholder:text-ink-faint/30"
-                  type="tel"
-                  placeholder="Ej: +593 99 000 0000"
-                  value={form.emergency_contact.phone}
-                  onChange={(e) => setForm(c => ({ ...c, emergency_contact: { ...c.emergency_contact, phone: e.target.value } }))}
-                />
-              </div>
-            </div>
+            )}
           </div>
 
           <div className="space-y-4">
@@ -266,7 +298,7 @@ const WizardStepPatient = memo(function WizardStepPatient({
                     key={value}
                     type="button"
                     onClick={() => setForm(c => ({ ...c, consultationType: value }))}
-                    className={`hce-chip ${
+                    className={`hce-chip min-h-[44px] ${
                       form.consultationType === value
                         ? "border-teal-500/50 bg-teal-500/10 text-teal-900 dark:text-teal-100"
                         : "border-border bg-bg-soft text-ink hover:border-teal-400"
@@ -310,7 +342,7 @@ const WizardStepPatient = memo(function WizardStepPatient({
                     key={value}
                     type="button"
                     onClick={() => setForm(c => ({ ...c, informantReliability: value }))}
-                    className={`hce-chip ${
+                    className={`hce-chip min-h-[44px] ${
                       form.informantReliability === value
                         ? "border-teal-500/50 bg-teal-500/10 text-teal-900 dark:text-teal-100"
                         : "border-border bg-bg-soft text-ink hover:border-teal-400"
@@ -364,7 +396,7 @@ const WizardStepPatient = memo(function WizardStepPatient({
               <button
                 type="button"
                 onClick={onApplyConsultaMode}
-                className={`hce-chip ${
+                className={`hce-chip min-h-[44px] ${
                   form.entryMode === "consulta"
                     ? "border-teal-500/50 bg-teal-500/10 text-teal-900 dark:text-teal-100"
                     : "border-border bg-card text-ink hover:bg-bg-soft"
@@ -375,7 +407,7 @@ const WizardStepPatient = memo(function WizardStepPatient({
               <button
                 type="button"
                 onClick={() => onApplyFollowUpMode(latestPatientRecord)}
-                className={`hce-chip ${
+                className={`hce-chip min-h-[44px] ${
                   form.entryMode === "seguimiento"
                     ? "border-teal-500/50 bg-teal-500/10 text-teal-900 dark:text-teal-100"
                     : "border-border bg-card text-ink hover:bg-bg-soft"
@@ -434,7 +466,7 @@ const WizardStepPatient = memo(function WizardStepPatient({
               aria-controls="patient-search-panel"
               id="patient-search-tab"
               tabIndex={activeTab === "search" ? 0 : -1}
-              className={`px-4 py-2 text-sm font-semibold border-b-2 transition-colors ${
+              className={`px-4 py-2 min-h-[44px] flex items-center justify-center text-sm font-semibold border-b-2 transition-colors ${
                 activeTab === "search"
                   ? "border-teal-500 text-teal-700"
                   : "border-transparent text-ink-soft hover:text-ink hover:border-border"
@@ -450,7 +482,7 @@ const WizardStepPatient = memo(function WizardStepPatient({
               aria-controls="patient-create-panel"
               id="patient-create-tab"
               tabIndex={activeTab === "create" ? 0 : -1}
-              className={`px-4 py-2 text-sm font-semibold border-b-2 transition-colors ${
+              className={`px-4 py-2 min-h-[44px] flex items-center justify-center text-sm font-semibold border-b-2 transition-colors ${
                 activeTab === "create"
                   ? "border-teal-500 text-teal-700"
                   : "border-transparent text-ink-soft hover:text-ink hover:border-border"
@@ -512,7 +544,7 @@ const WizardStepPatient = memo(function WizardStepPatient({
                         setActiveTab("create");
                         setShowSuggestions(false);
                       }}
-                      className="text-teal-600 font-semibold hover:underline"
+                      className="text-teal-600 font-semibold hover:underline min-h-[44px] flex items-center px-4"
                     >
                       Registrarlo ahora
                     </button>
@@ -668,7 +700,7 @@ const WizardStepPatient = memo(function WizardStepPatient({
                   }
                   return false;
                 })()}
-                className="hce-btn-primary w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
+                className="hce-btn-primary min-h-[44px] w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick={onCreateQuickPatient}
               >
                 Crear paciente y continuar

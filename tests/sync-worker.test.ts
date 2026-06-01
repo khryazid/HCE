@@ -199,7 +199,7 @@ describe("sync worker retries", () => {
   });
 
   it("marks abandoned when retry_count reaches max", async () => {
-    mockGetSyncQueueItemsByStatus.mockResolvedValue([buildSyncItem(2)]);
+    mockGetSyncQueueItemsByStatus.mockResolvedValue([buildSyncItem(49)]);
 
     await flushSyncQueue();
 
@@ -209,7 +209,7 @@ describe("sync worker retries", () => {
       "sync-1",
       "abandoned",
       "network timeout",
-      3,
+      50,
       expect.any(Number),
     );
     expect(mockDeleteSyncQueueItem).not.toHaveBeenCalled();

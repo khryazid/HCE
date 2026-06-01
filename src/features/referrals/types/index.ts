@@ -1,4 +1,4 @@
-export type ReferralStatus = "pending" | "accepted" | "completed" | "declined";
+type ReferralStatus = "pending" | "accepted" | "completed" | "declined";
 
 export interface MedicalReferral {
   id: string;

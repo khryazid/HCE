@@ -158,7 +158,7 @@ export async function loadTenantProfile(userId: string): Promise<TenantProfile |
   });
 }
 
-export async function ensureTenantProfile(
+async function ensureTenantProfile(
   input: EnsureTenantProfileInput,
 ): Promise<TenantProfile> {
   const fullName = normalizeTenantText(input.fullName);

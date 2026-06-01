@@ -1,5 +1,5 @@
 import React from "react";
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Filter } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { ViewMode } from "./types";
@@ -12,6 +12,7 @@ interface AgendaTopbarProps {
   onNext: () => void;
   onToday: () => void;
   onNewAppointment: () => void;
+  onToggleSidebar?: () => void;
 }
 
 export function AgendaTopbar({
@@ -22,6 +23,7 @@ export function AgendaTopbar({
   onNext,
   onToday,
   onNewAppointment,
+  onToggleSidebar,
 }: AgendaTopbarProps) {
   const dateLabel = format(currentDate, "MMMM yyyy", { locale: es });
 
@@ -55,7 +57,13 @@ export function AgendaTopbar({
             </button>
           ))}
         </div>
-        <button className="gx-btn gx-btn-p" onClick={onNewAppointment}>
+        {onToggleSidebar && (
+          <button className="gx-tb-btn lg:hidden min-h-[44px]" onClick={onToggleSidebar}>
+            <Filter className="w-4 h-4 mr-2 hidden sm:inline" />
+            Filtros
+          </button>
+        )}
+        <button className="gx-btn gx-btn-p min-h-[44px]" onClick={onNewAppointment}>
           <Plus className="w-4 h-4" />
           Nueva cita
         </button>

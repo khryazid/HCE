@@ -20,7 +20,7 @@ export type BlockType =
   | "medical_orders"
   | "paraclinicals";
 
-export type TemplateBlock = {
+type TemplateBlock = {
   id: string; // Must be unique for DnD
   type: BlockType;
   label: string;

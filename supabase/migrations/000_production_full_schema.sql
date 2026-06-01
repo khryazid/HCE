@@ -115,7 +115,7 @@ end $$;
 create table if not exists public.patients (
   id              uuid        primary key default gen_random_uuid(),
   clinic_id       uuid        not null,
-  doctor_id       uuid        not null references auth.users (id) on delete cascade,
+  doctor_id       uuid        not null references auth.users (id) on delete restrict,
   document_number text        not null,
   full_name       text        not null,
   phone           text,
@@ -134,8 +134,8 @@ create table if not exists public.patients (
 create table if not exists public.clinical_records (
   id              uuid        primary key default gen_random_uuid(),
   clinic_id       uuid        not null,
-  doctor_id       uuid        not null references auth.users (id) on delete cascade,
-  patient_id      uuid        not null references public.patients (id) on delete cascade,
+  doctor_id       uuid        not null references auth.users (id) on delete restrict,
+  patient_id      uuid        not null references public.patients (id) on delete restrict,
   chief_complaint text        not null,
   cie_codes       text[]      not null default '{}',
   specialty_kind  text        not null,
@@ -151,8 +151,8 @@ create table if not exists public.clinical_records (
 create table if not exists public.specialty_data (
   id                  uuid        primary key default gen_random_uuid(),
   clinic_id           uuid        not null,
-  doctor_id           uuid        not null references auth.users (id) on delete cascade,
-  clinical_record_id  uuid        not null references public.clinical_records (id) on delete cascade,
+  doctor_id           uuid        not null references auth.users (id) on delete restrict,
+  clinical_record_id  uuid        not null references public.clinical_records (id) on delete restrict,
   specialty_kind      text        not null,
   data                jsonb       not null,
   created_at          timestamptz not null default now(),
@@ -427,6 +427,18 @@ alter table public.treatment_templates add constraint treatment_templates_clinic
 alter table public.clinic_members drop constraint if exists clinic_members_clinic_id_fkey;
 alter table public.clinic_members add constraint clinic_members_clinic_id_fkey foreign key (clinic_id) references public.clinics (id) on delete cascade;
 
+create or replace function public.get_user_clinic_ids()
+returns uuid[]
+language sql stable security definer
+set search_path = public
+as $$
+  select array(
+    select clinic_id from public.profiles where doctor_id = auth.uid()
+    union
+    select clinic_id from public.clinic_members where doctor_id = auth.uid() and is_active = true
+  );
+$$;
+
 -- ==============================================================================
 -- 13. LAB ORDERS
 -- ==============================================================================
@@ -455,11 +467,7 @@ create policy "Médicos pueden leer órdenes de su clínica"
   on public.lab_orders for select
   using (
     auth.uid() is not null
-    and clinic_id in (
-      select clinic_id from public.profiles where doctor_id = auth.uid()
-      union
-      select clinic_id from public.clinic_members where doctor_id = auth.uid()
-    )
+    and clinic_id = any (public.get_user_clinic_ids())
   );
 
 drop policy if exists "Médicos pueden insertar órdenes en su clínica" on public.lab_orders;
@@ -467,11 +475,7 @@ create policy "Médicos pueden insertar órdenes en su clínica"
   on public.lab_orders for insert
   with check (
     auth.uid() = doctor_id
-    and clinic_id in (
-      select clinic_id from public.profiles where doctor_id = auth.uid()
-      union
-      select clinic_id from public.clinic_members where doctor_id = auth.uid()
-    )
+    and clinic_id = any (public.get_user_clinic_ids())
   );
 
 drop policy if exists "Médicos pueden actualizar órdenes en su clínica" on public.lab_orders;
@@ -479,11 +483,7 @@ create policy "Médicos pueden actualizar órdenes en su clínica"
   on public.lab_orders for update
   using (
     auth.uid() is not null
-    and clinic_id in (
-      select clinic_id from public.profiles where doctor_id = auth.uid()
-      union
-      select clinic_id from public.clinic_members where doctor_id = auth.uid()
-    )
+    and clinic_id = any (public.get_user_clinic_ids())
   );
 
 drop policy if exists "Médicos pueden eliminar órdenes de su clínica" on public.lab_orders;
@@ -491,11 +491,7 @@ create policy "Médicos pueden eliminar órdenes de su clínica"
   on public.lab_orders for delete
   using (
     auth.uid() is not null
-    and clinic_id in (
-      select clinic_id from public.profiles where doctor_id = auth.uid()
-      union
-      select clinic_id from public.clinic_members where doctor_id = auth.uid()
-    )
+    and clinic_id = any (public.get_user_clinic_ids())
   );
 
 create index if not exists idx_lab_orders_tenant on public.lab_orders (clinic_id, doctor_id);
@@ -532,11 +528,7 @@ create policy "Médicos pueden leer referencias de su clínica"
   using (
     auth.uid() is not null
     and (
-      clinic_id in (
-        select clinic_id from public.profiles where doctor_id = auth.uid()
-        union
-        select clinic_id from public.clinic_members where doctor_id = auth.uid()
-      )
+      clinic_id = any (public.get_user_clinic_ids())
       or referred_doctor_id = auth.uid()
     )
   );
@@ -546,11 +538,7 @@ create policy "Médicos pueden crear referencias"
   on public.medical_referrals for insert
   with check (
     auth.uid() = referring_doctor_id
-    and clinic_id in (
-      select clinic_id from public.profiles where doctor_id = auth.uid()
-      union
-      select clinic_id from public.clinic_members where doctor_id = auth.uid()
-    )
+    and clinic_id = any (public.get_user_clinic_ids())
   );
 
 drop policy if exists "Médicos pueden actualizar referencias" on public.medical_referrals;
@@ -559,11 +547,7 @@ create policy "Médicos pueden actualizar referencias"
   using (
     auth.uid() is not null
     and (
-      clinic_id in (
-        select clinic_id from public.profiles where doctor_id = auth.uid()
-        union
-        select clinic_id from public.clinic_members where doctor_id = auth.uid()
-      )
+      clinic_id = any (public.get_user_clinic_ids())
       or referred_doctor_id = auth.uid()
     )
   );
@@ -573,11 +557,7 @@ create policy "Médicos pueden eliminar referencias"
   on public.medical_referrals for delete
   using (
     auth.uid() is not null
-    and clinic_id in (
-      select clinic_id from public.profiles where doctor_id = auth.uid()
-      union
-      select clinic_id from public.clinic_members where doctor_id = auth.uid()
-    )
+    and clinic_id = any (public.get_user_clinic_ids())
   );
 
 create index if not exists idx_medical_referrals_tenant on public.medical_referrals (clinic_id, referring_doctor_id);
@@ -612,11 +592,7 @@ create policy "Usuarios de la clínica pueden ver transacciones"
   on public.cash_transactions for select
   using (
     auth.uid() is not null
-    and clinic_id in (
-      select clinic_id from public.profiles where doctor_id = auth.uid()
-      union
-      select clinic_id from public.clinic_members where doctor_id = auth.uid()
-    )
+    and clinic_id = any (public.get_user_clinic_ids())
   );
 
 drop policy if exists "Usuarios de la clínica pueden insertar transacciones" on public.cash_transactions;
@@ -624,11 +600,7 @@ create policy "Usuarios de la clínica pueden insertar transacciones"
   on public.cash_transactions for insert
   with check (
     auth.uid() = user_id
-    and clinic_id in (
-      select clinic_id from public.profiles where doctor_id = auth.uid()
-      union
-      select clinic_id from public.clinic_members where doctor_id = auth.uid()
-    )
+    and clinic_id = any (public.get_user_clinic_ids())
   );
 
 drop policy if exists "Usuarios de la clínica pueden anular transacciones" on public.cash_transactions;
@@ -636,11 +608,7 @@ create policy "Usuarios de la clínica pueden anular transacciones"
   on public.cash_transactions for update
   using (
     auth.uid() is not null
-    and clinic_id in (
-      select clinic_id from public.profiles where doctor_id = auth.uid()
-      union
-      select clinic_id from public.clinic_members where doctor_id = auth.uid()
-    )
+    and clinic_id = any (public.get_user_clinic_ids())
   );
 
 create index if not exists idx_cash_transactions_tenant on public.cash_transactions (clinic_id, created_at desc);
@@ -744,11 +712,11 @@ create index if not exists idx_treatment_templates_tenant
 
 create index if not exists idx_patients_fts
   on public.patients
-  using gin (to_tsvector('spanish', coalesce(full_name, '') || ' ' || coalesce(document_number, '')));
+  using gin (to_tsvector('spanish'::regconfig, coalesce(full_name, '') || ' ' || coalesce(document_number, '')));
 
 create index if not exists idx_clinical_records_fts
   on public.clinical_records
-  using gin (to_tsvector('spanish', coalesce(chief_complaint, '')));
+  using gin (to_tsvector('spanish'::regconfig, coalesce(chief_complaint, '')));
 
 -- ── Índices parciales para Soft-Delete ────────────────────────
 -- Las políticas RLS filtran deleted_at IS NULL en patients y clinical_records.
@@ -765,6 +733,7 @@ create index if not exists idx_records_active
 -- ════════════════════════════════════════════════════════════
 -- FUNCIONES DE AYUDA PARA RLS (SECURITY DEFINER)
 -- ════════════════════════════════════════════════════════════
+
 
 create or replace function public.is_clinic_member(check_clinic_id uuid)
 returns boolean
@@ -2479,6 +2448,37 @@ begin
 end;
 $$;
 
+-- ── Función para procesar y bloquear tareas de seguimiento de email (Outbox/Idempotencia) ──
+create or replace function public.claim_followup_tasks(p_doctor_id uuid)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_count integer;
+begin
+  -- Intentar registrar el envío diario (actúa como Mutex para concurrencia)
+  insert into public.notification_log (doctor_id, notification_date, type)
+  values (p_doctor_id, current_date, 'email_followup')
+  on conflict do nothing;
+
+  if not found then
+    return 0; -- Ya se envió hoy o está siendo procesado por otra transacción
+  end if;
+
+  -- Contar tareas pendientes bloqueándolas para prevenir lecturas concurrentes
+  select count(id) into v_count
+  from public.follow_up_tasks
+  where doctor_id = p_doctor_id
+    and due_date <= current_date
+    and status = 'pending'
+  for update skip locked;
+
+  return coalesce(v_count, 0);
+end;
+$$;
+
 -- Actualizar send_followup_emails para usar notification_log
 create or replace function public.send_followup_emails() returns void
 language plpgsql security definer set search_path = public as $$
@@ -2506,26 +2506,21 @@ begin
     group by ft.doctor_id, u.email, p.full_name
     having u.email is not null
   loop
-    -- A-03: Deduplicar — omitir si ya se envió hoy
-    insert into public.notification_log (doctor_id, notification_date, type)
-    values (r.doctor_id, current_date, 'email_followup')
-    on conflict do nothing;
-
-    if found then
-      perform net.http_post(
-        url     := v_site_url || '/api/email/followup',
-        headers := jsonb_build_object(
-          'Content-Type',   'application/json',
-          'x-email-secret', v_email_secret
-        ),
-        body    := jsonb_build_object(
-          'target_doctor_id', r.doctor_id,
-          'doctor_email',     r.doctor_email,
-          'doctor_name',      r.doctor_name,
-          'due_count',        r.due_count
-        )
-      );
-    end if;
+    -- El registro se hace en el API con claim_followup_tasks, así que aquí solo lanzamos
+    -- el webhook si hay algo que enviar. (Eliminado el insert on conflict do nothing local).
+    perform net.http_post(
+      url     := v_site_url || '/api/email/followup',
+      headers := jsonb_build_object(
+        'Content-Type',   'application/json',
+        'x-email-secret', v_email_secret
+      ),
+      body    := jsonb_build_object(
+        'target_doctor_id', r.doctor_id,
+        'doctor_email',     r.doctor_email,
+        'doctor_name',      r.doctor_name,
+        'due_count',        r.due_count
+      )
+    );
   end loop;
 end;
 $$;

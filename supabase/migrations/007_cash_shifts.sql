@@ -22,11 +22,7 @@ create policy "Usuarios pueden ver turnos de su clínica"
   on public.cash_shifts for select
   using (
     auth.uid() is not null
-    and clinic_id in (
-      select clinic_id from public.profiles where user_id = auth.uid() or doctor_id = auth.uid()
-      union
-      select clinic_id from public.clinic_members where user_id = auth.uid() or doctor_id = auth.uid()
-    )
+    and clinic_id = any (public.get_user_clinic_ids())
   );
 
 drop policy if exists "Usuarios pueden insertar turnos en su clínica" on public.cash_shifts;
@@ -35,11 +31,7 @@ create policy "Usuarios pueden insertar turnos en su clínica"
   with check (
     auth.uid() is not null
     and auth.uid() = user_id
-    and clinic_id in (
-      select clinic_id from public.profiles where user_id = auth.uid() or doctor_id = auth.uid()
-      union
-      select clinic_id from public.clinic_members where user_id = auth.uid() or doctor_id = auth.uid()
-    )
+    and clinic_id = any (public.get_user_clinic_ids())
   );
 
 drop policy if exists "Usuarios pueden actualizar sus propios turnos" on public.cash_shifts;
@@ -47,11 +39,7 @@ create policy "Usuarios pueden actualizar sus propios turnos"
   on public.cash_shifts for update
   using (
     auth.uid() = user_id
-    and clinic_id in (
-      select clinic_id from public.profiles where user_id = auth.uid() or doctor_id = auth.uid()
-      union
-      select clinic_id from public.clinic_members where user_id = auth.uid() or doctor_id = auth.uid()
-    )
+    and clinic_id = any (public.get_user_clinic_ids())
   );
 
 -- Indexes

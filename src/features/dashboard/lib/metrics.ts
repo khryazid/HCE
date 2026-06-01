@@ -135,12 +135,14 @@ export function buildActivityFeed(
     });
   }
 
-  // Obtenemos los pacientes que tuvieron actividad en este periodo
-  const activePatientIds = new Set(filteredRecords.map(r => r.patient_id));
-  const activePatients = patients.filter(p => activePatientIds.has(p.id));
+  // Obtenemos los pacientes que tuvieron actividad en este periodo o los más recientes
+  let activePatients = patients;
+  if (startDate && endDate && filteredRecords.length > 0) {
+    const activePatientIds = new Set(filteredRecords.map(r => r.patient_id));
+    activePatients = patients.filter(p => activePatientIds.has(p.id));
+  }
 
   return activePatients
-    .slice(0, 5)
     .map((patient) => {
       const lastRecord = records
         .filter((r) => r.patient_id === patient.id)
@@ -155,5 +157,6 @@ export function buildActivityFeed(
         date: patient.updated_at,
       };
     })
-    .sort((a, b) => b.date.localeCompare(a.date));
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .slice(0, 5);
 }

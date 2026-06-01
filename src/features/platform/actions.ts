@@ -24,7 +24,7 @@ function getSupabaseAdmin() {
 }
 
 // ─── AUTH GUARD ────────────────────────────────────────────────────────────────
-export async function verifySuperAdmin() {
+async function verifySuperAdmin() {
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -70,7 +70,7 @@ export async function verifySuperAdmin() {
 }
 
 // ─── TYPES ─────────────────────────────────────────────────────────────────────
-export type AdminUserRecord = {
+type AdminUserRecord = {
   id: string;
   email: string | undefined;
   created_at: string;
@@ -81,7 +81,7 @@ export type AdminUserRecord = {
   plan: string;
 };
 
-export type AdminStats = {
+type AdminStats = {
   total: number;
   active: number;
   lifetime: number;
@@ -90,7 +90,7 @@ export type AdminStats = {
 };
 
 // ─── QUERIES ───────────────────────────────────────────────────────────────────
-export async function getAbandonedSyncItems() {
+async function getAbandonedSyncItems() {
   await verifySuperAdmin();
   const admin = getSupabaseAdmin();
 
@@ -106,7 +106,7 @@ export async function getAbandonedSyncItems() {
   return data;
 }
 
-export async function getAllUsersWithProfiles(page: number = 1, limit: number = 50): Promise<{
+async function getAllUsersWithProfiles(page: number = 1, limit: number = 50): Promise<{
   users: AdminUserRecord[];
   stats: AdminStats;
   totalItems: number;
@@ -188,7 +188,7 @@ export async function getAllUsersWithProfiles(page: number = 1, limit: number = 
  * @param durationDays  Optional. If set, computes expiry = now + N days. Ignored for "lifetime".
  * @param plan          "basic" | "clinic"
  */
-export async function setSubscriptionStatus(
+async function setSubscriptionStatus(
   userId: string,
   status: string,
   durationDays?: number,
@@ -232,7 +232,7 @@ export async function setSubscriptionStatus(
  * Add notes / internal label to a user (stored in subscription_status prefix trick).
  * For now, just a no-op stub to extend later.
  */
-export async function deleteUserAccount(userId: string) {
+async function deleteUserAccount(userId: string) {
   await verifySuperAdmin();
   const admin = getSupabaseAdmin();
 
@@ -273,7 +273,7 @@ export async function deleteUserAccount(userId: string) {
 /**
  * Update public pricing in app_config
  */
-export async function updatePricing(proPrice: number, clinicPrice: number) {
+async function updatePricing(proPrice: number, clinicPrice: number) {
   await verifySuperAdmin();
   const admin = getSupabaseAdmin();
 
@@ -297,7 +297,7 @@ export async function updatePricing(proPrice: number, clinicPrice: number) {
 
 // ─── CLINICS & GLOBAL CONFIG ───────────────────────────────────────────────────
 
-export type AdminClinicRecord = {
+type AdminClinicRecord = {
   id: string;
   name: string;
   created_at: string;
@@ -308,7 +308,7 @@ export type AdminClinicRecord = {
   dominant_plan: string;
 };
 
-export async function getAllClinics(): Promise<AdminClinicRecord[]> {
+async function getAllClinics(): Promise<AdminClinicRecord[]> {
   await verifySuperAdmin();
   const admin = getSupabaseAdmin();
 
@@ -380,7 +380,7 @@ export async function setClinicSubscriptionStatus(
   return { success: true, expires_at };
 }
 
-export async function getGlobalConfig() {
+async function getGlobalConfig() {
   await verifySuperAdmin();
   const admin = getSupabaseAdmin();
   const { data, error } = await admin.from("app_config").select("key, value");
@@ -397,7 +397,7 @@ export async function getGlobalConfig() {
   };
 }
 
-export async function updateGlobalConfig(
+async function updateGlobalConfig(
   termsVersion: string,
   termsContent: string,
   maintenanceMode: boolean,

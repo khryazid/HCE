@@ -44,16 +44,19 @@ export async function POST(req: Request) {
   const supabaseAdmin = createClient(supabaseUrl, serverEnv.SUPABASE_SERVICE_ROLE_KEY);
 
   // C-02: Idempotency check — Stripe guarantees at-least-once delivery, not exactly-once.
-  // Buscamos si el evento ya fue procesado con éxito.
-  const { data: existingEvent } = await supabaseAdmin
+  // Insertamos el ID del evento inmediatamente. Si falla por unique constraint (23505),
+  // significa que ya está en procesamiento o procesado, previniendo race conditions y replay attacks.
+  const { error: insertIdempotencyError } = await supabaseAdmin
     .from("stripe_webhook_events")
-    .select("stripe_event_id")
-    .eq("stripe_event_id", event.id)
-    .maybeSingle();
+    .insert({ stripe_event_id: event.id });
 
-  if (existingEvent) {
-    log.info("stripe:webhook", "Evento duplicado ignorado (ya procesado)", { eventId: event.id, type: event.type });
-    return NextResponse.json({ received: true, duplicate: true });
+  if (insertIdempotencyError) {
+    if (insertIdempotencyError.code === "23505") {
+      log.info("stripe:webhook", "Evento duplicado ignorado (ya procesado)", { eventId: event.id, type: event.type });
+      return NextResponse.json({ received: true, duplicate: true });
+    }
+    log.error("stripe:webhook", "Fallo al guardar registro de idempotencia", { error: insertIdempotencyError.message });
+    return NextResponse.json({ error: "Database error" }, { status: 500 });
   }
 
   try {
@@ -234,13 +237,7 @@ export async function POST(req: Request) {
       }
     }
 
-    const { error: insertIdempotencyError } = await supabaseAdmin
-      .from("stripe_webhook_events")
-      .insert({ stripe_event_id: event.id });
-    
-    if (insertIdempotencyError && insertIdempotencyError.code !== "23505") {
-      log.error("stripe:webhook", "Fallo al guardar registro de idempotencia al final", { error: insertIdempotencyError.message });
-    }
+
 
     return NextResponse.json({ received: true });
   } catch (error) {

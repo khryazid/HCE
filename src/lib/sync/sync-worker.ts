@@ -20,7 +20,7 @@ import { MAX_RETRY_DELAY_MS, BASE_RETRY_DELAY_MS } from "@/lib/constants/sync";
 // pero no se sincronizarán hasta que renueve su plan.
 export const APP_EVENT_SUBSCRIPTION_EXPIRED = "hce:subscription-expired";
 
-const MAX_RETRIES = 3;
+const MAX_RETRIES = 50; // Increased from 3 to 50 for robust offline-first backoff
 
 export const SYNC_STARTED_EVENT = "hce:sync-started";
 export const SYNC_FINISHED_EVENT = "hce:sync-finished";

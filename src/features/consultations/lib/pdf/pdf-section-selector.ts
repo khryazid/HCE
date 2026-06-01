@@ -56,7 +56,7 @@ export const ALL_SECTIONS: PdfSectionConfig[] = [
 ];
 
 /** Which sections each preset activates. */
-export const PDF_PRESETS: Record<Exclude<PdfPresetKey, "custom">, PdfSectionKey[]> = {
+const PDF_PRESETS: Record<Exclude<PdfPresetKey, "custom">, PdfSectionKey[]> = {
   full: ALL_SECTIONS.map((s) => s.key),
   recipe: ["patient_info", "prescription", "recommendations"],
   lab_orders: ["patient_info", "lab_orders"],

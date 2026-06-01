@@ -39,9 +39,9 @@ self.addEventListener("message", async (event: MessageEvent<WorkerInput>) => {
 
     // Transferir el buffer (zero-copy) al main thread
     const buffer = bytes.buffer.slice(0) as ArrayBuffer;
-    self.postMessage(
+    (self as any).postMessage(
       { ok: true, bytes: new Uint8Array(buffer), filename } as WorkerOutput,
-      [buffer],
+      [buffer]
     );
   } catch (err) {
     self.postMessage({ ok: false, error: String(err) } as WorkerOutput);

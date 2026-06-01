@@ -8,4 +8,4 @@ export const PDF_COLORS = {
   WHITE: "#FFFFFF",
 };
 
-export const PDF_MARGIN = 40;
+const PDF_MARGIN = 40;

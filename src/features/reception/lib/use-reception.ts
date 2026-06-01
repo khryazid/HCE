@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { getSupabaseClient } from "@/lib/supabase/client";
 
-export interface DoctorWithSettings {
+interface DoctorWithSettings {
   id: string;
   role: string;
   doctor_id: string;

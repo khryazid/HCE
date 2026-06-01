@@ -295,14 +295,10 @@ export async function enqueueSyncItem(item: SyncQueueItem) {
     const patientId = typeof payload.patient_id === "string" ? payload.patient_id : null;
     if (patientId) {
       const db = await getOfflineDb();
-      const allItemsRaw = await db.getAll("sync_queue");
+      const patientItemsRaw = await db.getAllFromIndex("sync_queue", "by_table_record", `patients:${patientId}`);
       // unwrapData puede fallar si crypto no está listo; en ese caso propagamos el error
-      const allItems = await Promise.all(allItemsRaw.map(unwrapData));
-      const patientAbandoned = allItems.some(
-        (q) => q.table_name === "patients" &&
-               q.record_id === patientId &&
-               q.status === "abandoned",
-      );
+      const patientItems = await Promise.all(patientItemsRaw.map(unwrapData));
+      const patientAbandoned = patientItems.some((q) => q.status === "abandoned");
       if (patientAbandoned) {
         throw new Error(
           `A-07: No se puede encolar la consulta — el paciente ${patientId} falló permanentemente en la cola de sync. Contacta soporte.`,
@@ -347,7 +343,11 @@ export async function getSyncQueueItemsByStatus(
   options?: { includeDelayed?: boolean },
 ) {
   const db = await getOfflineDb();
-  const allItemsRaw = await db.getAll("sync_queue");
+  const allItemsRaw = (
+    await Promise.all(
+      statuses.map((status) => db.getAllFromIndex("sync_queue", "by_status", status))
+    )
+  ).flat();
   const allItems = await Promise.all(allItemsRaw.map(unwrapData));
   const now = Date.now();
 
@@ -410,15 +410,15 @@ export async function deleteSyncQueueItem(id: string) {
 
 export async function getSyncQueueStats() {
   const db = await getOfflineDb();
-  const allItemsRaw = await db.getAll("sync_queue");
-  const allItems = await Promise.all(allItemsRaw.map(unwrapData));
+  
+  const [pending, failed, abandoned, conflicted] = await Promise.all([
+    db.countFromIndex("sync_queue", "by_status", "pending"),
+    db.countFromIndex("sync_queue", "by_status", "failed"),
+    db.countFromIndex("sync_queue", "by_status", "abandoned"),
+    db.countFromIndex("sync_queue", "by_status", "conflicted"),
+  ]);
 
-  return {
-    pending: allItems.filter((i) => i.status === "pending").length,
-    failed: allItems.filter((i) => i.status === "failed").length,
-    abandoned: allItems.filter((i) => i.status === "abandoned").length,
-    conflicted: allItems.filter((i) => i.status === "conflicted").length,
-  };
+  return { pending, failed, abandoned, conflicted };
 }
 
 export async function listSyncQueueItems() {
@@ -439,24 +439,29 @@ export async function listSyncQueueItems() {
  */
 export async function purgeAbandonedSyncItems(): Promise<number> {
   const db = await getOfflineDb();
-  const allItemsRaw = await db.getAll("sync_queue");
-  const allItems = await Promise.all(allItemsRaw.map(unwrapData));
+  
+  const abandonedRaw = await db.getAllFromIndex("sync_queue", "by_status", "abandoned");
+  if (abandonedRaw.length === 0) return 0;
 
-  // Collect record_ids of all abandoned items
+  // Collect record_ids of all abandoned items using plaintext table_name_record_id
   const abandonedRecordIds = new Set<string>(
-    allItems.filter((i) => i.status === "abandoned").map((i) => i.record_id),
+    abandonedRaw.map((i: any) => i.table_name_record_id.split(':')[1]),
   );
 
-  const toDelete = allItems.filter(
-    (i) =>
-      i.status === "abandoned" ||
-      // Orphaned pending/failed ops on the same record as an abandoned item
-      ((i.status === "pending" || i.status === "failed") &&
-        abandonedRecordIds.has(i.record_id)),
-  );
+  const pendingRaw = await db.getAllFromIndex("sync_queue", "by_status", "pending");
+  const failedRaw = await db.getAllFromIndex("sync_queue", "by_status", "failed");
+  const orphansRaw = [...pendingRaw, ...failedRaw];
+
+  const toDelete = [
+    ...abandonedRaw,
+    ...orphansRaw.filter((i: any) => {
+      const recId = i.table_name_record_id.split(':')[1];
+      return abandonedRecordIds.has(recId);
+    }),
+  ];
 
   const tx = db.transaction("sync_queue", "readwrite");
-  await Promise.all(toDelete.map((i) => tx.store.delete(i.id)));
+  await Promise.all(toDelete.map((i) => tx.store.delete(i.id as string)));
   await tx.done;
 
   return toDelete.length;
@@ -474,14 +479,17 @@ export async function pruneOldSyncQueueItems(
   failedTtlDays: number = 30,
 ): Promise<number> {
   const db = await getOfflineDb();
-  const allItemsRaw = await db.getAll("sync_queue");
-  const allItems = await Promise.all(allItemsRaw.map(unwrapData));
+  
+  const statuses: SyncStatus[] = ["abandoned", "conflicted", "done", "failed"];
+  const allItemsRaw = (
+    await Promise.all(statuses.map((s) => db.getAllFromIndex("sync_queue", "by_status", s)))
+  ).flat();
 
   const now = Date.now();
   const ttlMs = ttlDays * 24 * 60 * 60 * 1000;
   const failedTtlMs = failedTtlDays * 24 * 60 * 60 * 1000;
 
-  const toDelete = allItems.filter((i) => {
+  const toDelete = allItemsRaw.filter((i: any) => {
     const ageMs = now - i.client_timestamp;
     if (i.status === "abandoned" || i.status === "conflicted" || i.status === "done") {
       return ageMs > ttlMs;
@@ -495,7 +503,7 @@ export async function pruneOldSyncQueueItems(
   if (toDelete.length === 0) return 0;
 
   const tx = db.transaction("sync_queue", "readwrite");
-  await Promise.all(toDelete.map((i) => tx.store.delete(i.id)));
+  await Promise.all(toDelete.map((i) => tx.store.delete(i.id as string)));
   await tx.done;
 
   return toDelete.length;
@@ -514,18 +522,17 @@ export async function pruneOldSyncQueueItems(
  */
 async function getPendingRecordIds(tableName: string): Promise<Set<string>> {
   const db = await getOfflineDb();
-  const allItemsRaw = await db.getAll("sync_queue");
-  const allItems = await Promise.all(allItemsRaw.map(unwrapData));
+  const statusesToCheck: SyncStatus[] = ["pending", "failed", "syncing"];
+  const allItemsRaw = (
+    await Promise.all(statusesToCheck.map((s) => db.getAllFromIndex("sync_queue", "by_status", s)))
+  ).flat();
+  
   const pendingIds = new Set<string>();
-  for (const item of allItems) {
-    // Sync-2.3: Also protect "syncing" items — they are mid-flight in an active
-    // flush. Excluding them would let a concurrent Realtime refresh delete the
-    // local record before the upsert is confirmed, causing data loss.
-    if (
-      item.table_name === tableName &&
-      (item.status === "pending" || item.status === "failed" || item.status === "syncing")
-    ) {
-      pendingIds.add(item.record_id);
+  for (const item of allItemsRaw as any[]) {
+    // Sync-2.3: Also protect "syncing" items
+    const [tbl, recId] = (item.table_name_record_id as string).split(':');
+    if (tbl === tableName && recId) {
+      pendingIds.add(recId);
     }
   }
   return pendingIds;
@@ -825,7 +832,7 @@ export async function saveSpecialtyDataLocal(row: SpecialtyDataRow) {
 
 // ─── Test Utilities ───────────────────────────────────────────────────────────
 
-export async function clearOfflineDataForTests() {
+async function clearOfflineDataForTests() {
   if (process.env.NODE_ENV === "production") {
     throw new Error("No se puede borrar IDB en produccion");
   }

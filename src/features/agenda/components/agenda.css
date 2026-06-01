@@ -39,24 +39,25 @@
   background: var(--bg-soft); padding: 4px; border-radius: var(--radius-sm);
 }
 .gx-tb-btn {
-  font-family: var(--font-sans); font-size: 0.75rem; font-weight: 600;
-  background: transparent; border: none; padding: 6px 12px; border-radius: 4px;
+  font-family: var(--font-sans); font-size: 0.875rem; font-weight: 600;
+  background: transparent; border: none; padding: 0 16px; min-height: 44px; border-radius: 8px;
   cursor: pointer; color: var(--ink-soft); transition: all 150ms ease-out;
+  display: inline-flex; align-items: center; justify-content: center;
 }
 .gx-tb-btn:hover { background: var(--bg-elevated); color: var(--ink); box-shadow: var(--shadow-sm); }
 .gx-tb-btn-active { background: var(--bg-elevated); color: var(--ink); box-shadow: var(--shadow-sm); }
 .gx-tb-iconbtn {
-  display: flex; align-items: center; justify-content: center;
-  width: 24px; height: 24px; border: none; background: transparent;
-  color: var(--ink-soft); cursor: pointer; border-radius: 4px;
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 44px; min-height: 44px; border: none; background: transparent;
+  color: var(--ink-soft); cursor: pointer; border-radius: 8px;
   transition: all 150ms ease-out;
 }
 .gx-tb-iconbtn:hover { background: var(--bg-elevated); color: var(--ink); box-shadow: var(--shadow-sm); }
 
 /* Buttons */
 .gx-btn {
-  font-family: var(--font-sans); font-size: 0.8125rem; font-weight: 600;
-  padding: 10px 18px; border-radius: var(--radius-sm); border: 1px solid transparent;
+  font-family: var(--font-sans); font-size: 0.875rem; font-weight: 600;
+  padding: 0 20px; min-height: 44px; border-radius: 8px; border: 1px solid transparent;
   cursor: pointer; transition: all 150ms ease-out;
   display: inline-flex;
   align-items: center;
@@ -157,8 +158,8 @@
 }
 .gx-gh-empty { border-right: 1px solid var(--border); }
 .gx-gh-day {
-  padding: 12px 8px; border-right: 1px solid var(--border);
-  text-align: center;
+  padding: 0 8px; min-height: 44px; border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; justify-content: center; align-items: center;
   cursor: pointer;
 }
 .gx-gh-day:hover { background-color: var(--bg-soft); }
@@ -274,5 +275,6 @@
 }
 
 @media (max-width: 1024px) {
-  .gx-sidebar { display: none; }
+  /* We let tailwind classes handle the modal state for the sidebar */
+  .gx-sidebar-desktop { display: none; }
 }

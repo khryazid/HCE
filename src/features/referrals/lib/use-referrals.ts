@@ -52,7 +52,7 @@ export function useMedicalReferrals(clinicId: string, type: "sent" | "received")
   });
 }
 
-export function useCreateReferral() {
+function useCreateReferral() {
   const queryClient = useQueryClient();
 
   return useMutation({

@@ -84,7 +84,7 @@ function SectionHeader({
         <button
           type="button"
           onClick={() => onToggle(prefKey)}
-          className="text-xs uppercase font-bold tracking-wider text-ink-soft hover:bg-teal-100 dark:hover:bg-teal-900/50 transition-colors bg-bg-soft px-2.5 py-1 rounded-md flex items-center gap-1.5"
+          className="text-xs uppercase font-bold tracking-wider text-ink-soft hover:bg-teal-100 dark:hover:bg-teal-900/50 transition-colors bg-bg-soft px-3 py-2 min-h-[44px] rounded-md flex items-center gap-1.5"
         >
           {isHidden ? (
             <><span>👁️</span> Mostrar</>
@@ -156,6 +156,8 @@ const WizardStepTreatment = memo(function WizardStepTreatment({
             <LayoutTemplate className="h-3 w-3" /> Plantilla Clínica (Autollenado)
           </label>
           <select
+            id="treatment-template"
+            aria-label="Plantilla de tratamiento"
             className="w-full bg-transparent px-3 pb-3 pt-7 text-base text-ink !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none appearance-none"
             value={form.treatmentTemplateId}
             onChange={(event) => onApplyTemplate(event.target.value)}
@@ -194,6 +196,8 @@ const WizardStepTreatment = memo(function WizardStepTreatment({
                   <Utensils className="h-3 w-3" /> Tipo de Dieta
                 </label>
                 <select
+                  id="diet-type"
+                  aria-label="Tipo de Dieta"
                   className="w-full bg-transparent px-3 pb-3 pt-7 text-base text-ink !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none"
                   value={form.medical_orders.diet_type}
                   onChange={(e) => setForm((c) => ({ ...c, medical_orders: { ...c.medical_orders, diet_type: e.target.value } }))}
@@ -215,6 +219,8 @@ const WizardStepTreatment = memo(function WizardStepTreatment({
                   <Stethoscope className="h-3 w-3" /> Medidas Generales
                 </label>
                 <textarea
+                  id="general-measures"
+                  aria-label="Medidas Generales"
                   className="w-full min-h-[140px] resize-none bg-transparent px-3 pb-3 pt-10 text-base text-ink placeholder:text-ink-faint/50 !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none"
                   placeholder={`Ej:\n• Cabecera a 30°\n• Oxigenoterapia 2L/min por cánula nasal\n• Reposo absoluto en cama`}
                   value={form.medical_orders.general_measures}
@@ -227,6 +233,8 @@ const WizardStepTreatment = memo(function WizardStepTreatment({
                   <HeartPulse className="h-3 w-3" /> Cuidados de Enfermería
                 </label>
                 <textarea
+                  id="nursing-cares"
+                  aria-label="Cuidados de Enfermería"
                   className="w-full min-h-[140px] resize-none bg-transparent px-3 pb-3 pt-10 text-base text-ink placeholder:text-ink-faint/50 !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none"
                   placeholder={`Ej:\n• Control de signos vitales cada 4h\n• Balance de líquidos\n• Avisar eventualidad al médico de guardia`}
                   value={form.medical_orders.nursing_cares}
@@ -250,6 +258,7 @@ const WizardStepTreatment = memo(function WizardStepTreatment({
           </label>
           <textarea
             id="field-treatmentPlan"
+            aria-label="Prescripción Médica o Receta"
             className="w-full min-h-[140px] resize-none bg-transparent px-3 pb-3 pt-10 text-base text-ink placeholder:text-ink-faint/50 !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none"
             placeholder="Medicamento, Dosis, Vía de administración, Frecuencia y Duración..."
             value={form.treatmentPlan}
@@ -290,6 +299,8 @@ const WizardStepTreatment = memo(function WizardStepTreatment({
             <Info className="h-3.5 w-3.5" /> Recomendaciones Generales
           </label>
           <textarea
+            id="general-recommendations"
+            aria-label="Recomendaciones Generales"
             className="w-full min-h-[140px] resize-none bg-transparent px-3 pb-3 pt-10 text-base text-ink placeholder:text-ink-faint/50 !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none"
             placeholder="Dieta, reposo, cuidados en casa..."
             value={form.recommendations}
@@ -304,6 +315,8 @@ const WizardStepTreatment = memo(function WizardStepTreatment({
             <AlertCircle className="h-3.5 w-3.5" /> Signos de Alarma
           </label>
           <textarea
+            id="warning-signs"
+            aria-label="Signos de Alarma"
             className="w-full min-h-[140px] resize-none bg-transparent px-3 pb-3 pt-10 text-base text-ink placeholder:text-red-400/50 !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none"
             placeholder="Acudir a urgencias en caso de..."
             value={form.warningSigns}
@@ -512,7 +525,7 @@ const WizardStepTreatment = memo(function WizardStepTreatment({
                 {(["bueno", "reservado", "malo"] as const).map((p) => (
                   <button key={p} type="button"
                     onClick={() => setForm(c => ({ ...c, prognosisVital: p }))}
-                    className={`flex-1 py-1.5 rounded-lg border text-xs font-semibold capitalize transition ${
+                    className={`flex-1 py-2 min-h-[44px] flex items-center justify-center rounded-lg border text-xs font-semibold capitalize transition ${
                       form.prognosisVital === p
                         ? p === "bueno" ? "border-emerald-500 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300"
                         : p === "reservado" ? "border-amber-500 bg-amber-500/10 text-amber-800 dark:text-amber-300"
@@ -530,7 +543,7 @@ const WizardStepTreatment = memo(function WizardStepTreatment({
                 {(["bueno", "reservado", "malo"] as const).map((p) => (
                   <button key={p} type="button"
                     onClick={() => setForm(c => ({ ...c, prognosisFunctional: p }))}
-                    className={`flex-1 py-1.5 rounded-lg border text-xs font-semibold capitalize transition ${
+                    className={`flex-1 py-2 min-h-[44px] flex items-center justify-center rounded-lg border text-xs font-semibold capitalize transition ${
                       form.prognosisFunctional === p
                         ? p === "bueno" ? "border-emerald-500 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300"
                         : p === "reservado" ? "border-amber-500 bg-amber-500/10 text-amber-800 dark:text-amber-300"

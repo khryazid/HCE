@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getSupabaseClient } from "@/lib/supabase/client";
 
 export type DepartmentType = "lab" | "imaging" | "surgery";
-export type OrderStatus = "pending" | "in_progress" | "done";
+type OrderStatus = "pending" | "in_progress" | "done";
 
 export interface DepartmentOrder {
   id: string;
@@ -21,7 +21,7 @@ export interface DepartmentOrder {
   completed_at: string | null;
 }
 
-export interface DepartmentOrderWithRelations extends DepartmentOrder {
+interface DepartmentOrderWithRelations extends DepartmentOrder {
   patients: { full_name: string; document_number: string } | null;
   ordered_by: { id: string; role: string; profiles: { full_name: string } | null } | null;
 }

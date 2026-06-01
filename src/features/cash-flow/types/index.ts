@@ -1,6 +1,6 @@
-export type CashTransactionType = "income" | "expense";
-export type CashPaymentMethod = string;
-export type CashTransactionStatus = "completed" | "voided";
+type CashTransactionType = "income" | "expense";
+type CashPaymentMethod = string;
+type CashTransactionStatus = "completed" | "voided";
 
 export interface CashTransaction {
   id: string;

@@ -30,12 +30,13 @@ create policy "tenant_isolation_clinical_form_templates"
   for all
   to authenticated
   using (
-    clinic_id = (
-      select clinic_id from public.profiles
-      where profiles.doctor_id = auth.uid()
-      limit 1
-    )
+    clinic_id = any (public.get_user_clinic_ids())
+  )
+  with check (
+    clinic_id = any (public.get_user_clinic_ids())
   );
+
+create index if not exists idx_clinical_form_templates_tenant on public.clinical_form_templates (clinic_id);
 
 -- ============================================================
 -- 3. AUDITORÍA

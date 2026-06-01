@@ -26,11 +26,7 @@ create policy "Usuarios de la clínica pueden ver transacciones"
   on public.cash_transactions for select
   using (
     auth.uid() is not null
-    and clinic_id in (
-      select clinic_id from public.profiles where doctor_id = auth.uid()
-      union
-      select clinic_id from public.clinic_members where doctor_id = auth.uid()
-    )
+    and clinic_id = any (public.get_user_clinic_ids())
   );
 
 drop policy if exists "Usuarios de la clínica pueden insertar transacciones" on public.cash_transactions;
@@ -38,11 +34,7 @@ create policy "Usuarios de la clínica pueden insertar transacciones"
   on public.cash_transactions for insert
   with check (
     auth.uid() = user_id
-    and clinic_id in (
-      select clinic_id from public.profiles where doctor_id = auth.uid()
-      union
-      select clinic_id from public.clinic_members where doctor_id = auth.uid()
-    )
+    and clinic_id = any (public.get_user_clinic_ids())
   );
 
 drop policy if exists "Usuarios de la clínica pueden anular transacciones" on public.cash_transactions;
@@ -50,11 +42,7 @@ create policy "Usuarios de la clínica pueden anular transacciones"
   on public.cash_transactions for update
   using (
     auth.uid() is not null
-    and clinic_id in (
-      select clinic_id from public.profiles where doctor_id = auth.uid()
-      union
-      select clinic_id from public.clinic_members where doctor_id = auth.uid()
-    )
+    and clinic_id = any (public.get_user_clinic_ids())
   );
 
 create index if not exists idx_cash_transactions_tenant on public.cash_transactions (clinic_id, created_at desc);
