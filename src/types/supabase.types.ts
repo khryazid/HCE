@@ -498,6 +498,93 @@ export type Database = {
         }
         Relationships: []
       }
+      department_orders: {
+        Row: {
+          completed_at: string | null
+          completed_by_member_id: string | null
+          created_at: string
+          department_type: string
+          id: string
+          notes: string | null
+          ordered_by_member_id: string
+          organization_id: string
+          patient_id: string
+          referral_id: string | null
+          result_notes: string | null
+          status: string
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          completed_by_member_id?: string | null
+          created_at?: string
+          department_type: string
+          id?: string
+          notes?: string | null
+          ordered_by_member_id: string
+          organization_id: string
+          patient_id: string
+          referral_id?: string | null
+          result_notes?: string | null
+          status?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          completed_by_member_id?: string | null
+          created_at?: string
+          department_type?: string
+          id?: string
+          notes?: string | null
+          ordered_by_member_id?: string
+          organization_id?: string
+          patient_id?: string
+          referral_id?: string | null
+          result_notes?: string | null
+          status?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "department_orders_completed_by_member_id_fkey"
+            columns: ["completed_by_member_id"]
+            isOneToOne: false
+            referencedRelation: "clinic_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "department_orders_ordered_by_member_id_fkey"
+            columns: ["ordered_by_member_id"]
+            isOneToOne: false
+            referencedRelation: "clinic_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "department_orders_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "department_orders_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "department_orders_referral_id_fkey"
+            columns: ["referral_id"]
+            isOneToOne: false
+            referencedRelation: "referrals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       doctor_settings: {
         Row: {
           created_at: string
@@ -987,6 +1074,90 @@ export type Database = {
             columns: ["clinic_id"]
             isOneToOne: false
             referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referrals: {
+        Row: {
+          consultation_id: string | null
+          created_at: string
+          from_member_id: string
+          id: string
+          include_full_history: boolean
+          note: string | null
+          organization_id: string
+          patient_id: string
+          responded_at: string | null
+          response_note: string | null
+          status: string
+          to_department: string | null
+          to_member_id: string | null
+        }
+        Insert: {
+          consultation_id?: string | null
+          created_at?: string
+          from_member_id: string
+          id?: string
+          include_full_history?: boolean
+          note?: string | null
+          organization_id: string
+          patient_id: string
+          responded_at?: string | null
+          response_note?: string | null
+          status?: string
+          to_department?: string | null
+          to_member_id?: string | null
+        }
+        Update: {
+          consultation_id?: string | null
+          created_at?: string
+          from_member_id?: string
+          id?: string
+          include_full_history?: boolean
+          note?: string | null
+          organization_id?: string
+          patient_id?: string
+          responded_at?: string | null
+          response_note?: string | null
+          status?: string
+          to_department?: string | null
+          to_member_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referrals_consultation_id_fkey"
+            columns: ["consultation_id"]
+            isOneToOne: false
+            referencedRelation: "clinical_records"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_from_member_id_fkey"
+            columns: ["from_member_id"]
+            isOneToOne: false
+            referencedRelation: "clinic_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_to_member_id_fkey"
+            columns: ["to_member_id"]
+            isOneToOne: false
+            referencedRelation: "clinic_members"
             referencedColumns: ["id"]
           },
         ]

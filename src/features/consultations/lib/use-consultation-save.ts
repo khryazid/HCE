@@ -167,9 +167,40 @@ export function useConsultationSave() {
           }
           
           if (ordersToInsert.length > 0) {
-            // Utilizamos 'as any' porque generamos tipos sin las migraciones locales en remoto
+            // Legacy table — used by /laboratorio dashboard
             const { error: ordersError } = await (supabase as any).from("lab_orders").insert(ordersToInsert as any);
             if (ordersError) console.error("Error al insertar órdenes:", ordersError);
+
+            // New unified table — used by /imagen and /cirugia dashboards
+            if (tenant.member_id) {
+              const deptOrders = [];
+              if (form.labOrders.length > 0) {
+                deptOrders.push({
+                  organization_id: tenant.clinic_id,
+                  department_type: "lab",
+                  patient_id: form.patientId,
+                  ordered_by_member_id: tenant.member_id,
+                  title: form.labOrders.join(", "),
+                  notes: form.labOrders.map(name => name).join(", "),
+                  status: "pending"
+                });
+              }
+              if (form.imagingOrders.length > 0) {
+                deptOrders.push({
+                  organization_id: tenant.clinic_id,
+                  department_type: "imaging",
+                  patient_id: form.patientId,
+                  ordered_by_member_id: tenant.member_id,
+                  title: form.imagingOrders.join(", "),
+                  notes: form.imagingOrders.map(name => name).join(", "),
+                  status: "pending"
+                });
+              }
+              if (deptOrders.length > 0) {
+                const { error: deptError } = await supabase.from("department_orders").insert(deptOrders);
+                if (deptError) console.error("Error al insertar department_orders:", deptError);
+              }
+            }
           }
         } catch (err) {
           console.error("Fallo al guardar órdenes online (posible offline):", err);
@@ -193,8 +224,31 @@ export function useConsultationSave() {
             status: "pending"
           };
           
+          // Legacy table — used by /referencias dashboard
           const { error: referralError } = await (supabase as any).from("medical_referrals").insert(referralToInsert as any);
           if (referralError) console.error("Error al insertar referencia:", referralError);
+
+          // New table — CLAUDE.md model with clinic_members
+          if (tenant.member_id) {
+            const newReferral: Record<string, unknown> = {
+              organization_id: tenant.clinic_id,
+              from_member_id: tenant.member_id,
+              patient_id: form.patientId,
+              consultation_id: recordId,
+              note: form.medicalReferral.reason,
+              include_full_history: form.medicalReferral.include_report,
+              status: "pending"
+            };
+            // If referring to a department, set to_department; otherwise try to_member_id
+            if (form.medicalReferral.referred_doctor_id) {
+              // Look up the member_id for the referred doctor — for now use to_member_id
+              newReferral.to_member_id = null; // We don't have the member_id here, would need a lookup
+              newReferral.to_department = null;
+            }
+            // Non-critical: if this fails, the legacy table still works
+            const { error: newRefError } = await (supabase as any).from("referrals").insert(newReferral as any);
+            if (newRefError) console.warn("Dual-write referrals falló (non-critical):", newRefError);
+          }
         } catch (err) {
           console.error("Fallo al guardar referencia online (posible offline):", err);
         }

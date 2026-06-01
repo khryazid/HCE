@@ -200,6 +200,58 @@ export async function updateSession(request: NextRequest) {
     }
   }
 
+  // ── Step 3 (RBAC): Enforce role-based access on private routes ──
+  // This is the server-side enforcement that complements the client-side RoleGuard.
+  // Without this, users could bypass the client guard by navigating directly.
+  if (user && !isPublicRoute && !isAuthRoute && !isPlatformRoute && !isServerAction) {
+    try {
+      const { data: memberData } = await supabase
+        .from("clinic_members")
+        .select("role, is_active")
+        .eq("doctor_id", user.id)
+        .limit(1)
+        .maybeSingle();
+
+      if (memberData && memberData.is_active) {
+        const role = memberData.role === "admin" ? "owner" : memberData.role;
+        const pathname = request.nextUrl.pathname;
+
+        // Simplified route access map for Edge runtime
+        // Must stay in sync with src/lib/guards/route-guard.ts ROUTE_ACCESS
+        const ROUTE_ROLES: Array<{ prefix: string; roles: string[] }> = [
+          { prefix: "/dashboard",      roles: ["owner", "doctor"] },
+          { prefix: "/agenda",         roles: ["owner", "doctor", "assistant", "receptionist"] },
+          { prefix: "/pacientes",      roles: ["owner", "doctor", "assistant"] },
+          { prefix: "/consultas",      roles: ["owner", "doctor"] },
+          { prefix: "/tratamientos",   roles: ["owner", "doctor"] },
+          { prefix: "/caja",           roles: ["owner", "doctor", "assistant", "lab", "imaging", "surgery"] },
+          { prefix: "/ajustes",        roles: ["owner", "doctor", "clinic_admin"] },
+          { prefix: "/administracion", roles: ["clinic_admin", "owner"] },
+          { prefix: "/recepcion",      roles: ["receptionist"] },
+          { prefix: "/laboratorio",    roles: ["lab"] },
+          { prefix: "/imagen",         roles: ["imaging"] },
+          { prefix: "/cirugia",        roles: ["surgery"] },
+          { prefix: "/referencias",    roles: ["owner", "doctor"] },
+          { prefix: "/billing",        roles: ["owner", "clinic_admin"] },
+        ];
+
+        const rule = ROUTE_ROLES.find(
+          (r) => pathname === r.prefix || pathname.startsWith(r.prefix + "/")
+        );
+
+        // If a rule exists and the role is NOT in the allowed list → redirect
+        if (rule && !rule.roles.includes(role)) {
+          const dashboard = ROLE_DASHBOARDS[role] || "/dashboard";
+          const url = request.nextUrl.clone();
+          url.pathname = dashboard;
+          return NextResponse.redirect(url);
+        }
+      }
+    } catch {
+      // If role check fails, allow through — client-side guard is backup
+    }
+  }
+
   return supabaseResponse;
 }
 

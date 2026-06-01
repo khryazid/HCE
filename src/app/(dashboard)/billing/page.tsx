@@ -25,10 +25,14 @@ export default async function BillingPage() {
     .single();
 
   let isAdmin = true; // Por defecto true si no tiene clínica (onboarding/solo practice)
+  let doctorCount = 1;
+  let currentPlan = "basic";
+  let subscriptionStatus = "incomplete";
+
   if (profile?.clinic_id) {
     const { data: ownerRow } = await supabase
       .from("profiles")
-      .select("doctor_id")
+      .select("doctor_id, plan, subscription_status")
       .eq("clinic_id", profile.clinic_id)
       .order("created_at", { ascending: true })
       .limit(1)
@@ -42,7 +46,18 @@ export default async function BillingPage() {
       .maybeSingle();
 
     isAdmin = (ownerRow?.doctor_id === user.id) || (memberRow?.role === "owner") || (memberRow?.role === "clinic_admin");
+    currentPlan = ownerRow?.plan || "basic";
+    subscriptionStatus = ownerRow?.subscription_status || "incomplete";
+
+    // Count doctors
+    const { count } = await supabase
+      .from("clinic_members")
+      .select("*", { count: "exact", head: true })
+      .eq("clinic_id", profile.clinic_id)
+      .eq("role", "doctor");
+      
+    doctorCount = (count || 0) + 1; // +1 for the owner
   }
 
-  return <BillingView proPrice={pricing.proPrice} isAdmin={isAdmin} />;
+  return <BillingView proPrice={pricing.proPrice} clinicPrice={pricing.clinicPrice} isAdmin={isAdmin} currentPlan={currentPlan} doctorCount={doctorCount} subscriptionStatus={subscriptionStatus} />;
 }

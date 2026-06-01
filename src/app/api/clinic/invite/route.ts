@@ -22,7 +22,7 @@ export async function POST(req: Request) {
         { status: 400 },
       );
     }
-    const { email, role, clinic_id, password } = parsed.data;
+    const { email, role, clinic_id, password, assigned_to } = parsed.data;
 
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -47,13 +47,24 @@ export async function POST(req: Request) {
       .maybeSingle();
 
     const isAdmin = profileData || (memberData && (memberData.role === "owner" || memberData.role === "clinic_admin"));
+    const isDoctor = memberData && memberData.role === "doctor";
 
-    if (!isAdmin) {
+    if (!isAdmin && !isDoctor) {
       return NextResponse.json(
-        { error: "Solo los administradores pueden invitar miembros" },
+        { error: "No tienes permisos para invitar miembros" },
         { status: 403 }
       );
     }
+
+    if (isDoctor && role !== "assistant") {
+      return NextResponse.json(
+        { error: "Los médicos solo pueden invitar a sus propios asistentes" },
+        { status: 403 }
+      );
+    }
+
+    // Determine who the assistant is assigned to
+    const targetDoctorId = role === "assistant" ? (assigned_to || user.id) : user.id;
 
     // ── A-12: Validar seats pagados según plan ─────────────────────────────
     // Obtener el plan del dueño de la clínica (primer perfil creado)
@@ -67,36 +78,11 @@ export async function POST(req: Request) {
 
     const plan = ownerProfile?.plan ?? "basic";
 
-    // Límites de seats por plan.
-    // IMPORTANTE: las keys deben coincidir exactamente con los valores de profiles.plan
-    // (escrito por el webhook handler desde Stripe price metadata: "basic" | "clinic").
-    const PLAN_LIMITS: Record<string, { maxDoctors: number; maxAssistants: number }> = {
-      basic:      { maxDoctors: 0,   maxAssistants: 2  }, // sin doctores adicionales
-      clinic:     { maxDoctors: 5,   maxAssistants: 10 }, // Fix B-03: era "clinica", debe ser "clinic"
-      enterprise: { maxDoctors: 999, maxAssistants: 999 },
-    };
-    const limits = PLAN_LIMITS[plan] ?? PLAN_LIMITS.basic;
-
-    if (role === "doctor") {
-      if (limits.maxDoctors === 0) {
-        return NextResponse.json(
-          { error: `Tu plan ${plan} no permite agregar doctores adicionales. Mejora tu plan.` },
-          { status: 403 },
-        );
-      }
-      // Contar doctores actuales en la clínica (excluyendo el dueño que no está en clinic_members)
-      const { count: doctorCount } = await supabase
-        .from("clinic_members")
-        .select("*", { count: "exact", head: true })
-        .eq("clinic_id", clinic_id)
-        .eq("role", "doctor");
-
-      if ((doctorCount ?? 0) >= limits.maxDoctors) {
-        return NextResponse.json(
-          { error: `Has alcanzado el límite de ${limits.maxDoctors} doctores de tu plan ${plan}.` },
-          { status: 403 },
-        );
-      }
+    if (role === "doctor" && plan === "basic") {
+      return NextResponse.json(
+        { error: `Tu plan básico no permite agregar doctores adicionales. Mejora tu plan.` },
+        { status: 403 },
+      );
     }
 
     if (role === "assistant") {
@@ -104,11 +90,57 @@ export async function POST(req: Request) {
         .from("clinic_members")
         .select("*", { count: "exact", head: true })
         .eq("clinic_id", clinic_id)
-        .eq("role", "assistant");
+        .eq("role", "assistant")
+        .eq("invited_by", targetDoctorId);
 
-      if ((assistantCount ?? 0) >= limits.maxAssistants) {
+      if ((assistantCount ?? 0) >= 2) {
         return NextResponse.json(
-          { error: `Has alcanzado el límite de ${limits.maxAssistants} asistentes de tu plan ${plan}.` },
+          { error: `Este médico ya ha alcanzado el límite de 2 asistentes.` },
+          { status: 403 },
+        );
+      }
+    }
+
+    if (role === "receptionist") {
+      const { count: receptionistCount } = await supabase
+        .from("clinic_members")
+        .select("*", { count: "exact", head: true })
+        .eq("clinic_id", clinic_id)
+        .eq("role", "receptionist");
+
+      if ((receptionistCount ?? 0) >= 3) {
+        return NextResponse.json(
+          { error: `Has alcanzado el límite máximo de 3 accesos para recepcionistas.` },
+          { status: 403 },
+        );
+      }
+    }
+
+    if (role === "lab" || role === "imaging") {
+      const { count: labCount } = await supabase
+        .from("clinic_members")
+        .select("*", { count: "exact", head: true })
+        .eq("clinic_id", clinic_id)
+        .in("role", ["lab", "imaging"]);
+
+      if ((labCount ?? 0) >= 3) {
+        return NextResponse.json(
+          { error: `Has alcanzado el límite máximo de 3 accesos para laboratorios e imagenología.` },
+          { status: 403 },
+        );
+      }
+    }
+
+    if (role === "surgery") {
+      const { count: surgeryCount } = await supabase
+        .from("clinic_members")
+        .select("*", { count: "exact", head: true })
+        .eq("clinic_id", clinic_id)
+        .eq("role", "surgery");
+
+      if ((surgeryCount ?? 0) >= 3) {
+        return NextResponse.json(
+          { error: `Has alcanzado el límite máximo de 3 accesos para el área quirúrgica.` },
           { status: 403 },
         );
       }
@@ -240,7 +272,7 @@ export async function POST(req: Request) {
         clinic_id,
         doctor_id: invitedUserId,
         role,
-        invited_by: user.id,
+        invited_by: targetDoctorId,
       });
 
     if (insertError) {
@@ -271,9 +303,27 @@ export async function POST(req: Request) {
       });
     }
 
-    // Optional: Send a custom email via Resend
-    // We already sent the Supabase invite email, but if they existed, we might need to notify them.
-    
+    // ── Unify with invitations table: create audit trail ──
+    // Insert into the `invitations` table so both invitation flows are tracked
+    // in a single source of truth. Since this flow creates the member immediately,
+    // the invitation is recorded as 'accepted'.
+    try {
+      const invitationToken = crypto.randomUUID();
+      await adminClient.from("invitations").insert({
+        organization_id: clinic_id,
+        email,
+        role,
+        token: invitationToken,
+        status: "accepted",
+        expires_at: new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString(),
+        invited_by_member_id: null, // Could be resolved from clinic_members if needed
+        joined_at: new Date().toISOString(),
+      });
+    } catch (invErr) {
+      // Non-critical: invitation audit trail failed but the member was already created
+      log.warn("clinic:invite", "Failed to create invitation audit record", { error: invErr });
+    }
+
     return NextResponse.json({ success: true, user_id: invitedUserId });
   } catch (err) {
     log.error("clinic:invite", "Unhandled error", { error: err });

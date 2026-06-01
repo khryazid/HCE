@@ -57,8 +57,22 @@ function ExpiryBannerInner() {
 const PRO_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_PRICE_ID ?? null;
 const CLINIC_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_CLINIC ?? null;
 
-export default function BillingView({ proPrice = 29, clinicPrice = 99, isAdmin = true }: { proPrice?: number; clinicPrice?: number; isAdmin?: boolean }) {
-  const [loadingPlan, setLoadingPlan] = useState<"pro" | "clinic" | null>(null);
+export default function BillingView({ 
+  proPrice = 29, 
+  clinicPrice = 99, 
+  isAdmin = true,
+  currentPlan = "basic",
+  doctorCount = 1,
+  subscriptionStatus = "incomplete"
+}: { 
+  proPrice?: number; 
+  clinicPrice?: number; 
+  isAdmin?: boolean;
+  currentPlan?: string;
+  doctorCount?: number;
+  subscriptionStatus?: string;
+}) {
+  const [loadingPlan, setLoadingPlan] = useState<"pro" | "clinic" | "portal" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const handleCheckout = async (plan: "pro" | "clinic") => {
@@ -74,6 +88,23 @@ export default function BillingView({ proPrice = 29, clinicPrice = 99, isAdmin =
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "No se pudo iniciar el checkout.");
+      if (data.url) window.location.href = data.url;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error desconocido.");
+    } finally {
+      setLoadingPlan(null);
+    }
+  };
+
+  const handlePortal = async () => {
+    setLoadingPlan("portal" as any);
+    setError(null);
+    try {
+      const res = await fetch("/api/stripe/portal", {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "No se pudo abrir el portal.");
       if (data.url) window.location.href = data.url;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error desconocido.");
@@ -137,32 +168,75 @@ export default function BillingView({ proPrice = 29, clinicPrice = 99, isAdmin =
         </div>
 
         {/* ── Plan Clínica ── */}
-        <div className="rounded-2xl border border-border bg-bg-soft p-6 flex flex-col">
-          <h2 className="text-xl font-semibold text-ink">Clínica</h2>
-          <p className="mt-1 text-sm text-ink-soft">Para centros con múltiples doctores.</p>
+        <div className={`rounded-2xl border ${currentPlan === "clinic" && subscriptionStatus === "active" ? "border-accent bg-accent/5" : "border-border bg-bg-soft"} p-6 flex flex-col`}>
+          <div className="flex justify-between items-start">
+            <div>
+              <h2 className="text-xl font-semibold text-ink">Clínica</h2>
+              <p className="mt-1 text-sm text-ink-soft">Para centros con múltiples doctores.</p>
+            </div>
+            {currentPlan === "clinic" && subscriptionStatus === "active" && (
+              <span className="inline-flex items-center rounded-full bg-accent px-2.5 py-0.5 text-xs font-semibold text-white">
+                Plan Actual
+              </span>
+            )}
+          </div>
           <p className="mt-4 flex items-baseline gap-x-2">
             <span className="text-4xl font-bold tracking-tight text-ink">${clinicPrice}</span>
-            <span className="text-sm font-semibold text-ink-soft">/mes</span>
+            <span className="text-sm font-semibold text-ink-soft">/mes base</span>
           </p>
           <ul className="mt-6 flex flex-col gap-3 text-sm text-ink-soft flex-1">
             <li className="font-semibold text-ink">✓ Múltiples Médicos y Asistentes</li>
             <li>✓ Todo lo del plan Profesional</li>
             <li>✓ Reportes consolidados de clínica</li>
             <li>✓ Soporte prioritario 24/7</li>
+            <li className="text-accent font-medium mt-2">+ ${proPrice}/mes por cada médico adicional</li>
           </ul>
+
+          {currentPlan === "clinic" && subscriptionStatus === "active" && (
+            <div className="mt-4 p-4 rounded-xl border border-accent/20 bg-card">
+              <p className="text-sm font-bold text-ink mb-2">Estimación Mensual Actual</p>
+              <div className="space-y-1">
+                <div className="flex justify-between text-sm text-ink-soft">
+                  <span>Suscripción Base Clínica:</span>
+                  <span>${clinicPrice.toFixed(2)}</span>
+                </div>
+                {doctorCount > 0 && (
+                  <div className="flex justify-between text-sm text-ink-soft">
+                    <span>{doctorCount} Médico{doctorCount !== 1 ? 's' : ''} (${proPrice}/c.u.):</span>
+                    <span>${(doctorCount * proPrice).toFixed(2)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-base font-bold text-ink pt-2 mt-2 border-t border-border">
+                  <span>Total Estimado:</span>
+                  <span className="text-accent">${(clinicPrice + doctorCount * proPrice).toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
           {!CLINIC_PRICE_ID && (
             <p className="mt-4 rounded bg-yellow-100 px-3 py-2 text-sm text-yellow-800">
               Plan no configurado. Contacta al administrador.
             </p>
           )}
           {isAdmin ? (
-            <Button
-              onClick={() => handleCheckout("clinic")}
-              disabled={loadingPlan !== null || !CLINIC_PRICE_ID}
-              className="mt-6 w-full py-5 text-base hce-btn-secondary"
-            >
-              {loadingPlan === "clinic" ? "Procesando..." : "Comenzar ahora"}
-            </Button>
+            currentPlan === "clinic" && subscriptionStatus === "active" ? (
+              <Button
+                onClick={handlePortal}
+                disabled={loadingPlan !== null}
+                className="mt-6 w-full py-5 text-base hce-btn-secondary"
+              >
+                {loadingPlan === "portal" ? "Abriendo..." : "Gestionar Suscripción"}
+              </Button>
+            ) : (
+              <Button
+                onClick={() => handleCheckout("clinic")}
+                disabled={loadingPlan !== null || !CLINIC_PRICE_ID || (currentPlan === "pro" && subscriptionStatus === "active")}
+                className="mt-6 w-full py-5 text-base hce-btn-secondary"
+              >
+                {loadingPlan === "clinic" ? "Procesando..." : "Cambiar a Clínica"}
+              </Button>
+            )
           ) : (
             <div className="mt-6 rounded border border-accent/20 bg-accent/5 p-3 text-center text-sm text-accent">
               Solo el administrador de la clínica puede suscribirse

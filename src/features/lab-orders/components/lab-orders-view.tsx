@@ -11,9 +11,10 @@ import { es } from "date-fns/locale";
 interface LabOrdersViewProps {
   clinicId: string;
   userId: string;
+  memberId?: string;
 }
 
-export function LabOrdersView({ clinicId, userId }: LabOrdersViewProps) {
+export function LabOrdersView({ clinicId, userId, memberId }: LabOrdersViewProps) {
   const { data: orders, isLoading, error } = useLabOrders(clinicId);
   const updateOrder = useUpdateLabOrder();
   const createOrder = useCreateLabOrder();
@@ -60,7 +61,7 @@ export function LabOrdersView({ clinicId, userId }: LabOrdersViewProps) {
         
       if (patientError) throw patientError;
       
-      // 2. Create Order
+      // 2. Create Order in legacy table
       const examsList = walkinData.exams.split(",").map(x => x.trim()).filter(x => x);
       await createOrder.mutateAsync({
         clinic_id: clinicId,
@@ -71,6 +72,23 @@ export function LabOrdersView({ clinicId, userId }: LabOrdersViewProps) {
         reason: "Paciente Externo (Walk-in)",
         status: "pending"
       });
+
+      // 2b. Dual-write to department_orders (new unified table)
+      if (memberId) {
+        try {
+          await (supabase as any).from("department_orders").insert({
+            organization_id: clinicId,
+            department_type: "lab",
+            patient_id: patient.id,
+            ordered_by_member_id: memberId,
+            title: examsList.join(", "),
+            notes: "Paciente Externo (Walk-in)",
+            status: "pending"
+          });
+        } catch (e) {
+          console.warn("Dual-write department_orders falló (non-critical):", e);
+        }
+      }
       
       setShowWalkinForm(false);
       setWalkinData({ name: "", ci: "", phone: "", exams: "" });

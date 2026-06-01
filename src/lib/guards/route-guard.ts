@@ -39,31 +39,30 @@ export const ROLE_DASHBOARDS: Record<OrgRole, string> = {
  * If a route prefix is not listed here, it's accessible by all authenticated users.
  */
 const ROUTE_ACCESS: Array<{ prefix: string; roles: OrgRole[] }> = [
-  // Owner (Plan Individual) routes
+  // Owner / Doctor routes (Plan Individual + Clínica)
   { prefix: "/dashboard",     roles: ["owner", "doctor"] },
-  { prefix: "/agenda",        roles: ["owner", "doctor", "assistant"] },
-  { prefix: "/pacientes",     roles: ["owner", "doctor", "clinic_admin"] },
+  // receptionist has conditional access via doctor_settings.receptionist_enabled
+  { prefix: "/agenda",        roles: ["owner", "doctor", "assistant", "receptionist"] },
+  // clinic_admin must NOT access patient data (CLAUDE.md rule)
+  // assistant access is conditional on custom_permissions.can_view_patients
+  { prefix: "/pacientes",     roles: ["owner", "doctor", "assistant"] },
   { prefix: "/consultas",     roles: ["owner", "doctor"] },
   { prefix: "/tratamientos",  roles: ["owner", "doctor"] },
-  { prefix: "/caja",          roles: ["owner", "doctor", "assistant", "clinic_admin", "lab", "imaging", "surgery"] },
+  { prefix: "/caja",          roles: ["owner", "doctor", "assistant", "lab", "imaging", "surgery"] },
   { prefix: "/ajustes",       roles: ["owner", "doctor", "clinic_admin"] },
   
-  // Clinic Admin routes
+  // Clinic Admin routes — 100% administrative, NO clinical access
   { prefix: "/administracion", roles: ["clinic_admin", "owner"] },
 
   // Receptionist routes
   { prefix: "/recepcion",     roles: ["receptionist"] },
 
-  // Lab routes
-  { prefix: "/laboratorio",   roles: ["owner", "doctor", "lab"] },
-
-  // Imaging routes
+  // Department routes — each role accesses ONLY their department
+  { prefix: "/laboratorio",   roles: ["lab"] },
   { prefix: "/imagen",        roles: ["imaging"] },
-
-  // Surgery routes
   { prefix: "/cirugia",       roles: ["surgery"] },
 
-  // References (inter-clinic referrals)
+  // References (inter-clinic referrals — Plan Clínica only)
   { prefix: "/referencias",   roles: ["owner", "doctor"] },
 
   // Docs/Manual — accessible by all roles

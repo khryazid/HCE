@@ -56,15 +56,9 @@ export function useClinicStats(clinicId: string) {
     queryFn: async () => {
       const supabase = getSupabaseClient();
       
-      const [patientsRes, recordsRes, incomeRes] = await Promise.all([
+      const [patientsRes, recordsRes] = await Promise.all([
         supabase.from("patients").select("id", { count: "exact", head: true }).eq("clinic_id", clinicId),
         supabase.from("clinical_records").select("doctor_id, specialty_kind").eq("clinic_id", clinicId),
-        (supabase as any).from("cash_transactions")
-          .select("amount")
-          .eq("clinic_id", clinicId)
-          .eq("type", "income")
-          .eq("status", "completed")
-          .gte("created_at", new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString())
       ]);
 
       const totalPatients = patientsRes.count || 0;
@@ -92,7 +86,40 @@ export function useClinicStats(clinicId: string) {
         .sort((a, b) => b.count - a.count)
         .slice(0, 5);
 
-      const monthlyIncome = incomeRes.data?.reduce((acc: number, tx: any) => acc + Number(tx.amount), 0) || 0;
+      const incomeRes = await (supabase as any).from("cash_transactions")
+        .select("amount, user_id, type")
+        .eq("clinic_id", clinicId)
+        .eq("status", "completed")
+        .gte("created_at", new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString());
+
+      const allTxs = incomeRes.data || [];
+      const monthlyIncome = allTxs
+        .filter((tx: any) => tx.type === "income")
+        .reduce((acc: number, tx: any) => acc + Number(tx.amount), 0);
+
+      // Lab Metrics
+      const labIncome = { lab: 0, imaging: 0 };
+      const labExpense = { lab: 0, imaging: 0 };
+
+      // We need to know the roles of the users
+      const { data: memberRoles } = await supabase
+        .from("clinic_members")
+        .select("doctor_id, role")
+        .eq("clinic_id", clinicId);
+
+      const roleMap = new Map();
+      memberRoles?.forEach(m => roleMap.set(m.doctor_id, m.role));
+
+      allTxs.forEach((tx: any) => {
+        const role = roleMap.get(tx.user_id);
+        if (role === "lab") {
+          if (tx.type === "income") labIncome.lab += Number(tx.amount);
+          if (tx.type === "expense") labExpense.lab += Number(tx.amount);
+        } else if (role === "imaging") {
+          if (tx.type === "income") labIncome.imaging += Number(tx.amount);
+          if (tx.type === "expense") labExpense.imaging += Number(tx.amount);
+        }
+      });
 
       return {
         totalPatients,
@@ -100,8 +127,12 @@ export function useClinicStats(clinicId: string) {
         monthlyIncome,
         activeDoctors: 0, 
         topDoctors,
-        topSpecialties
-      } as ClinicStats;
+        topSpecialties,
+        labMetrics: {
+          labIncome,
+          labExpense
+        }
+      } as ClinicStats & { labMetrics: any };
     },
     enabled: !!clinicId,
   });

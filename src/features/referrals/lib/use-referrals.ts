@@ -2,6 +2,12 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { MedicalReferral, MedicalReferralInsert } from "../types";
 
+/**
+ * Fetch medical referrals.
+ * Reads from `medical_referrals` (legacy table with full data).
+ * The new `referrals` table is written to via dual-write in consultation save
+ * and will be the sole source once fully migrated.
+ */
 export function useMedicalReferrals(clinicId: string, type: "sent" | "received") {
   return useQuery({
     queryKey: ["referrals", clinicId, type],
@@ -52,6 +58,8 @@ export function useCreateReferral() {
   return useMutation({
     mutationFn: async (referral: MedicalReferralInsert) => {
       const supabase = getSupabaseClient();
+
+      // Insert into legacy table
       const { data, error } = await (supabase as any)
         .from("medical_referrals")
         .insert(referral as any)
@@ -73,6 +81,8 @@ export function useUpdateReferralStatus() {
   return useMutation({
     mutationFn: async ({ id, status }: { id: string; status: MedicalReferral["status"] }) => {
       const supabase = getSupabaseClient();
+
+      // Update legacy table
       const { data, error } = await (supabase as any)
         .from("medical_referrals")
         .update({ status } as any)

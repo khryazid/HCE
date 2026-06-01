@@ -36,8 +36,6 @@ function getNavItems(role?: string, plan?: string): NavItem[] {
   if (role === "clinic_admin" || (role === "owner" && plan === "clinic")) {
     return [
       { href: "/administracion", label: "Administración", icon: <Building2 className="w-[16px] h-[16px]" /> },
-      { href: "/ajustes",        label: "Ajustes",        icon: <Settings className="w-[16px] h-[16px]" /> },
-      { href: "/docs",           label: "Manual",         icon: <HelpCircle className="w-[16px] h-[16px]" /> },
     ];
   }
 
@@ -99,6 +97,7 @@ function getNavItems(role?: string, plan?: string): NavItem[] {
   if (plan === "clinic") {
     baseItems.push(
       { href: "/laboratorio",  label: "Laboratorio",  icon: <FlaskConical className="w-[16px] h-[16px]" /> },
+      { href: "/cirugia",      label: "Cirugía",      icon: <Scissors className="w-[16px] h-[16px]" /> },
       { href: "/referencias",  label: "Referencias",  icon: <Search className="w-[16px] h-[16px]" /> },
     );
   }

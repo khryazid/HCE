@@ -23,7 +23,7 @@ export function LaboratorioPageClient() {
 
   return (
     <div className="p-6">
-      <LabOrdersView clinicId={tenant.clinic_id} userId={session.user.id} />
+      <LabOrdersView clinicId={tenant.clinic_id} userId={session.user.id} memberId={tenant.member_id} />
     </div>
   );
 }

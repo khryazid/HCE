@@ -77,6 +77,7 @@ export const inviteBodySchema = z.object({
   ),
   clinic_id: z.string().uuid("clinic_id debe ser un UUID válido"),
   password:  z.string().min(6, "La contraseña debe tener al menos 6 caracteres").optional(),
+  assigned_to: z.string().uuid("assigned_to debe ser un UUID válido").optional(),
 });
 
 /** POST /api/push/subscribe */
