@@ -47,7 +47,7 @@
     "react-hook-form": "^7.74.0",
     "react-markdown": "^10.1.0",
     "recharts": "^3.8.1",
-    "resend": "^6.12.2",
+    "resend": "^6.12.4",
     "server-only": "^0.0.1",
     "sonner": "^2.0.7",
     "stripe": "^22.1.1",
