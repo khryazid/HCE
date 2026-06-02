@@ -33,7 +33,7 @@ type ClinicalFormTemplate = {
   is_active: boolean;
 };
 
-const AVAILABLE_BLOCKS: { type: BlockType; label: string; description: string }[] = [
+const AVAILABLE_BLOCKS: { type: BlockType; label: string; description: string; isMandatory?: boolean }[] = [
   { type: "vital_signs", label: "Signos Vitales y Antropometría", description: "Presión arterial, FC, FR, Temperatura, Peso, Talla." },
   { type: "family_history", label: "Antecedentes Familiares", description: "Enfermedades hereditarias y contexto familiar." },
   { type: "personal_history", label: "Antecedentes Personales", description: "Patológicos, quirúrgicos, alergias, etc." },
@@ -42,8 +42,8 @@ const AVAILABLE_BLOCKS: { type: BlockType; label: string; description: string }[
   { type: "pediatric_history", label: "Antecedentes Pediátricos", description: "Perinatales, vacunas, desarrollo psicomotor." },
   { type: "review_of_systems", label: "Revisión por Sistemas", description: "Interrogatorio sistemático de órganos." },
   { type: "physical_exam", label: "Examen Físico Regional", description: "Cabeza, cuello, tórax, abdomen, extremidades." },
-  { type: "diagnosis", label: "Diagnósticos (CIE-11)", description: "Búsqueda y asignación de códigos CIE-11." },
-  { type: "treatment_plan", label: "Plan y Tratamiento (Receta)", description: "Prescripción de medicamentos." },
+  { type: "diagnosis", label: "Diagnósticos (CIE-11)", description: "Búsqueda y asignación de códigos CIE-11.", isMandatory: true },
+  { type: "treatment_plan", label: "Plan y Tratamiento (Receta)", description: "Prescripción de medicamentos.", isMandatory: true },
   { type: "medical_orders", label: "Órdenes Médicas / Cuidados", description: "Dieta, indicaciones generales." },
   { type: "paraclinicals", label: "Órdenes de Laboratorio e Imagen", description: "Solicitudes de paraclínicos." },
 ];
@@ -108,6 +108,31 @@ export function ClinicalFormBuilderPanel() {
   }
 
   const activeTemplate = templates.find(t => t.id === activeTemplateId);
+
+  // Asegurar que los obligatorios estén siempre en la plantilla activa, incluso si el usuario encontró la forma de quitarlos en el pasado
+  useEffect(() => {
+    if (activeTemplate) {
+      let needsUpdate = false;
+      const newSchema = [...activeTemplate.schema];
+      AVAILABLE_BLOCKS.filter(b => b.isMandatory).forEach(mandatoryBlock => {
+        if (!newSchema.some(sb => sb.type === mandatoryBlock.type)) {
+          newSchema.push({
+            id: `block-${mandatoryBlock.type}-${Date.now()}`,
+            type: mandatoryBlock.type,
+            label: mandatoryBlock.label,
+          });
+          needsUpdate = true;
+        }
+      });
+      if (needsUpdate) {
+        setTemplates(current =>
+          current.map(t =>
+            t.id === activeTemplate.id ? { ...t, schema: newSchema } : t
+          )
+        );
+      }
+    }
+  }, [activeTemplate, setTemplates]);
 
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination || !activeTemplate) return;
@@ -253,13 +278,17 @@ export function ClinicalFormBuilderPanel() {
                             <span className="font-medium text-ink text-sm">{block.label}</span>
                           </div>
                           
-                          <button
-                            onClick={() => removeBlock(block.id)}
-                            className="p-1.5 text-ink-soft hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
-                            title="Quitar módulo"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          {AVAILABLE_BLOCKS.find(ab => ab.type === block.type)?.isMandatory ? (
+                            <div className="text-xs text-ink-lighter italic px-2">Obligatorio</div>
+                          ) : (
+                            <button
+                              onClick={() => removeBlock(block.id)}
+                              className="p-1.5 text-ink-soft hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                              title="Quitar módulo"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
                       )}
                     </Draggable>
