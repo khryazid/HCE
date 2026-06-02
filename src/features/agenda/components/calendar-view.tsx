@@ -89,6 +89,12 @@ export function CalendarView() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<'day' | 'week' | 'month'>('week');
 
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.innerWidth < 768) {
+      setViewMode('day');
+    }
+  }, []);
+
   const filteredEvents = useMemo(() => {
     return events.filter(e => {
       const t = e.consultation_type;
@@ -117,14 +123,16 @@ export function CalendarView() {
   const handlePrev = () => setCurrentDate(d => {
     const nd = new Date(d);
     if (viewMode === 'day') nd.setDate(nd.getDate() - 1);
-    else nd.setDate(nd.getDate() - 7);
+    else if (viewMode === 'week') nd.setDate(nd.getDate() - 7);
+    else nd.setMonth(nd.getMonth() - 1);
     return nd;
   });
   
   const handleNext = () => setCurrentDate(d => {
     const nd = new Date(d);
     if (viewMode === 'day') nd.setDate(nd.getDate() + 1);
-    else nd.setDate(nd.getDate() + 7);
+    else if (viewMode === 'week') nd.setDate(nd.getDate() + 7);
+    else nd.setMonth(nd.getMonth() + 1);
     return nd;
   });
 

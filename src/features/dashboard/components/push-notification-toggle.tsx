@@ -205,7 +205,7 @@ export function PushNotificationToggle() {
 
   return (
     <div className="flex flex-col gap-4 rounded-xl border border-border bg-muted/30 p-4">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h4 className="font-medium text-ink">Notificaciones en este dispositivo</h4>
           <p className="text-sm text-ink-soft">
@@ -218,7 +218,7 @@ export function PushNotificationToggle() {
           variant={isSubscribed ? "secondary" : "default"}
           onClick={isSubscribed ? handleUnsubscribe : handleSubscribe}
           disabled={isLoading}
-          className="shrink-0"
+          className="w-full sm:w-auto shrink-0"
         >
           {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           {isSubscribed ? "Desactivar" : "Activar en este equipo"}
@@ -226,7 +226,7 @@ export function PushNotificationToggle() {
       </div>
 
       {isSubscribed && (
-        <div className="flex items-center justify-between gap-4 border-t border-border pt-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-t border-border pt-4">
           <div>
             <h5 className="text-sm font-medium">Probar Notificación</h5>
             <p className="text-xs text-ink-soft">Envía una notificación de prueba ahora mismo.</p>
@@ -259,6 +259,7 @@ export function PushNotificationToggle() {
                 setIsTestingPush(false);
               }
             }}
+            className="w-full sm:w-auto"
           >
             {isTestingPush ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Bell className="h-4 w-4 mr-2" />}
             {isTestingPush ? "Enviando..." : "Enviar Prueba"}
@@ -273,13 +274,13 @@ export function PushNotificationToggle() {
       )}
 
       {isSubscribed && (
-        <div className="flex items-center gap-4 border-t border-border pt-4">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 border-t border-border pt-4">
           <label htmlFor="reminder-select" className="text-sm font-medium text-ink">
             Avisarme de mi próxima cita:
           </label>
           <select
             id="reminder-select"
-            className="hce-input w-auto min-w-[150px] py-1.5 text-sm"
+            className="hce-input w-full sm:w-auto min-w-[150px] py-1.5 text-sm"
             value={reminderMins}
             onChange={(e) => handleReminderChange(Number(e.target.value))}
           >

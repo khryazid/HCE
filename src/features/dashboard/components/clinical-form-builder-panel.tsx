@@ -276,6 +276,18 @@ export function ClinicalFormBuilderPanel() {
             </Droppable>
           </DragDropContext>
         </div>
+
+        {/* Botón de Guardar Inferior para UX consistente con otras pestañas */}
+        <div className="flex justify-end mt-2">
+          <button 
+            onClick={saveTemplate} 
+            disabled={saving}
+            className="hce-btn-primary h-11 px-6 text-sm flex items-center gap-2 w-full sm:w-auto justify-center"
+          >
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            Guardar Plantilla
+          </button>
+        </div>
       </div>
 
       {/* Columna Derecha: Módulos Disponibles */}

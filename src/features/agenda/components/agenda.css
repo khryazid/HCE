@@ -278,3 +278,11 @@
   /* We let tailwind classes handle the modal state for the sidebar */
   .gx-sidebar-desktop { display: none; }
 }
+
+@media (max-width: 768px) {
+  .gx-topbar { flex-direction: column; align-items: stretch; gap: 16px; padding: 16px; }
+  .gx-topbar > div { width: 100%; justify-content: space-between; }
+  .gx-tb-left { flex-direction: row; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; }
+  .gx-tb-date { width: 100%; text-align: left; }
+  .gx-tb-nav { justify-content: center; flex: 1; }
+}

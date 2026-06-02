@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { createTenantProfileWithTrial } from "@/lib/supabase/actions";
-import { CheckCircle2, ChevronRight, DollarSign, User, Upload, X, FileText, Users } from "lucide-react";
+import { CheckCircle2, ChevronRight, DollarSign, User, Upload, X, FileText, Users, Phone, Mail, MapPin, Briefcase, Award, PenTool, Hash } from "lucide-react";
 import { MEDICAL_SPECIALTIES } from "@/lib/constants/medical-specialties";
 
 export function OnboardingFlow() {
@@ -35,7 +35,7 @@ export function OnboardingFlow() {
   );
 
   // Step 2: Métodos de Cobro
-  const [consultationTypes, setConsultationTypes] = useState([{ name: "Consulta General", price: 50, duration: 60 }]);
+  const [consultationTypes, setConsultationTypes] = useState<{name: string, price: number | string, duration: number | string}[]>([{ name: "Consulta General", price: 50, duration: 60 }]);
   const [paymentMethods, setPaymentMethods] = useState([
     { name: "Efectivo", details: "" },
     { name: "Transferencia", details: "" }
@@ -58,7 +58,7 @@ export function OnboardingFlow() {
   });
 
   // Step 4: Equipo
-  const [assistants, setAssistants] = useState(["", ""]);
+  const [teamInvites, setTeamInvites] = useState([{ email: "", role: "assistant", password: "" }]);
 
   // Sync state when tenant profile loads or fallback to user_metadata
   useEffect(() => {
@@ -95,7 +95,13 @@ export function OnboardingFlow() {
     try {
       const supabase = getSupabaseClient();
       
+      const hasInvalidInvites = teamInvites.some(i => i.email.trim() && !i.password.trim());
+      if (hasInvalidInvites) {
+        throw new Error("La clave temporal es obligatoria para enviar las invitaciones.");
+      }
+      
       let doctorId = tenant?.doctor_id;
+      let activeClinicId = tenant?.clinic_id;
 
       if (!doctorId) {
         const { data: { user } } = await supabase.auth.getUser();
@@ -105,11 +111,11 @@ export function OnboardingFlow() {
         const plan = user.user_metadata?.plan || "basic";
         const clinicName = user.user_metadata?.clinic_name || undefined;
         const metaClinicId = user.user_metadata?.clinic_id;
-        const finalClinicId = typeof metaClinicId === "string" && metaClinicId.length > 0 ? metaClinicId : crypto.randomUUID();
+        activeClinicId = typeof metaClinicId === "string" && metaClinicId.length > 0 ? metaClinicId : crypto.randomUUID();
 
         // Ensure a profile is created via server action (bypasses RLS & creates clinic)
         const result = await createTenantProfileWithTrial({
-          clinicId: finalClinicId,
+          clinicId: activeClinicId,
           fullName: fullName,
           clinicName: clinicName,
           specialties: specialties.length > 0 ? specialties : ["Medicina General"],
@@ -151,9 +157,13 @@ export function OnboardingFlow() {
           full_name: fullName,
           specialty: specialties,
           ui_preferences,
-          payment_config: { 
-            consultationTypes, 
-            methods: paymentMethods
+          payment_config: {
+            methods: paymentMethods.filter(m => m.name.trim()),
+            consultationTypes: consultationTypes.filter(c => c.name.trim()).map(c => ({
+              name: c.name,
+              price: Number(c.price) || 0,
+              duration: Number(c.duration) || 60
+            })),
           },
           onboarding_state: { step: 4, completed: true }
         })
@@ -178,10 +188,9 @@ export function OnboardingFlow() {
           signature_name: signatureName,
         });
 
-        const clinicId = tenant?.clinic_id || (await supabase.auth.getUser()).data.user?.user_metadata?.clinic_id;
-        if (clinicId && doctorId) {
+        try {
           const { saveLetterheadSettings } = await import("@/features/dashboard/lib/letterhead");
-          await saveLetterheadSettings(doctorId, clinicId, {
+          await saveLetterheadSettings(doctorId, activeClinicId!, {
             doctor_name: signatureName,
             professional_title: professionalTitle,
             specialties: specialties.join(", "),
@@ -192,9 +201,31 @@ export function OnboardingFlow() {
             logo_data_url: "",
             signature_data_url: "",
           });
+        } catch (syncError) {
+          console.warn("Could not sync metadata/letterhead:", syncError);
         }
       } catch (syncError) {
-        console.warn("Could not sync metadata/letterhead:", syncError);
+        console.warn("Could not sync onboarding data:", syncError);
+      }
+
+      // Procesar invitaciones de equipo
+      for (const invite of teamInvites) {
+        if (invite.email.trim()) {
+          try {
+            await fetch("/api/clinic/invite", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                email: invite.email.trim(),
+                role: invite.role,
+                clinic_id: tenant?.clinic_id || (await supabase.auth.getUser()).data.user?.user_metadata?.clinic_id,
+                password: invite.password ? invite.password : undefined,
+              }),
+            });
+          } catch (e) {
+            console.error("Failed to invite member during onboarding", e);
+          }
+        }
       }
 
       // Hard redirect to force a full reload of the TenantContext and DB hooks
@@ -262,12 +293,14 @@ export function OnboardingFlow() {
                   <h3 className="font-semibold text-sm text-ink">Identidad Profesional</h3>
                 </div>
                 <div className="p-4 grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-ink-soft">Título profesional</label>
+                  <div className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
+                    <label className="absolute left-3 top-2 flex items-center gap-1.5 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+                      <Award className="h-3 w-3" /> Título
+                    </label>
                     <select
                       value={professionalTitle}
                       onChange={(e) => setProfessionalTitle(e.target.value)}
-                      className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring md:text-sm text-ink"
+                      className="w-full bg-transparent px-3 pb-3 pt-7 text-base text-ink !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none"
                     >
                       <option value="Dr.">Dr. (Doctor)</option>
                       <option value="Dra.">Dra. (Doctora)</option>
@@ -277,17 +310,23 @@ export function OnboardingFlow() {
                       <option value="">Sin título</option>
                     </select>
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-ink-soft">Número de licencia profesional</label>
-                    <Input value={licenseNumber} onChange={(e) => setLicenseNumber(e.target.value)} placeholder="Ej: 123456" />
+                  <div className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
+                    <label className="absolute left-3 top-2 flex items-center gap-1.5 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+                      <Hash className="h-3 w-3" /> Licencia Prof.
+                    </label>
+                    <input className="w-full bg-transparent px-3 pb-3 pt-7 text-base text-ink !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none placeholder:text-ink-faint/30" value={licenseNumber} onChange={(e) => setLicenseNumber(e.target.value)} placeholder="Ej: 123456" />
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-ink-soft">Años de experiencia</label>
-                    <Input type="number" value={experienceYears} onChange={(e) => setExperienceYears(e.target.value)} placeholder="0" />
+                  <div className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
+                    <label className="absolute left-3 top-2 flex items-center gap-1.5 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+                      <Briefcase className="h-3 w-3" /> Experiencia (Años)
+                    </label>
+                    <input type="number" className="w-full bg-transparent px-3 pb-3 pt-7 text-base text-ink !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none placeholder:text-ink-faint/30" value={experienceYears} onChange={(e) => setExperienceYears(e.target.value)} placeholder="0" />
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-ink-soft">Nombre para firma y membrete</label>
-                    <Input value={signatureName} onChange={(e) => setSignatureName(e.target.value)} placeholder={fullName || "Ej: Dr. Juan Pérez"} />
+                  <div className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
+                    <label className="absolute left-3 top-2 flex items-center gap-1.5 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+                      <PenTool className="h-3 w-3" /> Nombre (Firma)
+                    </label>
+                    <input className="w-full bg-transparent px-3 pb-3 pt-7 text-base text-ink !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none placeholder:text-ink-faint/30" value={signatureName} onChange={(e) => setSignatureName(e.target.value)} placeholder={fullName || "Ej: Dr. Juan Pérez"} />
                   </div>
                 </div>
               </div>
@@ -298,21 +337,29 @@ export function OnboardingFlow() {
                   <h3 className="font-semibold text-sm text-ink">Contacto y Ubicación</h3>
                 </div>
                 <div className="p-4 grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-ink-soft">Teléfono principal</label>
-                    <Input value={mainPhone} onChange={(e) => setMainPhone(e.target.value)} placeholder="+1 234 567 890" />
+                  <div className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
+                    <label className="absolute left-3 top-2 flex items-center gap-1.5 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+                      <Phone className="h-3 w-3" /> Teléfono
+                    </label>
+                    <input className="w-full bg-transparent px-3 pb-3 pt-7 text-base text-ink !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none placeholder:text-ink-faint/30" value={mainPhone} onChange={(e) => setMainPhone(e.target.value)} placeholder="+1 234 567 890" />
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-ink-soft">Teléfono secundario (opcional)</label>
-                    <Input value={secondaryPhone} onChange={(e) => setSecondaryPhone(e.target.value)} placeholder="" />
+                  <div className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
+                    <label className="absolute left-3 top-2 flex items-center gap-1.5 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+                      <Phone className="h-3 w-3" /> Tel. Secundario
+                    </label>
+                    <input className="w-full bg-transparent px-3 pb-3 pt-7 text-base text-ink !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none placeholder:text-ink-faint/30" value={secondaryPhone} onChange={(e) => setSecondaryPhone(e.target.value)} placeholder="" />
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-ink-soft">Correo público de contacto (opcional)</label>
-                    <Input value={publicEmail} onChange={(e) => setPublicEmail(e.target.value)} placeholder="dr.juan@email.com" />
+                  <div className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
+                    <label className="absolute left-3 top-2 flex items-center gap-1.5 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+                      <Mail className="h-3 w-3" /> Correo
+                    </label>
+                    <input className="w-full bg-transparent px-3 pb-3 pt-7 text-base text-ink !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none placeholder:text-ink-faint/30" value={publicEmail} onChange={(e) => setPublicEmail(e.target.value)} placeholder="dr.juan@email.com" />
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-ink-soft">Dirección profesional</label>
-                    <Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Ej: Clínica Centro, Consultorio 10" />
+                  <div className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
+                    <label className="absolute left-3 top-2 flex items-center gap-1.5 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+                      <MapPin className="h-3 w-3" /> Dirección
+                    </label>
+                    <input className="w-full bg-transparent px-3 pb-3 pt-7 text-base text-ink !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none placeholder:text-ink-faint/30" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Ej: Clínica Centro, Consultorio 10" />
                   </div>
                 </div>
               </div>
@@ -443,9 +490,11 @@ export function OnboardingFlow() {
                 <div className="p-4 space-y-3">
                   {consultationTypes.map((ctype, i) => (
                     <div key={i} className="flex flex-col sm:flex-row sm:items-end gap-3 pb-3 border-b border-border last:border-0 last:pb-0">
-                      <div className="flex-1 space-y-1.5">
-                        <label className="text-[10px] font-bold text-ink-soft uppercase tracking-widest">Nombre del Servicio</label>
-                        <Input 
+                      <div className="flex-1 group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
+                        <label className="absolute left-3 top-2 flex items-center gap-1.5 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+                          Nombre del Servicio
+                        </label>
+                        <input className="w-full bg-transparent px-3 pb-3 pt-7 text-base text-ink !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none placeholder:text-ink-faint/30"
                           value={ctype.name} 
                           onChange={(e) => {
                             const copy = [...consultationTypes];
@@ -455,26 +504,30 @@ export function OnboardingFlow() {
                           placeholder="Ej: Consulta General" 
                         />
                       </div>
-                      <div className="w-full sm:w-28 space-y-1.5">
-                        <label className="text-[10px] font-bold text-ink-soft uppercase tracking-widest">Precio ($)</label>
-                        <Input 
+                      <div className="w-full sm:w-28 group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
+                        <label className="absolute left-3 top-2 flex items-center gap-1.5 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+                          Precio ($)
+                        </label>
+                        <input className="w-full bg-transparent px-3 pb-3 pt-7 text-base text-ink !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none placeholder:text-ink-faint/30"
                           type="number" 
                           value={ctype.price} 
                           onChange={(e) => {
                             const copy = [...consultationTypes];
-                            copy[i].price = parseFloat(e.target.value) || 0;
+                            copy[i].price = e.target.value === "" ? "" : (parseFloat(e.target.value) ?? 0);
                             setConsultationTypes(copy);
                           }} 
                         />
                       </div>
-                      <div className="w-full sm:w-28 space-y-1.5">
-                        <label className="text-[10px] font-bold text-ink-soft uppercase tracking-widest">Duración (Min)</label>
-                        <Input 
+                      <div className="w-full sm:w-28 group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
+                        <label className="absolute left-3 top-2 flex items-center gap-1.5 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+                          Duración (Min)
+                        </label>
+                        <input className="w-full bg-transparent px-3 pb-3 pt-7 text-base text-ink !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none placeholder:text-ink-faint/30"
                           type="number" 
                           value={ctype.duration} 
                           onChange={(e) => {
                             const copy = [...consultationTypes];
-                            copy[i].duration = parseInt(e.target.value) || 0;
+                            copy[i].duration = e.target.value === "" ? "" : (parseInt(e.target.value) ?? 0);
                             setConsultationTypes(copy);
                           }} 
                         />
@@ -511,9 +564,11 @@ export function OnboardingFlow() {
                 <div className="p-4 space-y-3">
                   {paymentMethods.map((method, i) => (
                     <div key={i} className="flex flex-col sm:flex-row sm:items-end gap-3 pb-3 border-b border-border last:border-0 last:pb-0">
-                      <div className="w-full sm:w-1/3 space-y-1.5">
-                        <label className="text-[10px] font-bold text-ink-soft uppercase tracking-widest">Método</label>
-                        <Input 
+                      <div className="w-full sm:w-1/3 group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
+                        <label className="absolute left-3 top-2 flex items-center gap-1.5 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+                          Método
+                        </label>
+                        <input className="w-full bg-transparent px-3 pb-3 pt-7 text-base text-ink !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none placeholder:text-ink-faint/30"
                           value={method.name} 
                           onChange={(e) => {
                             const copy = [...paymentMethods];
@@ -523,9 +578,11 @@ export function OnboardingFlow() {
                           placeholder="Ej: Zelle" 
                         />
                       </div>
-                      <div className="flex-1 space-y-1.5">
-                        <label className="text-[10px] font-bold text-ink-soft uppercase tracking-widest">Datos / Instrucciones (Opcional)</label>
-                        <Input 
+                      <div className="flex-1 group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
+                        <label className="absolute left-3 top-2 flex items-center gap-1.5 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+                          Datos / Instrucciones (Opcional)
+                        </label>
+                        <input className="w-full bg-transparent px-3 pb-3 pt-7 text-base text-ink !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none placeholder:text-ink-faint/30"
                           value={method.details} 
                           onChange={(e) => {
                             const copy = [...paymentMethods];
@@ -600,26 +657,79 @@ export function OnboardingFlow() {
         {step === 4 && (
           <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300 max-w-4xl">
             <div>
-              <h2 className="text-xl font-bold text-ink">Invita a tu equipo</h2>
-              <p className="text-sm text-ink-soft mt-1">Puedes invitar hasta 2 asistentes. Recibirán un Magic Link para configurar su cuenta (Opcional).</p>
+              <h2 className="text-xl font-bold text-ink">Añadir miembros a tu equipo</h2>
+              <p className="text-sm text-ink-soft mt-1">Ingresa el correo, asóciale un rol, y asigna su clave temporal de acceso.</p>
             </div>
-            <div className="space-y-4 max-w-md">
-              {assistants.map((email, idx) => (
-                <div key={idx} className="gx-field">
-                  <label className="gx-label">Correo Asistente {idx + 1}</label>
-                  <Input 
-                    type="email" 
-                    placeholder="correo@ejemplo.com" 
-                    value={email}
-                    onChange={(e) => {
-                      const newArr = [...assistants];
-                      newArr[idx] = e.target.value;
-                      setAssistants(newArr);
-                    }}
-                  />
+            
+            <div className="space-y-6">
+              {teamInvites.map((invite, idx) => (
+                <div key={idx} className="bg-bg-soft/50 p-5 rounded-2xl border border-border/60 shadow-sm flex flex-col sm:flex-row gap-4 items-end">
+                  <div className="flex-1 space-y-1.5 w-full">
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Email del médico/asistente</label>
+                    <Input 
+                      type="email" 
+                      placeholder="correo@ejemplo.com" 
+                      value={invite.email}
+                      onChange={(e) => {
+                        const newArr = [...teamInvites];
+                        newArr[idx].email = e.target.value;
+                        setTeamInvites(newArr);
+                      }}
+                      className="w-full h-11 px-4 rounded-xl border border-input/60 bg-card"
+                    />
+                  </div>
+                  <div className="w-full sm:w-48 space-y-1.5">
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Clave temporal *</label>
+                    <Input 
+                      type="text" 
+                      placeholder="Obligatoria" 
+                      value={invite.password}
+                      onChange={(e) => {
+                        const newArr = [...teamInvites];
+                        newArr[idx].password = e.target.value;
+                        setTeamInvites(newArr);
+                      }}
+                      className="w-full h-11 px-4 rounded-xl border border-input/60 bg-card"
+                    />
+                  </div>
+                  <div className="w-full sm:w-36 space-y-1.5">
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Rol</label>
+                    <select
+                      value={invite.role}
+                      onChange={(e) => {
+                        const newArr = [...teamInvites];
+                        newArr[idx].role = e.target.value;
+                        setTeamInvites(newArr);
+                      }}
+                      className="w-full h-11 px-3 rounded-xl border border-input/60 bg-card text-ink focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent text-sm transition-all appearance-none shadow-sm font-medium"
+                    >
+                      <option value="doctor">Doctor</option>
+                      <option value="admin">Admin</option>
+                      <option value="assistant">Asistente</option>
+                    </select>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setTeamInvites(teamInvites.filter((_, i) => i !== idx))}
+                    className="p-2.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors h-11 w-11 flex items-center justify-center shrink-0 mb-0"
+                    disabled={teamInvites.length === 1 && !invite.email}
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
                 </div>
               ))}
-              <p className="text-xs text-ink-soft">Podrás enviar invitaciones más adelante desde el panel de Administración.</p>
+              
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setTeamInvites([...teamInvites, { email: "", role: "assistant", password: "" }])}
+                  className="h-9 w-full sm:w-auto"
+                >
+                  + Agregar Otro Miembro
+                </Button>
+                <p className="text-xs text-ink-soft">Podrás enviar más invitaciones luego en Ajustes.</p>
+              </div>
             </div>
           </div>
         )}

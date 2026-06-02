@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { PanelErrorBoundary } from "@/components/ui/panel-error-boundary";
 import { DashboardOnboardingGuard } from "@/features/dashboard/components/dashboard-onboarding-guard";
 import { GlobalSearch } from "@/features/dashboard/components/global-search";
-import { Topnav, BottomNav, MobileHeader } from "@/features/dashboard/components/topnav";
+import { Topnav, BottomNav, MobileHeader, MobileFab } from "@/features/dashboard/components/topnav";
 import { SyncStatusBanner } from "@/features/sync/components/sync-status-banner";
 import { SubscriptionBanner } from "@/features/dashboard/components/subscription-banner";
 import { TenantProvider } from "@/lib/supabase/tenant-context";
@@ -109,14 +109,7 @@ export default async function DashboardLayout({
             </main>
           </div>
 
-          {/* Mobile FAB */}
-          <Link
-            href="/consultas"
-            aria-label="Nueva consulta"
-            className="fixed bottom-20 right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-accent text-white shadow-lg transition-transform hover:scale-105 active:scale-95 lg:hidden"
-          >
-            <Plus className="h-6 w-6" aria-hidden="true" />
-          </Link>
+          <MobileFab />
 
           {/* Mobile bottom nav */}
           <PanelErrorBoundary>

@@ -59,10 +59,6 @@ export function readOnboardingProfile(metadata: unknown): DoctorOnboardingProfil
     signature_name: asTrimmedString(onboarding.signature_name),
   };
 
-  if (!isOnboardingProfileComplete(profile)) {
-    return null;
-  }
-
   return profile;
 }
 
@@ -91,10 +87,6 @@ export async function saveOnboardingProfile(profile: DoctorOnboardingProfile) {
     public_contact_email: profile.public_contact_email?.trim() || undefined,
     signature_name: profile.signature_name.trim(),
   };
-
-  if (!isOnboardingProfileComplete(normalizedProfile)) {
-    throw new Error("Completa todos los campos obligatorios del perfil profesional.");
-  }
 
   if (typeof navigator !== "undefined" && !navigator.onLine) {
     throw new Error(
