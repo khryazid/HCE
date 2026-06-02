@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { APP_NAME } from "@/lib/constants/app";
 import { AlertTriangle } from "lucide-react";
+import { LogoutButton } from "@/features/auth/components/logout-button";
 
 export default function SinPlanPage() {
   return (
@@ -20,17 +21,12 @@ export default function SinPlanPage() {
 
         <div className="flex flex-col gap-3">
           <Link
-            href="/planes"
+            href="/planes/profesional"
             className="inline-flex items-center justify-center px-6 py-3 rounded-xl bg-accent text-white font-semibold text-sm hover:bg-accent/90 transition-colors"
           >
             Ver planes disponibles
           </Link>
-          <Link
-            href="/login"
-            className="inline-flex items-center justify-center px-6 py-3 rounded-xl border border-border text-ink-soft font-medium text-sm hover:bg-bg-soft transition-colors"
-          >
-            Iniciar sesión con otra cuenta
-          </Link>
+          <LogoutButton mode="full" />
         </div>
 
         <p className="text-xs text-ink-faint">

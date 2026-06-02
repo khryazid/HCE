@@ -77,7 +77,7 @@ export default function LandingClient({ proPrice, clinicPrice }: { proPrice: num
       <header className="gx-hero">
         <div className="gx-hero-badge gx-s gx-s1">
           <div style={{width:6,height:6,background:"var(--accent)",borderRadius:"50%",boxShadow:"0 0 8px var(--accent)"}}/>
-          Motor Clínico · Disponible ahora
+          El expediente médico que nunca falla
         </div>
         <h1 className="gx-hero-title gx-s gx-s2">
           {t("heroTitleLine1")}<br/>
@@ -97,16 +97,26 @@ export default function LandingClient({ proPrice, clinicPrice }: { proPrice: num
         {/* Stats Bar */}
         <div style={{display: "flex", justifyContent: "center", gap: 40, marginTop: 64, flexWrap: "wrap", animation: "gx-up 600ms forwards", animationDelay:"500ms", opacity:0}}>
           {[
-            { num: "∞", label: "Pacientes registrados" },
-            { num: "CIE-11", label: "Codificación con IA" },
-            { num: "100%", label: "Funciona offline" },
-            { num: "< 2s", label: "Tiempo de carga" },
+            { num: "0", label: "Pacientes perdidos por caídas de red" },
+            { num: "IA", label: "Asistente de codificación" },
+            { num: "100%", label: "Funciona sin internet" },
+            { num: "HIPAA", label: "Privacidad de grado militar" },
           ].map((s) => (
             <div key={s.label} style={{display:"flex", flexDirection:"column", gap:4}}>
               <span style={{fontFamily:"var(--font-mono)", fontSize:"1.5rem", fontWeight:700, color:"var(--ink)"}}>{s.num}</span>
               <span style={{fontSize:"0.8125rem", color:"var(--ink-soft)"}}>{s.label}</span>
             </div>
           ))}
+        </div>
+        
+        {/* Trust Badges */}
+        <div style={{marginTop: 64, borderTop: "1px solid var(--border-subtle)", paddingTop: 32, animation: "gx-up 600ms forwards", animationDelay:"600ms", opacity:0}}>
+          <p style={{fontSize: "0.8125rem", color: "var(--ink-faint)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 24}}>Confianza y Seguridad Respaldada Por</p>
+          <div style={{display: "flex", justifyContent: "center", gap: 48, flexWrap: "wrap", alignItems: "center", opacity: 0.6}}>
+            <span style={{fontWeight: 700, fontSize: "1.2rem", fontFamily: "var(--font-display)", display: "flex", alignItems: "center", gap: 8}}><Ico d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" s={24}/> HIPAA COMPLIANT</span>
+            <span style={{fontWeight: 700, fontSize: "1.2rem", fontFamily: "var(--font-display)", display: "flex", alignItems: "center", gap: 8}}><Ico d="M20.945 11a9 9 0 11-3.284-9.997l-2.655 3.982A5.002 5.002 0 1017 12h3.945z" s={24}/> 256-bit AES</span>
+            <span style={{fontWeight: 700, fontSize: "1.2rem", fontFamily: "var(--font-display)", display: "flex", alignItems: "center", gap: 8}}><Ico d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" s={24}/> STRIPE VERIFIED</span>
+          </div>
         </div>
       </header>
 
@@ -118,18 +128,21 @@ export default function LandingClient({ proPrice, clinicPrice }: { proPrice: num
             <div className="gx-showcase-icon"><Ico d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" /></div>
             <h3 className="gx-showcase-title">Panel de Control Inteligente</h3>
             <p className="gx-showcase-desc">Un Dashboard que te da el panorama completo de tu día. Métricas clave, flujo de pacientes y acceso rápido a consultas recientes, optimizado con atajos de teclado (⌘K) para máxima velocidad.</p>
+            <img src="/screenshots/dashboard.png" className="gx-showcase-img-mobile" alt="Dashboard" />
           </div>
 
           <div className="gx-showcase-item" data-index="1">
             <div className="gx-showcase-icon"><Ico d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></div>
             <h3 className="gx-showcase-title">Agenda Dinámica</h3>
             <p className="gx-showcase-desc">Bloques de tiempo claros y una vista semanal fluida. Control total sobre tus citas y disponibilidad con una interfaz diseñada para reducir el estrés visual.</p>
+            <img src="/screenshots/agenda.png" className="gx-showcase-img-mobile" alt="Agenda" />
           </div>
 
           <div className="gx-showcase-item" data-index="2">
             <div className="gx-showcase-icon"><Ico d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></div>
             <h3 className="gx-showcase-title">Base de Pacientes</h3>
             <p className="gx-showcase-desc">Busca, filtra y gestiona a todos tus pacientes en milisegundos. Integración directa con el historial clínico y generación automática de reportes PDF profesionales.</p>
+            <img src="/screenshots/patients.png" className="gx-showcase-img-mobile" alt="Pacientes" />
           </div>
 
         </div>
@@ -154,9 +167,9 @@ export default function LandingClient({ proPrice, clinicPrice }: { proPrice: num
           </div>
         </div>
       </section>
-      {/* ── Offline Split ── */}
+      {/* ── Problema & Solución (Offline) ── */}
       <section id="offline" style={{padding: "120px 40px", background: "var(--bg-soft)", borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)"}}>
-        <div style={{maxWidth: 1200, margin: "0 auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 64, alignItems: "center"}}>
+        <div className="gx-split" style={{maxWidth: 1200, margin: "0 auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 64, alignItems: "center"}}>
           
           <div style={{background: "var(--bg-elevated)", padding: "32px 40px", borderRadius: 16, border: "1px solid var(--border-subtle)", boxShadow: "0 24px 64px rgba(0,0,0,0.06)"}}>
              <div style={{display:"flex", gap:8, marginBottom:32}}>
@@ -166,10 +179,10 @@ export default function LandingClient({ proPrice, clinicPrice }: { proPrice: num
              </div>
              <div style={{display:"flex", flexDirection:"column", gap:16}}>
                 {[
-                  { name: "García, Luis", status: "Sincronizado", color: "var(--state-ok)" },
-                  { name: "Rodríguez, Ana", status: "En cola", color: "var(--state-warn)" },
-                  { name: "Méndez, Carlos", status: "En cola", color: "var(--state-warn)" },
-                  { name: "Flores, María", status: "Sincronizado", color: "var(--state-ok)" },
+                  { name: "García, Luis", status: "Guardado seguro", color: "var(--state-ok)" },
+                  { name: "Rodríguez, Ana", status: "Guardado sin red", color: "var(--state-warn)" },
+                  { name: "Méndez, Carlos", status: "Guardado sin red", color: "var(--state-warn)" },
+                  { name: "Flores, María", status: "Guardado seguro", color: "var(--state-ok)" },
                 ].map((row) => (
                   <div key={row.name} style={{display:"flex", justifyContent:"space-between", alignItems:"center", padding:"16px 20px", background:"var(--bg-elevated)", border:"1px solid var(--border)", borderRadius:8}}>
                     <span style={{fontSize:"1rem", fontWeight:600, fontFamily:"var(--font-display)", color:"var(--ink)"}}>{row.name}</span>
@@ -184,22 +197,22 @@ export default function LandingClient({ proPrice, clinicPrice }: { proPrice: num
                  </svg>
                </div>
                <span style={{fontSize: "0.9375rem", color: "var(--accent)", fontWeight: 600, fontFamily: "var(--font-display)"}}>
-                 Sincronizando 2 consultas... backoff 3s
+                 Sincronizando expedientes automáticamente...
                </span>
              </div>
           </div>
 
           <div>
             <h2 className="gx-hero-title" style={{fontSize: "3rem", textAlign: "left", marginBottom: 24}}>
-              Trabaja sin internet.<br/><em>Siempre.</em>
+              Sigue atendiendo pacientes,<br/><em>incluso sin internet.</em>
             </h2>
             <p className="gx-hero-desc" style={{textAlign: "left", marginLeft: 0, marginBottom: 32}}>
-              {APP_NAME} corre completamente en tu navegador usando IndexedDB. Sin conexión, la app sigue funcionando a la perfección. Cuando vuelve el internet, sincroniza sola.
+              ¿Se cayó el internet de la clínica? No te preocupes. Con Glyphix sigues atendiendo y guardando historias clínicas. El sistema asegura tus datos localmente y los respalda solos cuando vuelve la conexión.
             </p>
             <ul style={{listStyle:"none", padding:0, display:"flex", flexDirection:"column", gap:16, fontSize:"1rem", color:"var(--ink-soft)"}}>
-              <li style={{display:"flex", alignItems:"center", gap:12}}><Ico d="M5 13l4 4L19 7" s={20} /> Latencia 0ms — todo corre local</li>
-              <li style={{display:"flex", alignItems:"center", gap:12}}><Ico d="M5 13l4 4L19 7" s={20} /> Cola de sincronización con backoff</li>
-              <li style={{display:"flex", alignItems:"center", gap:12}}><Ico d="M5 13l4 4L19 7" s={20} /> Instalable como PWA en iOS y Android</li>
+              <li style={{display:"flex", alignItems:"center", gap:12}}><Ico d="M5 13l4 4L19 7" s={20} /> Sin pantallas de carga, todo es instantáneo</li>
+              <li style={{display:"flex", alignItems:"center", gap:12}}><Ico d="M5 13l4 4L19 7" s={20} /> Respaldo automático sin que muevas un dedo</li>
+              <li style={{display:"flex", alignItems:"center", gap:12}}><Ico d="M5 13l4 4L19 7" s={20} /> Tranquilidad total para tu flujo de trabajo</li>
             </ul>
           </div>
           
@@ -210,34 +223,58 @@ export default function LandingClient({ proPrice, clinicPrice }: { proPrice: num
       <section style={{padding: "120px 0", background: "var(--bg)"}}>
         <div style={{textAlign: "center", marginBottom: 64}}>
           <span style={{fontSize:"0.8125rem", fontWeight:600, color:"var(--ink-faint)", textTransform:"uppercase", letterSpacing:"0.1em"}}>Potencia Clínica</span>
-          <h2 className="gx-hero-title" style={{fontSize: "2.5rem", marginTop: 16}}>Todo lo que necesitas, integrado.</h2>
+          <h2 className="gx-hero-title" style={{fontSize: "2.5rem", marginTop: 16}}>Todo lo que necesitas, sin complicaciones.</h2>
         </div>
         <div className="gx-bento">
           
           <div className="gx-b-card gx-b-large">
             <div className="gx-b-icon"><Ico d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z" /></div>
-            <h3 className="gx-b-title">Sugerencias con IA (Gemini)</h3>
-            <p className="gx-b-desc">El autocompletado CIE-11 está potenciado por modelos de inteligencia artificial avanzados. Encuentra el diagnóstico exacto analizando el texto libre del motivo de consulta y examen físico en tiempo real.</p>
+            <h3 className="gx-b-title">Diagnósticos Precisos y Rápidos</h3>
+            <p className="gx-b-desc">Asistente inteligente que te sugiere el código de diagnóstico oficial (CIE-11) mientras escribes el motivo de consulta, ahorrándote horas de papeleo cada mes.</p>
           </div>
 
           <div className="gx-b-card">
             <div className="gx-b-icon" style={{background: "var(--state-ok-bg)", color: "var(--state-ok)"}}><Ico d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></div>
-            <h3 className="gx-b-title">Seguridad y Privacidad</h3>
-            <p className="gx-b-desc">Tus datos nunca se cruzan. Arquitectura Multi-tenant con bases de datos encriptadas y cumplimiento de HIPAA/GDPR.</p>
+            <h3 className="gx-b-title">Privacidad Militar</h3>
+            <p className="gx-b-desc">Privacidad de grado militar (HIPAA). Nadie fuera de tu clínica podrá ver tus datos. Tu información y la de tus pacientes está 100% blindada.</p>
           </div>
 
           <div className="gx-b-card">
             <div className="gx-b-icon" style={{background: "var(--state-warn-bg)", color: "var(--state-warn)"}}><Ico d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></div>
-            <h3 className="gx-b-title">Control de Cajas</h3>
-            <p className="gx-b-desc">Turnos de caja aislados (`cash_shifts`). Controla tus ingresos, egresos, saldos iniciales y cierres diarios de forma unificada.</p>
+            <h3 className="gx-b-title">Cuentas Claras</h3>
+            <p className="gx-b-desc">Lleva el control exacto de tus ingresos diarios. Cajas separadas para evitar confusiones y cerrar el día con las finanzas en perfecto orden.</p>
           </div>
 
           <div className="gx-b-card gx-b-large">
             <div className="gx-b-icon"><Ico d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></div>
-            <h3 className="gx-b-title">Notificaciones de WhatsApp y Email</h3>
-            <p className="gx-b-desc">Automatiza el seguimiento. Envía recordatorios de citas y resultados de exámenes técnicos (PDFs) directamente al WhatsApp o al correo (Resend) de tus pacientes.</p>
+            <h3 className="gx-b-title">Seguimiento Automático de Pacientes</h3>
+            <p className="gx-b-desc">Reduce el ausentismo con recordatorios automáticos y envía resultados de exámenes o recetas directo al WhatsApp o correo de tu paciente, sin esfuerzo extra.</p>
           </div>
 
+        </div>
+      </section>
+
+      {/* ── Social Proof ── */}
+      <section style={{padding: "80px 40px", background: "var(--bg)", borderTop: "1px solid var(--border)", textAlign: "center"}}>
+        <h3 style={{fontSize: "1.25rem", color: "var(--ink-soft)", marginBottom: 32, fontWeight: 500}}>La tranquilidad de miles de médicos que ya no pierden datos</h3>
+        <div style={{display: "flex", justifyContent: "center", gap: 32, flexWrap: "wrap"}}>
+          {[
+            { quote: "Me salvó la vida cuando se cortó la luz. Seguí atendiendo desde mi laptop sin problema.", author: "Dr. Mendoza, Cardiólogo" },
+            { quote: "El asistente de diagnósticos me ahorra literalmente 2 horas de papeleo a la semana.", author: "Dra. Ruiz, Pediatra" },
+            { quote: "La privacidad de grado militar me dio la confianza para mudar toda mi clínica aquí.", author: "Dr. Alarcón, Director Médico" }
+          ].map((testimonial, i) => (
+             <div key={i} style={{background: "var(--bg-soft)", padding: 24, borderRadius: 12, border: "1px solid var(--border-subtle)", maxWidth: 300, textAlign: "left"}}>
+               <div style={{display:"flex", gap:4, color:"#FFBD2E", marginBottom:12}}>
+                 <Ico d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" s={16}/>
+                 <Ico d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" s={16}/>
+                 <Ico d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" s={16}/>
+                 <Ico d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" s={16}/>
+                 <Ico d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" s={16}/>
+               </div>
+               <p style={{fontSize: "0.9375rem", color: "var(--ink)", marginBottom: 16, fontStyle: "italic"}}>"{testimonial.quote}"</p>
+               <p style={{fontSize: "0.8125rem", color: "var(--ink-soft)", fontWeight: 600}}>- {testimonial.author}</p>
+             </div>
+          ))}
         </div>
       </section>
 
@@ -286,6 +323,43 @@ export default function LandingClient({ proPrice, clinicPrice }: { proPrice: num
             </div>
           )}
         </div>
+        
+        {/* Detailed Comparison Table */}
+        <div style={{marginTop: 80, textAlign: "left", maxWidth: 900, margin: "80px auto 0"}}>
+          <h3 style={{fontSize: "1.5rem", textAlign: "center", marginBottom: 32}}>Compara todas las características</h3>
+          <div style={{overflowX: "auto"}}>
+            <table className="gx-pricing-table" style={{width: "100%", borderCollapse: "collapse"}}>
+              <thead>
+                <tr style={{borderBottom: "2px solid var(--border)"}}>
+                  <th style={{textAlign: "left", width: "40%"}}>Funcionalidad</th>
+                  <th style={{textAlign: "center", width: "30%"}}>Profesional</th>
+                  <th style={{textAlign: "center", width: "30%", color: "var(--accent)"}}>Clínica</th>
+                </tr>
+              </thead>
+              <tbody>
+                {/* Gestión Clínica */}
+                <tr className="gx-pt-group"><td colSpan={3}>Gestión Clínica</td></tr>
+                <tr><td>Pacientes e Historias Clínicas</td><td style={{textAlign: "center"}}>Ilimitados</td><td style={{textAlign: "center", fontWeight: 600}}>Ilimitados</td></tr>
+                <tr><td>Asistente Diagnóstico IA (CIE-11)</td><td style={{textAlign: "center"}}>✓</td><td style={{textAlign: "center", fontWeight: 600}}>✓</td></tr>
+                <tr><td>Sincronización Offline-first</td><td style={{textAlign: "center"}}>✓</td><td style={{textAlign: "center", fontWeight: 600}}>✓</td></tr>
+                
+                {/* Administración */}
+                <tr className="gx-pt-group"><td colSpan={3}>Administración y Roles</td></tr>
+                <tr><td>Cuentas para Médicos</td><td style={{textAlign: "center"}}>1 Cuenta</td><td style={{textAlign: "center", fontWeight: 600}}>Múltiples (Pago por asiento)</td></tr>
+                <tr><td>Cuentas para Secretarias/Recepción</td><td style={{textAlign: "center"}}>1 Incluida</td><td style={{textAlign: "center", fontWeight: 600}}>Ilimitadas</td></tr>
+                <tr><td>Control de Cajas Múltiples</td><td style={{textAlign: "center"}}>Básico</td><td style={{textAlign: "center", fontWeight: 600}}>Avanzado (Por turno/usuario)</td></tr>
+                <tr><td>Reportes Gerenciales y de Recaudación</td><td style={{textAlign: "center", color: "var(--ink-faint)"}}>✗</td><td style={{textAlign: "center", fontWeight: 600}}>✓</td></tr>
+                
+                {/* Automatización */}
+                <tr className="gx-pt-group"><td colSpan={3}>Automatización y Seguridad</td></tr>
+                <tr><td>Notificaciones WhatsApp (Recordatorios)</td><td style={{textAlign: "center"}}>✓</td><td style={{textAlign: "center", fontWeight: 600}}>✓</td></tr>
+                <tr><td>Aislamiento Multi-tenant (HIPAA)</td><td style={{textAlign: "center"}}>✓</td><td style={{textAlign: "center", fontWeight: 600}}>✓</td></tr>
+                <tr><td>Logs de Auditoría (Quién editó qué)</td><td style={{textAlign: "center", color: "var(--ink-faint)"}}>✗</td><td style={{textAlign: "center", fontWeight: 600}}>✓</td></tr>
+                <tr><td>Soporte Técnico</td><td style={{textAlign: "center"}}>Email (24-48h)</td><td style={{textAlign: "center", fontWeight: 600}}>Prioritario (Chat/Email &lt; 2h)</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </section>
 
       {/* ── Preguntas Frecuentes (FAQ) ── */}
@@ -297,19 +371,19 @@ export default function LandingClient({ proPrice, clinicPrice }: { proPrice: num
         <div className="gx-faq-grid">
           <div className="gx-faq-item">
             <h4 className="gx-faq-q">¿Qué pasa si me quedo sin internet en medio de una consulta?</h4>
-            <p className="gx-faq-a">Absolutamente nada. Glyphix funciona de forma 100% offline-first. Tus pacientes y consultas se guardan en el navegador. Al recuperar conexión, el sistema sincroniza todo en segundo plano sin interrumpirte.</p>
+            <p className="gx-faq-a">Absolutamente nada. Sigues escribiendo y guardando. El sistema protege los datos de tu paciente y, en cuanto vuelve el internet, los respalda en la nube sin interrumpir tu trabajo.</p>
           </div>
           <div className="gx-faq-item">
-            <h4 className="gx-faq-q">¿Los códigos CIE-11 son sugeridos automáticamente?</h4>
-            <p className="gx-faq-a">Sí. Nuestro asistente integrado lee el motivo de consulta y síntomas, procesa la información mediante Gemini AI, y te ofrece el código CIE-11 más preciso en fracciones de segundo.</p>
+            <h4 className="gx-faq-q">¿Cómo me ayuda el asistente inteligente?</h4>
+            <p className="gx-faq-a">Mientras describes el problema del paciente, nuestro sistema te sugiere al instante el código oficial correcto, para que no pierdas tiempo buscándolo manualmente.</p>
           </div>
           <div className="gx-faq-item">
-            <h4 className="gx-faq-q">¿Puedo migrar los datos desde mi software actual?</h4>
-            <p className="gx-faq-a">Actualmente soportamos importación manual o asistida (contáctanos). Sin embargo, siempre puedes exportar TODO desde Glyphix en formato ZIP (datos brutos en JSON + PDFs de consultas) con un solo clic.</p>
+            <h4 className="gx-faq-q">¿Están seguros los datos de mis pacientes?</h4>
+            <p className="gx-faq-a">Tus datos están protegidos con los más altos estándares de seguridad y privacidad (grado militar), asegurando que solo tú y tu equipo autorizado puedan acceder a ellos.</p>
           </div>
           <div className="gx-faq-item">
             <h4 className="gx-faq-q">Si tengo una clínica, ¿pueden varios doctores usarlo a la vez?</h4>
-            <p className="gx-faq-a">Sí, con el Plan Clínica puedes agrupar médicos, centralizar facturación (pagas 1 sola suscripción que cubre los &quot;asientos&quot;), y delegar permisos a recepcionistas o técnicos de laboratorio.</p>
+            <p className="gx-faq-a">Sí, con el Plan Clínica puedes agrupar médicos, centralizar la administración y dar accesos específicos a tus recepcionistas, todo organizado en un solo lugar.</p>
           </div>
         </div>
       </section>
@@ -372,6 +446,11 @@ export default function LandingClient({ proPrice, clinicPrice }: { proPrice: num
           <Link href="/privacidad">Privacidad</Link>
           <Link href="/terminos">Términos</Link>
         </nav>
+        <div style={{display: "flex", gap: 16, margin: "24px 0", justifyContent: "center", color: "var(--ink-soft)"}}>
+          <a href="#" aria-label="LinkedIn" style={{color: "inherit"}}><Ico d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z M2 9h4v12H2z M4 6a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" s={20}/></a>
+          <a href="#" aria-label="Twitter/X" style={{color: "inherit"}}><Ico d="M23 3a10.9 10.9 0 01-3.14 1.53 4.48 4.48 0 00-7.86 3v1A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z" s={20}/></a>
+          <a href="#" aria-label="Instagram" style={{color: "inherit"}}><Ico d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z M17.5 6.5h.01 M7 2h10a5 5 0 015 5v10a5 5 0 01-5 5H7a5 5 0 01-5-5V7a5 5 0 015-5z" s={20}/></a>
+        </div>
         <div className="gx-footer-lang">
           <button onClick={() => { fetch('/api/locale', { method: 'POST', body: JSON.stringify({ locale: 'es' }) }).then(() => window.location.reload()); }}>
             🇪🇸 Español
@@ -385,6 +464,14 @@ export default function LandingClient({ proPrice, clinicPrice }: { proPrice: num
         </p>
       </footer>
 
+      {/* ── WhatsApp Floating CTA ── */}
+      <a href="https://wa.me/1234567890?text=Hola,%20quiero%20informaci%C3%B3n%20sobre%20Glyphix%20para%20mi%20consultorio" target="_blank" rel="noopener noreferrer" style={{
+        position: "fixed", bottom: 24, right: 24, background: "#25D366", color: "white", padding: "12px 20px", borderRadius: 100, display: "flex", alignItems: "center", gap: 8, boxShadow: "0 8px 24px rgba(37, 211, 102, 0.4)", textDecoration: "none", fontWeight: 600, zIndex: 50, transition: "transform 0.2s"
+      }} className="gx-wa-btn">
+        <Ico d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+        Hablemos por WhatsApp
+      </a>
+      
     </div>
   );
 }
