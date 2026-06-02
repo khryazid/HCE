@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Plus, Trash2, Check, Stethoscope, CreditCard, Loader2, Mail } from "lucide-react";
 
 type PaymentMethod = { name: string; details: string };
-type ConsultationType = { name: string; price: number; duration?: number };
+type ConsultationType = { name: string; price: number | string; duration?: number | string };
 
 export function PaymentSettingsPanel() {
   const [isLoading, setIsLoading] = useState(true);
@@ -60,14 +60,19 @@ export function PaymentSettingsPanel() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("No user");
 
-      const newConfig = {
+      // Ensure arrays and clean up empty string values
+      const pConf = {
         methods: methods.filter(m => m.name.trim() !== ""),
-        consultationTypes: consultationTypes.filter(c => c.name.trim() !== ""),
+        consultationTypes: consultationTypes.filter(c => c.name.trim() !== "").map(c => ({
+          name: c.name,
+          price: Number(c.price) || 0,
+          duration: Number(c.duration) || 60
+        }))
       };
 
       const { error } = await supabase
         .from("profiles")
-        .update({ payment_config: newConfig })
+        .update({ payment_config: pConf as any })
         .eq("doctor_id", user.id);
 
       if (error) throw error;
@@ -131,7 +136,7 @@ export function PaymentSettingsPanel() {
                   value={ctype.price}
                   onChange={(e) => {
                     const copy = [...consultationTypes];
-                    copy[i].price = parseFloat(e.target.value) || 0;
+                    copy[i].price = e.target.value === "" ? "" : (parseFloat(e.target.value) ?? 0);
                     setConsultationTypes(copy);
                   }}
                 />
@@ -145,7 +150,7 @@ export function PaymentSettingsPanel() {
                   value={ctype.duration ?? 60}
                   onChange={(e) => {
                     const copy = [...consultationTypes];
-                    copy[i].duration = parseInt(e.target.value, 10) || 60;
+                    copy[i].duration = e.target.value === "" ? "" : (parseInt(e.target.value, 10) ?? 0);
                     setConsultationTypes(copy);
                   }}
                 />

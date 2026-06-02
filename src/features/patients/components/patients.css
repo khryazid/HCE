@@ -53,6 +53,12 @@
   font-feature-settings:"tnum";
 }
 
+@media (max-width: 768px) {
+  .gx-search-bar { flex-direction: column; align-items: stretch; gap: 8px; margin-bottom: 16px; }
+  .gx-search-count { align-self: flex-end; }
+  .gx-search-key { display: none; }
+}
+
 /* ── Filter pills ─────────────────────────────────── */
 .gx-filters {
   display: flex;
@@ -84,6 +90,11 @@
   font-size: 0.5625rem;
   margin-left: 4px;
   opacity: 0.7;
+}
+
+@media (max-width: 768px) {
+  .gx-filters { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 4px; gap: 6px; }
+  .gx-filter { flex-shrink: 0; }
 }
 
 /* ══════════════════════════════════════════════════════
@@ -303,6 +314,46 @@
 .gx-pag-btn:active:not(:disabled) { transform: scale(0.96); }
 .gx-pag-btn:disabled { opacity:0.4; cursor:not-allowed; }
 
+/* ── Responsive Table (Cards on Mobile) ───────────── */
+@media (max-width: 768px) {
+  .gx-table-wrap {
+    border: none;
+    background: transparent;
+    padding-bottom: 80px; /* Space for FAB */
+  }
+  .gx-table thead { display: none; }
+  .gx-table tbody tr {
+    display: flex;
+    flex-direction: column;
+    padding: 16px;
+    gap: 12px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    margin-bottom: 12px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+  }
+  .gx-table td {
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    text-align: right;
+  }
+  .gx-table td:nth-child(1) { width: 100%; margin-bottom: 8px; justify-content: flex-start; text-align: left; }
+  .gx-table td:nth-child(2)::before { content: "Documento"; font-size: 0.625rem; color: var(--ink-faint); font-weight: 600; text-transform: uppercase; }
+  .gx-table td:nth-child(3)::before { content: "Motivo/Dx"; font-size: 0.625rem; color: var(--ink-faint); font-weight: 600; text-transform: uppercase; }
+  .gx-table td:nth-child(4)::before { content: "Última visita"; font-size: 0.625rem; color: var(--ink-faint); font-weight: 600; text-transform: uppercase; }
+  .gx-table td:nth-child(5)::before { content: "Estado"; font-size: 0.625rem; color: var(--ink-faint); font-weight: 600; text-transform: uppercase; }
+  .gx-table td:nth-child(6) { display: none; }
+  
+  .gx-table td[colspan="6"] {
+    justify-content: center;
+    padding: 32px 16px;
+    text-align: center;
+  }
+}
+
 /* ══════════════════════════════════════════════════════
    SLIDE-OVER PANEL
 ══════════════════════════════════════════════════════ */
@@ -378,6 +429,26 @@
 @keyframes slide-in-right {
   from { transform: translateX(100%); }
   to { transform: translateX(0); }
+}
+@keyframes slide-up-mobile {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@media (max-width: 640px) {
+  .gx-slideover-panel {
+    top: auto;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    max-height: 90vh;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    transform: translateY(100%);
+    animation: slide-up-mobile 300ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  .gx-slideover-body {
+    padding: 16px;
+  }
 }
 
 /* ══════════════════════════════════════════════════════
@@ -740,8 +811,15 @@
 /* ── Responsive ── */
 @media (max-width: 640px) {
   .gx-profile-overlay-content {
-    width: 96%;
-    max-height: 90vh;
+    top: auto;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 95vh;
+    max-height: 95vh;
+    transform: translateY(100%);
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    animation: slide-up-mobile 300ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
   .gx-profile-metrics {
     grid-template-columns: 1fr 1fr;

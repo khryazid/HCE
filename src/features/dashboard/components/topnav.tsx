@@ -21,7 +21,11 @@ import {
   ScanLine,
   Scissors,
   Receipt,
+  Plus,
+  Menu,
+  X,
 } from "lucide-react";
+import { useRef } from "react";
 import { SYNC_STARTED_EVENT, SYNC_FINISHED_EVENT } from "@/lib/sync/sync-worker";
 import { APP_NAME } from "@/lib/constants/app";
 
@@ -300,34 +304,150 @@ export function BottomNav() {
   const overdueCount = useOverdueCount();
   const { tenant } = useTenant();
   const navItems = getNavItems(tenant?.role, tenant?.plan);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  // Show only up to 4 primary items in the bottom bar to avoid crowding
+  const primaryItems = navItems.slice(0, 4);
+  const hasMore = navItems.length > 4;
+
+  useEffect(() => {
+    setIsMenuOpen(false);
+  }, [pathname]);
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-50 flex items-stretch border-t border-border bg-card/95 backdrop-blur-xl pb-safe lg:hidden">
-      {navItems.map((item) => {
-        const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={`relative flex flex-1 flex-col items-center justify-center gap-1 py-2 text-xs font-medium transition-colors ${
-              isActive ? "text-accent" : "text-ink-faint hover:text-ink-soft"
-            }`}
-          >
-            {isActive && (
-              <span className="absolute top-0 left-[20%] right-[20%] h-0.5 rounded-b-sm bg-accent" />
-            )}
-            <div className={`relative flex transition-transform ${isActive ? "scale-110" : "scale-100"}`}>
-              {item.icon}
-              {item.href === "/pacientes" && overdueCount > 0 && (
-                <span className="absolute -right-2 -top-1 flex h-3.5 min-w-[14px] items-center justify-center rounded-full border border-card bg-red-500 px-0.5 text-[10px] font-bold text-white">
-                  {overdueCount > 9 ? "9+" : overdueCount}
-                </span>
-              )}
+    <>
+      {/* Drawer */}
+      {isMenuOpen && (
+        <div className="fixed inset-0 z-[60] lg:hidden">
+          <div className="absolute inset-0 bg-ink/40 backdrop-blur-sm transition-opacity" onClick={() => setIsMenuOpen(false)} />
+          <div className="absolute bottom-0 left-0 right-0 bg-card rounded-t-3xl p-6 shadow-2xl animate-in slide-in-from-bottom-full duration-300">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="font-display font-bold text-lg text-ink">Menú Principal</h3>
+              <button onClick={() => setIsMenuOpen(false)} className="p-2 bg-bg-soft rounded-full text-ink-soft hover:text-ink transition-colors">
+                <X className="w-5 h-5" />
+              </button>
             </div>
-            <span className="truncate w-full text-center px-1">{item.label}</span>
+            <div className="grid grid-cols-4 gap-y-6 gap-x-2">
+              {navItems.map((item) => {
+                const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setIsMenuOpen(false)}
+                    className={`flex flex-col items-center justify-center gap-2 p-2 rounded-2xl transition-all ${
+                      isActive ? "bg-accent/10 text-accent" : "text-ink-soft hover:bg-bg-soft hover:text-ink"
+                    }`}
+                  >
+                    <div className={isActive ? "scale-110 transition-transform" : ""}>{item.icon}</div>
+                    <span className="text-[10px] font-semibold text-center leading-tight truncate w-full">{item.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bottom Bar */}
+      <nav className="fixed inset-x-0 bottom-0 z-50 flex items-stretch border-t border-border bg-card/95 backdrop-blur-xl pb-safe lg:hidden">
+        {primaryItems.map((item) => {
+          const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`relative flex flex-1 flex-col items-center justify-center gap-1 py-2 text-xs font-medium transition-colors ${
+                isActive ? "text-accent" : "text-ink-faint hover:text-ink-soft"
+              }`}
+            >
+              {isActive && (
+                <span className="absolute top-0 left-[20%] right-[20%] h-0.5 rounded-b-sm bg-accent" />
+              )}
+              <div className={`relative flex transition-transform ${isActive ? "scale-110" : "scale-100"}`}>
+                {item.icon}
+                {item.href === "/pacientes" && overdueCount > 0 && (
+                  <span className="absolute -right-2 -top-1 flex h-3.5 min-w-[14px] items-center justify-center rounded-full border border-card bg-red-500 px-0.5 text-[10px] font-bold text-white">
+                    {overdueCount > 9 ? "9+" : overdueCount}
+                  </span>
+                )}
+              </div>
+              <span className="truncate w-full text-center px-1">{item.label}</span>
+            </Link>
+          );
+        })}
+
+        {/* 'More' Button */}
+        {hasMore && (
+          <button
+            onClick={() => setIsMenuOpen(true)}
+            className={`relative flex flex-1 flex-col items-center justify-center gap-1 py-2 text-xs font-medium transition-colors ${isMenuOpen ? "text-ink" : "text-ink-faint hover:text-ink-soft"}`}
+          >
+            <div className={`relative flex transition-transform ${isMenuOpen ? "scale-110" : "scale-100"}`}>
+              <Menu className="w-[16px] h-[16px]" />
+            </div>
+            <span className="truncate w-full text-center px-1">Menú</span>
+          </button>
+        )}
+      </nav>
+    </>
+  );
+}
+
+/* ── Mobile FAB ────────────────────────────────────── */
+export function MobileFab() {
+  const pathname = usePathname();
+  const [isOpen, setIsOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  if (pathname.includes("/agenda") || pathname.includes("/consultas")) {
+    return null;
+  }
+
+  return (
+    <div className="fixed bottom-20 right-4 z-50 lg:hidden" ref={menuRef}>
+      {isOpen && (
+        <div className="absolute bottom-16 right-0 mb-2 flex flex-col gap-2 min-w-[160px] animate-in slide-in-from-bottom-2 fade-in">
+          <Link 
+            href="/agenda" 
+            className="flex items-center gap-3 bg-card px-4 py-3 rounded-xl shadow-lg border border-border text-ink hover:bg-bg-soft transition-colors text-sm font-semibold whitespace-nowrap"
+            onClick={() => setIsOpen(false)}
+          >
+            <div className="bg-accent/10 p-1.5 rounded-md text-accent">
+              <CalendarDays className="h-4 w-4" />
+            </div>
+            Crear cita
           </Link>
-        );
-      })}
-    </nav>
+          <Link 
+            href="/consultas" 
+            className="flex items-center gap-3 bg-card px-4 py-3 rounded-xl shadow-lg border border-border text-ink hover:bg-bg-soft transition-colors text-sm font-semibold whitespace-nowrap"
+            onClick={() => setIsOpen(false)}
+          >
+            <div className="bg-accent/10 p-1.5 rounded-md text-accent">
+              <ClipboardList className="h-4 w-4" />
+            </div>
+            Nueva consulta
+          </Link>
+        </div>
+      )}
+      
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        aria-label="Opciones rápidas"
+        className={`flex h-14 w-14 items-center justify-center rounded-full bg-accent text-white shadow-lg transition-transform active:scale-95 ${isOpen ? "rotate-45 bg-ink" : "hover:scale-105"}`}
+      >
+        <Plus className="h-6 w-6" aria-hidden="true" />
+      </button>
+    </div>
   );
 }

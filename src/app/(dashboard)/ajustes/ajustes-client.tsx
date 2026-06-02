@@ -213,7 +213,7 @@ export function AjustesClient({ isOnboarding = false }: { isOnboarding?: boolean
               <PushNotificationToggle />
             </div>
 
-            <div className="pt-8 border-t border-border space-y-6">
+            <div className="pt-8 pb-32 sm:pb-8 border-t border-border space-y-6">
               <div className="mb-6">
                 <h2 className="text-xl font-bold text-ink mb-2">Sincronización y Logs</h2>
                 <p className="text-sm text-ink-soft">Herramientas de diagnóstico de la cola offline.</p>

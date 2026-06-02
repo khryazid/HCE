@@ -9,6 +9,7 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { DateRangeFilter, DateFilterValue, getDefaultDateFilter } from "@/components/ui/date-range-filter";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from "recharts";
 import { usePaymentConfig } from "@/lib/use-payment-config";
 import { exportCashFlowPdf } from "../lib/cash-flow-pdf";
@@ -321,8 +322,10 @@ export function CashFlowView({ clinicId, userId, tenant }: CashFlowViewProps) {
           </p>
         </div>
         
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-          <DateRangeFilter value={dateFilter} onChange={setDateFilter} />
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto mt-4 sm:mt-0">
+          <div className="w-full sm:w-auto">
+            <DateRangeFilter value={dateFilter} onChange={setDateFilter} />
+          </div>
           
           <Button 
             variant="outline" 
@@ -332,21 +335,23 @@ export function CashFlowView({ clinicId, userId, tenant }: CashFlowViewProps) {
                 : `Turno abierto: ${format(new Date(currentShift.opened_at), "dd MMM yyyy, HH:mm", { locale: es })}`;
               exportCashFlowPdf(filteredTransactions, summary, periodInfo, tenant?.name || "Clínica");
             }}
-            className="flex items-center gap-2"
+            className="flex items-center justify-center gap-2 w-full sm:w-auto"
           >
             <Printer className="h-4 w-4" />
-            <span className="hidden sm:inline">Exportar PDF</span>
+            <span>Exportar PDF</span>
           </Button>
 
           {!isHistoricalMode && currentShift && (
-            <div className="flex items-center gap-2">
-              <Button onClick={handleCloseShift} variant="destructive" className="flex items-center gap-2">
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <Button onClick={handleCloseShift} variant="destructive" className="flex-1 sm:flex-none flex items-center justify-center gap-2">
                 <XCircle className="h-4 w-4" />
-                Cerrar Turno
+                <span className="hidden sm:inline">Cerrar</span>
+                <span className="sm:hidden">Cerrar Turno</span>
               </Button>
-              <Button onClick={() => setShowForm(!showForm)} className="flex items-center gap-2">
+              <Button onClick={() => setShowForm(!showForm)} className="flex-1 sm:flex-none flex items-center justify-center gap-2">
                 {showForm ? <XCircle className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-                {showForm ? "Cancelar" : "Nueva Transacción"}
+                <span className="hidden sm:inline">{showForm ? "Cancelar" : "Transacción"}</span>
+                <span className="sm:hidden">{showForm ? "Cancelar" : "Nueva Transacción"}</span>
               </Button>
             </div>
           )}
@@ -508,19 +513,18 @@ export function CashFlowView({ clinicId, userId, tenant }: CashFlowViewProps) {
         </div>
       </div>
 
-      {showForm && (
-        <Card className="p-6 border-accent/20 bg-accent/5 animate-in fade-in slide-in-from-top-2">
-          <form onSubmit={handleCreate} className="space-y-4">
-            <h3 className="font-semibold text-lg flex items-center gap-2">
-              Registrar Nueva Transacción
-            </h3>
-            
+      <Dialog open={showForm} onOpenChange={setShowForm}>
+        <DialogContent className="max-w-2xl w-[95vw] bg-card p-4 sm:p-6 max-h-[90vh] overflow-y-auto rounded-xl sm:rounded-2xl border-border">
+          <DialogHeader>
+            <DialogTitle className="text-xl">Registrar Nueva Transacción</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleCreate} className="space-y-4 mt-2">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-xs font-semibold uppercase text-ink-soft">Tipo</label>
                 <div className="flex gap-2">
-                  <button type="button" onClick={() => setType("income")} className={`flex-1 py-2 rounded-md border text-sm font-medium transition ${type === "income" ? "bg-green-100 border-green-500 text-green-800 dark:bg-green-900/30 dark:text-green-300" : "bg-transparent text-ink-soft hover:bg-bg-soft"}`}>Ingreso</button>
-                  <button type="button" onClick={() => setType("expense")} className={`flex-1 py-2 rounded-md border text-sm font-medium transition ${type === "expense" ? "bg-red-100 border-red-500 text-red-800 dark:bg-red-900/30 dark:text-red-300" : "bg-transparent text-ink-soft hover:bg-bg-soft"}`}>Egreso</button>
+                  <button type="button" onClick={() => setType("income")} className={`flex-1 py-2 rounded-md border text-sm font-medium transition ${type === "income" ? "bg-emerald-600 border-emerald-700 text-white shadow-sm" : "bg-transparent border-border text-ink-soft hover:bg-bg-soft hover:text-ink"}`}>Ingreso</button>
+                  <button type="button" onClick={() => setType("expense")} className={`flex-1 py-2 rounded-md border text-sm font-medium transition ${type === "expense" ? "bg-red-600 border-red-700 text-white shadow-sm" : "bg-transparent border-border text-ink-soft hover:bg-bg-soft hover:text-ink"}`}>Egreso</button>
                 </div>
               </div>
 
@@ -550,23 +554,23 @@ export function CashFlowView({ clinicId, userId, tenant }: CashFlowViewProps) {
               </div>
 
               <div className="space-y-1">
-              <label className="text-sm font-semibold text-ink">Medio de Pago</label>
-              <select 
-                value={paymentMethod}
-                onChange={(e) => setPaymentMethod(e.target.value)}
-                className="w-full px-3 py-2 bg-transparent border border-border rounded-lg text-sm text-ink focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
-              >
-                <option value="">Selecciona medio de pago...</option>
-                {paymentConfig?.methods.map((method, i) => (
-                  <option key={i} value={method.name}>{method.name}</option>
-                ))}
-              </select>
-            </div>
+                <label className="text-xs font-semibold uppercase text-ink-soft">Medio de Pago</label>
+                <select 
+                  value={paymentMethod}
+                  onChange={(e) => setPaymentMethod(e.target.value)}
+                  className="w-full px-3 py-2 bg-transparent border border-border rounded-lg text-sm text-ink focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent h-10"
+                >
+                  <option value="">Selecciona medio de pago...</option>
+                  {paymentConfig?.methods.map((method, i) => (
+                    <option key={i} value={method.name}>{method.name}</option>
+                  ))}
+                </select>
+              </div>
 
               <div className="space-y-2">
                 <label className="text-xs font-semibold uppercase text-ink-soft">Paciente (Opcional)</label>
                 <select 
-                  className="w-full bg-transparent border border-input px-3 py-2 text-sm rounded-md ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  className="w-full bg-transparent border border-input px-3 py-2 text-sm rounded-md ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 h-10"
                   value={patientId}
                   onChange={(e) => setPatientId(e.target.value)}
                 >
@@ -578,7 +582,7 @@ export function CashFlowView({ clinicId, userId, tenant }: CashFlowViewProps) {
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase text-ink-soft">Código de Referencia (Opcional)</label>
+                <label className="text-xs font-semibold uppercase text-ink-soft">Código de Ref. (Opcional)</label>
                 <Input 
                   value={reference}
                   onChange={(e) => setReference(e.target.value)}
@@ -588,14 +592,17 @@ export function CashFlowView({ clinicId, userId, tenant }: CashFlowViewProps) {
               </div>
             </div>
 
-            <div className="pt-2 flex justify-end">
+            <div className="pt-4 flex justify-end gap-3 border-t border-border mt-6">
+              <Button type="button" variant="ghost" onClick={() => setShowForm(false)}>
+                Cancelar
+              </Button>
               <Button type="submit" disabled={createTx.isPending}>
                 {createTx.isPending ? "Guardando..." : "Guardar Transacción"}
               </Button>
             </div>
           </form>
-        </Card>
-      )}
+        </DialogContent>
+      </Dialog>
 
       <div className="relative w-full sm:w-96">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-lighter" />
@@ -607,9 +614,9 @@ export function CashFlowView({ clinicId, userId, tenant }: CashFlowViewProps) {
         />
       </div>
 
-      <div className="bg-card rounded-xl border border-border overflow-hidden">
-        <table className="w-full text-sm text-left">
-          <thead className="bg-bg-soft border-b border-border text-xs uppercase text-ink-soft">
+      <div className="bg-transparent sm:bg-card sm:rounded-xl sm:border sm:border-border sm:overflow-hidden">
+        <table className="w-full text-sm text-left block sm:table">
+          <thead className="hidden sm:table-header-group bg-bg-soft border-b border-border text-xs uppercase text-ink-soft">
             <tr>
               <th className="px-6 py-3 font-semibold">Fecha</th>
               <th className="px-6 py-3 font-semibold">Concepto / Paciente</th>
@@ -618,39 +625,71 @@ export function CashFlowView({ clinicId, userId, tenant }: CashFlowViewProps) {
               <th className="px-6 py-3 font-semibold text-right">Acción</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="block sm:table-row-group sm:divide-y sm:divide-gray-100">
             {filteredTransactions.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="px-6 py-8 text-center text-ink-soft">
+              <tr className="block sm:table-row bg-card border border-border rounded-xl p-6 sm:border-none sm:rounded-none">
+                <td colSpan={5} className="block sm:table-cell px-6 py-8 text-center text-ink-soft">
                   No hay transacciones registradas.
                 </td>
               </tr>
             ) : (
               filteredTransactions.map((tx) => (
-                <tr key={tx.id} className="border-b border-border last:border-0 hover:bg-bg-soft transition">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {format(new Date(tx.created_at), "dd MMM yyyy HH:mm", { locale: es })}
+                <tr key={tx.id} className="block sm:table-row bg-card sm:bg-transparent border border-border sm:border-none rounded-xl sm:rounded-none mb-3 sm:mb-0 hover:bg-bg-soft transition p-4 sm:p-0">
+                  <td className="block sm:table-cell sm:px-6 sm:py-4 whitespace-nowrap mb-2 sm:mb-0">
+                    <div className="flex justify-between items-center sm:hidden mb-2">
+                       <span className="text-xs font-mono text-ink-soft">{format(new Date(tx.created_at), "dd MMM yyyy HH:mm", { locale: es })}</span>
+                       <span className={`font-bold ${tx.type === "income" ? "text-green-600 dark:text-green-500" : "text-red-600 dark:text-red-500"} ${tx.status === "voided" ? "line-through opacity-50" : ""}`}>
+                         {tx.type === "income" ? "+" : "-"}${tx.amount.toFixed(2)}
+                       </span>
+                    </div>
+                    <span className="hidden sm:inline text-ink-soft">{format(new Date(tx.created_at), "dd MMM yyyy HH:mm", { locale: es })}</span>
                   </td>
-                  <td className="px-6 py-4">
-                    <p className={`font-medium ${tx.status === "voided" ? "line-through" : ""}`}>{tx.concept}</p>
-                    {tx.patients && <p className="text-xs text-ink-soft mt-0.5">{tx.patients.full_name}</p>}
-                    {tx.reference_code && <p className="text-xs text-ink-lighter mt-0.5 font-mono">Ref: {tx.reference_code}</p>}
+                  <td className="block sm:table-cell sm:px-6 sm:py-4">
+                    <div className="flex justify-between items-start sm:block">
+                      <div className="flex-1 pr-4">
+                        <p className={`font-semibold text-ink sm:font-medium leading-snug ${tx.status === "voided" ? "line-through opacity-50" : ""}`}>{tx.concept}</p>
+                        {tx.patients && <p className="text-xs text-ink-soft mt-1">{tx.patients.full_name}</p>}
+                        {tx.reference_code && <p className="text-xs text-ink-lighter mt-0.5 font-mono">Ref: {tx.reference_code}</p>}
+                      </div>
+                      <div className="sm:hidden flex flex-col items-end gap-2 shrink-0">
+                        {tx.type === "income" ? (
+                          <span className="inline-flex items-center rounded-full bg-green-100 dark:bg-green-900/30 px-2 py-0.5 text-[10px] font-bold text-green-800 dark:text-green-300 uppercase tracking-wider">
+                            Ingreso
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center rounded-full bg-red-100 dark:bg-red-900/30 px-2 py-0.5 text-[10px] font-bold text-red-800 dark:text-red-300 uppercase tracking-wider">
+                            Egreso
+                          </span>
+                        )}
+                        {tx.status === "completed" ? (
+                          <button 
+                            onClick={() => handleVoid(tx.id)}
+                            className="text-[10px] text-red-600 dark:text-red-400 hover:underline font-bold uppercase tracking-wider mt-1"
+                            disabled={isHistoricalMode || !currentShift}
+                          >
+                            {isHistoricalMode || !currentShift ? "" : "Anular"}
+                          </button>
+                        ) : (
+                          <span className="text-[10px] text-ink-soft italic uppercase tracking-wider mt-1">Anulada</span>
+                        )}
+                      </div>
+                    </div>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="hidden sm:table-cell px-6 py-4">
                     {tx.type === "income" ? (
-                      <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
+                      <span className="inline-flex items-center rounded-full bg-green-100 dark:bg-green-900/30 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:text-green-300">
                         Ingreso
                       </span>
                     ) : (
-                      <span className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800">
+                      <span className="inline-flex items-center rounded-full bg-red-100 dark:bg-red-900/30 px-2.5 py-0.5 text-xs font-medium text-red-800 dark:text-red-300">
                         Egreso
                       </span>
                     )}
                   </td>
-                  <td className={`px-6 py-4 font-bold ${tx.type === "income" ? "text-green-700" : "text-red-700"} ${tx.status === "voided" ? "line-through" : ""}`}>
+                  <td className={`hidden sm:table-cell px-6 py-4 font-bold ${tx.type === "income" ? "text-green-700 dark:text-green-500" : "text-red-700 dark:text-red-500"} ${tx.status === "voided" ? "line-through opacity-50" : ""}`}>
                     {tx.type === "income" ? "+" : "-"}${tx.amount.toFixed(2)}
                   </td>
-                  <td className="px-6 py-4 text-right">
+                  <td className="hidden sm:table-cell px-6 py-4 text-right">
                     {tx.status === "completed" ? (
                       <button 
                         onClick={() => handleVoid(tx.id)}

@@ -124,6 +124,13 @@ export function ClinicalProvider({ children }: { children: ReactNode }) {
   }, [wizardDraftOpen, wizardDraft, isHydrated]);
 
   const saveWizardDraft = useCallback((form: WizardForm, step: number) => {
+    // Si la consulta está completamente vacía (no hay paciente seleccionado),
+    // no tiene sentido guardarla como "Borrador Abandonado".
+    if (!form.patientId) {
+      clearDraftFromStorage();
+      return;
+    }
+
     // Persistir en localStorage primero (sobrevive crashes)
     writeDraftToStorage(form, step);
     // Luego actualizar estado React (para reactividad inmediata)

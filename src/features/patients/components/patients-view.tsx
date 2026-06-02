@@ -210,7 +210,7 @@ export default function PatientsView() {
     <section className="hce-page">
 
       {/* Header */}
-      <header className="relative overflow-hidden rounded-3xl border border-border bg-card p-6 shadow-sm sm:p-8">
+      <header className="relative overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-sm sm:rounded-3xl sm:p-8">
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0"
@@ -219,26 +219,26 @@ export default function PatientsView() {
               "radial-gradient(ellipse 70% 80% at 100% 0%, rgba(15,118,110,0.10) 0%, transparent 60%)",
           }}
         />
-        <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+        <div className="relative flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-widest text-accent">
               Historial de pacientes
             </p>
-            <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">
+            <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-ink sm:text-4xl">
               Pacientes
             </h1>
-            <p className="mt-2 max-w-xl text-sm leading-7 text-ink-soft">
+            <p className="mt-2 max-w-xl text-sm leading-6 text-ink-soft sm:leading-7">
               Aquí ves el historial de consultas y seguimientos por paciente. El alta de pacientes
               se hace desde Consultas para mantener un solo flujo de ingreso.
             </p>
           </div>
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
             {tenant?.role !== "assistant" && (
-              <Link href="/consultas" className="hce-btn-primary">
+              <Link href="/consultas" className="hce-btn-primary w-full sm:w-auto justify-center">
                 Crear consulta
               </Link>
             )}
-            <Link href="/dashboard" className="hce-btn-secondary">
+            <Link href="/dashboard" className="hce-btn-secondary w-full sm:w-auto justify-center">
               Volver al panel
             </Link>
           </div>

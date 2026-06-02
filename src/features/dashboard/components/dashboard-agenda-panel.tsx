@@ -66,7 +66,7 @@ export function DashboardAgendaPanel({
                   )}
                   {app.status === "scheduled" && (
                     <Link 
-                      href={`/consultas?appointmentId=${app.id}&patientName=${encodeURIComponent(app.patient_name || "")}${app.patient_document ? `&patientDoc=${encodeURIComponent(app.patient_document)}` : ""}${app.patient_birth_date ? `&patientBirth=${encodeURIComponent(app.patient_birth_date)}` : ""}`}
+                      href={`/consultas?appointmentId=${app.id}&patientName=${encodeURIComponent(app.patient_name || "")}${app.patient_document ? `&patientDoc=${encodeURIComponent(app.patient_document)}` : ""}${app.patient_birth_date ? `&patientBirth=${encodeURIComponent(app.patient_birth_date)}` : ""}${app.patient_phone ? `&patientPhone=${encodeURIComponent(app.patient_phone)}` : ""}`}
                       className="ml-2 text-xs font-semibold text-accent hover:underline shrink-0"
                     >
                       Iniciar

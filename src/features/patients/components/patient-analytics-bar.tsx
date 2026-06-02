@@ -56,13 +56,13 @@ const CARDS = (p: Props) => [
 export function PatientAnalyticsBar(props: Props) {
   const cards = CARDS(props);
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4">
       {cards.map((card) => {
         const Icon = card.icon;
         return (
           <article
             key={card.id}
-            className={`group relative overflow-hidden rounded-3xl border border-border bg-card p-5 shadow-sm transition hover:shadow-md ${card.accent ?? ""}`}
+            className={`group relative overflow-hidden rounded-2xl sm:rounded-3xl border border-border bg-card p-3 sm:p-5 shadow-sm transition hover:shadow-md ${card.accent ?? ""}`}
           >
             <div
               aria-hidden
@@ -72,13 +72,13 @@ export function PatientAnalyticsBar(props: Props) {
                   "radial-gradient(circle at 30% 30%, rgba(15,118,110,0.06) 0%, transparent 70%)",
               }}
             />
-            <div className={`flex h-8 w-8 items-center justify-center rounded-xl ${card.bg}`}>
-              <Icon className={`h-4 w-4 ${card.color}`} aria-hidden />
+            <div className={`flex h-6 w-6 sm:h-8 sm:w-8 items-center justify-center rounded-lg sm:rounded-xl ${card.bg}`}>
+              <Icon className={`h-3 w-3 sm:h-4 sm:w-4 ${card.color}`} aria-hidden />
             </div>
-            <p className="mt-4 text-4xl font-extrabold tracking-tight text-ink">
+            <p className="mt-2 sm:mt-4 text-2xl sm:text-4xl font-extrabold tracking-tight text-ink leading-none">
               {card.value}
             </p>
-            <p className="mt-1 text-xs font-semibold uppercase tracking-widest text-ink-soft">
+            <p className="mt-1 text-[9px] sm:text-xs font-semibold uppercase tracking-widest text-ink-soft leading-tight truncate">
               {card.label}
             </p>
           </article>

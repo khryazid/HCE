@@ -165,7 +165,7 @@ const WizardStepPatient = memo(function WizardStepPatient({
                 <div className="grid gap-4 sm:grid-cols-3">
                   <div className="space-y-1.5">
                     <div className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
-                      <label className="absolute left-3 top-2 flex items-center gap-1.5 text-sm font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+                      <label className="absolute left-3 top-2 flex items-center gap-1.5 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
                         <User className="h-3 w-3" /> Sexo Biológico <span className="text-red-500">*</span>
                       </label>
                       <select
@@ -185,7 +185,7 @@ const WizardStepPatient = memo(function WizardStepPatient({
                     </p>
                   </div>
                   <div className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
-                    <label className="absolute left-3 top-2 flex items-center gap-1.5 text-sm font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+                    <label className="absolute left-3 top-2 flex items-center gap-1.5 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
                       <Briefcase className="h-3 w-3" /> Ocupación
                     </label>
                     <input
@@ -198,7 +198,7 @@ const WizardStepPatient = memo(function WizardStepPatient({
                     />
                   </div>
                   <div className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
-                    <label className="absolute left-3 top-2 flex items-center gap-1.5 text-sm font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+                    <label className="absolute left-3 top-2 flex items-center gap-1.5 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
                       <Shield className="h-3 w-3" /> Aseguradora / EPS
                     </label>
                     <input
@@ -211,7 +211,7 @@ const WizardStepPatient = memo(function WizardStepPatient({
                     />
                   </div>
                   <div className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
-                    <label className="absolute left-3 top-2 flex items-center gap-1.5 text-sm font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+                    <label className="absolute left-3 top-2 flex items-center gap-1.5 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
                       <Droplet className="h-3 w-3" /> Tipo de Sangre
                     </label>
                     <select
@@ -238,7 +238,7 @@ const WizardStepPatient = memo(function WizardStepPatient({
                 <h4 className="text-sm font-semibold text-ink mt-6">Contacto de Emergencia</h4>
                 <div className="grid gap-4 sm:grid-cols-3">
                   <div className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
-                    <label className="absolute left-3 top-2 flex items-center gap-1.5 text-sm font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+                    <label className="absolute left-3 top-2 flex items-center gap-1.5 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
                       <UserPlus className="h-3 w-3" /> Nombre
                     </label>
                     <input
@@ -250,7 +250,7 @@ const WizardStepPatient = memo(function WizardStepPatient({
                     />
                   </div>
                   <div className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
-                    <label className="absolute left-3 top-2 flex items-center gap-1.5 text-sm font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+                    <label className="absolute left-3 top-2 flex items-center gap-1.5 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
                       <Users className="h-3 w-3" /> Parentesco
                     </label>
                     <input
@@ -262,7 +262,7 @@ const WizardStepPatient = memo(function WizardStepPatient({
                     />
                   </div>
                   <div className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
-                    <label className="absolute left-3 top-2 flex items-center gap-1.5 text-sm font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+                    <label className="absolute left-3 top-2 flex items-center gap-1.5 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
                       <Phone className="h-3 w-3" /> Teléfono
                     </label>
                     <input
@@ -284,7 +284,7 @@ const WizardStepPatient = memo(function WizardStepPatient({
 
             {/* A. Tipo de consulta */}
             <div className="group relative overflow-hidden rounded-xl border border-border bg-card p-3 pt-7 shadow-sm">
-              <label className="absolute left-3 top-2 flex items-center gap-1.5 text-sm font-bold uppercase tracking-widest text-ink-soft">
+              <label className="absolute left-3 top-2 flex items-center gap-1.5 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-ink-soft">
                 Tipo de Consulta
               </label>
               <div className="flex flex-wrap gap-2">
@@ -312,7 +312,7 @@ const WizardStepPatient = memo(function WizardStepPatient({
 
             {/* B. Fuente de información */}
             <div className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
-              <label className="absolute left-3 top-2 flex items-center gap-1.5 text-sm font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+              <label className="absolute left-3 top-2 flex items-center gap-1.5 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
                 Fuente de Información
               </label>
               <select
@@ -329,7 +329,7 @@ const WizardStepPatient = memo(function WizardStepPatient({
 
             {/* C. Confiabilidad del informante */}
             <div className="group relative overflow-hidden rounded-xl border border-border bg-card p-3 pt-7 shadow-sm">
-              <label className="absolute left-3 top-2 flex items-center gap-1.5 text-sm font-bold uppercase tracking-widest text-ink-soft">
+              <label className="absolute left-3 top-2 flex items-center gap-1.5 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-ink-soft">
                 Confiabilidad del Informante
               </label>
               <div className="flex flex-wrap gap-2">
@@ -356,7 +356,7 @@ const WizardStepPatient = memo(function WizardStepPatient({
 
             {/* D. Médico que remite */}
             <div className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
-              <label className="absolute left-3 top-2 flex items-center gap-1.5 text-sm font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+              <label className="absolute left-3 top-2 flex items-center gap-1.5 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
                 Médico que Remite (opcional)
               </label>
               <input
@@ -431,7 +431,7 @@ const WizardStepPatient = memo(function WizardStepPatient({
 
             <div className="mt-4 border-t border-border pt-4">
               <div className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
-                <label className="absolute left-3 top-2 flex items-center gap-1.5 text-sm font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+                <label className="absolute left-3 top-2 flex items-center gap-1.5 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
                   Especialidad de la Consulta
                 </label>
                 <select
@@ -466,7 +466,7 @@ const WizardStepPatient = memo(function WizardStepPatient({
               aria-controls="patient-search-panel"
               id="patient-search-tab"
               tabIndex={activeTab === "search" ? 0 : -1}
-              className={`px-4 py-2 min-h-[44px] flex items-center justify-center text-sm font-semibold border-b-2 transition-colors ${
+              className={`flex-1 sm:flex-none px-4 py-2 min-h-[44px] flex items-center justify-center text-sm font-semibold border-b-2 transition-colors ${
                 activeTab === "search"
                   ? "border-teal-500 text-teal-700"
                   : "border-transparent text-ink-soft hover:text-ink hover:border-border"
@@ -482,7 +482,7 @@ const WizardStepPatient = memo(function WizardStepPatient({
               aria-controls="patient-create-panel"
               id="patient-create-tab"
               tabIndex={activeTab === "create" ? 0 : -1}
-              className={`px-4 py-2 min-h-[44px] flex items-center justify-center text-sm font-semibold border-b-2 transition-colors ${
+              className={`flex-1 sm:flex-none px-4 py-2 min-h-[44px] flex items-center justify-center text-sm font-semibold border-b-2 transition-colors ${
                 activeTab === "create"
                   ? "border-teal-500 text-teal-700"
                   : "border-transparent text-ink-soft hover:text-ink hover:border-border"
@@ -496,7 +496,7 @@ const WizardStepPatient = memo(function WizardStepPatient({
             <div className="space-y-4 pt-2" role="tabpanel" id="patient-search-panel" aria-labelledby="patient-search-tab">
               <div className="relative">
                 <div className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
-                  <label className="absolute left-3 top-2 flex items-center gap-1.5 text-sm font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+                  <label className="absolute left-3 top-2 flex items-center gap-1.5 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
                     <Search className="h-3 w-3" /> Buscar Paciente
                   </label>
                   <input
@@ -565,7 +565,7 @@ const WizardStepPatient = memo(function WizardStepPatient({
               </p>
               <div className="grid gap-4 sm:grid-cols-12">
                 <div className="col-span-12 sm:col-span-6 group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
-                  <label className="absolute left-3 top-2 flex items-center gap-1.5 text-sm font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+                  <label className="absolute left-3 top-2 flex items-center gap-1.5 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
                     <User className="h-3 w-3" /> Nombres
                   </label>
                   <input
@@ -582,7 +582,7 @@ const WizardStepPatient = memo(function WizardStepPatient({
                 </div>
                 
                 <div className="col-span-12 sm:col-span-6 group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
-                  <label className="absolute left-3 top-2 flex items-center gap-1.5 text-sm font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+                  <label className="absolute left-3 top-2 flex items-center gap-1.5 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
                     <Users className="h-3 w-3" /> Apellidos
                   </label>
                   <input
@@ -599,7 +599,7 @@ const WizardStepPatient = memo(function WizardStepPatient({
                 </div>
 
                 <div className="col-span-12 sm:col-span-4 group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
-                  <label className="absolute left-3 top-2 flex items-center gap-1.5 text-sm font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+                  <label className="absolute left-3 top-2 flex items-center gap-1.5 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
                     <IdCard className="h-3 w-3" /> DNI / Cédula
                   </label>
                   <input
@@ -629,7 +629,7 @@ const WizardStepPatient = memo(function WizardStepPatient({
 
                 <div className="col-span-12 sm:col-span-4 group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
                   <div className="absolute left-3 top-2 right-3 flex items-center justify-between pointer-events-none">
-                    <label className="flex items-center gap-1.5 text-sm font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+                    <label className="flex items-center gap-1.5 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
                       <Calendar className="h-3 w-3" /> Fecha Nac.
                     </label>
                     {quickPatient.birthDate && quickPatient.birthDate.length === 10 && quickPatient.birthDate.includes("-") ? (
@@ -675,7 +675,7 @@ const WizardStepPatient = memo(function WizardStepPatient({
                 </div>
 
                 <div className="col-span-12 sm:col-span-4 group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
-                  <label className="absolute left-3 top-2 flex items-center gap-1.5 text-sm font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+                  <label className="absolute left-3 top-2 flex items-center gap-1.5 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
                     <Phone className="h-3 w-3" /> Teléfono
                   </label>
                   <input
