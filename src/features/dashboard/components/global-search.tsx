@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useMemo } from "react";
 import SearchInput from "@/components/ui/search-input";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useTenant } from "@/lib/supabase/tenant-context";
 import { useClinicalContext } from "@/features/consultations/context/clinical-context";
 import { listTreatmentTemplates } from "@/features/consultations/lib/treatments";
@@ -49,6 +49,7 @@ function useDebounced<T>(value: T, delay: number): T {
 
 export function GlobalSearch() {
   const router = useRouter();
+  const pathname = usePathname();
   const { tenant } = useTenant();
   const clinical = useClinicalContext();
 
@@ -341,6 +342,8 @@ export function GlobalSearch() {
   };
 
   // ─── Render ───────────────────────────────────────────────────────────────
+
+  if (pathname === "/ajustes" || pathname === "/docs") return null;
 
   return (
     <>

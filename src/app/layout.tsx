@@ -6,6 +6,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/react";
 import { Space_Grotesk, Outfit } from "next/font/google";
 import { APP_NAME, APP_FULL_NAME, APP_TAGLINE } from "@/lib/constants/app";
+import { ThemeScript } from "@/components/ui/theme-script";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -24,11 +25,13 @@ const outfit = Outfit({
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000")),
   title: `${APP_NAME} — ${APP_TAGLINE}`,
+  applicationName: APP_NAME,
+  authors: [{ name: "Glyphix Team" }],
   description:
     "Historia clínica electrónica multiespecialidad con IA, trabajo offline y sincronización automática. Diseñado para médicos modernos.",
   manifest: "/manifest.json",
   keywords: [
-    "historia clínica electrónica", "software médico", "CIE-10",
+    "historia clínica electrónica", "software médico", "CIE-11",
     "consulta médica", "offline-first", "médicos", "salud digital", "Glyphix",
   ],
   robots: {
@@ -44,9 +47,13 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
+      { url: "/favicon.ico", sizes: "48x48", type: "image/x-icon" },
+      { url: "/icons/icon-96.webp", sizes: "96x96", type: "image/webp" },
+      { url: "/icons/icon-192.webp", sizes: "192x192", type: "image/webp" },
       { url: "/icons/android-chrome-192x192.png", sizes: "192x192", type: "image/png" },
       { url: "/icons/android-chrome-512x512.png", sizes: "512x512", type: "image/png" },
     ],
+    shortcut: "/favicon.ico",
     apple: "/apple-touch-icon.png",
   },
   appleWebApp: {
@@ -65,7 +72,7 @@ export const metadata: Metadata = {
     locale: "es_ES",
     title: `${APP_FULL_NAME} para médicos modernos`,
     description:
-      "Historia clínica multiespecialidad, sincronización offline-first y sugerencias CIE-10 con IA. Documentá cada consulta en menos de 3 minutos.",
+      "Historia clínica multiespecialidad, sincronización offline-first y sugerencias CIE-11 con IA. Documentá cada consulta en menos de 3 minutos.",
     siteName: APP_NAME,
     images: [{ url: "/og-image.jpg", width: 1200, height: 630, alt: `${APP_FULL_NAME}` }],
   },
@@ -73,7 +80,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: `${APP_FULL_NAME} para médicos modernos`,
     description:
-      "Historia clínica multiespecialidad, sincronización offline-first y sugerencias CIE-10 con IA.",
+      "Historia clínica multiespecialidad, sincronización offline-first y sugerencias CIE-11 con IA.",
     images: ["/og-image.jpg"],
   },
   // M-14: hreflang — la app usa locale via cookie (no rutas prefijadas /en/...)
@@ -84,6 +91,7 @@ export const metadata: Metadata = {
 import { headers } from 'next/headers';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, getLocale } from 'next-intl/server';
+import { Toaster } from "@/components/ui/sonner";
 
 export default async function RootLayout({
   children,
@@ -105,18 +113,13 @@ export default async function RootLayout({
       */}
       <head>
         {/* Font variable injection for legacy variables */}
-        <style>{`
+        <style suppressHydrationWarning>{`
           :root {
             --font-sentient: var(--font-display, 'Space Grotesk', system-ui, sans-serif);
             --font-switzer:  var(--font-ui, 'Outfit', system-ui, sans-serif);
           }
         `}</style>
-        <script
-          nonce={nonce}
-          dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('hce:theme');if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}})();`,
-          }}
-        />
+        <ThemeScript nonce={nonce} />
       </head>
 
       <body className={`${spaceGrotesk.variable} ${outfit.variable} min-h-full flex flex-col bg-bg text-ink font-sans`} suppressHydrationWarning>
@@ -128,6 +131,7 @@ export default async function RootLayout({
         </NextIntlClientProvider>
         <SpeedInsights />
         <Analytics />
+        <Toaster />
       </body>
     </html>
   );

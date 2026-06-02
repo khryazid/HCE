@@ -59,15 +59,24 @@ export async function POST(req: Request) {
   // instanciar inline con process.env!. Elimina non-null assertions.
   const admin = createAdminClient();
 
-  const today = new Date().toISOString().split("T")[0];
-  const { count } = await admin
-    .from("follow_up_tasks")
-    .select("id", { count: "exact", head: true })
-    .eq("doctor_id", target_doctor_id)
-    .eq("due_date", today)
-    .eq("status", "pending");
+  // LLamada a la RPC con bloqueo pesimista/optimista (Outbox pattern).
+  // Si devuelve 0, significa que no hay tareas o ya se procesó hoy (evita reenvíos si falla la red).
+  const { data: count, error: rpcError } = await admin
+    .rpc("claim_followup_tasks" as any, {
+      p_doctor_id: target_doctor_id
+    });
 
-  const taskCount = count ?? due_count;
+  if (rpcError) {
+    log.error("email:followup", "Error ejecutando claim_followup_tasks", { error: rpcError });
+    return NextResponse.json({ error: "Error de base de datos" }, { status: 500 });
+  }
+
+  const taskCount = (count as number) ?? due_count;
+
+  // Si no hay tareas para reclamar, salimos en verde (Idempotencia)
+  if (taskCount === 0) {
+    return NextResponse.json({ success: true, sent: 0, taskCount: 0 });
+  }
 
   const { error } = await resend.emails.send({
     from: fromAddress,

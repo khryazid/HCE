@@ -1,29 +1,31 @@
-# Documentación de Arquitectura — Glyphix HCE
+# 🏛️ Arquitectura de Glyphix
 
-## 1. Arquitectura Offline-First y Sincronización
+## Introducción
+Glyphix está diseñado con un enfoque **Offline-First**, garantizando que los profesionales médicos puedan operar sin interrupciones incluso en entornos de conectividad inestable. Esta arquitectura se apoya en tres pilares fundamentales: **IndexedDB** para almacenamiento local, un **Sync Worker** para gestionar la sincronización en segundo plano, y **Supabase** como fuente de la verdad en la nube.
 
-Glyphix está diseñado para médicos que operan en entornos con conectividad inestable. La aplicación responde en `0ms` (Local-First) y sincroniza a la nube en segundo plano.
+## Flujo de Datos Principal
 
-### IndexedDB como Fuente Primaria de Verdad
-- **IndexedDB** (`src/lib/db/indexeddb.ts`) actúa como la base de datos principal en el cliente.
-- En migraciones de versión (`upgrade`), se debe tener especial cuidado de no destruir object stores que contengan datos offline sin respaldar.
+### 1. Interfaz y Almacenamiento Local (IndexedDB)
+Todas las interacciones del usuario (creación de pacientes, órdenes, notas de evolución) se escriben *inmediatamente* en la base de datos local del navegador (**IndexedDB**) a través de una capa de abstracción basada en promesas.
+- **Ventaja**: Latencia cero percibida por el usuario.
+- **Estado**: Los registros creados o modificados se marcan en una cola local (`sync_queue`) con un estado pendiente y un `client_timestamp`.
 
-### Sync Worker (`src/lib/sync/sync-worker.ts`)
-- **Exponential Backoff:** El worker reintenta el envío de operaciones fallidas incrementando el tiempo de espera exponencialmente para no abrumar al backend (rate limits o 5xx).
-- **Concurrencia (Web Locks API):** Utiliza `navigator.locks.request("hce-sync-lock")` para asegurar que solo una pestaña controle el worker en todo momento, evitando la duplicación de inserciones (upserts repetidos a Supabase).
+### 2. Sincronización en Segundo Plano (Sync Worker)
+El **Sync Worker** actúa como el motor de orquestación de datos. 
+- **Detección de Red**: Observa activamente el estado de conexión del navegador (`navigator.onLine`).
+- **Procesamiento de la Cola**: Cuando hay red, extrae elementos pendientes de la `sync_queue` sin descifrar masivamente (optimizando la latencia y la memoria).
+- **Backoff Exponencial**: Si falla una solicitud, reintenta con tiempos de espera incrementales y un límite robusto (`MAX_RETRIES = 50`) para proteger el historial clínico en desconexiones prolongadas.
 
-### Resolución de Conflictos (Clock Drift)
-- Si el servidor tiene datos más recientes (`remoteTime > client_timestamp`), el Worker marca el registro local como `conflicted`.
-- Se despacha el evento `APP_EVENT_SYNC_ABANDONED` alertando al médico en la interfaz (`SyncQueuePanel`) para revisión manual.
+### 3. Backend y Consolidación (Supabase)
+Los datos llegan a Supabase a través de llamadas RPC o REST seguras.
+- **Resolución de Conflictos**: El servidor utiliza el `client_timestamp` y un reloj centralizado para gestionar el clock-drift y resolver conflictos (Last-Write-Wins modificado para entidades clínicas).
+- **Aislamiento**: Políticas de RLS (Row Level Security) aseguran que el trabajador solo sincronice los datos correspondientes al *Tenant* (clínica) y rol correctos.
 
----
-
-## 2. Proxy SSR vs Middleware Clásico (Next.js 16)
-
-En Next.js 16, la validación tradicional (`middleware.ts`) sufre limitaciones al usarse con `next-pwa` y empaquetadores como Webpack en Edge. 
-**El proyecto utiliza `src/proxy.ts` como único interceptor.** No debe existir `src/middleware.ts` en la raíz.
-
-### Funcionamiento de `proxy.ts`
-1. **Allowlist de Rutas:** Emplea una estrategia `PUBLIC_PATHS`. Todo lo demás está protegido por defecto.
-2. **Inyección de Request ID:** Configura el header `x-request-id` operando sobre `NextResponse.next({ request: { headers } })` compatible con Vercel Edge.
-3. **Helper de Supabase:** `src/lib/supabase/middleware.ts` NO es el middleware de Next.js, es solo una función helper invocada por `proxy.ts` para manejar las cookies de Supabase Auth.
+```mermaid
+graph TD;
+    UI[Frontend / TanStack Query] -->|Lectura / Escritura rápida| IDB[(IndexedDB)]
+    IDB -->|Encola operaciones| Q[sync_queue]
+    Q -->|Lee pendientes| SW[Sync Worker]
+    SW <-->|Sincronización bidireccional| API[Supabase Edge Functions / API]
+    API <-->|RLS & Constraints| DB[(Supabase Postgres)]
+```

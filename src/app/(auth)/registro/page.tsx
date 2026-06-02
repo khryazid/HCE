@@ -16,8 +16,8 @@ export default function RegisterPage() {
     <AuthRouteShell
       variant="register"
       kicker={`${APP_NAME} · Crear cuenta`}
-      title="Digitaliza tu consultorio en menos de 2 minutos."
-      lead="Define tus especialidades, configura tu perfil y empieza a registrar consultas desde el primer día."
+      title="Digitaliza tu práctica médica en menos de 2 minutos."
+      lead="Configura tu cuenta, elige tu plan y empieza a registrar pacientes desde el primer día."
       highlights={[
         {
           title: "Perfil por médico",

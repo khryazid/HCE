@@ -1,0 +1,118 @@
+/* 
+ * ═══════════════════════════════════════════════════════════════
+ *  GLYPHIX — Auth Styles (Centered Card)
+ *  Ferric Meridian v3.0
+ * ═══════════════════════════════════════════════════════════════
+ */
+
+.gx-auth {
+  font-family: var(--font-ui);
+  color: var(--ink);
+  background: var(--bg-soft);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+  position: relative;
+}
+
+/* Background Pattern/Gradient */
+.gx-auth::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 0%, var(--accent-dim) 0%, transparent 60%);
+  z-index: 0;
+  pointer-events: none;
+}
+
+@keyframes gx-up {
+  from { opacity:0; transform:translateY(16px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+.gx-s { opacity:0; animation: gx-up 600ms var(--ease-out) forwards; position: relative; z-index: 10; }
+
+/* ── Centered Card ─────────────────────────────── */
+.gx-auth-card {
+  width: 100%;
+  max-width: 440px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 48px 40px;
+  box-shadow: 0 32px 64px rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.04);
+  position: relative;
+  z-index: 10;
+}
+
+.gx-auth-brand {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  font-family: var(--font-display); font-size: 1.5rem; font-weight: 700;
+  letter-spacing: -0.02em; color: var(--ink);
+  text-decoration: none; margin-bottom: 40px;
+}
+.gx-auth-brand span {
+  width: 14px; height: 14px; background: var(--accent); border-radius: 50%;
+}
+
+.gx-af-kicker {
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono); font-size: 0.6875rem; font-weight: 600;
+  color: var(--accent); background: var(--accent-dim);
+  padding: 4px 12px; border-radius: 100px; margin-bottom: 16px;
+  border: 1px solid var(--accent-glow);
+}
+
+.gx-auth-header {
+  text-align: center; margin-bottom: 32px;
+}
+.gx-af-title {
+  font-family: var(--font-display); font-size: 1.75rem; font-weight: 700;
+  letter-spacing: -0.03em; line-height: 1.2; margin-bottom: 8px;
+}
+.gx-af-sub {
+  font-size: 0.9375rem; color: var(--ink-soft); line-height: 1.5;
+}
+
+/* Form Elements */
+.gx-field { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; text-align: left; }
+.gx-label { font-size: 0.8125rem; font-weight: 600; color: var(--ink); display: flex; justify-content: space-between; }
+.gx-label-link { color: var(--accent); font-weight: 500; cursor: pointer; transition: color 150ms; text-decoration: none; }
+.gx-label-link:hover { color: var(--accent-hover); text-decoration: underline; }
+.gx-input {
+  font-family: var(--font-ui); font-size: 0.9375rem; color: var(--ink);
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 12px 16px; outline: none;
+  transition: all 150ms var(--ease-out);
+  width: 100%;
+}
+.gx-input::placeholder { color: var(--ink-faint); }
+.gx-input:hover { border-color: var(--ink-faint); }
+.gx-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); background: var(--bg-elevated); }
+.gx-input[aria-invalid="true"] { border-color: #ef4444; }
+
+.gx-btn-submit {
+  width: 100%; font-family: var(--font-ui); font-size: 0.9375rem; font-weight: 600;
+  padding: 14px 24px; border-radius: var(--radius); background: var(--ink); color: var(--bg);
+  border: none; cursor: pointer; transition: all 180ms var(--ease-out);
+  margin-top: 24px; display: flex; align-items: center; justify-content: center;
+}
+.gx-btn-submit:hover:not(:disabled) { background: var(--ink-soft); transform: translateY(-1px); box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
+.gx-btn-submit:active:not(:disabled) { transform: scale(0.98); }
+.gx-btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.gx-auth-footer {
+  text-align: center; font-size: 0.8125rem; color: var(--ink-soft); margin-top: 32px;
+}
+
+@media (max-width: 640px) {
+  .gx-auth-card {
+    padding: 40px 24px;
+    border: none;
+    box-shadow: none;
+    background: transparent;
+  }
+}

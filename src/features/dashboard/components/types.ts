@@ -9,7 +9,7 @@ import type { PatientRecord } from "@/features/patients/types";
 
 export type DashboardMetrics = {
   activePatients: number;
-  consultationsToday: number;
+  consultationsInPeriod: number;
   consultationsBySpecialty: Array<{ specialty: string; total: number }>;
   followUpPending: number;
   recentConsultations: ClinicalRecordRecord[];
@@ -21,7 +21,7 @@ export type DashboardMetrics = {
 
 export const EMPTY_METRICS: DashboardMetrics = {
   activePatients: 0,
-  consultationsToday: 0,
+  consultationsInPeriod: 0,
   consultationsBySpecialty: [],
   followUpPending: 0,
   recentConsultations: [],
@@ -33,6 +33,7 @@ export const EMPTY_METRICS: DashboardMetrics = {
 
 export type ActivityItem = {
   id: string;
+  patientId?: string;
   fullName: string;
   ageText: string;
   lastVisitReason: string | null;

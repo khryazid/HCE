@@ -136,6 +136,124 @@ export function useConsultationSave() {
         specialtyRow,
       );
 
+      // --- Lab & Imaging Orders (100% Online) ---
+      if (form.labOrders.length > 0 || form.imagingOrders.length > 0) {
+        try {
+          const supabase = getSupabaseClient();
+          const ordersToInsert = [];
+          
+          if (form.labOrders.length > 0) {
+            ordersToInsert.push({
+              clinic_id: tenant.clinic_id,
+              doctor_id: tenant.doctor_id,
+              patient_id: form.patientId,
+              clinical_record_id: recordId,
+              order_type: "laboratory",
+              items: form.labOrders.map(name => ({ name })),
+              status: "pending"
+            });
+          }
+          
+          if (form.imagingOrders.length > 0) {
+            ordersToInsert.push({
+              clinic_id: tenant.clinic_id,
+              doctor_id: tenant.doctor_id,
+              patient_id: form.patientId,
+              clinical_record_id: recordId,
+              order_type: "imaging",
+              items: form.imagingOrders.map(name => ({ name })),
+              status: "pending"
+            });
+          }
+          
+          if (ordersToInsert.length > 0) {
+            // Legacy table — used by /laboratorio dashboard
+            const { error: ordersError } = await (supabase as any).from("lab_orders").insert(ordersToInsert as any);
+            if (ordersError) console.error("Error al insertar órdenes:", ordersError);
+
+            // New unified table — used by /imagen and /cirugia dashboards
+            if (tenant.member_id) {
+              const deptOrders = [];
+              if (form.labOrders.length > 0) {
+                deptOrders.push({
+                  organization_id: tenant.clinic_id,
+                  department_type: "lab",
+                  patient_id: form.patientId,
+                  ordered_by_member_id: tenant.member_id,
+                  title: form.labOrders.join(", "),
+                  notes: form.labOrders.map(name => name).join(", "),
+                  status: "pending"
+                });
+              }
+              if (form.imagingOrders.length > 0) {
+                deptOrders.push({
+                  organization_id: tenant.clinic_id,
+                  department_type: "imaging",
+                  patient_id: form.patientId,
+                  ordered_by_member_id: tenant.member_id,
+                  title: form.imagingOrders.join(", "),
+                  notes: form.imagingOrders.map(name => name).join(", "),
+                  status: "pending"
+                });
+              }
+              if (deptOrders.length > 0) {
+                const { error: deptError } = await supabase.from("department_orders").insert(deptOrders);
+                if (deptError) console.error("Error al insertar department_orders:", deptError);
+              }
+            }
+          }
+        } catch (err) {
+          console.error("Fallo al guardar órdenes online (posible offline):", err);
+        }
+      }
+
+      // --- Medical Referral (100% Online) ---
+      if (form.medicalReferral) {
+        try {
+          const supabase = getSupabaseClient();
+          const referralToInsert = {
+            clinic_id: tenant.clinic_id,
+            referring_doctor_id: tenant.doctor_id,
+            patient_id: form.patientId,
+            clinical_record_id: recordId,
+            referred_doctor_id: form.medicalReferral.referred_doctor_id || null,
+            external_doctor_name: form.medicalReferral.external_doctor_name || null,
+            external_doctor_contact: form.medicalReferral.external_doctor_contact || null,
+            reason: form.medicalReferral.reason,
+            include_report: form.medicalReferral.include_report,
+            status: "pending"
+          };
+          
+          // Legacy table — used by /referencias dashboard
+          const { error: referralError } = await (supabase as any).from("medical_referrals").insert(referralToInsert as any);
+          if (referralError) console.error("Error al insertar referencia:", referralError);
+
+          // New table — CLAUDE.md model with clinic_members
+          if (tenant.member_id) {
+            const newReferral: Record<string, unknown> = {
+              organization_id: tenant.clinic_id,
+              from_member_id: tenant.member_id,
+              patient_id: form.patientId,
+              consultation_id: recordId,
+              note: form.medicalReferral.reason,
+              include_full_history: form.medicalReferral.include_report,
+              status: "pending"
+            };
+            // If referring to a department, set to_department; otherwise try to_member_id
+            if (form.medicalReferral.referred_doctor_id) {
+              // Look up the member_id for the referred doctor — for now use to_member_id
+              newReferral.to_member_id = null; // We don't have the member_id here, would need a lookup
+              newReferral.to_department = null;
+            }
+            // Non-critical: if this fails, the legacy table still works
+            const { error: newRefError } = await (supabase as any).from("referrals").insert(newReferral as any);
+            if (newRefError) console.warn("Dual-write referrals falló (non-critical):", newRefError);
+          }
+        } catch (err) {
+          console.error("Fallo al guardar referencia online (posible offline):", err);
+        }
+      }
+
       // --- Update Patient Status ---
       const patient = patients.find(p => p.id === form.patientId);
       if (patient && patient.status !== form.patientStatus) {
@@ -156,12 +274,19 @@ export function useConsultationSave() {
         });
       }
 
-      // --- Marcar Cita como Completada (si existe) ---
+      // --- Cierre de Cita ---
       if (form.appointmentId) {
         const supabase = getSupabaseClient();
+        
+        // 1. Actualizar estado de cita a completada
+        // NOTA: Ya no modificamos el payment_status ni creamos cash_transactions porque es labor del asistente.
         await supabase
           .from("appointments")
-          .update({ status: "completed", patient_id: form.patientId, updated_at: timestamp })
+          .update({ 
+            status: "completed", 
+            patient_id: form.patientId, 
+            updated_at: timestamp 
+          })
           .eq("id", form.appointmentId);
       }
 

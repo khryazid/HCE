@@ -14,6 +14,24 @@ function getSupabaseAnonKey(): string {
   return key;
 }
 
+// ═══════════════════════════════════════════════════════════════
+// ROLE → DASHBOARD REDIRECT MAP
+// Duplicated from route-guard.ts because Edge runtime can't import
+// from @/lib/guards/route-guard in all cases.
+// ═══════════════════════════════════════════════════════════════
+const ROLE_DASHBOARDS: Record<string, string> = {
+  owner:        "/dashboard",
+  doctor:       "/dashboard",
+  assistant:    "/agenda",
+  clinic_admin: "/administracion",
+  receptionist: "/recepcion",
+  lab:          "/laboratorio",
+  imaging:      "/imagen",
+  surgery:      "/cirugia",
+  // Legacy compat
+  admin:        "/dashboard",
+};
+
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
@@ -69,8 +87,6 @@ export async function updateSession(request: NextRequest) {
   }
 
   // AUDIT FIX H-4: Allowlist de rutas públicas en vez de blocklist de rutas privadas.
-  // Ventaja: cualquier ruta nueva queda protegida automáticamente sin tener que
-  // acordarse de añadirla aquí (antes /agenda y /onboarding quedaban expuestas).
   const PUBLIC_PATHS = [
     "/",
     "/login",
@@ -79,35 +95,169 @@ export async function updateSession(request: NextRequest) {
     "/privacidad",
     "/offline",
     "/docs",
+    "/planes",
+    "/sin-plan",
   ];
 
-  // Una ruta es pública si coincide exactamente con un path de la allowlist
-  // o si empieza con un prefijo de ruta pública con sub-rutas.
   const isPublicRoute =
     PUBLIC_PATHS.includes(request.nextUrl.pathname) ||
     request.nextUrl.pathname.startsWith("/login/") ||
     request.nextUrl.pathname.startsWith("/registro/") ||
     request.nextUrl.pathname.startsWith("/terminos/") ||
     request.nextUrl.pathname.startsWith("/privacidad/") ||
-    request.nextUrl.pathname.startsWith("/docs/");
+    request.nextUrl.pathname.startsWith("/docs/") ||
+    request.nextUrl.pathname.startsWith("/recuperar/") ||
+    request.nextUrl.pathname.startsWith("/recuperar") ||
+    // Invitation tokens in the path: /invite/:token
+    request.nextUrl.pathname.startsWith("/invite/");
 
   const isAuthRoute =
+    request.nextUrl.pathname === "/" ||
     request.nextUrl.pathname.startsWith("/login") ||
     request.nextUrl.pathname.startsWith("/registro");
 
-  const isServerAction = request.headers.has("next-action");
+  const isPlatformRoute = request.nextUrl.pathname.startsWith("/platform");
 
-  if (!user && !isPublicRoute && !isServerAction) {
+  const isServerAction = request.headers.has("next-action");
+  
+  const isApiRoute = request.nextUrl.pathname.startsWith("/api/");
+
+  // ── Step 1: No session → redirect to login (unless public route or API)
+  if (!user && !isPublicRoute && !isServerAction && !isApiRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
   }
 
-  if (user && isAuthRoute && !isServerAction) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
-    return NextResponse.redirect(url);
+  // ── Authenticated user on auth route → redirect based on role
+  if (user && isAuthRoute && !isServerAction && !isApiRoute) {
+    // 6-STEP LOGIN REDIRECT FLOW:
+    // Step 2: Check if platform admin
+    try {
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("is_platform_admin")
+        .eq("doctor_id", user.id)
+        .maybeSingle();
+
+      if (profileData && profileData.is_platform_admin === true) {
+        // Platform admin → redirect to /platform/panel
+        const url = request.nextUrl.clone();
+        url.pathname = "/platform/panel";
+        return NextResponse.redirect(url);
+      }
+    } catch {
+      // If profile query fails, fall through to default redirect
+    }
+
+    // Step 3-5: Look up active membership and redirect by role
+    try {
+      const { data: memberData } = await supabase
+        .from("clinic_members")
+        .select("role, is_active")
+        .eq("doctor_id", user.id)
+        .limit(1)
+        .maybeSingle();
+
+      if (!memberData || !memberData.is_active) {
+        // No active membership → /sin-plan
+        const url = request.nextUrl.clone();
+        url.pathname = "/sin-plan";
+        return NextResponse.redirect(url);
+      }
+
+      // Step 6: Redirect by role
+      const role = memberData.role === "admin" ? "owner" : memberData.role;
+      const dashboard = ROLE_DASHBOARDS[role] || "/dashboard";
+      const url = request.nextUrl.clone();
+      url.pathname = dashboard;
+      return NextResponse.redirect(url);
+    } catch {
+      // Fallback: redirect to /dashboard
+      const url = request.nextUrl.clone();
+      url.pathname = "/dashboard";
+      return NextResponse.redirect(url);
+    }
+  }
+
+  // ── Platform routes: verify is_platform_admin
+  if (user && isPlatformRoute && !isServerAction && !isApiRoute) {
+    try {
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("is_platform_admin")
+        .eq("doctor_id", user.id)
+        .maybeSingle();
+
+      if (!profileData || profileData.is_platform_admin !== true) {
+        // Not a platform admin → redirect to their dashboard
+        const url = request.nextUrl.clone();
+        url.pathname = "/dashboard";
+        return NextResponse.redirect(url);
+      }
+    } catch {
+      const url = request.nextUrl.clone();
+      url.pathname = "/dashboard";
+      return NextResponse.redirect(url);
+    }
+  }
+
+  // ── Step 3 (RBAC): Enforce role-based access on private routes ──
+  // This is the server-side enforcement that complements the client-side RoleGuard.
+  // Without this, users could bypass the client guard by navigating directly.
+  if (user && !isPublicRoute && !isAuthRoute && !isPlatformRoute && !isServerAction && !isApiRoute) {
+    try {
+      const { data: memberData } = await supabase
+        .from("clinic_members")
+        .select("role, is_active")
+        .eq("doctor_id", user.id)
+        .limit(1)
+        .maybeSingle();
+
+      if (memberData && memberData.is_active) {
+        const role = memberData.role === "admin" ? "owner" : memberData.role;
+        const pathname = request.nextUrl.pathname;
+
+        // Simplified route access map for Edge runtime
+        // Must stay in sync with src/lib/guards/route-guard.ts ROUTE_ACCESS
+        const ROUTE_ROLES: Array<{ prefix: string; roles: string[] }> = [
+          { prefix: "/dashboard",      roles: ["owner", "doctor"] },
+          { prefix: "/agenda",         roles: ["owner", "doctor", "assistant", "receptionist"] },
+          { prefix: "/pacientes",      roles: ["owner", "doctor", "assistant"] },
+          { prefix: "/consultas",      roles: ["owner", "doctor"] },
+          { prefix: "/tratamientos",   roles: ["owner", "doctor"] },
+          { prefix: "/caja",           roles: ["owner", "doctor", "assistant", "receptionist", "clinic_admin", "lab", "imaging", "surgery"] },
+          { prefix: "/ajustes",        roles: ["owner", "doctor", "clinic_admin"] },
+          { prefix: "/administracion", roles: ["clinic_admin", "owner"] },
+          { prefix: "/recepcion",      roles: ["receptionist"] },
+          { prefix: "/laboratorio",    roles: ["lab"] },
+          { prefix: "/imagen",         roles: ["imaging"] },
+          { prefix: "/cirugia",        roles: ["surgery"] },
+          { prefix: "/referencias",    roles: ["owner", "doctor"] },
+          { prefix: "/billing",        roles: ["owner", "clinic_admin"] },
+        ];
+
+        const rule = ROUTE_ROLES.find(
+          (r) => pathname === r.prefix || pathname.startsWith(r.prefix + "/")
+        );
+
+        // If a rule exists and the role is NOT in the allowed list → redirect
+        if (rule && !rule.roles.includes(role)) {
+          const dashboard = ROLE_DASHBOARDS[role] || "/dashboard";
+          const url = request.nextUrl.clone();
+          url.pathname = dashboard;
+          return NextResponse.redirect(url);
+        }
+      }
+    } catch {
+      // Si la verificación de roles falla, aplicar "Fail-Closed" en lugar de "Fail-Open"
+      const url = request.nextUrl.clone();
+      url.pathname = "/login";
+      url.searchParams.set("error", "timeout");
+      return NextResponse.redirect(url);
+    }
   }
 
   return supabaseResponse;
 }
+

@@ -35,10 +35,15 @@ create extension if not exists "pgcrypto";
 -- ── clinics ──────────────────────────────────────────────────
 -- Catálogo principal de clínicas para integridad referencial.
 create table if not exists public.clinics (
-  id          uuid        primary key default gen_random_uuid(),
-  name        text        not null default 'Clínica',
-  created_at  timestamptz not null default now(),
-  updated_at  timestamptz not null default now()
+  id                  uuid        primary key default gen_random_uuid(),
+  name                text        not null default 'Clínica',
+  plan_type           text        not null default 'individual'
+    check (plan_type in ('individual', 'clinica')),
+  subscription_status text        default 'trial'
+    check (subscription_status in ('active', 'trial', 'cancelled', 'past_due', 'paused')),
+  owner_user_id       uuid        references auth.users(id) on delete set null,
+  created_at          timestamptz not null default now(),
+  updated_at          timestamptz not null default now()
 );
 
 -- ⚠️  NOTA: Limpieza de Supabase Storage (bucket clinic_assets)
@@ -78,10 +83,18 @@ create table if not exists public.profiles (
   plan                    text        not null default 'basic' check (plan in ('basic', 'clinic')),
   payment_config          jsonb       not null default '{}'::jsonb,
   ui_preferences          jsonb       not null default '{}'::jsonb,
+  is_platform_admin       boolean     not null default false,
+  terms_accepted_at       timestamptz default null,
+  terms_version           text        default null,
   created_at              timestamptz not null default now(),
   updated_at              timestamptz not null default now(),
   unique (clinic_id, doctor_id)
 );
+
+-- Index for fast platform admin lookup during login
+create index if not exists idx_profiles_platform_admin
+  on public.profiles (doctor_id)
+  where is_platform_admin = true;
 
 -- Parche para migraciones: agregar columna plan si no existe
 do $$
@@ -102,7 +115,7 @@ end $$;
 create table if not exists public.patients (
   id              uuid        primary key default gen_random_uuid(),
   clinic_id       uuid        not null,
-  doctor_id       uuid        not null references auth.users (id) on delete cascade,
+  doctor_id       uuid        not null references auth.users (id) on delete restrict,
   document_number text        not null,
   full_name       text        not null,
   phone           text,
@@ -121,8 +134,8 @@ create table if not exists public.patients (
 create table if not exists public.clinical_records (
   id              uuid        primary key default gen_random_uuid(),
   clinic_id       uuid        not null,
-  doctor_id       uuid        not null references auth.users (id) on delete cascade,
-  patient_id      uuid        not null references public.patients (id) on delete cascade,
+  doctor_id       uuid        not null references auth.users (id) on delete restrict,
+  patient_id      uuid        not null references public.patients (id) on delete restrict,
   chief_complaint text        not null,
   cie_codes       text[]      not null default '{}',
   specialty_kind  text        not null,
@@ -138,8 +151,8 @@ create table if not exists public.clinical_records (
 create table if not exists public.specialty_data (
   id                  uuid        primary key default gen_random_uuid(),
   clinic_id           uuid        not null,
-  doctor_id           uuid        not null references auth.users (id) on delete cascade,
-  clinical_record_id  uuid        not null references public.clinical_records (id) on delete cascade,
+  doctor_id           uuid        not null references auth.users (id) on delete restrict,
+  clinical_record_id  uuid        not null references public.clinical_records (id) on delete restrict,
   specialty_kind      text        not null,
   data                jsonb       not null,
   created_at          timestamptz not null default now(),
@@ -205,6 +218,10 @@ create table if not exists public.appointments (
   updated_at      timestamptz not null default now()
 );
 
+-- Habilitar REPLICA IDENTITY FULL para que Supabase Realtime reciba las filas completas
+-- en UPDATE/DELETE y pueda evaluar filtros como clinic_id=eq...
+alter table public.appointments replica identity full;
+
 -- ── api_rate_limits ──────────────────────────────────────────
 -- Contador de rate-limiting por scope+usuario dentro de una ventana de tiempo.
 -- Usado por claim_api_rate_limit() para proteger el endpoint de CIE-AI.
@@ -249,24 +266,77 @@ create table if not exists public.treatment_templates (
 );
 
 -- ── clinic_members ───────────────────────────────────────────
--- Miembros de una clínica para acceso compartido (multi-doctor).
+-- Miembros de una clínica/organización. Soporta 8 roles RBAC.
 create table if not exists public.clinic_members (
-  id              uuid        primary key default gen_random_uuid(),
-  clinic_id       uuid        not null,
-  doctor_id       uuid        not null references auth.users (id) on delete cascade,
-  role            text        not null check (role in ('admin', 'doctor', 'assistant')),
-  invited_by      uuid        references auth.users (id) on delete set null,
-  joined_at       timestamptz not null default now(),
-  created_at      timestamptz not null default now(),
+  id                    uuid        primary key default gen_random_uuid(),
+  clinic_id             uuid        not null,
+  doctor_id             uuid        not null references auth.users (id) on delete cascade,
+  role                  text        not null check (role in (
+    'owner', 'doctor', 'assistant', 'clinic_admin',
+    'receptionist', 'lab', 'imaging', 'surgery'
+  )),
+  is_active             boolean     not null default true,
+  custom_permissions    jsonb       not null default '{}'::jsonb,
+  invited_by            uuid        references auth.users (id) on delete set null,
+  invited_by_member_id  uuid        references public.clinic_members(id) on delete set null,
+  joined_at             timestamptz not null default now(),
+  terms_accepted_at     timestamptz default null,
+  terms_version         text        default null,
+  created_at            timestamptz not null default now(),
   unique (clinic_id, doctor_id)
 );
 
--- Parche para migraciones: actualizar constraint de roles
+-- Parche para migraciones: actualizar constraint de roles y migrar admin→owner
 do $$
 begin
   alter table public.clinic_members drop constraint if exists clinic_members_role_check;
-  alter table public.clinic_members add constraint clinic_members_role_check check (role in ('admin', 'doctor', 'assistant'));
+  update public.clinic_members set role = 'owner' where role = 'admin';
+  alter table public.clinic_members add constraint clinic_members_role_check
+    check (role in ('owner', 'doctor', 'assistant', 'clinic_admin', 'receptionist', 'lab', 'imaging', 'surgery'));
 end $$;
+
+-- ── invitations ──────────────────────────────────────────────
+-- Token-based invitation system for org membership.
+create table if not exists public.invitations (
+  id                    uuid primary key default gen_random_uuid(),
+  organization_id       uuid not null references public.clinics(id) on delete cascade,
+  email                 varchar(255) not null,
+  role                  text not null check (role in (
+    'owner', 'doctor', 'assistant', 'clinic_admin',
+    'receptionist', 'lab', 'imaging', 'surgery'
+  )),
+  token                 varchar(255) unique not null,
+  status                text not null default 'pending' check (status in ('pending', 'accepted', 'expired')),
+  expires_at            timestamptz not null,
+  invited_by_member_id  uuid references public.clinic_members(id) on delete set null,
+  joined_at             timestamptz,
+  created_at            timestamptz not null default now()
+);
+
+create index if not exists idx_invitations_token
+  on public.invitations (token) where status = 'pending';
+create index if not exists idx_invitations_org
+  on public.invitations (organization_id, status);
+create index if not exists idx_invitations_email
+  on public.invitations (email, status);
+
+-- ── doctor_settings ──────────────────────────────────────────
+-- Per-doctor configuration within an organization.
+create table if not exists public.doctor_settings (
+  id                            uuid primary key default gen_random_uuid(),
+  member_id                     uuid not null unique references public.clinic_members(id) on delete cascade,
+  organization_id               uuid not null references public.clinics(id) on delete cascade,
+  receptionist_enabled          boolean not null default false,
+  vacation_mode                 boolean not null default false,
+  vacation_redirect_member_id   uuid references public.clinic_members(id) on delete set null,
+  created_at                    timestamptz not null default now(),
+  updated_at                    timestamptz not null default now()
+);
+
+create index if not exists idx_doctor_settings_member
+  on public.doctor_settings (member_id);
+create index if not exists idx_doctor_settings_org
+  on public.doctor_settings (organization_id);
 
 -- ════════════════════════════════════════════════════════════
 -- 2. COMPATIBILIDAD (columnas añadidas en versiones anteriores)
@@ -356,6 +426,192 @@ alter table public.treatment_templates add constraint treatment_templates_clinic
 
 alter table public.clinic_members drop constraint if exists clinic_members_clinic_id_fkey;
 alter table public.clinic_members add constraint clinic_members_clinic_id_fkey foreign key (clinic_id) references public.clinics (id) on delete cascade;
+
+create or replace function public.get_user_clinic_ids()
+returns uuid[]
+language sql stable security definer
+set search_path = public
+as $$
+  select array(
+    select clinic_id from public.profiles where doctor_id = auth.uid()
+    union
+    select clinic_id from public.clinic_members where doctor_id = auth.uid() and is_active = true
+  );
+$$;
+
+-- ==============================================================================
+-- 13. LAB ORDERS
+-- ==============================================================================
+create table if not exists public.lab_orders (
+  id                  uuid primary key default gen_random_uuid(),
+  clinic_id           uuid not null references public.clinics (id) on delete cascade,
+  doctor_id           uuid not null references auth.users (id) on delete cascade,
+  patient_id          uuid not null references public.patients (id) on delete cascade,
+  clinical_record_id  uuid references public.clinical_records (id) on delete set null,
+  order_type          text not null check (order_type in ('laboratory', 'imaging')),
+  items               jsonb not null default '[]',  -- [{name, code?, notes}]
+  reason              text not null default '',     -- razón de la referencia
+  status              text not null default 'pending'
+    check (status in ('pending', 'in_progress', 'completed', 'cancelled')),
+  results             jsonb,                        -- resultados subidos por lab
+  completed_at        timestamptz,
+  created_at          timestamptz not null default now(),
+  updated_at          timestamptz not null default now()
+);
+
+-- RLS para Lab Orders
+alter table public.lab_orders enable row level security;
+
+drop policy if exists "Médicos pueden leer órdenes de su clínica" on public.lab_orders;
+create policy "Médicos pueden leer órdenes de su clínica"
+  on public.lab_orders for select
+  using (
+    auth.uid() is not null
+    and clinic_id = any (public.get_user_clinic_ids())
+  );
+
+drop policy if exists "Médicos pueden insertar órdenes en su clínica" on public.lab_orders;
+create policy "Médicos pueden insertar órdenes en su clínica"
+  on public.lab_orders for insert
+  with check (
+    auth.uid() = doctor_id
+    and clinic_id = any (public.get_user_clinic_ids())
+  );
+
+drop policy if exists "Médicos pueden actualizar órdenes en su clínica" on public.lab_orders;
+create policy "Médicos pueden actualizar órdenes en su clínica"
+  on public.lab_orders for update
+  using (
+    auth.uid() is not null
+    and clinic_id = any (public.get_user_clinic_ids())
+  );
+
+drop policy if exists "Médicos pueden eliminar órdenes de su clínica" on public.lab_orders;
+create policy "Médicos pueden eliminar órdenes de su clínica"
+  on public.lab_orders for delete
+  using (
+    auth.uid() is not null
+    and clinic_id = any (public.get_user_clinic_ids())
+  );
+
+create index if not exists idx_lab_orders_tenant on public.lab_orders (clinic_id, doctor_id);
+create index if not exists idx_lab_orders_patient on public.lab_orders (patient_id);
+
+
+-- ==============================================================================
+-- 14. MEDICAL REFERRALS
+-- ==============================================================================
+create table if not exists public.medical_referrals (
+  id                  uuid primary key default gen_random_uuid(),
+  clinic_id           uuid not null references public.clinics (id) on delete cascade,
+  referring_doctor_id uuid not null references auth.users (id) on delete cascade,
+  referred_doctor_id  uuid references auth.users (id) on delete set null, -- Null for external doctors
+  external_doctor_name text, -- Para doctores fuera del sistema
+  external_doctor_contact text,
+  patient_id          uuid not null references public.patients (id) on delete cascade,
+  clinical_record_id  uuid references public.clinical_records (id) on delete set null,
+  reason              text not null,
+  include_report      boolean not null default false,
+  status              text not null default 'pending'
+    check (status in ('pending', 'accepted', 'completed', 'declined')),
+  notes               text,
+  created_at          timestamptz not null default now(),
+  updated_at          timestamptz not null default now()
+);
+
+-- RLS para Medical Referrals
+alter table public.medical_referrals enable row level security;
+
+drop policy if exists "Médicos pueden leer referencias de su clínica" on public.medical_referrals;
+create policy "Médicos pueden leer referencias de su clínica"
+  on public.medical_referrals for select
+  using (
+    auth.uid() is not null
+    and (
+      clinic_id = any (public.get_user_clinic_ids())
+      or referred_doctor_id = auth.uid()
+    )
+  );
+
+drop policy if exists "Médicos pueden crear referencias" on public.medical_referrals;
+create policy "Médicos pueden crear referencias"
+  on public.medical_referrals for insert
+  with check (
+    auth.uid() = referring_doctor_id
+    and clinic_id = any (public.get_user_clinic_ids())
+  );
+
+drop policy if exists "Médicos pueden actualizar referencias" on public.medical_referrals;
+create policy "Médicos pueden actualizar referencias"
+  on public.medical_referrals for update
+  using (
+    auth.uid() is not null
+    and (
+      clinic_id = any (public.get_user_clinic_ids())
+      or referred_doctor_id = auth.uid()
+    )
+  );
+
+drop policy if exists "Médicos pueden eliminar referencias" on public.medical_referrals;
+create policy "Médicos pueden eliminar referencias"
+  on public.medical_referrals for delete
+  using (
+    auth.uid() is not null
+    and clinic_id = any (public.get_user_clinic_ids())
+  );
+
+create index if not exists idx_medical_referrals_tenant on public.medical_referrals (clinic_id, referring_doctor_id);
+create index if not exists idx_medical_referrals_patient on public.medical_referrals (patient_id);
+create index if not exists idx_medical_referrals_referred on public.medical_referrals (referred_doctor_id);
+
+-- ============================================================
+-- 15. CAJA / CASH TRANSACTIONS
+-- ============================================================
+
+create table if not exists public.cash_transactions (
+  id                  uuid primary key default gen_random_uuid(),
+  clinic_id           uuid not null references public.clinics (id) on delete cascade,
+  user_id             uuid not null references auth.users (id) on delete cascade,
+  patient_id          uuid references public.patients (id) on delete set null,
+  type                text not null check (type in ('income', 'expense')),
+  amount              numeric(10, 2) not null,
+  concept             text not null,
+  payment_method      text not null default 'cash'
+    check (payment_method in ('cash', 'card', 'transfer', 'other')),
+  status              text not null default 'completed'
+    check (status in ('completed', 'voided')),
+  reference_code      text,
+  created_at          timestamptz not null default now(),
+  updated_at          timestamptz not null default now()
+);
+
+alter table public.cash_transactions enable row level security;
+
+drop policy if exists "Usuarios de la clínica pueden ver transacciones" on public.cash_transactions;
+create policy "Usuarios de la clínica pueden ver transacciones"
+  on public.cash_transactions for select
+  using (
+    auth.uid() is not null
+    and clinic_id = any (public.get_user_clinic_ids())
+  );
+
+drop policy if exists "Usuarios de la clínica pueden insertar transacciones" on public.cash_transactions;
+create policy "Usuarios de la clínica pueden insertar transacciones"
+  on public.cash_transactions for insert
+  with check (
+    auth.uid() = user_id
+    and clinic_id = any (public.get_user_clinic_ids())
+  );
+
+drop policy if exists "Usuarios de la clínica pueden anular transacciones" on public.cash_transactions;
+create policy "Usuarios de la clínica pueden anular transacciones"
+  on public.cash_transactions for update
+  using (
+    auth.uid() is not null
+    and clinic_id = any (public.get_user_clinic_ids())
+  );
+
+create index if not exists idx_cash_transactions_tenant on public.cash_transactions (clinic_id, created_at desc);
 
 alter table public.profiles
   add column if not exists payment_config jsonb not null default '{}'::jsonb;
@@ -456,11 +712,11 @@ create index if not exists idx_treatment_templates_tenant
 
 create index if not exists idx_patients_fts
   on public.patients
-  using gin (to_tsvector('spanish', coalesce(full_name, '') || ' ' || coalesce(document_number, '')));
+  using gin (to_tsvector('spanish'::regconfig, coalesce(full_name, '') || ' ' || coalesce(document_number, '')));
 
 create index if not exists idx_clinical_records_fts
   on public.clinical_records
-  using gin (to_tsvector('spanish', coalesce(chief_complaint, '')));
+  using gin (to_tsvector('spanish'::regconfig, coalesce(chief_complaint, '')));
 
 -- ── Índices parciales para Soft-Delete ────────────────────────
 -- Las políticas RLS filtran deleted_at IS NULL en patients y clinical_records.
@@ -478,6 +734,7 @@ create index if not exists idx_records_active
 -- FUNCIONES DE AYUDA PARA RLS (SECURITY DEFINER)
 -- ════════════════════════════════════════════════════════════
 
+
 create or replace function public.is_clinic_member(check_clinic_id uuid)
 returns boolean
 language sql
@@ -488,6 +745,7 @@ as $$
     select 1 from public.clinic_members
     where clinic_id = check_clinic_id
       and doctor_id = auth.uid()
+      and is_active = true
   );
 $$;
 
@@ -501,7 +759,49 @@ as $$
     select 1 from public.clinic_members
     where clinic_id = check_clinic_id
       and doctor_id = auth.uid()
-      and role = 'admin'
+      and role in ('owner', 'clinic_admin')
+      and is_active = true
+  );
+$$;
+
+create or replace function public.is_org_owner(check_clinic_id uuid)
+returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1 from public.clinic_members
+    where clinic_id = check_clinic_id
+      and doctor_id = auth.uid()
+      and role = 'owner'
+      and is_active = true
+  );
+$$;
+
+create or replace function public.get_member_role(check_clinic_id uuid)
+returns text
+language sql
+security definer
+set search_path = public
+as $$
+  select role from public.clinic_members
+  where clinic_id = check_clinic_id
+    and doctor_id = auth.uid()
+    and is_active = true
+  limit 1;
+$$;
+
+create or replace function public.is_platform_admin()
+returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1 from public.profiles
+    where doctor_id = auth.uid()
+      and is_platform_admin = true
   );
 $$;
 
@@ -520,6 +820,8 @@ alter table public.api_rate_limits      enable row level security;
 alter table public.push_subscriptions   enable row level security;
 alter table public.treatment_templates  enable row level security;
 alter table public.clinic_members       enable row level security;
+alter table public.invitations          enable row level security;
+alter table public.doctor_settings      enable row level security;
 alter table public.appointments         enable row level security;
 
 -- ── clinics ──────────────────────────────────────────────────
@@ -811,6 +1113,84 @@ create policy "clinic_members_write"
   using  (public.is_clinic_admin(public.clinic_members.clinic_id))
   with check (public.is_clinic_admin(public.clinic_members.clinic_id));
 
+-- ── invitations ──────────────────────────────────────────────
+drop policy if exists "invitations_select" on public.invitations;
+create policy "invitations_select"
+  on public.invitations for select to authenticated
+  using (
+    organization_id in (
+      select clinic_id from public.profiles where doctor_id = auth.uid()
+      union
+      select clinic_id from public.clinic_members where doctor_id = auth.uid()
+    )
+  );
+
+drop policy if exists "invitations_insert" on public.invitations;
+create policy "invitations_insert"
+  on public.invitations for insert to authenticated
+  with check (
+    public.is_clinic_admin(organization_id)
+    or exists (
+      select 1 from public.clinic_members
+      where clinic_id = organization_id
+        and doctor_id = auth.uid()
+        and role = 'owner'
+    )
+  );
+
+drop policy if exists "invitations_update" on public.invitations;
+create policy "invitations_update"
+  on public.invitations for update to authenticated
+  using (
+    public.is_clinic_admin(organization_id)
+    or exists (
+      select 1 from public.clinic_members
+      where clinic_id = organization_id
+        and doctor_id = auth.uid()
+        and role = 'owner'
+    )
+  );
+
+-- ── doctor_settings ──────────────────────────────────────────
+drop policy if exists "doctor_settings_select" on public.doctor_settings;
+create policy "doctor_settings_select"
+  on public.doctor_settings for select to authenticated
+  using (
+    organization_id in (
+      select clinic_id from public.profiles where doctor_id = auth.uid()
+      union
+      select clinic_id from public.clinic_members where doctor_id = auth.uid()
+    )
+  );
+
+drop policy if exists "doctor_settings_write" on public.doctor_settings;
+create policy "doctor_settings_write"
+  on public.doctor_settings for all to authenticated
+  using (
+    member_id in (
+      select id from public.clinic_members where doctor_id = auth.uid()
+    )
+    or public.is_clinic_admin(organization_id)
+    or exists (
+      select 1 from public.clinic_members
+      where clinic_id = organization_id
+        and doctor_id = auth.uid()
+        and role = 'owner'
+    )
+  )
+  with check (
+    member_id in (
+      select id from public.clinic_members where doctor_id = auth.uid()
+    )
+    or public.is_clinic_admin(organization_id)
+    or exists (
+      select 1 from public.clinic_members
+      where clinic_id = organization_id
+        and doctor_id = auth.uid()
+        and role = 'owner'
+    )
+  );
+
 -- ════════════════════════════════════════════════════════════
 -- 5. FUNCIONES Y TRIGGERS
 -- ════════════════════════════════════════════════════════════
@@ -866,6 +1246,61 @@ create trigger trg_treatment_templates_updated_at
   before update on public.treatment_templates
   for each row execute function public.bump_updated_at();
 
+drop trigger if exists trg_doctor_settings_updated_at on public.doctor_settings;
+create trigger trg_doctor_settings_updated_at
+  before update on public.doctor_settings
+  for each row execute function public.bump_updated_at();
+
+-- ── validate_invitation_token ────────────────────────────────
+-- Returns invitation details if token is valid and not expired.
+drop function if exists public.validate_invitation_token(text);
+create or replace function public.validate_invitation_token(p_token text)
+returns table (
+  id uuid,
+  organization_id uuid,
+  email varchar,
+  role text,
+  status text,
+  expires_at timestamptz,
+  organization_name text
+)
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  return query
+    select
+      i.id,
+      i.organization_id,
+      i.email,
+      i.role,
+      i.status,
+      i.expires_at,
+      c.name as organization_name
+    from public.invitations i
+    join public.clinics c on c.id = i.organization_id
+    where i.token = p_token
+    limit 1;
+end;
+$$;
+
+-- ── expire_old_invitations ───────────────────────────────────
+-- Auto-expire invitations past their expires_at. Called by pg_cron.
+create or replace function public.expire_old_invitations()
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  update public.invitations
+    set status = 'expired'
+    where status = 'pending'
+      and expires_at < now();
+end;
+$$;
+
 -- ── log_audit_event ──────────────────────────────────────────
 -- Inserta en audit_logs con hash encadenado (estilo blockchain).
 -- Llamar desde la app o desde otros triggers. security definer
@@ -907,14 +1342,17 @@ begin
 
   v_new_hash := encode(
     digest(
-      v_prev_hash         || '|' ||
-      p_clinic_id::text   || '|' ||
-      p_doctor_id::text   || '|' ||
-      p_event_type        || '|' ||
-      p_resource_type     || '|' ||
-      p_resource_id::text || '|' ||
-      p_changes::text     || '|' ||
-      now()::text,
+      convert_to(
+        v_prev_hash         || '|' ||
+        p_clinic_id::text   || '|' ||
+        p_doctor_id::text   || '|' ||
+        p_event_type        || '|' ||
+        p_resource_type     || '|' ||
+        p_resource_id::text || '|' ||
+        p_changes::text     || '|' ||
+        now()::text,
+        'utf8'
+      ),
       'sha256'
     ),
     'hex'
@@ -1592,11 +2030,11 @@ $$;
 REVOKE EXECUTE ON FUNCTION public.get_user_id_by_email(TEXT) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.get_user_id_by_email(TEXT) FROM anon;
 
--- Fix B-05: has_active_subscription ahora prioriza el perfil del admin de la clínica
--- (el que tiene stripe_customer_id o el role='admin' en clinic_members)
+-- Fix B-05: has_active_subscription ahora prioriza el perfil del owner de la clínica
+-- (el que tiene stripe_customer_id o el role='owner' en clinic_members)
 -- en lugar de asumir que el primer perfil creado es el owner.
 -- Estrategia de lookup (en orden):
---   1. El perfil del doctor con role='admin' en clinic_members para esa clínica.
+--   1. El perfil del doctor con role='owner' en clinic_members para esa clínica.
 --   2. Cualquier perfil de esa clínica con stripe_customer_id NOT NULL (tiene billing).
 --   3. Fallback: el perfil más antiguo (comportamiento anterior).
 CREATE OR REPLACE FUNCTION has_active_subscription(c_id UUID)
@@ -1609,18 +2047,18 @@ DECLARE
   sub_status  TEXT;
   sub_expires TIMESTAMPTZ;
 BEGIN
-  -- 1. Intentar obtener el perfil del admin de la clínica
+  -- 1. Intentar obtener el perfil del owner de la clínica
   SELECT p.subscription_status, p.subscription_expires_at
     INTO sub_status, sub_expires
   FROM public.profiles p
   INNER JOIN public.clinic_members cm
     ON cm.clinic_id = c_id
    AND cm.doctor_id = p.doctor_id
-   AND cm.role = 'admin'
+   AND cm.role = 'owner'
   WHERE p.clinic_id = c_id
   LIMIT 1;
 
-  -- 2. Si no hay admin en clinic_members, usar el perfil con stripe_customer_id
+  -- 2. Si no hay owner en clinic_members, usar el perfil con stripe_customer_id
   IF sub_status IS NULL THEN
     SELECT subscription_status, subscription_expires_at
       INTO sub_status, sub_expires
@@ -2010,6 +2448,37 @@ begin
 end;
 $$;
 
+-- ── Función para procesar y bloquear tareas de seguimiento de email (Outbox/Idempotencia) ──
+create or replace function public.claim_followup_tasks(p_doctor_id uuid)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_count integer;
+begin
+  -- Intentar registrar el envío diario (actúa como Mutex para concurrencia)
+  insert into public.notification_log (doctor_id, notification_date, type)
+  values (p_doctor_id, current_date, 'email_followup')
+  on conflict do nothing;
+
+  if not found then
+    return 0; -- Ya se envió hoy o está siendo procesado por otra transacción
+  end if;
+
+  -- Contar tareas pendientes bloqueándolas para prevenir lecturas concurrentes
+  select count(id) into v_count
+  from public.follow_up_tasks
+  where doctor_id = p_doctor_id
+    and due_date <= current_date
+    and status = 'pending'
+  for update skip locked;
+
+  return coalesce(v_count, 0);
+end;
+$$;
+
 -- Actualizar send_followup_emails para usar notification_log
 create or replace function public.send_followup_emails() returns void
 language plpgsql security definer set search_path = public as $$
@@ -2037,26 +2506,21 @@ begin
     group by ft.doctor_id, u.email, p.full_name
     having u.email is not null
   loop
-    -- A-03: Deduplicar — omitir si ya se envió hoy
-    insert into public.notification_log (doctor_id, notification_date, type)
-    values (r.doctor_id, current_date, 'email_followup')
-    on conflict do nothing;
-
-    if found then
-      perform net.http_post(
-        url     := v_site_url || '/api/email/followup',
-        headers := jsonb_build_object(
-          'Content-Type',   'application/json',
-          'x-email-secret', v_email_secret
-        ),
-        body    := jsonb_build_object(
-          'target_doctor_id', r.doctor_id,
-          'doctor_email',     r.doctor_email,
-          'doctor_name',      r.doctor_name,
-          'due_count',        r.due_count
-        )
-      );
-    end if;
+    -- El registro se hace en el API con claim_followup_tasks, así que aquí solo lanzamos
+    -- el webhook si hay algo que enviar. (Eliminado el insert on conflict do nothing local).
+    perform net.http_post(
+      url     := v_site_url || '/api/email/followup',
+      headers := jsonb_build_object(
+        'Content-Type',   'application/json',
+        'x-email-secret', v_email_secret
+      ),
+      body    := jsonb_build_object(
+        'target_doctor_id', r.doctor_id,
+        'doctor_email',     r.doctor_email,
+        'doctor_name',      r.doctor_name,
+        'due_count',        r.due_count
+      )
+    );
   end loop;
 end;
 $$;
@@ -2513,3 +2977,184 @@ comment on function public.anonymize_patient(uuid) is
   'fecha nacimiento) sin borrar registros clínicos. Cumple retención legal de '
   'historiales médicos. Registra la acción en audit_logs.';
 
+-- ============================================================
+-- 16. TRACKING DE ONBOARDING & AUDITORÍA AUTOMÁTICA
+-- ============================================================
+
+alter table public.profiles
+  add column if not exists onboarding_state jsonb not null default '{"step": 1, "completed": false}'::jsonb;
+
+create or replace function public.log_audit_event_trigger()
+returns trigger
+security definer
+as $$
+declare
+  v_clinic_id uuid;
+  v_doctor_id uuid;
+  v_action text;
+  v_resource_id uuid;
+  v_changes jsonb;
+begin
+  v_action := TG_OP;
+
+  if v_action = 'DELETE' then
+    v_clinic_id := OLD.clinic_id;
+    v_doctor_id := auth.uid();
+    v_resource_id := OLD.id;
+    v_changes := to_jsonb(OLD);
+  else
+    v_clinic_id := NEW.clinic_id;
+    v_doctor_id := auth.uid();
+    v_resource_id := NEW.id;
+    
+    if v_action = 'INSERT' then
+      v_changes := to_jsonb(NEW);
+    else
+      v_changes := to_jsonb(NEW);
+    end if;
+  end if;
+
+  insert into public.audit_logs (
+    clinic_id,
+    doctor_id,
+    event_type,
+    resource_type,
+    resource_id,
+    changes,
+    entry_hash,
+    sequence_no
+  ) values (
+    v_clinic_id,
+    v_doctor_id,
+    lower(v_action),
+    TG_TABLE_NAME,
+    v_resource_id,
+    v_changes,
+    encode(digest(v_resource_id::text || now()::text, 'sha256'), 'hex'),
+    1
+  );
+
+  if v_action = 'DELETE' then
+    return OLD;
+  end if;
+  
+  return NEW;
+end;
+$$ language plpgsql;
+
+drop trigger if exists clinical_records_audit on public.clinical_records;
+create trigger clinical_records_audit
+  after insert or update or delete on public.clinical_records
+  for each row execute function public.log_audit_event_trigger();
+
+drop trigger if exists lab_orders_audit on public.lab_orders;
+create trigger lab_orders_audit
+  after insert or update or delete on public.lab_orders
+  for each row execute function public.log_audit_event_trigger();
+
+drop trigger if exists cash_transactions_audit on public.cash_transactions;
+create trigger cash_transactions_audit
+  after insert or update or delete on public.cash_transactions
+  for each row execute function public.log_audit_event_trigger();
+
+commit;
+-- 007_cash_shifts.sql
+-- Crea tabla para el control de turnos de caja aislados.
+
+create table if not exists public.cash_shifts (
+  id              uuid primary key default gen_random_uuid(),
+  clinic_id       uuid not null references public.clinics (id) on delete cascade,
+  user_id         uuid not null references auth.users (id) on delete cascade,
+  opened_at       timestamptz not null default now(),
+  closed_at       timestamptz,
+  initial_amount  numeric(10,2) not null default 0,
+  final_amount    numeric(10,2),
+  status          text not null default 'open' check (status in ('open', 'closed')),
+  created_at      timestamptz not null default now(),
+  updated_at      timestamptz not null default now()
+);
+
+alter table public.cash_shifts enable row level security;
+
+-- Policies for cash_shifts
+drop policy if exists "Usuarios pueden ver turnos de su clínica" on public.cash_shifts;
+create policy "Usuarios pueden ver turnos de su clínica"
+  on public.cash_shifts for select
+  using (
+    auth.uid() is not null
+    and clinic_id in (
+      select clinic_id from public.profiles where user_id = auth.uid() or doctor_id = auth.uid()
+      union
+      select clinic_id from public.clinic_members where user_id = auth.uid() or doctor_id = auth.uid()
+    )
+  );
+
+drop policy if exists "Usuarios pueden insertar turnos en su clínica" on public.cash_shifts;
+create policy "Usuarios pueden insertar turnos en su clínica"
+  on public.cash_shifts for insert
+  with check (
+    auth.uid() is not null
+    and auth.uid() = user_id
+    and clinic_id in (
+      select clinic_id from public.profiles where user_id = auth.uid() or doctor_id = auth.uid()
+      union
+      select clinic_id from public.clinic_members where user_id = auth.uid() or doctor_id = auth.uid()
+    )
+  );
+
+drop policy if exists "Usuarios pueden actualizar sus propios turnos" on public.cash_shifts;
+create policy "Usuarios pueden actualizar sus propios turnos"
+  on public.cash_shifts for update
+  using (
+    auth.uid() = user_id
+    and clinic_id in (
+      select clinic_id from public.profiles where user_id = auth.uid() or doctor_id = auth.uid()
+      union
+      select clinic_id from public.clinic_members where user_id = auth.uid() or doctor_id = auth.uid()
+    )
+  );
+
+-- Indexes
+create index if not exists idx_cash_shifts_tenant on public.cash_shifts (clinic_id, user_id, status);
+
+-- Añadir shift_id a cash_transactions
+alter table public.cash_transactions
+add column if not exists shift_id uuid references public.cash_shifts (id) on delete cascade;
+
+create index if not exists idx_cash_transactions_shift on public.cash_transactions (shift_id);
+
+-- ════════════════════════════════════════════════════════════
+-- PLATFORM ADMIN AUTO-PROVISIONING
+-- ════════════════════════════════════════════════════════════
+
+-- Crea o actualiza el perfil con is_platform_admin = true si el email coincide con app_config
+create or replace function public.handle_new_user_admin()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_admin_email text;
+  v_clinic_id uuid;
+begin
+  select value into v_admin_email from public.app_config where key = 'admin_email' limit 1;
+  
+  if NEW.email is not null and NEW.email = v_admin_email then
+    -- Crear clínica de sistema (requerida por el schema)
+    insert into public.clinics (name, plan_type, subscription_status)
+    values ('Platform Administration', 'clinica', 'active')
+    returning id into v_clinic_id;
+
+    -- Crear perfil de admin
+    insert into public.profiles (doctor_id, clinic_id, full_name, is_platform_admin, plan, subscription_status, terms_version, terms_accepted_at)
+    values (NEW.id, v_clinic_id, 'Platform Admin', true, 'clinic', 'active', 'v1', now());
+  end if;
+  return NEW;
+end;
+$$;
+
+drop trigger if exists trg_auto_provision_admin on auth.users;
+create trigger trg_auto_provision_admin
+  after insert on auth.users
+  for each row execute function public.handle_new_user_admin();

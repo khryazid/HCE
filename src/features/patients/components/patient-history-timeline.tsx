@@ -9,6 +9,7 @@
  */
 
 import Link from "next/link";
+import { useState } from "react";
 import { formatDate, formatDateTime } from "@/lib/ui/format-date";
 import { usePdfWorker } from "@/features/consultations/lib/use-pdf-worker";
 import { trackUsage } from "@/lib/observability/usage-tracker";
@@ -25,6 +26,8 @@ import { MessageCircle } from "lucide-react";
 import type { ClinicalRecordRecord } from "@/features/consultations/types";
 import type { TenantProfile } from "@/lib/supabase/profile";
 import type { PatientRecord } from "@/features/patients/types";
+import type { PdfSectionKey } from "@/features/consultations/lib/pdf/pdf-section-selector";
+import { PdfSectionSelectorModal } from "@/features/consultations/components/pdf-section-selector-modal";
 
 // ─── Tipos y helpers ─────────────────────────────────────────────────────────
 
@@ -130,6 +133,52 @@ export function PatientHistoryTimeline({
 }: Props) {
   // A-18: PDF en Web Worker — no bloquea UI 8-15s en móvil
   const { generatePdfInWorker, isGenerating: isPdfGenerating } = usePdfWorker();
+  const [pdfSelectorRecord, setPdfSelectorRecord] = useState<ClinicalRecordRecord | null>(null);
+
+  const handlePdfGenerate = async (
+    record: ClinicalRecordRecord,
+    enabledSections: Set<PdfSectionKey>,
+  ) => {
+    if (!tenant || !selectedPatient) return;
+    const supabase = getSupabaseClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    const letterhead = buildLetterheadFromSession(
+      tenant.doctor_id,
+      tenant.clinic_id,
+      session?.user?.user_metadata ?? {},
+      tenant.specialties,
+    );
+    const details = getHistoryDetails(record);
+    const safeName = selectedPatient.full_name
+      .replace(/[^a-zA-Z0-9]/g, "-")
+      .replace(/-+/g, "-");
+    const filename = `${safeName}-${selectedPatient.document_number}.pdf`;
+    await generatePdfInWorker(letterhead, {
+      patientName: selectedPatient.full_name,
+      patientDocument: selectedPatient.document_number,
+      consultationDate: formatDateTime(details.consultationDate),
+      gender: details.gender,
+      occupation: details.occupation,
+      insurance: details.insurance,
+      chiefComplaint: details.chiefComplaint,
+      anamnesis: details.anamnesis,
+      medicalHistory: details.medicalHistory,
+      backgrounds: details.backgrounds,
+      vitalSigns: details.vitalSigns,
+      physicalExam: details.physicalExam,
+      diagnosis: details.diagnosis,
+      cieCodes: details.cieCodes,
+      clinicalAnalysis: details.clinicalAnalysis,
+      treatmentPlan: details.treatmentPlan,
+      recommendations: details.recommendations,
+      warningSigns: details.warningSigns,
+      specialtyKind: record.specialty_kind,
+      evolutionStatus: details.evolutionStatus,
+      followUpDate: details.nextFollowUpDate ?? undefined,
+    }, filename, enabledSections);
+    trackUsage("pdf:generate");
+    setPdfSelectorRecord(null);
+  };
   return (
     <article className="hce-surface">
       <div className="flex items-center justify-between gap-3">
@@ -145,12 +194,14 @@ export function PatientHistoryTimeline({
             records={records}
             tenant={tenant}
           />
-          <Link
-            href={`/consultas?mode=consulta&patientId=${selectedPatientId}`}
-            className="hce-btn-secondary"
-          >
-            Nueva atencion
-          </Link>
+          {tenant?.role !== "assistant" && (
+            <Link
+              href={`/consultas?mode=consulta&patientId=${selectedPatientId}`}
+              className="hce-btn-secondary"
+            >
+              Nueva atencion
+            </Link>
+          )}
         </div>
       </div>
 
@@ -305,55 +356,18 @@ export function PatientHistoryTimeline({
 
                     {/* Acciones del registro */}
                     <div className="mt-8 flex flex-wrap items-center gap-3 border-t border-border pt-4">
-                      <Link
-                        href={`/consultas?mode=seguimiento&patientId=${record.patient_id}&recordId=${record.id}`}
-                        className="inline-flex rounded-xl border border-teal-500/50 bg-teal-500/10 px-3 py-2 text-xs font-semibold text-teal-900 dark:text-teal-100 transition hover:bg-teal-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
-                      >
-                        Crear seguimiento
-                      </Link>
+                      {tenant?.role !== "assistant" && (
+                        <Link
+                          href={`/consultas?mode=seguimiento&patientId=${record.patient_id}&recordId=${record.id}`}
+                          className="inline-flex rounded-xl border border-teal-500/50 bg-teal-500/10 px-3 py-2 text-xs font-semibold text-teal-900 dark:text-teal-100 transition hover:bg-teal-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+                        >
+                          Crear seguimiento
+                        </Link>
+                      )}
                       <button
                         type="button"
                         disabled={isPdfGenerating}
-                        onClick={async () => {
-                          if (!tenant || !selectedPatient) return;
-                          const supabase = getSupabaseClient();
-                          const { data: { session } } = await supabase.auth.getSession();
-                          const letterhead = buildLetterheadFromSession(
-                            tenant.doctor_id,
-                            tenant.clinic_id,
-                            session?.user?.user_metadata ?? {},
-                            tenant.specialties,
-                          );
-                          const safeName = selectedPatient.full_name
-                            .replace(/[^a-zA-Z0-9]/g, "-")
-                            .replace(/-+/g, "-");
-                          const filename = `${safeName}-${selectedPatient.document_number}.pdf`;
-                          // A-18: Worker — jsPDF corre en hilo separado
-                          await generatePdfInWorker(letterhead, {
-                            patientName: selectedPatient.full_name,
-                            patientDocument: selectedPatient.document_number,
-                            consultationDate: formatDateTime(details.consultationDate),
-                            gender: details.gender,
-                            occupation: details.occupation,
-                            insurance: details.insurance,
-                            chiefComplaint: details.chiefComplaint,
-                            anamnesis: details.anamnesis,
-                            medicalHistory: details.medicalHistory,
-                            backgrounds: details.backgrounds,
-                            vitalSigns: details.vitalSigns,
-                            physicalExam: details.physicalExam,
-                            diagnosis: details.diagnosis,
-                            cieCodes: details.cieCodes,
-                            clinicalAnalysis: details.clinicalAnalysis,
-                            treatmentPlan: details.treatmentPlan,
-                            recommendations: details.recommendations,
-                            warningSigns: details.warningSigns,
-                            specialtyKind: record.specialty_kind,
-                            evolutionStatus: details.evolutionStatus,
-                            followUpDate: details.nextFollowUpDate ?? undefined,
-                          }, filename);
-                          trackUsage("pdf:generate");
-                        }}
+                        onClick={() => setPdfSelectorRecord(record)}
                         className="inline-flex items-center gap-1 rounded-xl border border-border bg-card px-3 py-2 text-xs font-semibold text-ink-soft transition hover:bg-bg-soft disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <svg
@@ -398,13 +412,15 @@ export function PatientHistoryTimeline({
                         </>
                       )}
 
-                      <button
-                        type="button"
-                        onClick={() => onDeleteRecordRequest(record)}
-                        className="inline-flex items-center gap-1.5 rounded-xl border border-red-200 bg-white px-3.5 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
-                      >
-                        Eliminar
-                      </button>
+                      {tenant?.role !== "assistant" && (
+                        <button
+                          type="button"
+                          onClick={() => onDeleteRecordRequest(record)}
+                          className="inline-flex items-center gap-1.5 rounded-xl border border-red-200 bg-white px-3.5 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+                        >
+                          Eliminar
+                        </button>
+                      )}
                     </div>
                   </div>
                 )}
@@ -413,6 +429,16 @@ export function PatientHistoryTimeline({
           })
         )}
       </div>
+
+      {/* PDF Section Selector Modal */}
+      {pdfSelectorRecord && (
+        <PdfSectionSelectorModal
+          open={true}
+          isGenerating={isPdfGenerating}
+          onClose={() => setPdfSelectorRecord(null)}
+          onGenerate={(sections) => void handlePdfGenerate(pdfSelectorRecord, sections)}
+        />
+      )}
     </article>
   );
 }

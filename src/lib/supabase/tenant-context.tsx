@@ -50,8 +50,9 @@ export function TenantProvider({ children }: { children: ReactNode }) {
         // getUser() validates with the server — safer than getSession()
         // which can trigger a background refresh and log noisy errors.
         const { data: { user }, error } = await supabase.auth.getUser();
+        const { data: { session } } = await supabase.auth.getSession();
 
-        if (error || !user) {
+        if (error || !user || !session) {
           if (active) router.replace("/login");
           return;
         }
@@ -62,7 +63,7 @@ export function TenantProvider({ children }: { children: ReactNode }) {
         if (active) {
           setState({
             tenant: profile,
-            session: null, // session not needed downstream
+            session: session,
             loading: false,
             error: profile
               ? null

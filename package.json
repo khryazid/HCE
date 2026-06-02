@@ -21,14 +21,13 @@
   "dependencies": {
     "@ducanh2912/next-pwa": "^10.2.9",
     "@google/genai": "^2.5.0",
+    "@hello-pangea/dnd": "^18.0.1",
     "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-dialog": "^1.1.15",
-    "@radix-ui/react-dropdown-menu": "^2.1.16",
-    "@radix-ui/react-label": "^2.1.8",
     "@radix-ui/react-slot": "^1.2.4",
-    "@radix-ui/react-tabs": "^1.1.13",
     "@supabase/ssr": "^0.10.2",
     "@supabase/supabase-js": "^2.103.2",
+    "@tailwindcss/typography": "^0.5.19",
     "@tanstack/react-query": "^5.100.6",
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
@@ -37,6 +36,7 @@
     "date-fns": "^4.1.0",
     "idb": "^8.0.3",
     "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.8",
     "jszip": "^3.10.1",
     "lucide-react": "^1.12.0",
     "next": "16.2.4",
@@ -45,6 +45,8 @@
     "react": "19.2.6",
     "react-dom": "19.2.6",
     "react-hook-form": "^7.74.0",
+    "react-markdown": "^10.1.0",
+    "recharts": "^3.8.1",
     "resend": "^6.12.2",
     "server-only": "^0.0.1",
     "sonner": "^2.0.7",
@@ -54,14 +56,12 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@next/env": "^16.2.7",
     "@playwright/test": "^1.59.1",
-    "@swc/helpers": "^0.5.21",
     "@tailwindcss/postcss": "^4",
     "@tanstack/react-query-devtools": "^5.100.6",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
-    "@testing-library/user-event": "^14.6.1",
-    "@types/jszip": "^3.4.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
@@ -69,18 +69,11 @@
     "@vitest/coverage-v8": "^4.1.5",
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
-    "eslint-plugin-jsx-a11y": "^6.10.2",
     "happy-dom": "^20.9.0",
     "husky": "^8.0.0",
-    "lint-staged": "^13.0.0",
     "tailwindcss": "^4",
     "tsx": "^4.22.3",
     "typescript": "^5",
     "vitest": "^4.1.4"
-  },
-  "lint-staged": {
-    "**/*.{js,jsx,ts,tsx}": [
-      "eslint --fix"
-    ]
   }
 }

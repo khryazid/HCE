@@ -88,6 +88,14 @@ export const serverEnv = {
     return optionalEnv("RESEND_FROM_EMAIL", "onboarding@resend.dev");
   },
 
+  // ── WhatsApp API ───────────────────────────────────────────────────────────
+  get WHATSAPP_ACCESS_TOKEN() {
+    return optionalEnv("WHATSAPP_ACCESS_TOKEN");
+  },
+  get WHATSAPP_PHONE_NUMBER_ID() {
+    return optionalEnv("WHATSAPP_PHONE_NUMBER_ID");
+  },
+
   // ── App URL ────────────────────────────────────────────────────────────────
   get NEXT_PUBLIC_SITE_URL() {
     return requireEnv("NEXT_PUBLIC_SITE_URL");

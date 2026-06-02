@@ -142,7 +142,7 @@ describe("calculateMetrics", () => {
       makeRecord({ created_at: "2026-01-09T23:59:00.000Z" }), // yesterday
     ];
     const result = calculateMetrics([], records, { conflicted: 0, failedOrAbandoned: 0 }, today);
-    expect(result.consultationsToday).toBe(1);
+    expect(result.consultationsInPeriod).toBe(1);
   });
 
   it("counts consultations this month", () => {

@@ -20,7 +20,7 @@ import { MAX_RETRY_DELAY_MS, BASE_RETRY_DELAY_MS } from "@/lib/constants/sync";
 // pero no se sincronizarán hasta que renueve su plan.
 export const APP_EVENT_SUBSCRIPTION_EXPIRED = "hce:subscription-expired";
 
-const MAX_RETRIES = 3;
+const MAX_RETRIES = 50; // Increased from 3 to 50 for robust offline-first backoff
 
 export const SYNC_STARTED_EVENT = "hce:sync-started";
 export const SYNC_FINISHED_EVENT = "hce:sync-finished";
@@ -376,7 +376,6 @@ async function syncItem(item: SyncQueueItem): Promise<"synced" | "conflicted"> {
       p_resource_type: tableName,
       p_resource_id: item.record_id,
       p_changes: payload as unknown as import("@/types/supabase.types").Json,
-      // @ts-expect-error: schema modified but types not regenerated yet
       p_client_timestamp: item.client_timestamp,
     });
   }

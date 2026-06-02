@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useState,
+  useMemo,
   type ReactNode,
 } from "react";
 
@@ -138,18 +139,25 @@ export function ClinicalProvider({ children }: { children: ReactNode }) {
     setWizardDraftOpen(false);
   }, []);
 
+  const value = useMemo(() => ({
+    selectedPatientId,
+    setSelectedPatientId,
+    wizardDraft,
+    wizardDraftStep,
+    wizardDraftOpen,
+    saveWizardDraft,
+    clearWizardDraft,
+  }), [
+    selectedPatientId,
+    wizardDraft,
+    wizardDraftStep,
+    wizardDraftOpen,
+    saveWizardDraft,
+    clearWizardDraft,
+  ]);
+
   return (
-    <ClinicalContext.Provider
-      value={{
-        selectedPatientId,
-        setSelectedPatientId,
-        wizardDraft,
-        wizardDraftStep,
-        wizardDraftOpen,
-        saveWizardDraft,
-        clearWizardDraft,
-      }}
-    >
+    <ClinicalContext.Provider value={value}>
       {children}
     </ClinicalContext.Provider>
   );

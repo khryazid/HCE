@@ -1,8 +1,18 @@
 import { isSameDay, parseISO, format } from "date-fns";
+import { es } from "date-fns/locale";
 import Link from "next/link";
 import type { Database } from "@/types/supabase.types";
 
 type AppointmentRow = Database["public"]["Tables"]["appointments"]["Row"];
+
+function initials(name: string | null) {
+  if (!name) return "—";
+  return name.split(" ").filter(Boolean).slice(0, 2).map(w => w[0]).join("").toUpperCase();
+}
+
+function avClass(s: string) {
+  return s === "completed" ? "gx-av-done" : s === "scheduled" ? "gx-av-up" : "gx-av-free";
+}
 
 export function DashboardAgendaPanel({
   appointments,
@@ -20,122 +30,54 @@ export function DashboardAgendaPanel({
   const total = todayAppointments.length;
 
   return (
-    <article
-      className="flex h-[420px] flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-sm"
-      aria-label="Agenda del Día"
-    >
-      <header className="flex items-center justify-between border-b border-border bg-bg-soft/50 p-5">
-        <div>
-          <h2 className="text-sm font-bold text-ink">Agenda del Día</h2>
-          <p className="mt-0.5 text-xs text-ink-soft">
-            {total === 0
-              ? "Sin citas programadas"
-              : `${completed} de ${total} completadas`}
-          </p>
-        </div>
-      </header>
-
-      <div className="flex-1 overflow-y-auto p-2">
+    <section>
+      <div className="gx-sh">
+        <h2 className="gx-st">Agenda del día</h2>
+        <span className="gx-sc">{completed} de {total} completadas</span>
+      </div>
+      <div className="gx-tl">
         {todayAppointments.length === 0 ? (
-          <div className="flex h-full flex-col items-center justify-center p-6 text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-bg-soft text-ink-soft">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <rect width="18" height="18" x="3" y="4" rx="2" ry="2" />
-                <line x1="16" x2="16" y1="2" y2="6" />
-                <line x1="8" x2="8" y1="2" y2="6" />
-                <line x1="3" x2="21" y1="10" y2="10" />
-              </svg>
-            </div>
-            <p className="mt-3 text-sm font-medium text-ink">Agenda despejada</p>
-            <p className="mt-1 text-xs text-ink-soft">
-              No tienes citas programadas para el día de hoy.
-            </p>
-          </div>
+          <div className="text-sm text-ink-soft italic py-4">No tienes citas programadas para hoy.</div>
         ) : (
-          <ul className="space-y-1">
-            {todayAppointments.map((app) => {
-              const start = parseISO(app.start_time);
-              const isPast = start.getTime() < today.getTime() && app.status === "scheduled";
-              const isCompleted = app.status === "completed";
+          todayAppointments.map((app) => {
+            const start = parseISO(app.start_time);
+            const isPast = start.getTime() < today.getTime() && app.status === "scheduled";
+            const isCompleted = app.status === "completed";
+            const isNext = !isPast && !isCompleted; // Idealmente el más cercano
+            
+            // Custom avatar class logic
+            let sClass = "up";
+            if (isCompleted) sClass = "done";
+            if (isPast && !isCompleted) sClass = "active"; // Highlight past but not completed as active/overdue
 
-              return (
-                <li
-                  key={app.id}
-                  className={`flex items-center gap-4 rounded-xl p-3 transition-colors ${
-                    isCompleted
-                      ? "opacity-60 bg-transparent"
-                      : "bg-bg-soft/50 hover:bg-bg-soft"
-                  }`}
-                >
-                  <div className="flex flex-col items-end shrink-0 w-14">
-                    { }
-                    <span className="text-sm font-bold text-ink">
-                      {format(start, "HH:mm")}
-                    </span>
-                    <span className="text-[10px] uppercase font-semibold text-ink-soft">
-                      {app.consultation_type || "Consulta"}
-                    </span>
-                  </div>
-
-                  {/* Status Indicator Line */}
-                  <div className={`w-1 self-stretch rounded-full ${
-                    isCompleted
-                      ? "bg-teal-500"
-                      : isPast
-                      ? "bg-amber-500"
-                      : "bg-blue-500"
-                  }`} />
-
-                  <div className="flex-1 min-w-0">
-                    <p className={`truncate text-sm font-semibold ${isCompleted ? "line-through text-ink-soft" : "text-ink"}`}>
-                      {app.patient_name}
-                    </p>
-                    <div className="mt-0.5 flex items-center gap-2">
-                      <span className={`inline-block px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${
-                        isCompleted 
-                          ? "bg-teal-500/10 text-teal-700" 
-                          : app.status === "cancelled"
-                          ? "bg-red-500/10 text-red-700"
-                          : app.status === "no_show"
-                          ? "bg-purple-500/10 text-purple-700"
-                          : isPast
-                          ? "bg-amber-500/10 text-amber-700"
-                          : "bg-blue-500/10 text-blue-700"
-                      }`}>
-                        {app.status === "completed" ? "Atendido" :
-                         app.status === "scheduled" ? (isPast ? "Atrasado" : "Pendiente") :
-                         app.status === "no_show" ? "No asistió" : "Cancelado"}
-                      </span>
+            return (
+              <div key={app.id} className={`gx-tl-slot ${sClass === "active" ? "gx-tl-active" : ""}`}>
+                <span className="gx-tl-time">{format(start, "HH:mm")}</span>
+                <div className="gx-tl-body">
+                  <div className={`gx-av ${avClass(app.status)}`}>{initials(app.patient_name)}</div>
+                  <div className="gx-tl-info">
+                    <div className={`gx-tl-name${isCompleted ? " gx-tl-name-done" : ""}`}>
+                      {app.patient_name || "Disponible"}
                     </div>
+                    {app.notes && <div className="gx-tl-reason">{app.notes}</div>}
                   </div>
-
-                  {/* Botón Iniciar Consulta */}
-                  {app.status === "scheduled" && (
-                    <div className="shrink-0">
-                      <Link 
-                        href={`/consultas?appointmentId=${app.id}&patientName=${encodeURIComponent(app.patient_name || "")}${app.patient_document ? `&patientDoc=${encodeURIComponent(app.patient_document)}` : ""}${app.patient_birth_date ? `&patientBirth=${encodeURIComponent(app.patient_birth_date)}` : ""}`}
-                        className="flex items-center justify-center rounded-lg bg-teal-500 px-3 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-teal-600 transition-colors"
-                      >
-                        Iniciar
-                      </Link>
-                    </div>
+                  {app.consultation_type && (
+                    <span className="gx-tl-tag gx-tag-ctrl">{app.consultation_type}</span>
                   )}
-                </li>
-              );
-            })}
-          </ul>
+                  {app.status === "scheduled" && (
+                    <Link 
+                      href={`/consultas?appointmentId=${app.id}&patientName=${encodeURIComponent(app.patient_name || "")}${app.patient_document ? `&patientDoc=${encodeURIComponent(app.patient_document)}` : ""}${app.patient_birth_date ? `&patientBirth=${encodeURIComponent(app.patient_birth_date)}` : ""}`}
+                      className="ml-2 text-xs font-semibold text-accent hover:underline shrink-0"
+                    >
+                      Iniciar
+                    </Link>
+                  )}
+                </div>
+              </div>
+            );
+          })
         )}
       </div>
-    </article>
+    </section>
   );
 }

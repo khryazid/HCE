@@ -71,8 +71,13 @@ export function isSecretValid(incoming: string | null, expected: string): boolea
 /** POST /api/clinic/invite */
 export const inviteBodySchema = z.object({
   email:     z.string().email("Email inválido"),
-  role:      z.enum(["doctor", "assistant"], { message: "Rol debe ser 'doctor' o 'assistant'" }),
+  role:      z.enum(
+    ["doctor", "assistant", "clinic_admin", "receptionist", "lab", "imaging", "surgery"],
+    { message: "Rol inválido" }
+  ),
   clinic_id: z.string().uuid("clinic_id debe ser un UUID válido"),
+  password:  z.string().min(6, "La contraseña debe tener al menos 6 caracteres").optional(),
+  assigned_to: z.string().uuid("assigned_to debe ser un UUID válido").optional(),
 });
 
 /** POST /api/push/subscribe */

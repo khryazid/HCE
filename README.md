@@ -1,282 +1,201 @@
 <div align="center">
-  <img src="public/android-chrome-192x192.png" alt="Glyphix Logo" width="120" />
+  <img src="./public/logo.png" alt="Glyphix Logo" width="150" />
   <h1>Glyphix — Motor Clínico Inteligente ⚕️</h1>
   
   <p>
-    <strong>Historia clínica electrónica SaaS: Offline-First, IA-Powered y Multi-tenant.</strong>
+    <strong>El SaaS Médico definitivo: Offline-First, IA-Powered y Multi-tenant.</strong>
   </p>
 
   <p>
     <a href="https://nextjs.org/"><img src="https://img.shields.io/badge/Next.js-16-black?style=for-the-badge&logo=next.js" alt="Next.js" /></a>
     <a href="https://react.dev/"><img src="https://img.shields.io/badge/React-19-blue?style=for-the-badge&logo=react" alt="React" /></a>
-    <a href="https://supabase.com/"><img src="https://img.shields.io/badge/Supabase-DB_%2B_Auth-3ECF8E?style=for-the-badge&logo=supabase" alt="Supabase" /></a>
+    <a href="https://supabase.com/"><img src="https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?style=for-the-badge&logo=supabase" alt="Supabase" /></a>
+    <a href="https://tailwindcss.com/"><img src="https://img.shields.io/badge/Tailwind_v4-38B2AC?style=for-the-badge&logo=tailwind-css" alt="Tailwind" /></a>
     <a href="https://stripe.com/"><img src="https://img.shields.io/badge/Stripe-Billing-6772E5?style=for-the-badge&logo=stripe" alt="Stripe" /></a>
-    <a href="https://playwright.dev/"><img src="https://img.shields.io/badge/Playwright-E2E-2EAD33?style=for-the-badge&logo=playwright" alt="Playwright" /></a>
+    <a href="https://playwright.dev/"><img src="https://img.shields.io/badge/QA-Playwright-2EAD33?style=for-the-badge&logo=playwright" alt="Playwright" /></a>
+    <br/>
+    <img src="https://img.shields.io/badge/Build-Passing-brightgreen?style=flat-square" alt="Build Status" />
+    <img src="https://img.shields.io/badge/Coverage-47%25-brightgreen?style=flat-square" alt="Coverage" />
+    <img src="https://img.shields.io/badge/License-Proprietary-red?style=flat-square" alt="License" />
   </p>
-  
-  <p>
-    <img src="https://img.shields.io/badge/Build-Passing-brightgreen?style=flat-square" alt="Build" />
-    <img src="https://img.shields.io/badge/Tests-85%2F85-brightgreen?style=flat-square" alt="Tests" />
-    <img src="https://img.shields.io/badge/TypeScript-0_errors-brightgreen?style=flat-square" alt="TypeScript" />
-    <img src="https://img.shields.io/badge/ESLint-Clean-brightgreen?style=flat-square" alt="ESLint" />
-    <img src="https://img.shields.io/badge/E2E-9_specs-brightgreen?style=flat-square" alt="E2E" />
-    <img src="https://img.shields.io/badge/PWA-Ready-f36?style=flat-square" alt="PWA" />
-  </p>
-
 </div>
+
+---
+
+## 📑 Tabla de Contenidos
+
+1. [🌟 Visión General](#-visión-general)
+2. [✨ Características Principales](#-características-principales)
+3. [🏗️ Arquitectura y Flujo de Datos](#️-arquitectura-y-flujo-de-datos)
+4. [🛡️ Seguridad y Modelo Multi-Tenant](#️-seguridad-y-modelo-multi-tenant)
+5. [🛠️ Stack Tecnológico](#️-stack-tecnológico)
+6. [📁 Estructura del Proyecto](#-estructura-del-proyecto)
+7. [🚀 Guía de Inicio Rápido (Desarrollo)](#-guía-de-inicio-rápido-desarrollo)
+8. [🧪 Testing y QA](#-testing-y-qa)
+9. [🤝 Guía de Contribución](#-guía-de-contribución)
+10. [📚 Documentación Extendida](#-documentación-extendida)
 
 ---
 
 ## 🌟 Visión General
 
-**Glyphix** es un **Motor Clínico Inteligente** para médicos modernos que exigen rapidez, seguridad y resiliencia tecnológica. Construido desde cero para funcionar en condiciones extremas: trabaja perfectamente sin conexión a internet y sincroniza automáticamente en la nube cuando la red vuelve.
+**Glyphix** no es solo un sistema de historias clínicas; es un **Motor Clínico Resiliente**. Diseñado para garantizar la continuidad operativa en entornos médicos críticos, Glyphix funciona bajo el paradigma **Offline-First**. Si el internet de la clínica falla, el sistema sigue funcionando a 0ms de latencia, sincronizando los datos encriptados con la nube en el momento en que se recupera la conexión.
 
-Con arquitectura multi-tenant de grado empresarial, Glyphix automatiza la facturación, los seguimientos y la codificación de enfermedades — devolviendo a los médicos su recurso más valioso: **el tiempo**.
-
----
-
-## ✅ Estado Actual del Proyecto *(2026-05-21)*
-
-> Build limpio · 0 errores TypeScript · Build de producción OK · **Versión 1.0.0 (Producción)**
-
-### Features entregadas
-
-| Feature | Descripción |
-|---|---|
-| **Consulta Wizard** | Flujo guiado 6 pasos → PDF con membrete. PAM auto-calculada, normalidad auto-completada. |
-| **UI Adaptativa (Clinical Rompecabezas)** | Secciones colapsables con memoria (JSONB) — el especialista configura el wizard a su flujo. |
-| **Constructor Posología** | Parsea texto libre con viñetas y lo convierte en tarjetas de medicación estructuradas. |
-| **Offline-First** | IndexedDB + sync worker con backoff exponencial. Eliminações remotas se propagan al cache local. |
-| **Realtime Sync** | Supabase WebSocket Realtime en 5 tablas (pacientes, citas, consultas, equipo, plantillas). |
-| **Agenda Reactiva** | Calendario con polling 30s + `refetchOnWindowFocus` + Realtime — el médico ve citas nuevas al instante. |
-| **Plan Multi-Doctor** | Multi-tenant para Clínicas, roles (admin/doctor/viewer) y billing multi-seat. |
-| **IA CIE-10** | Gemini 2.0 Flash sugiere diagnósticos en tiempo real |
-| **Plantillas** | Multi-dispositivo en Supabase, versionado JSONB, historial restaurable |
-| **Búsqueda Global** | `Ctrl+K` — FTS PostgreSQL con índices GIN + `websearch_to_tsquery` |
-| **Dark Mode** | Toggle claro/oscuro/sistema, anti-flash (script pre-hydration) |
-| **Notificaciones Push** | VAPID Web Push + cron SQL 8am UTC por seguimientos del día |
-| **Recordatorios Email** | Resend API + cron SQL 7am UTC, template HTML branded |
-| **Exportación ZIP** | Historia clínica completa: JSON + un PDF por consulta, 100% client-side |
-| **Facturación** | Stripe Checkout, Webhooks firmados, Customer Portal |
-| **Admin Panel** | Métricas de tenants, control de acceso por `ADMIN_EMAIL` |
-| **Rate Limiting** | Por RPC Postgres en `/api/push/send` y `/api/stripe/*` |
-| **Auditoría** | Hash criptográfico encadenado en cada consulta sellada |
-| **Validación de Fechas** | Utilidad `toISODateString` — previene error PostgreSQL 22008 en todos los formularios |
-| **UX/UI Refinada** | Animaciones fluidas, Skeletons, búsqueda global (Ctrl+K) categorizada, y alertas urgentes contextuales. |
-
-### Sprint 3 completado
-
-**El motor base y toda la funcionalidad técnica han sido completados exitosamente.** La aplicación es totalmente estable, cuenta con sincronización invisible offline-first, notificaciones push/email automáticas e integridad de datos.
+Construido para escalar, maneja desde consultorios independientes hasta redes de clínicas completas, integrando facturación automatizada, inteligencia artificial para codificación de diagnósticos y cumplimiento estricto de privacidad.
 
 ---
 
-## 🚀 Características Principales
+## ✨ Características Principales
 
-### 📶 Arquitectura Offline-First
-- **Local-First:** Todo el motor clínico corre en el navegador usando **IndexedDB**, con tiempos de respuesta de 0ms.
-- **Background Sync Queue:** Si se pierde la conexión, la app sigue funcionando. Las consultas y pacientes se encolan silenciosamente.
-- **Worker Inteligente:** Al recuperar el internet, un sync worker despacha la cola hacia Supabase con *backoff exponencial* y resolución de conflictos por dependencias.
-- **Online-First Refresh:** Refresh silencioso desde Supabase al cargar, manteniendo datos actualizados.
-
-### 🤖 Asistente de IA — CIE-10
-- **Gemini 2.0 Flash:** Lee los síntomas en tiempo real y sugiere diagnósticos con códigos **CIE-10** contextualizados.
-- Rate Limiting por RPC Postgres — endpoint protegido por función que limita el uso por tenant.
-
-### 🔍 Búsqueda Full-Text
-- `Ctrl+K` abre el panel global con debounce de 280ms.
-- Índices GIN sobre `tsvector` (`spanish`) en `patients` y `clinical_records`.
-- RPC `search_global()` con `websearch_to_tsquery` y `ts_rank` para resultados por relevancia.
-
-### 📦 Exportación ZIP de Historia Clínica
-- Un clic en "Exportar ZIP" genera un archivo con:
-  - `00_paciente.json` — datos demográficos
-  - `index.json` — índice de consultas
-  - Un PDF por cada consulta ordenado cronológicamente
-- 100% client-side: los datos nunca pasan por un endpoint intermedio.
-- Barra de progreso animada con estado por consulta.
-
-### 🌙 Dark Mode
-- Toggle: Claro / Oscuro / Sistema — persiste en `localStorage`.
-- Script anti-flash embebido en `<head>` de `layout.tsx` aplica el tema antes del hydration.
-
-### 📲 PWA y Notificaciones
-- Instalable como app nativa en iOS, Android, macOS y Windows.
-- **Web Push** a las 8am UTC con cron SQL `send_followup_push_daily`.
-- **Email** (Resend) a las 7am UTC con cron SQL `send_followup_emails_daily`.
-
-### 🔐 Seguridad
-- RLS en todas las tablas — el backend nunca expone datos de otra clínica.
-- Logs inmutables con hash criptográfico encadenado.
-- CSP Headers estrictos en `next.config.ts`.
-- Variables de entorno validadas en servidor con `src/lib/env.ts`.
+- **⚡ Offline-First Real:** Lectura/Escritura directa contra IndexedDB local. Sync Worker en segundo plano con estrategia de *backoff exponencial*.
+- **🤖 Asistente IA (CIE-11):** Integración nativa con *Gemini 2.0 Flash* para sugerencia de diagnósticos médicos en tiempo real leyendo la anamnesis.
+- **🏢 Multi-Tenant RLS:** Aislamiento criptográfico de datos por clínica (Tenant) directamente en el motor de PostgreSQL usando Row Level Security.
+- **🔐 RBAC Granular:** 8 roles distintos (Owner, Doctor, Asistente, Laboratorio, etc.) con Route Guards gestionados vía SSR (Next.js Middleware).
+- **💸 Facturación Automatizada:** Motor de caja y turnos aislados (`cash_shifts`), suscripciones SaaS gestionadas mediante Stripe.
+- **📄 Expedientes Seguros (Client-Side):** Generación de PDFs y exportación de archivos ZIP directamente en el navegador del usuario para cumplir normas HIPAA/GDPR.
 
 ---
 
-## 🏗️ Arquitectura del Sistema
+## 🏗️ Arquitectura y Flujo de Datos
+
+El sistema está diseñado para resiliencia extrema. El cliente PWA nunca se bloquea esperando a la red.
 
 ```mermaid
 graph TD
-    Client[📱 Cliente PWA: Next.js 16 / React 19]
+    Client[📱 Cliente Next.js 16 / React 19]
     IDB[(🗄️ IndexedDB Local)]
-    PROXY[🔒 proxy.ts: Supabase SSR Auth]
-    SW[⚙️ Sync Worker / Backoff Queue]
-    SupabaseDB[(☁️ Supabase: PostgreSQL + RLS)]
-    Auth[🔑 Supabase Auth]
-    AI[🧠 Gemini 2.0 Flash]
-    Stripe[💳 Stripe Billing & Webhooks]
-    Push[🔔 Web Push / VAPID]
-    Email[📧 Resend / Email]
-    RT[📡 Supabase Realtime]
+    SW[⚙️ Sync Worker / Cola de Reintentos]
+    SupabaseDB[(☁️ PostgreSQL + RLS)]
+    Auth[🔑 Supabase Auth SSR]
+    AI[🧠 Gemini API]
+    RT[📡 Supabase Realtime (WebSockets)]
 
-    Client --> PROXY
-    PROXY -->|Protege rutas| Client
-    Client <-->|0ms Latency| IDB
-    IDB -->|Background Flush| SW
-    SW -->|Upsert + Audit Log| SupabaseDB
-    SW -->|Refresh + Pruning| IDB
-    Client -->|JWT Sessions| Auth
-    Client -->|Análisis CIE-10| AI
-    Client -->|Gestión Suscripción| Stripe
-    Stripe -->|Webhooks Verificados| SupabaseDB
-    SupabaseDB -->|pg_cron 7am| Email
-    SupabaseDB -->|pg_cron 8am| Push
-    SupabaseDB -->|WebSocket| RT
-    RT -->|INSERT/UPDATE/DELETE| Client
+    Client <-->|Latencia 0ms| IDB
+    IDB -->|Background Sync| SW
+    SW -->|Upsert seguro| SupabaseDB
+    Client -->|Protección de Rutas| Auth
+    Client -->|Análisis de texto| AI
+    SupabaseDB -->|Actualizaciones Agenda| RT
+    RT -->|UI Reactiva| Client
 ```
+
+Para más detalles técnicos, consulta [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md).
+
+---
+
+## 🛡️ Seguridad y Modelo Multi-Tenant
+
+La seguridad no se maneja en el frontend, se impone en la base de datos. Cada petición pasa por las políticas RLS (Row Level Security) de Supabase, asegurando que:
+- El usuario está autenticado.
+- El usuario pertenece a la `organization_id` (Clínica) que intenta consultar.
+- El `role_id` del usuario tiene permisos para esa acción específica.
+
+*(Es matemáticamente imposible que una clínica exponga datos a otra).*
 
 ---
 
 ## 🛠️ Stack Tecnológico
 
-| Componente | Tecnología |
-| :--- | :--- |
-| **Framework & UI** | Next.js 16 (App Router, Webpack), React 19, Tailwind CSS v4 |
-| **Backend & BD** | Supabase (PostgreSQL), RLS, pg_cron, FTS con tsvector GIN |
-| **Estado & Cache** | TanStack Query v5, IndexedDB (`idb`) |
-| **Seguridad** | Supabase SSR proxy.ts, CSP Headers, HSTS, Stripe Signatures |
-| **Machine Learning** | Google Gemini API (`gemini-2.0-flash`) |
-| **Pagos** | Stripe API v2026-04-22, Webhooks, Customer Portal |
-| **Notificaciones** | Web Push API, VAPID, Resend Email |
-| **PDF / Export** | jsPDF 4.x, JSZip |
-| **Testing** | Vitest (85 tests), Playwright (9 specs E2E) |
-
----
-
-## 💻 Guía Rápida de Instalación
-
-La guía de instalación paso a paso, configuración de variables de entorno, base de datos local y directrices de despliegue se ha movido a la documentación interna para desarrolladores.
-
-Por favor, para iniciar localmente en menos de 30 minutos consulta:
-👉 **[docs/SETUP.md](docs/SETUP.md)**
-
----
-
-## 🧪 Testing y QA
-
-```bash
-# TypeScript — 0 errores
-npx tsc --noEmit
-
-# ESLint
-npm run lint
-
-# Tests unitarios e integración (85 tests)
-npm run test
-
-# E2E en navegadores reales (requiere E2E_EMAIL + E2E_PASSWORD en .env.local)
-npm run test:e2e
-
-# E2E headless para un spec específico
-npm run test:e2e -- tests/e2e/search.spec.ts
-```
-
-### Cobertura E2E (9 specs · ~22 tests)
-
-| Spec | Cubre |
-|---|---|
-| `auth-consultation-pdf` | Login → consulta completa → PDF download |
-| `billing` | Redirect a Stripe checkout/portal |
-| `offline-sync` | IndexedDB offline → sync al reconectar |
-| `treatments` | CRUD plantillas + historial versiones + restore |
-| `search` | Ctrl+K, debounce, min-2-chars, arrow navigation |
-| `patients` | Crear, buscar, filtro estado, contexto clínico |
-| `theme` | Anti-flash, dark/light/sistema, localStorage |
-| `settings` | Perfil, billing button, theme+push panel |
-| `export-zip` | Botón visible, descarga .zip, disabled sin consultas |
+| Capa | Tecnología Principal | Propósito |
+|---|---|---|
+| Frontend UI | Next.js 16 (App Router), React 19 | Interfaz de usuario SSR y Client Components |
+| Estilos | Tailwind CSS v4, Lucide Icons | Diseño adaptativo y mobile-first |
+| Base de Datos | PostgreSQL (Supabase), IndexedDB | Estado remoto multi-tenant y estado local offline |
+| Data Fetching | TanStack Query v5 | Gestión de caché de UI y server state |
+| IA & Pagos | Gemini 2.0 Flash, Stripe API | Sugerencias médicas y cobro de suscripciones |
+| Testing | Vitest, Playwright | Pruebas unitarias de lógica de negocio y End-to-End |
 
 ---
 
 ## 📁 Estructura del Proyecto
 
-```
-src/
-├── app/                    # Next.js App Router — páginas y API routes
-│   ├── (auth)/             # Login, registro, onboarding
-│   ├── (dashboard)/        # Dashboard, pacientes, consultas, admin, ajustes, tratamientos
-│   └── api/                # Stripe, push, email, search, IA CIE-10
-├── features/               # Lógica de negocio por dominio (Vertical Slice)
-│   ├── admin/              # Panel super admin
-│   ├── auth/               # Formularios y flujos de autenticación
-│   ├── billing/            # Integración Stripe + portal
-│   ├── consultations/      # Wizard, PDF, IA CIE, plantillas, realtime
-│   ├── dashboard/          # Métricas, búsqueda global Ctrl+K, letterhead, equipo
-│   ├── patients/           # CRUD pacientes, ExportZip, realtime hooks
-│   └── sync/               # Bootstrap del sync worker
-├── lib/
-│   ├── constants/          # Especialidades médicas y constantes
-│   ├── db/                 # IndexedDB schema + queries locales con pruning remoto
-│   ├── env.ts              # Validación de variables de entorno al arrancar
-│   ├── hooks/use-theme.ts  # Hook de dark mode con lazy initializer
-│   ├── observability/      # Logger de errores, usage-tracker
-│   ├── supabase/           # Cliente SSR/browser, profile, tenant, onboarding
-│   ├── sync/               # Sync worker con backoff exponencial
-│   └── utils/date-utils.ts # Validación/conversión de fechas DD/MM/AAAA ↔ ISO
-├── components/ui/          # ThemeToggle, EmptyState, ConfirmModal, etc.
-├── proxy.ts                # Proxy SSR de Next.js 16 (reemplaza middleware.ts)
-└── types/supabase.types.ts # Generado con npm run db:types
-supabase/
-└── migrations/
-    └── 000_production_full_schema.sql   # Única fuente de verdad del schema
-tests/
-├── e2e/                    # Playwright specs (9 archivos)
-│   └── helpers/login.ts    # Helper compartido de autenticación
-└── *.test.ts               # Vitest: 85 tests unitarios/integración
-docs/
-├── AUDITORIA_GLYPHIX.md    # (En raíz) Auditoría y estado
-├── SETUP.md                # Guía de instalación
-├── ARCHITECTURE.md         # Decisiones de arquitectura
-├── DEPLOYMENT.md           # Guía de despliegue
-├── INTEGRATIONS.md         # Stripe, Resend, Gemini
-└── DATABASE.md             # Migraciones y esquema
+El código está organizado usando el patrón de Vertical Slices (Features) para máxima cohesión:
+
+```plaintext
+/
+├── src/
+│   ├── app/                 # Enrutamiento Next.js (Rutas protegidas y públicas)
+│   ├── features/            # Lógica de negocio (El corazón de la app)
+│   │   ├── agenda/          # 📅 Calendario Realtime
+│   │   ├── auth/            # 🔐 Autenticación y recuperación
+│   │   ├── consultations/   # 🩺 Wizard Clínico y persistencia
+│   │   ├── patients/        # 👥 Motor de pacientes y analíticas
+│   │   └── ...
+│   ├── components/ui/       # Sistema de diseño global (Botones, Modales)
+│   └── lib/                 # Configuración core (IndexedDB, Supabase Client, Sync)
+├── supabase/
+│   └── migrations/          # Esquema SQL fuente de la verdad (RLS y Tablas)
+├── docs/                    # Documentación arquitectónica
+└── tests/                   # Suites de pruebas E2E y Unitarias
 ```
 
 ---
 
-## 📋 Scripts Disponibles
+## 🚀 Guía de Inicio Rápido (Desarrollo)
 
-| Script | Descripción |
-|--------|-------------|
-| `npm run dev` | Servidor de desarrollo (webpack) |
-| `npm run build` | Build de producción |
-| `npm run lint` | ESLint sobre todo `src/` |
-| `npm run typecheck` | TypeScript sin emitir archivos |
-| `npm run test` | Suite Vitest (85 tests) |
-| `npm run test:e2e` | Suite Playwright E2E (9 specs) |
-| `npm run test:e2e:headed` | E2E con navegador visible |
-| `npm run db:types` | Regenera `src/types/supabase.types.ts` desde Supabase |
+### 1. Pre-requisitos
+- Node.js v20+
+- Cuenta en Supabase (Para BD local o remota)
+- Cuenta en Stripe (Claves de prueba)
+
+### 2. Instalación
+Clona el repositorio e instala las dependencias:
+```bash
+git clone https://github.com/khryazid/hce.git
+cd hce
+npm install
+```
+
+### 3. Variables de Entorno
+Copia el archivo de ejemplo y configura tus credenciales:
+```bash
+cp .env.example .env.local
+```
+*(Asegúrate de llenar `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, y claves de `STRIPE`).*
+
+### 4. Ejecución del Servidor
+Levanta el entorno de desarrollo (Next.js con Webpack, requerido para PWA):
+```bash
+npm run dev
+```
+La aplicación estará disponible en `http://localhost:3000`.
 
 ---
 
-El backlog técnico principal **ha sido finalizado al 100%**. 
-Actualmente el proyecto se encuentra en fase de mantenimiento, QA final y coordinación técnica.
+## 🧪 Testing y QA
 
-Para ver el estado detallado de las tareas y la auditoría global, revisa **[AUDITORIA_GLYPHIX.md](AUDITORIA_GLYPHIX.md)**.
+La calidad del código clínico es innegociable. Antes de cualquier Pull Request, debes asegurar:
+
+```bash
+# 1. Chequeo estricto de tipos
+npm run typecheck
+
+# 2. Análisis estático de código
+npm run lint
+
+# 3. Pruebas unitarias de lógica (Vitest)
+npm run test
+
+# 4. Pruebas End-to-End simulando al usuario (Playwright)
+npm run test:e2e
+```
 
 ---
 
-<div align="center">
-  <br>
-  <strong>Hecho con ❤️ para revolucionar la tecnología en salud digital.</strong>
-  <br><br>
-  <sub>Distribuido bajo licencia MIT.</sub>
-</div>
+## 🤝 Guía de Contribución
+
+Nos adherimos a un estándar estricto para mantener la cordura del código:
+- **Ramas:** Usamos el patrón `feature/nombre-corto`, `fix/problema` o `refactor/modulo`.
+- **Commits:** Usa Conventional Commits (`feat:`, `fix:`, `chore:`, `docs:`).
+- **Pull Requests:** Todo PR requiere pasar las GitHub Actions (Lint, Typecheck, Tests) y al menos 1 aprobación (Review) antes de hacer merge a `develop`.
+- **Registro de Cambios:** Todo cambio estructural debe ser registrado en el `AUDIT_LOG.md` interno del equipo.
+
+---
+
+## 📚 Documentación Extendida
+
+Para bucear en las partes más complejas del sistema, revisa nuestros manuales en la carpeta `/docs`:
+- [Arquitectura Offline-First](./docs/ARCHITECTURE.md)
+- [Esquema de Base de Datos y RLS](./docs/DATABASE.md)
+- [Estado y Caché Interactiva](./docs/STATE_MANAGEMENT.md)
+- [Referencia de API (Stripe/IA)](./docs/API_REFERENCE.md)

@@ -47,11 +47,11 @@ function normalizeCode(code: string) {
 
 export function buildCieSuggestionPrompt(input: CieSuggestionInput) {
   return [
-    "Eres un asistente clínico experto encargado de sugerir códigos CIE-10 (ICD-10).",
+    "Eres un asistente clínico experto encargado de sugerir códigos CIE-11 (ICD-11).",
     "Devuelve exclusivamente JSON válido con esta forma:",
     "[{\"code\":\"K35.8\",\"description\":\"Apendicitis aguda\",\"rationale\":\"...\",\"confidence\":0.95}]",
     "No agregues texto adicional, markdown ni explicaciones fuera del JSON.",
-    "Asegúrate de que los códigos pertenezcan a la nomenclatura CIE-10 real y coincidan con el diagnóstico, síntomas y anamnesis.",
+    "Asegúrate de que los códigos pertenezcan a la nomenclatura CIE-11 real y coincidan con el diagnóstico, síntomas y anamnesis.",
     `Especialidad: ${input.specialtyKind}`,
     `Diagnóstico: ${input.diagnosis || "Sin diagnóstico"}`,
     `Síntomas: ${input.symptoms || "Sin síntomas"}`,

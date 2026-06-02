@@ -26,6 +26,7 @@ import {
 import { buildRetryableErrorMessage } from "@/lib/ui/feedback-copy";
 import { ProfileSectionPersonal } from "@/features/dashboard/components/profile-section-personal";
 import { ProfileSectionLetterhead } from "@/features/dashboard/components/profile-section-letterhead";
+import { ProfileSectionAccessControls } from "@/features/dashboard/components/profile-section-access-controls";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -50,6 +51,7 @@ type ProfessionalProfileFormProps = {
   title: string;
   lead: string;
   submitLabel?: string;
+  onSuccess?: () => void;
 };
 
 // ─── Pure helpers ─────────────────────────────────────────────────────────────
@@ -104,6 +106,7 @@ export function ProfessionalProfileForm({
   title,
   lead,
   submitLabel = "Guardar cambios",
+  onSuccess,
 }: ProfessionalProfileFormProps) {
   const router = useRouter();
   const { tenant } = useTenant();
@@ -132,15 +135,26 @@ export function ProfessionalProfileForm({
     return () => { active = false; };
   }, [router]);
 
-  // Load letterhead from localStorage
+  // Load letterhead from localStorage and ensure tenant specialties are used as fallback
   useEffect(() => {
     if (!tenant) return;
     const local = loadLetterheadSettings(tenant.doctor_id, tenant.clinic_id);
-    setLetterhead((current) => ({
-      specialties: current.specialties || local.specialties || tenant.specialties.join(", "),
-      logo_data_url: local.logo_data_url || current.logo_data_url,
-      signature_data_url: local.signature_data_url || current.signature_data_url,
-    }));
+    
+    setLetterhead((current) => {
+      // Si current.specialties esta vacio, forzamos usar local o las del tenant.
+      // Esto arregla el bug donde no se pre-llenaban las especialidades del registro.
+      const resolvedSpecialties = current.specialties
+        ? current.specialties
+        : (local.specialties && local.specialties.trim().length > 0 
+             ? local.specialties 
+             : tenant.specialties.join(", "));
+
+      return {
+        specialties: resolvedSpecialties,
+        logo_data_url: local.logo_data_url || current.logo_data_url,
+        signature_data_url: local.signature_data_url || current.signature_data_url,
+      };
+    });
   }, [tenant]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -164,16 +178,46 @@ export function ProfessionalProfileForm({
           logo_data_url: letterhead.logo_data_url,
           signature_data_url: letterhead.signature_data_url,
         });
+      } else {
+        // Healing: Si el perfil no existía en la base de datos (por un error previo o cuenta vieja),
+        // lo creamos ahora y le otorgamos su trial, usando el Server Action que tiene service_role.
+        const { createTenantProfileWithTrial } = await import("@/lib/supabase/actions");
+        const { createClinicId } = await import("@/lib/supabase/profile");
+        const supabase = await import("@/lib/supabase/client").then(m => m.getSupabaseClient());
+        
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          const { createClinicId } = await import("@/lib/supabase/profile");
+          const metadata = session.user.user_metadata;
+          const clinicId = metadata.clinic_id || createClinicId();
+          const fullName = metadata.full_name || form.signatureName || "Doctor";
+          
+          const specialtiesRaw = metadata.specialties;
+          const specialties = Array.isArray(specialtiesRaw) && specialtiesRaw.length > 0 
+            ? specialtiesRaw 
+            : letterhead.specialties ? letterhead.specialties.split(",").map(s => s.trim()) : ["Medicina General"];
+          
+          await createTenantProfileWithTrial({
+            clinicId,
+            fullName,
+            specialties,
+            plan: metadata.plan || "basic",
+          });
+        }
       }
 
       setSuccessMessage(
         "Perfil actualizado correctamente. Puedes seguir editando cuando lo necesites.",
       );
 
-      // Redireccionar al dashboard después de guardar forzando recarga de contexto
-      setTimeout(() => {
-        window.location.href = "/dashboard";
-      }, 1200);
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        // Redireccionar al dashboard después de guardar forzando recarga de contexto
+        setTimeout(() => {
+          window.location.href = "/dashboard";
+        }, 1200);
+      }
     } catch (submitError) {
       setError(
         submitError instanceof Error
@@ -190,16 +234,15 @@ export function ProfessionalProfileForm({
   }
 
   return (
-    <section className="mx-auto w-full max-w-3xl hce-page">
-      <header className="hce-surface bg-[linear-gradient(180deg,var(--surface-glow),transparent)]">
-        <p className="hce-kicker text-cyan-800">{kicker}</p>
-        <h1 className="mt-2 hce-page-title">{title}</h1>
-        <p className="mt-2 hce-page-lead">{lead}</p>
+    <section className="w-full">
+      <header className="mb-8">
+        <h2 className="text-xl font-bold text-ink mb-2">{title}</h2>
+        <p className="text-sm text-ink-soft">{lead}</p>
       </header>
 
       <form
         onSubmit={handleSubmit}
-        className="grid gap-4 rounded-3xl border border-border bg-card p-6 shadow-sm sm:grid-cols-2"
+        className="space-y-8"
       >
         {/* Sección 1 — Datos profesionales */}
         <ProfileSectionPersonal
@@ -224,15 +267,17 @@ export function ProfessionalProfileForm({
           onError={setError}
         />
 
+        {/* Sección 3 — Controles de Acceso (Solo visible para Titulares) */}
+        <ProfileSectionAccessControls />
 
         {error ? (
-          <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 sm:col-span-2">
+          <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 w-full">
             {error}
           </p>
         ) : null}
 
         {successMessage ? (
-          <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 sm:col-span-2">
+          <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 w-full">
             {successMessage}
           </p>
         ) : null}
@@ -240,7 +285,7 @@ export function ProfessionalProfileForm({
         <Button
           type="submit"
           disabled={saving}
-          className="sm:col-span-2 min-h-12 justify-center"
+          className="w-full min-h-12 justify-center"
         >
           {saving ? "Guardando..." : submitLabel}
         </Button>

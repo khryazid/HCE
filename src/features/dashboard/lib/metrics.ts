@@ -80,11 +80,13 @@ export function calculateMetrics(
   patients: PatientRecord[],
   records: ClinicalRecordRecord[],
   queueStats: { conflicted: number; failedOrAbandoned: number },
-  today: Date = getStartOfToday(),
+  startDate: Date = getStartOfToday(),
+  endDate: Date = new Date(),
 ): DashboardMetrics {
-  const consultationsToday = records.filter(
-    (record) => new Date(record.created_at) >= today,
-  ).length;
+  const consultationsInPeriod = records.filter((record) => {
+    const d = new Date(record.created_at);
+    return d >= startDate && d <= endDate;
+  }).length;
 
   const specialtyCounter = new Map<string, number>();
   for (const record of records) {
@@ -101,14 +103,14 @@ export function calculateMetrics(
 
   const followUpPending = countRecordsWithFollowUpDate(records);
 
-  const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+  const startOfCurrentMonth = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
   const consultationsThisMonth = records.filter(
-    (record) => new Date(record.created_at) >= startOfMonth,
+    (record) => new Date(record.created_at) >= startOfCurrentMonth,
   ).length;
 
   return {
     activePatients: patients.length,
-    consultationsToday,
+    consultationsInPeriod,
     consultationsBySpecialty,
     followUpPending,
     recentConsultations: records.slice(0, 5),
@@ -122,9 +124,25 @@ export function calculateMetrics(
 export function buildActivityFeed(
   patients: PatientRecord[],
   records: ClinicalRecordRecord[],
+  startDate?: Date,
+  endDate?: Date,
 ): ActivityItem[] {
-  return patients
-    .slice(0, 5)
+  let filteredRecords = records;
+  if (startDate && endDate) {
+    filteredRecords = records.filter(r => {
+      const d = new Date(r.created_at);
+      return d >= startDate && d <= endDate;
+    });
+  }
+
+  // Obtenemos los pacientes que tuvieron actividad en este periodo o los más recientes
+  let activePatients = patients;
+  if (startDate && endDate && filteredRecords.length > 0) {
+    const activePatientIds = new Set(filteredRecords.map(r => r.patient_id));
+    activePatients = patients.filter(p => activePatientIds.has(p.id));
+  }
+
+  return activePatients
     .map((patient) => {
       const lastRecord = records
         .filter((r) => r.patient_id === patient.id)
@@ -139,5 +157,6 @@ export function buildActivityFeed(
         date: patient.updated_at,
       };
     })
-    .sort((a, b) => b.date.localeCompare(a.date));
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .slice(0, 5);
 }

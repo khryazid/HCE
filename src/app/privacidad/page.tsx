@@ -45,7 +45,7 @@ export default function PrivacidadPage() {
 
           <h2 className="text-xl font-semibold text-slate-800 mt-6">4. Inteligencia Artificial</h2>
           <p>
-            Ciertas funciones (como sugerencias CIE-10) utilizan procesamiento en la nube. Los datos enviados a estos servicios 
+            Ciertas funciones (como sugerencias CIE-11) utilizan procesamiento en la nube. Los datos enviados a estos servicios 
             están anonimizados y no contienen información personal identificable del paciente.
           </p>
 

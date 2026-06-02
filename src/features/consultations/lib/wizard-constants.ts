@@ -65,6 +65,7 @@ export const EMPTY_FORM: WizardForm = {
   warningSigns: "",
   labOrders: [],
   imagingOrders: [],
+  medicalReferral: null,
   currentMedications: [],
   medicationInstructionsStructured: [],
   evolutionStatus: "",
@@ -75,6 +76,10 @@ export const EMPTY_FORM: WizardForm = {
   soapPlan: "",
   prognosisVital: "",
   prognosisFunctional: "",
+
+  paymentStatus: "paid", // default to paid
+  paymentMethod: "Efectivo",
+  paymentAmount: 0,
   pediatricData: {
     headCircumference: "",
     developmentStage: "",

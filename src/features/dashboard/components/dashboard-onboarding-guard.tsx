@@ -1,20 +1,31 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTenant } from "@/lib/supabase/tenant-context";
 import { isOnboardingProfileComplete, readOnboardingProfile } from "@/lib/supabase/onboarding";
 import { getSupabaseClient } from "@/lib/supabase/client";
+import { CURRENT_TERMS_VERSION } from "@/lib/constants/app";
+import { getActiveTermsVersion } from "@/lib/supabase/actions";
+import { TermsAcceptanceModal } from "./terms-acceptance-modal";
 
-export function DashboardOnboardingGuard() {
+export function DashboardOnboardingGuard({ isAdmin = false }: { isAdmin?: boolean }) {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { tenant, loading } = useTenant();
   const [ready, setReady] = useState(false);
+  const [needsTerms, setNeedsTerms] = useState(false);
   const supabase = getSupabaseClient();
 
   useEffect(() => {
     if (loading) return;
+
+    // Si es super admin, saltarse todas las protecciones clínicas
+    if (isAdmin) {
+      const t = setTimeout(() => setReady(true), 0);
+      return () => clearTimeout(t);
+    }
 
     // /admin is the super-admin panel — skip all clinical checks.
     if (pathname === "/admin") {
@@ -24,13 +35,14 @@ export function DashboardOnboardingGuard() {
 
     const isBillingPage = pathname === "/billing";
     const isProfileSetupPage = pathname === "/ajustes";
+    const isOnboardingPage = pathname.startsWith("/onboarding");
 
     if (!tenant) {
-      if (isProfileSetupPage) {
+      if (isOnboardingPage) {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setReady(true);
       } else {
-        router.replace("/ajustes");
+        router.replace("/onboarding");
       }
       return;
     }
@@ -79,21 +91,81 @@ export function DashboardOnboardingGuard() {
         return;
       }
 
-      const onboardingProfile = readOnboardingProfile(user.user_metadata);
-      const isReady = isOnboardingProfileComplete(onboardingProfile);
+      // El setup completo ahora requiere terminar el Onboarding (step 4 y completed=true)
+      // FIX: Solo 'owner' y 'doctor' deben completar el flujo de onboarding médico.
+      // Roles invitados (receptionist, admin, assistant, etc) no tienen licencia médica ni precios.
+      const requiresOnboardingFlow = ["owner", "doctor"].includes(tenant.role);
+      const isReady = requiresOnboardingFlow ? tenant.onboarding_state?.completed === true : true;
 
-      if (!isReady && !isProfileSetupPage && !isBillingPage) {
-        router.replace("/ajustes");
+      if (!isReady && !isProfileSetupPage && !isBillingPage && !pathname.startsWith("/onboarding")) {
+        router.replace("/onboarding");
         return;
       }
 
-      setReady(true);
+      // clinic_admin or owner of a clinic plan → restrict to admin routes
+      if (isReady && (tenant.role === "clinic_admin" || (tenant.role === "owner" && tenant.plan === "clinic"))) {
+        const adminAllowedRoutes = ["/administracion"];
+        const isAllowed = adminAllowedRoutes.some(r => pathname === r || pathname.startsWith(r + "/"));
+        if (!isAllowed && !isBillingPage && !isProfileSetupPage) {
+          router.replace("/administracion");
+          return;
+        }
+      }
+
+      if (isReady && tenant.plan === "clinic" && pathname === "/dashboard") {
+        router.replace("/administracion");
+        return;
+      }
+
+      if (isReady && tenant.role === "assistant") {
+        const assistantAllowedRoutes = ["/agenda", "/pacientes", "/caja", "/ajustes", "/docs"];
+        const isAllowed = assistantAllowedRoutes.some(r => pathname === r || pathname.startsWith(r + "/"));
+        if (!isAllowed && !isBillingPage && !isProfileSetupPage) {
+          router.replace("/agenda");
+          return;
+        }
+      }
+
+      // Specialized roles → redirect to their dashboard
+      if (isReady && ["receptionist", "lab", "imaging", "surgery"].includes(tenant.role)) {
+        const roleDashboards: Record<string, string> = {
+          receptionist: "/recepcion",
+          lab: "/laboratorio",
+          imaging: "/imagen",
+          surgery: "/cirugia",
+        };
+        const myDash = roleDashboards[tenant.role] || "/dashboard";
+        const roleAllowedRoutes = [myDash, "/caja", "/docs"];
+        const isAllowed = roleAllowedRoutes.some(r => pathname === r || pathname.startsWith(r + "/"));
+        if (!isAllowed && !isBillingPage && !isProfileSetupPage) {
+          router.replace(myDash);
+          return;
+        }
+      }
+
+      // 3. Verify Terms Version
+      getActiveTermsVersion().then((activeVersion) => {
+        if (tenant.terms_version !== activeVersion) {
+          setNeedsTerms(true);
+        }
+        setReady(true);
+      }).catch(() => {
+        // En caso de error de red, usamos la constante como respaldo seguro
+        if (tenant.terms_version !== CURRENT_TERMS_VERSION) {
+          setNeedsTerms(true);
+        }
+        setReady(true);
+      });
+      
     }).catch(() => {
       router.replace("/login");
     });
-  }, [loading, tenant, pathname, router, supabase]);
+  }, [loading, tenant, pathname, router, supabase, searchParams]);
 
   if (ready) {
+    if (needsTerms) {
+      return <TermsAcceptanceModal isOpen={true} />;
+    }
     return null;
   }
 

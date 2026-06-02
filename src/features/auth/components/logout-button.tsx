@@ -11,7 +11,7 @@ import { flushSyncQueue } from "@/lib/sync/sync-worker";
 type ModalPhase = "closed" | "confirm" | "leaving";
 
 type LogoutButtonProps = {
-  mode?: "full" | "icon" | "nav";
+  mode?: "full" | "icon" | "nav" | "sidebar";
 };
 
 export function LogoutButton({ mode = "full" }: LogoutButtonProps) {
@@ -58,15 +58,18 @@ export function LogoutButton({ mode = "full" }: LogoutButtonProps) {
             ? "inline-flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-card text-ink-soft transition hover:bg-bg-soft hover:text-ink active:scale-95"
             : mode === "nav"
               ? "flex min-h-11 flex-col items-center justify-center gap-0.5 rounded-xl px-3 py-1.5 text-[11px] font-medium text-ink-soft transition hover:text-ink"
-              : "inline-flex w-full min-h-11 items-center justify-center gap-2 rounded-xl border border-border bg-card px-4 py-2 text-sm font-semibold text-ink transition hover:bg-bg-soft"
+              : mode === "sidebar"
+                ? "flex items-center gap-2 mt-2 w-full text-left text-xs font-medium text-ink-soft hover:text-ink transition-colors"
+                : "inline-flex w-full min-h-11 items-center justify-center gap-2 rounded-xl border border-border bg-card px-4 py-2 text-sm font-semibold text-ink transition hover:bg-bg-soft"
         }
       >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={mode === "sidebar" ? "w-3 h-3" : ""}>
           <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
           <polyline points="16 17 21 12 16 7" />
           <line x1="21" y1="12" x2="9" y2="12" />
         </svg>
         {mode === "full" ? "Cerrar sesion" : null}
+        {mode === "sidebar" ? "Cerrar sesión" : null}
         {mode === "nav" ? <span>Cerrar</span> : null}
       </button>
 

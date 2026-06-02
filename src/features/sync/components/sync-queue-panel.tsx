@@ -15,6 +15,7 @@ import {
 } from "@/lib/sync/sync-worker";
 import { buildRetryableErrorMessage } from "@/lib/ui/feedback-copy";
 import type { SyncQueueItem } from "@/types/sync";
+import { RefreshCw, CheckCircle2, Clock, AlertTriangle, XCircle, Wifi, WifiOff, ChevronDown, Trash2, RotateCcw } from "lucide-react";
 
 type QueueStats = {
   pending: number;
@@ -35,22 +36,48 @@ function formatTimestamp(value: number) {
   return new Date(value).toLocaleString("es-EC");
 }
 
+function relativeTime(value: number): string {
+  const diff = Date.now() - value;
+  const seconds = Math.floor(diff / 1000);
+  if (seconds < 60) return "hace unos segundos";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `hace ${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `hace ${hours}h`;
+  return formatTimestamp(value);
+}
+
 /**
  * M-06: Convierte códigos de error PostgreSQL a mensajes en español.
  * Los códigos aparecen en last_error cuando el sync falla contra Supabase.
  */
 function pgErrorToSpanish(raw: string): string {
   if (/23505/.test(raw))
-    return "⚠️ Registro duplicado: ya existe un elemento con esos datos (cód. 23505).";
+    return "Registro duplicado (cód. 23505)";
   if (/42501/.test(raw))
-    return "🔒 Sin permisos: la política de seguridad impidió esta operación (cód. 42501).";
+    return "Sin permisos (cód. 42501)";
   if (/23503/.test(raw))
-    return "🔗 Referencia inválida: el registro padre no existe o fue eliminado (cód. 23503).";
+    return "Referencia inválida (cód. 23503)";
   if (/40001/.test(raw))
-    return "⏳ Conflicto de concurrencia: reintenta en unos segundos (cód. 40001).";
+    return "Conflicto de concurrencia (cód. 40001)";
   if (/PGRST/.test(raw))
-    return `❌ Error de API: ${raw.substring(0, 120)}`;
-  return raw;
+    return `Error API: ${raw.substring(0, 80)}`;
+  return raw.length > 80 ? raw.substring(0, 80) + "…" : raw;
+}
+
+function statusConfig(status: string) {
+  switch (status) {
+    case "pending":
+      return { label: "En cola", icon: Clock, color: "text-amber-500", bg: "bg-amber-500/10", border: "border-amber-500/20" };
+    case "failed":
+      return { label: "Fallido", icon: AlertTriangle, color: "text-orange-500", bg: "bg-orange-500/10", border: "border-orange-500/20" };
+    case "abandoned":
+      return { label: "Abandonado", icon: XCircle, color: "text-red-500", bg: "bg-red-500/10", border: "border-red-500/20" };
+    case "conflicted":
+      return { label: "Conflicto", icon: AlertTriangle, color: "text-red-400", bg: "bg-red-400/10", border: "border-red-400/20" };
+    default:
+      return { label: "Sincronizado", icon: CheckCircle2, color: "text-emerald-500", bg: "bg-emerald-500/10", border: "border-emerald-500/20" };
+  }
 }
 
 export function SyncQueuePanel() {
@@ -68,8 +95,8 @@ export function SyncQueuePanel() {
   const [lastSync, setLastSync] = useState<LastSyncState | null>(null);
   const [lastRefreshAt, setLastRefreshAt] = useState<number>(0);
 
-  const hasItems = useMemo(
-    () => stats.pending + stats.failed + stats.abandoned + stats.conflicted > 0,
+  const totalItems = useMemo(
+    () => stats.pending + stats.failed + stats.abandoned + stats.conflicted,
     [stats],
   );
 
@@ -159,8 +186,6 @@ export function SyncQueuePanel() {
     };
   }, [expanded, refreshQueue]);
 
-
-
   async function handleDiscard(itemId: string) {
     setWorking(true);
     setError(null);
@@ -179,8 +204,6 @@ export function SyncQueuePanel() {
     }
   }
 
-  // Reintento individual de un item abandonado — lo re-clasifica a pending
-  // con retry_count=0 y fuerza un flush inmediato.
   async function handleRetryAbandoned(itemId: string) {
     setWorking(true);
     setError(null);
@@ -200,7 +223,6 @@ export function SyncQueuePanel() {
     }
   }
 
-  // Elimina todos los items abandonados y sus dependientes huérfanos
   async function handlePurgeAbandoned() {
     setWorking(true);
     setError(null);
@@ -226,129 +248,212 @@ export function SyncQueuePanel() {
       role="status"
       aria-live="polite"
       aria-busy={working}
-      aria-label="Estado de sincronizacion"
-      className={`px-4 py-3 ${
-        hasErrors ? "hce-alert-warning" : "hce-alert-success"
-      }`}
+      aria-label="Estado de sincronización"
+      className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
     >
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex-1 space-y-2 min-w-0 pr-4">
-          <p className="font-semibold text-ink">Estado de sincronizacion</p>
-          <p className="text-sm text-ink-soft leading-relaxed break-words">
-            Pendientes: {stats.pending} · Fallidos: {stats.failed} · Abandonados: {stats.abandoned} · Conflictos: {stats.conflicted}
-          </p>
-          <p className="text-xs text-muted-foreground leading-relaxed break-words">
-            Conexion: {isOnline ? "En linea" : "Sin conexion"}
-            {lastSync ? ` · Ultima sincronizacion: ${formatTimestamp(lastSync.at)}` : " · Sin sincronizacion registrada"}
-          </p>
-          {lastSync ? (
-            <p className="text-xs text-muted-foreground leading-relaxed break-words">
-              Resultado ultimo intento: procesados {lastSync.summary.processed}, exitosos {lastSync.summary.succeeded}, fallidos {lastSync.summary.failed}, conflictos {lastSync.summary.conflicted}
+      {/* ── Header summary ── */}
+      <div className="flex items-center justify-between gap-4 px-5 py-4">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
+            hasErrors ? "bg-amber-500/10" : "bg-emerald-500/10"
+          }`}>
+            {hasErrors ? (
+              <AlertTriangle className="h-4.5 w-4.5 text-amber-500" />
+            ) : (
+              <CheckCircle2 className="h-4.5 w-4.5 text-emerald-500" />
+            )}
+          </div>
+          <div className="min-w-0">
+            <h3 className="text-sm font-bold text-ink">
+              {totalItems === 0
+                ? "Todo sincronizado"
+                : `${totalItems} elemento${totalItems > 1 ? "s" : ""} en cola`}
+            </h3>
+            <p className="text-xs text-ink-soft truncate">
+              {isOnline ? (
+                <span className="inline-flex items-center gap-1">
+                  <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                  En línea
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1">
+                  <span className="inline-block h-1.5 w-1.5 rounded-full bg-red-500" />
+                  Sin conexión
+                </span>
+              )}
+              {lastSync && (
+                <> · Última sync: {relativeTime(lastSync.at)}</>
+              )}
             </p>
-          ) : null}
-          {lastRefreshAt > 0 ? (
-            <p className="text-[11px] text-muted-foreground/80 leading-relaxed break-words">
-              Actualizado {formatTimestamp(lastRefreshAt)}
-            </p>
-          ) : null}
+          </div>
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           {stats.abandoned > 0 && (
             <button
               type="button"
               id="sync-purge-abandoned-btn"
               onClick={() => void handlePurgeAbandoned()}
               disabled={working}
-              className="rounded-xl border border-red-400/40 bg-red-500/10 px-3 py-2 text-xs font-semibold uppercase tracking-[0.15em] text-red-600 disabled:opacity-60 hover:bg-red-500/20 transition"
+              className="rounded-lg border border-red-500/20 bg-red-500/10 px-2.5 py-1.5 text-[11px] font-semibold text-red-500 transition hover:bg-red-500/20 disabled:opacity-60"
             >
-              Limpiar abandonados ({stats.abandoned})
+              Limpiar ({stats.abandoned})
             </button>
           )}
           <button
             type="button"
             onClick={() => setExpanded((current) => !current)}
-            className="rounded-xl border border-border bg-card/60 px-3 py-2 text-xs font-semibold uppercase tracking-[0.15em] text-ink hover:bg-card/80 transition"
+            className={`inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-ink-soft transition hover:bg-bg-soft hover:text-ink ${
+              expanded ? "bg-bg-soft text-ink" : ""
+            }`}
           >
-            {expanded ? "Ocultar cola" : "Ver cola"}
+            {expanded ? "Ocultar" : "Ver cola"}
+            <ChevronDown className={`h-3 w-3 transition-transform duration-200 ${expanded ? "rotate-180" : ""}`} />
           </button>
-
         </div>
       </div>
 
+      {/* ── Stat pills ── */}
+      <div className="grid grid-cols-4 gap-px border-t border-border bg-border">
+        {[
+          { label: "Pendientes", value: stats.pending, color: "text-sky-500" },
+          { label: "Fallidos", value: stats.failed, color: "text-orange-500" },
+          { label: "Abandonados", value: stats.abandoned, color: "text-red-500" },
+          { label: "Conflictos", value: stats.conflicted, color: "text-amber-500" },
+        ].map((stat) => (
+          <div key={stat.label} className="flex flex-col items-center gap-0.5 bg-card py-3">
+            <span className={`text-lg font-extrabold tabular-nums ${stat.value > 0 ? stat.color : "text-ink-faint"}`}>
+              {stat.value}
+            </span>
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-ink-soft">
+              {stat.label}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Error display ── */}
       {error ? (
-        <p className="mt-3 hce-alert-error">
-          {error}
-        </p>
+        <div className="border-t border-red-500/20 bg-red-500/5 px-5 py-3">
+          <p className="text-xs font-medium text-red-500">{error}</p>
+        </div>
       ) : null}
 
-      {expanded && hasItems ? (
-        <div className="mt-4 overflow-hidden rounded-2xl border border-border bg-card/70 backdrop-blur-md">
+      {/* ── Last sync info bar ── */}
+      {lastSync && (
+        <div className="flex items-center gap-2 border-t border-border bg-bg-soft/50 px-5 py-2.5">
+          <RefreshCw className="h-3 w-3 text-accent shrink-0" />
+          <p className="text-[11px] text-ink-soft">
+            <span className="font-medium text-ink-soft">Último resultado:</span>{" "}
+            {lastSync.summary.processed} procesados, {lastSync.summary.succeeded} exitosos
+            {lastSync.summary.failed > 0 && <>, <span className="text-red-500">{lastSync.summary.failed} fallidos</span></>}
+            {lastSync.summary.conflicted > 0 && <>, <span className="text-amber-500">{lastSync.summary.conflicted} conflictos</span></>}
+          </p>
+        </div>
+      )}
+
+      {/* ── Queue items list ── */}
+      {expanded && (
+        <div className="border-t border-border">
           {items.length === 0 ? (
-            <p className="p-4 text-sm text-ink-soft">No hay elementos en cola.</p>
+            <div className="flex flex-col items-center gap-2 py-8 text-center">
+              <CheckCircle2 className="h-8 w-8 text-emerald-500/40" />
+              <p className="text-sm font-medium text-ink-soft">
+                No hay elementos pendientes
+              </p>
+              <p className="text-xs text-ink-faint">
+                Todas las consultas están sincronizadas con el servidor.
+              </p>
+            </div>
           ) : (
             <div className="divide-y divide-border">
-              {items.map((item) => (
-                <article key={item.id} className="flex flex-col gap-3 p-4 lg:flex-row lg:items-center lg:justify-between">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-sm font-semibold text-ink">
-                        {item.action.toUpperCase()} · {item.table_name}
-                      </p>
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
-                          item.status === "abandoned"
-                            ? "bg-red-100 text-red-700"
-                            : item.status === "conflicted"
-                              ? "bg-amber-100 text-amber-700"
-                              : item.status === "failed"
-                                ? "bg-orange-100 text-orange-700"
-                                : "bg-sky-100 text-sky-700"
-                        }`}
-                      >
-                        {item.status}
-                      </span>
+              {items.map((item) => {
+                const cfg = statusConfig(item.status);
+                const StatusIcon = cfg.icon;
+                return (
+                  <article
+                    key={item.id}
+                    className="flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-bg-soft/50"
+                  >
+                    {/* Status icon */}
+                    <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${cfg.bg} ${cfg.border} border`}>
+                      <StatusIcon className={`h-3.5 w-3.5 ${cfg.color}`} />
                     </div>
-                    <p className="text-xs text-ink-soft">{item.record_id}</p>
-                    <p className="text-xs text-ink-soft/80">
-                      {formatTimestamp(item.client_timestamp)} · intentos {item.retry_count}
-                    </p>
-                    {item.last_error ? (
-                      <p className="text-xs text-red-500">{pgErrorToSpanish(item.last_error)}</p>
-                    ) : null}
-                  </div>
-                  <div className="flex gap-2 shrink-0">
-                    {item.status === "abandoned" ? (
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-semibold text-ink truncate">
+                          {item.table_name === "clinical_records" ? "Consulta clínica" : item.table_name}
+                        </p>
+                        <span className="text-[10px] font-mono text-ink-faint uppercase">
+                          {item.action}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <p className="text-[11px] text-ink-faint truncate font-mono">
+                          {item.record_id.substring(0, 8)}…
+                        </p>
+                        <span className="text-[11px] text-ink-faint">
+                          · {relativeTime(item.client_timestamp)}
+                        </span>
+                        {item.retry_count > 0 && (
+                          <span className="text-[11px] text-ink-faint">
+                            · {item.retry_count} intentos
+                          </span>
+                        )}
+                      </div>
+                      {item.last_error && (
+                        <p className="text-[11px] text-red-500 mt-0.5 truncate">
+                          {pgErrorToSpanish(item.last_error)}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Status badge */}
+                    <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold ${cfg.color} ${cfg.bg}`}>
+                      {cfg.label}
+                    </span>
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-1 shrink-0">
+                      {item.status === "abandoned" && (
+                        <button
+                          type="button"
+                          onClick={() => void handleRetryAbandoned(item.id)}
+                          disabled={working || !isOnline}
+                          title="Reintentar"
+                          className="flex h-7 w-7 items-center justify-center rounded-lg border border-border text-ink-soft transition hover:bg-sky-500/10 hover:text-sky-500 hover:border-sky-500/20 disabled:opacity-40"
+                        >
+                          <RotateCcw className="h-3.5 w-3.5" />
+                        </button>
+                      )}
                       <button
                         type="button"
-                        onClick={() => void handleRetryAbandoned(item.id)}
-                        disabled={working || !isOnline}
-                        className="rounded-xl border border-sky-300/40 bg-sky-500/10 px-3 py-2 text-xs font-semibold uppercase tracking-[0.15em] text-sky-700 disabled:opacity-60 hover:bg-sky-500/20 transition"
+                        onClick={() => void handleDiscard(item.id)}
+                        disabled={working}
+                        title="Descartar"
+                        className="flex h-7 w-7 items-center justify-center rounded-lg border border-border text-ink-soft transition hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/20 disabled:opacity-40"
                       >
-                        Reintentar
+                        <Trash2 className="h-3.5 w-3.5" />
                       </button>
-                    ) : null}
-                    <button
-                      type="button"
-                      onClick={() => void handleDiscard(item.id)}
-                      disabled={working}
-                      className="rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs font-semibold uppercase tracking-[0.15em] text-red-600 disabled:opacity-60 hover:bg-red-500/20 transition"
-                    >
-                      Descartar
-                    </button>
-                  </div>
-                </article>
-              ))}
+                    </div>
+                  </article>
+                );
+              })}
             </div>
           )}
         </div>
-      ) : null}
+      )}
 
-      {expanded && !hasItems ? (
-        <div className="mt-4 rounded-xl border border-border bg-card/70 p-4 text-sm text-ink-soft backdrop-blur-md">
-          No hay elementos pendientes en la cola.
+      {/* ── Footer timestamp ── */}
+      {lastRefreshAt > 0 && (
+        <div className="border-t border-border px-5 py-2">
+          <p className="text-[10px] text-ink-faint text-right tabular-nums">
+            Actualizado {formatTimestamp(lastRefreshAt)}
+          </p>
         </div>
-      ) : null}
+      )}
     </section>
   );
 }

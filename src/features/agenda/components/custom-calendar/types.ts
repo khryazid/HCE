@@ -14,7 +14,7 @@ export interface CalendarEvent {
   [key: string]: unknown;
 }
 
-export interface CalendarState {
+interface CalendarState {
   currentDate: Date;
   selectedDate: Date;
   viewMode: ViewMode;

@@ -3,6 +3,7 @@
 import { memo } from "react";
 
 import { ChipSelector } from "@/features/consultations/components/chip-selector";
+import { TestTube, Scan, LayoutTemplate, Utensils, Stethoscope, HeartPulse, Pill, Info, AlertCircle, Activity, Calendar, TrendingUp, CreditCard } from "lucide-react";
 import {
   MedicationInstructionsBuilder,
   assembleInstructionText,
@@ -75,15 +76,15 @@ function SectionHeader({
 }) {
   const isHidden = uiPreferences?.[prefKey] === true;
   return (
-    <div className="flex items-center justify-between border-b border-teal-100 dark:border-teal-500/30 pb-2">
-      <h4 className="text-sm font-semibold text-teal-900 dark:text-teal-400">
+    <div className="flex items-center justify-between border-b border-border pb-2">
+      <h4 className="text-sm font-semibold text-ink">
         {title}
       </h4>
       {onToggle && (
         <button
           type="button"
           onClick={() => onToggle(prefKey)}
-          className="text-[10px] uppercase font-bold tracking-wider text-teal-700 dark:text-teal-300 hover:bg-teal-100 dark:hover:bg-teal-900/50 transition-colors bg-teal-50 dark:bg-teal-900/30 px-2.5 py-1 rounded-md flex items-center gap-1.5"
+          className="text-xs uppercase font-bold tracking-wider text-ink-soft hover:bg-teal-100 dark:hover:bg-teal-900/50 transition-colors bg-bg-soft px-3 py-2 min-h-[44px] rounded-md flex items-center gap-1.5"
         >
           {isHidden ? (
             <><span>👁️</span> Mostrar</>
@@ -148,17 +149,16 @@ const WizardStepTreatment = memo(function WizardStepTreatment({
       ) : null}
 
       <div className="space-y-4">
-        <h4 className="text-sm font-semibold text-teal-900 dark:text-teal-400 border-b border-teal-100 dark:border-teal-500/30 pb-2">C. Plantilla de Tratamiento Integral</h4>
+        <h4 className="text-sm font-semibold text-ink border-b border-border pb-2">C. Plantilla de Tratamiento Integral</h4>
 
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-2">
-            <label className="text-xs font-semibold text-ink">Plantilla Clínica (Autollenado)</label>
-          </div>
-          <p className="text-[11px] text-ink-soft">
-            Aplica medicamentos, dieta, medidas generales, recomendaciones y signos de alarma simultáneamente.
-          </p>
+        <div className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
+          <label className="absolute left-3 top-2 flex items-center gap-1.5 text-sm font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+            <LayoutTemplate className="h-3 w-3" /> Plantilla Clínica (Autollenado)
+          </label>
           <select
-            className="hce-input"
+            id="treatment-template"
+            aria-label="Plantilla de tratamiento"
+            className="w-full bg-transparent px-3 pb-3 pt-7 text-base text-ink !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none appearance-none"
             value={form.treatmentTemplateId}
             onChange={(event) => onApplyTemplate(event.target.value)}
           >
@@ -170,6 +170,9 @@ const WizardStepTreatment = memo(function WizardStepTreatment({
             ))}
           </select>
         </div>
+        <p className="text-xs text-ink-soft px-1">
+          Aplica medicamentos, dieta, medidas generales, recomendaciones y signos de alarma simultáneamente.
+        </p>
       </div>
 
       {/* ÓRDENES INTRAHOSPITALARIAS (Tarea 5) */}
@@ -183,15 +186,19 @@ const WizardStepTreatment = memo(function WizardStepTreatment({
         
         {uiPreferences?.hide_medical_orders !== true && (
           <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-            <p className="text-[11px] text-ink-soft mb-4">
+            <p className="text-base text-ink-soft mb-4">
               Para pacientes en observación, emergencia u hospitalización. Completa si aplica.
             </p>
 
-            <div className="rounded-2xl border border-border bg-bg-soft p-4 space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-ink">Tipo de Dieta</label>
+            <div className="space-y-4">
+              <div className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
+                <label className="absolute left-3 top-2 flex items-center gap-1.5 text-sm font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+                  <Utensils className="h-3 w-3" /> Tipo de Dieta
+                </label>
                 <select
-                  className="hce-input"
+                  id="diet-type"
+                  aria-label="Tipo de Dieta"
+                  className="w-full bg-transparent px-3 pb-3 pt-7 text-base text-ink !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none"
                   value={form.medical_orders.diet_type}
                   onChange={(e) => setForm((c) => ({ ...c, medical_orders: { ...c.medical_orders, diet_type: e.target.value } }))}
                 >
@@ -207,20 +214,28 @@ const WizardStepTreatment = memo(function WizardStepTreatment({
                 </select>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-ink">Medidas Generales</label>
+              <div className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
+                <label className="absolute left-3 top-3 flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+                  <Stethoscope className="h-3 w-3" /> Medidas Generales
+                </label>
                 <textarea
-                  className="hce-input min-h-20"
+                  id="general-measures"
+                  aria-label="Medidas Generales"
+                  className="w-full min-h-[140px] resize-none bg-transparent px-3 pb-3 pt-10 text-base text-ink placeholder:text-ink-faint/50 !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none"
                   placeholder={`Ej:\n• Cabecera a 30°\n• Oxigenoterapia 2L/min por cánula nasal\n• Reposo absoluto en cama`}
                   value={form.medical_orders.general_measures}
                   onChange={(e) => setForm((c) => ({ ...c, medical_orders: { ...c.medical_orders, general_measures: e.target.value } }))}
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-ink">Cuidados de Enfermería</label>
+              <div className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
+                <label className="absolute left-3 top-3 flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+                  <HeartPulse className="h-3 w-3" /> Cuidados de Enfermería
+                </label>
                 <textarea
-                  className="hce-input min-h-20"
+                  id="nursing-cares"
+                  aria-label="Cuidados de Enfermería"
+                  className="w-full min-h-[140px] resize-none bg-transparent px-3 pb-3 pt-10 text-base text-ink placeholder:text-ink-faint/50 !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none"
                   placeholder={`Ej:\n• Control de signos vitales cada 4h\n• Balance de líquidos\n• Avisar eventualidad al médico de guardia`}
                   value={form.medical_orders.nursing_cares}
                   onChange={(e) => setForm((c) => ({ ...c, medical_orders: { ...c.medical_orders, nursing_cares: e.target.value } }))}
@@ -233,17 +248,18 @@ const WizardStepTreatment = memo(function WizardStepTreatment({
 
       {/* PRESCRIPCIÓN MÉDICA */}
       <div className="space-y-4">
-        <h4 className="text-sm font-semibold text-teal-900 dark:text-teal-400 border-b border-teal-100 dark:border-teal-500/30 pb-2">
+        <h4 className="text-sm font-semibold text-ink border-b border-border pb-2">
           E. Prescripción Médica (Receta)
         </h4>
 
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-ink">
-            Prescripción Médica (Receta) <span className="text-red-500">*</span>
+        <div className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
+          <label htmlFor="field-treatmentPlan" className="absolute left-3 top-3 flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+            <Pill className="h-3.5 w-3.5" /> Prescripción Médica (Receta) <span className="text-red-500">*</span>
           </label>
           <textarea
             id="field-treatmentPlan"
-            className="hce-input min-h-32"
+            aria-label="Prescripción Médica o Receta"
+            className="w-full min-h-[140px] resize-none bg-transparent px-3 pb-3 pt-10 text-base text-ink placeholder:text-ink-faint/50 !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none"
             placeholder="Medicamento, Dosis, Vía de administración, Frecuencia y Duración..."
             value={form.treatmentPlan}
             onFocus={(e) => handleBulletFocus(e, "treatmentPlan")}
@@ -253,16 +269,16 @@ const WizardStepTreatment = memo(function WizardStepTreatment({
             aria-describedby={validationErrors.treatmentPlan ? "error-treatmentPlan" : undefined}
           />
           {validationErrors.treatmentPlan ? (
-            <p id="error-treatmentPlan" className="text-sm font-medium text-red-600">{validationErrors.treatmentPlan}</p>
+            <p id="error-treatmentPlan" className="absolute -bottom-6 left-1 text-xs font-medium text-red-600">{validationErrors.treatmentPlan}</p>
           ) : null}
         </div>
 
         <div className="space-y-1.5">
           <div className="flex items-center gap-2">
             <label className="text-xs font-semibold text-ink">Instrucciones de Uso para el Paciente</label>
-            <span className="rounded-full bg-teal-100 px-2 py-0.5 text-[10px] font-semibold text-teal-700">Hoja del paciente</span>
+            <span className="rounded-full bg-teal-100 px-2 py-0.5 text-xs font-semibold text-teal-700">Hoja del paciente</span>
           </div>
-          <p className="text-[11px] text-ink-soft">
+          <p className="text-base text-ink-soft">
             Cada medicamento obtiene su tarjeta de posología. El texto final se imprime en la hoja del paciente.
           </p>
           <MedicationInstructionsBuilder
@@ -278,10 +294,14 @@ const WizardStepTreatment = memo(function WizardStepTreatment({
           />
         </div>
 
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-ink">Recomendaciones Generales</label>
+        <div className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
+          <label className="absolute left-3 top-3 flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+            <Info className="h-3.5 w-3.5" /> Recomendaciones Generales
+          </label>
           <textarea
-            className="hce-input min-h-20"
+            id="general-recommendations"
+            aria-label="Recomendaciones Generales"
+            className="w-full min-h-[140px] resize-none bg-transparent px-3 pb-3 pt-10 text-base text-ink placeholder:text-ink-faint/50 !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none"
             placeholder="Dieta, reposo, cuidados en casa..."
             value={form.recommendations}
             onFocus={(e) => handleBulletFocus(e, "recommendations")}
@@ -290,10 +310,14 @@ const WizardStepTreatment = memo(function WizardStepTreatment({
           />
         </div>
 
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-ink">Signos de Alarma</label>
+        <div className="group relative overflow-hidden rounded-xl border border-red-200 bg-red-50/10 shadow-sm transition-all focus-within:border-red-400 focus-within:ring-1 focus-within:ring-red-400 dark:border-red-900/30 dark:bg-red-900/10">
+          <label className="absolute left-3 top-3 flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-red-600 transition-colors group-focus-within:text-red-500">
+            <AlertCircle className="h-3.5 w-3.5" /> Signos de Alarma
+          </label>
           <textarea
-            className="hce-input min-h-20"
+            id="warning-signs"
+            aria-label="Signos de Alarma"
+            className="w-full min-h-[140px] resize-none bg-transparent px-3 pb-3 pt-10 text-base text-ink placeholder:text-red-400/50 !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none"
             placeholder="Acudir a urgencias en caso de..."
             value={form.warningSigns}
             onFocus={(e) => handleBulletFocus(e, "warningSigns")}
@@ -313,40 +337,54 @@ const WizardStepTreatment = memo(function WizardStepTreatment({
         />
 
         {uiPreferences?.hide_paraclinicals !== true && (
-          <div className="animate-in fade-in slide-in-from-top-2 duration-300 space-y-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-ink">Órdenes de Laboratorio</label>
-              <p className="text-[11px] text-ink-soft">Selecciona del catálogo o escribe uno personalizado y presiona Enter.</p>
-              <ChipSelector
-                catalog={LAB_CATALOG}
-                selected={form.labOrders}
-                onChange={(next) => setForm((c) => ({ ...c, labOrders: next }))}
-                placeholder="Ej: Perfil tiroideo completo..."
-              />
+          <div className="animate-in fade-in slide-in-from-top-2 duration-300 space-y-6">
+            
+            <div>
+              <div className="mb-4">
+                <h5 className="text-xs font-bold uppercase tracking-widest text-ink-soft flex items-center gap-2 mb-1">
+                  <TestTube className="h-3.5 w-3.5" /> Órdenes de Laboratorio
+                </h5>
+                <p className="text-base text-ink-soft">Selecciona del catálogo o escribe una orden personalizada y presiona Enter.</p>
+              </div>
+              <div className="bg-card rounded-xl border border-border p-3">
+                <ChipSelector
+                  catalog={LAB_CATALOG}
+                  selected={form.labOrders}
+                  onChange={(next) => setForm((c) => ({ ...c, labOrders: next }))}
+                  placeholder="Ej: Perfil tiroideo completo..."
+                />
+              </div>
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-ink">Estudios de Imagen</label>
-              <p className="text-[11px] text-ink-soft">Selecciona del catálogo o escribe uno personalizado y presiona Enter.</p>
-              <ChipSelector
-                catalog={IMAGING_CATALOG}
-                selected={form.imagingOrders}
-                onChange={(next) => setForm((c) => ({ ...c, imagingOrders: next }))}
-                placeholder="Ej: Rx de pie derecho AP y lateral..."
-              />
+            <div>
+              <div className="mb-4">
+                <h5 className="text-xs font-bold uppercase tracking-widest text-ink-soft flex items-center gap-2 mb-1">
+                  <Scan className="h-3.5 w-3.5" /> Estudios de Imagen
+                </h5>
+                <p className="text-base text-ink-soft">Selecciona del catálogo o escribe un estudio personalizado y presiona Enter.</p>
+              </div>
+              <div className="bg-card rounded-xl border border-border p-3">
+                <ChipSelector
+                  catalog={IMAGING_CATALOG}
+                  selected={form.imagingOrders}
+                  onChange={(next) => setForm((c) => ({ ...c, imagingOrders: next }))}
+                  placeholder="Ej: Rx de pie derecho AP y lateral..."
+                />
+              </div>
             </div>
+
           </div>
         )}
       </div>
 
       {form.entryMode === "seguimiento" ? (
         <div className="space-y-4">
-          <h4 className="text-sm font-semibold text-teal-900 dark:text-teal-400 border-b border-teal-100 dark:border-teal-500/30 pb-2">E. Evolución Clínica (SOAP)</h4>
+          <h4 className="text-sm font-semibold text-ink border-b border-border pb-2">E. Evolución Clínica (SOAP)</h4>
 
           <div className="space-y-1.5">
             {latestPatientRecord ? (
               <div className="mb-3 rounded-xl border border-teal-500/30 bg-teal-500/10 p-3 space-y-2">
-                <p className="text-[10px] font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider">Contexto Anterior ({new Date(latestPatientRecord.updated_at).toLocaleDateString("es-EC")})</p>
+                <p className="text-xs font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider">Contexto Anterior ({new Date(latestPatientRecord.updated_at).toLocaleDateString("es-EC")})</p>
                 <div className="text-xs text-ink space-y-1">
                   <p><strong>Diagnóstico:</strong> {typeof (latestPatientRecord.specialty_data as Record<string, unknown>).diagnosis === 'string' && ((latestPatientRecord.specialty_data as Record<string, unknown>).diagnosis as string).trim() ? ((latestPatientRecord.specialty_data as Record<string, unknown>).diagnosis as string) : latestPatientRecord.chief_complaint}</p>
                   <p><strong>Tratamiento:</strong> {typeof (latestPatientRecord.specialty_data as Record<string, unknown>).treatment_plan === 'string' && ((latestPatientRecord.specialty_data as Record<string, unknown>).treatment_plan as string).trim() ? ((latestPatientRecord.specialty_data as Record<string, unknown>).treatment_plan as string) : "Sin tratamiento registrado."}</p>
@@ -361,41 +399,45 @@ const WizardStepTreatment = memo(function WizardStepTreatment({
                 { key: "soapAssessment" as const, letter: "A", label: "Assessment", color: "orange", placeholder: "Evolución favorable post-apendicectomía. Sin signos de complicación. Tolerando dieta blanda..." },
                 { key: "soapPlan" as const, letter: "P", label: "Plan", color: "teal", placeholder: "Continuar con antibioticoterapia oral 3 días más. Alta hospitalaria en 24h si evolución favorable..." },
               ]).map(({ key, letter, label, color, placeholder }) => (
-                <div key={key} className="flex gap-3 items-start">
-                  <div className={`flex-shrink-0 flex h-8 w-8 items-center justify-center rounded-lg text-sm font-extrabold ${
-                    color === "blue" ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300" :
-                    color === "green" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300" :
-                    color === "orange" ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300" :
-                    "bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300"
-                  }`}>{letter}</div>
-                  <div className="flex-1 space-y-1">
-                    <label className="text-xs font-semibold text-ink">{letter} — {label}</label>
-                    <textarea
-                      id={key === "soapSubjective" ? "field-evolutionStatus" : undefined}
-                      className="hce-input min-h-16 text-sm"
-                      placeholder={placeholder}
-                      value={form[key]}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setForm((c) => {
-                          const next = { ...c, [key]: val };
-                          const s = key === "soapSubjective" ? val : c.soapSubjective;
-                          const o = key === "soapObjective" ? val : c.soapObjective;
-                          const a = key === "soapAssessment" ? val : c.soapAssessment;
-                          const p = key === "soapPlan" ? val : c.soapPlan;
-                          next.evolutionStatus = [
-                            s && `S: ${s}`,
-                            o && `O: ${o}`,
-                            a && `A: ${a}`,
-                            p && `P: ${p}`,
-                          ].filter(Boolean).join("\n\n");
-                          return next;
-                        });
-                      }}
-                      aria-invalid={key === "soapSubjective" ? !!validationErrors.evolutionStatus : undefined}
-                      aria-describedby={key === "soapSubjective" && validationErrors.evolutionStatus ? "error-evolutionStatus" : undefined}
-                    />
-                  </div>
+                <div key={key} className={`group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:ring-1 ${
+                  color === "blue" ? "focus-within:border-blue-500 focus-within:ring-blue-500" :
+                  color === "green" ? "focus-within:border-emerald-500 focus-within:ring-emerald-500" :
+                  color === "orange" ? "focus-within:border-amber-500 focus-within:ring-amber-500" :
+                  "focus-within:border-teal-500 focus-within:ring-teal-500"
+                }`}>
+                  <label className="absolute left-3 top-3 flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-ink-soft transition-colors">
+                    <span className={`flex h-4 w-4 items-center justify-center rounded text-xs font-extrabold transition-colors ${
+                      color === "blue" ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 group-focus-within:bg-blue-500 group-focus-within:text-white" :
+                      color === "green" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 group-focus-within:bg-emerald-500 group-focus-within:text-white" :
+                      color === "orange" ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 group-focus-within:bg-amber-500 group-focus-within:text-white" :
+                      "bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300 group-focus-within:bg-teal-500 group-focus-within:text-white"
+                    }`}>{letter}</span> {label}
+                  </label>
+                  <textarea
+                    id={key === "soapSubjective" ? "field-evolutionStatus" : undefined}
+                    className="w-full min-h-[140px] resize-none bg-transparent px-3 pb-3 pt-10 text-base text-ink placeholder:text-ink-faint/50 !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none"
+                    placeholder={placeholder}
+                    value={form[key]}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setForm((c) => {
+                        const next = { ...c, [key]: val };
+                        const s = key === "soapSubjective" ? val : c.soapSubjective;
+                        const o = key === "soapObjective" ? val : c.soapObjective;
+                        const a = key === "soapAssessment" ? val : c.soapAssessment;
+                        const p = key === "soapPlan" ? val : c.soapPlan;
+                        next.evolutionStatus = [
+                          s && `S: ${s}`,
+                          o && `O: ${o}`,
+                          a && `A: ${a}`,
+                          p && `P: ${p}`,
+                        ].filter(Boolean).join("\n\n");
+                        return next;
+                      });
+                    }}
+                    aria-invalid={key === "soapSubjective" ? !!validationErrors.evolutionStatus : undefined}
+                    aria-describedby={key === "soapSubjective" && validationErrors.evolutionStatus ? "error-evolutionStatus" : undefined}
+                  />
                 </div>
               ))}
             </div>
@@ -407,15 +449,17 @@ const WizardStepTreatment = memo(function WizardStepTreatment({
       ) : null}
 
       <div className="space-y-4">
-        <h4 className="text-sm font-semibold text-teal-900 dark:text-teal-400 border-b border-teal-100 dark:border-teal-500/30 pb-2">
+        <h4 className="text-sm font-semibold text-ink border-b border-border pb-2">
           {form.entryMode === "seguimiento" ? "F. Plan a Futuro" : "E. Próximo Control"}
         </h4>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-ink">Estado Clínico del Paciente</label>
+          <div className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
+            <label className="absolute left-3 top-2 flex items-center gap-1.5 text-sm font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+              <Activity className="h-3 w-3" /> Estado Clínico
+            </label>
             <select
-              className="hce-input"
+              className="w-full bg-transparent px-3 pb-3 pt-7 text-base text-ink !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none"
               value={form.patientStatus}
               onChange={(e) => setForm(c => ({ ...c, patientStatus: e.target.value as "activo" | "inactivo" | "en-seguimiento" | "alta" }))}
             >
@@ -426,10 +470,12 @@ const WizardStepTreatment = memo(function WizardStepTreatment({
             </select>
           </div>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-ink">Fecha del Próximo Control (Opcional)</label>
+          <div className="group relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
+            <label className="absolute left-3 top-2 flex items-center gap-1.5 text-sm font-bold uppercase tracking-widest text-ink-soft transition-colors group-focus-within:text-accent">
+              <Calendar className="h-3 w-3" /> Próximo Control (Opcional)
+            </label>
             <input
-              className="hce-input"
+              className="w-full bg-transparent px-3 pb-3 pt-7 text-base text-ink !outline-none !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none placeholder:text-ink-faint/30"
               type="text"
               placeholder="DD/MM/AAAA"
               value={
@@ -471,34 +517,38 @@ const WizardStepTreatment = memo(function WizardStepTreatment({
 
         {uiPreferences?.hide_prognosis !== true && (
           <div className="grid gap-4 sm:grid-cols-2 animate-in fade-in slide-in-from-top-2 duration-300">
-            <div className="space-y-2">
-              <label className="text-xs font-semibold text-ink">Pronóstico Vital</label>
+            <div className="group relative overflow-hidden rounded-xl border border-border bg-card p-3 pt-8 shadow-sm transition-all hover:border-accent/50">
+              <label className="absolute left-3 top-2 flex items-center gap-1.5 text-sm font-bold uppercase tracking-widest text-ink-soft">
+                <TrendingUp className="h-3 w-3" /> Pronóstico Vital
+              </label>
               <div className="flex gap-2">
                 {(["bueno", "reservado", "malo"] as const).map((p) => (
                   <button key={p} type="button"
                     onClick={() => setForm(c => ({ ...c, prognosisVital: p }))}
-                    className={`flex-1 py-2 rounded-xl border text-xs font-semibold capitalize transition ${
+                    className={`flex-1 py-2 min-h-[44px] flex items-center justify-center rounded-lg border text-xs font-semibold capitalize transition ${
                       form.prognosisVital === p
                         ? p === "bueno" ? "border-emerald-500 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300"
                         : p === "reservado" ? "border-amber-500 bg-amber-500/10 text-amber-800 dark:text-amber-300"
                         : "border-red-500 bg-red-500/10 text-red-800 dark:text-red-300"
-                        : "border-border bg-card text-ink-soft hover:bg-bg-soft"
+                        : "border-border bg-transparent text-ink-soft hover:bg-bg-soft"
                     }`}>{p}</button>
                 ))}
               </div>
             </div>
-            <div className="space-y-2">
-              <label className="text-xs font-semibold text-ink">Pronóstico Funcional</label>
+            <div className="group relative overflow-hidden rounded-xl border border-border bg-card p-3 pt-8 shadow-sm transition-all hover:border-accent/50">
+              <label className="absolute left-3 top-2 flex items-center gap-1.5 text-sm font-bold uppercase tracking-widest text-ink-soft">
+                <Activity className="h-3 w-3" /> Pronóstico Funcional
+              </label>
               <div className="flex gap-2">
                 {(["bueno", "reservado", "malo"] as const).map((p) => (
                   <button key={p} type="button"
                     onClick={() => setForm(c => ({ ...c, prognosisFunctional: p }))}
-                    className={`flex-1 py-2 rounded-xl border text-xs font-semibold capitalize transition ${
+                    className={`flex-1 py-2 min-h-[44px] flex items-center justify-center rounded-lg border text-xs font-semibold capitalize transition ${
                       form.prognosisFunctional === p
                         ? p === "bueno" ? "border-emerald-500 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300"
                         : p === "reservado" ? "border-amber-500 bg-amber-500/10 text-amber-800 dark:text-amber-300"
                         : "border-red-500 bg-red-500/10 text-red-800 dark:text-red-300"
-                        : "border-border bg-card text-ink-soft hover:bg-bg-soft"
+                        : "border-border bg-transparent text-ink-soft hover:bg-bg-soft"
                     }`}>{p}</button>
                 ))}
               </div>
@@ -506,6 +556,8 @@ const WizardStepTreatment = memo(function WizardStepTreatment({
           </div>
         )}
       </div>
+
+      {/* FACTURACIÓN Y COBRO REMOVED - Labor del Asistente */}
     </div>
   );
 });

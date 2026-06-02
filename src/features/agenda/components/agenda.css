@@ -1,0 +1,280 @@
+.gx-agenda {
+  font-family: var(--font-sans);
+  color: var(--ink);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+@keyframes gx-up {
+  from { opacity:0; transform:translateY(8px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+.gx-s { opacity:0; animation: gx-up 320ms cubic-bezier(0.2, 0.9, 0.3, 1.1) forwards; }
+.gx-s1{animation-delay:0ms}.gx-s2{animation-delay:40ms}.gx-s3{animation-delay:80ms}
+
+/* ── Top Bar ──────────────────────────────────────── */
+.gx-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border);
+  z-index: 10;
+}
+.gx-tb-left { display: flex; align-items: center; gap: 16px; }
+.gx-tb-title {
+  font-family: var(--font-display); font-size: 1.125rem; font-weight: 700;
+  letter-spacing: -0.02em; color: var(--ink); margin: 0;
+}
+.gx-tb-date {
+  font-family: var(--font-mono); font-size: 0.8125rem; font-weight: 500;
+  color: var(--ink-soft); text-transform: capitalize;
+}
+.gx-tb-nav {
+  display: flex; align-items: center; gap: 4px;
+  background: var(--bg-soft); padding: 4px; border-radius: var(--radius-sm);
+}
+.gx-tb-btn {
+  font-family: var(--font-sans); font-size: 0.875rem; font-weight: 600;
+  background: transparent; border: none; padding: 0 16px; min-height: 44px; border-radius: 8px;
+  cursor: pointer; color: var(--ink-soft); transition: all 150ms ease-out;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.gx-tb-btn:hover { background: var(--bg-elevated); color: var(--ink); box-shadow: var(--shadow-sm); }
+.gx-tb-btn-active { background: var(--bg-elevated); color: var(--ink); box-shadow: var(--shadow-sm); }
+.gx-tb-iconbtn {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 44px; min-height: 44px; border: none; background: transparent;
+  color: var(--ink-soft); cursor: pointer; border-radius: 8px;
+  transition: all 150ms ease-out;
+}
+.gx-tb-iconbtn:hover { background: var(--bg-elevated); color: var(--ink); box-shadow: var(--shadow-sm); }
+
+/* Buttons */
+.gx-btn {
+  font-family: var(--font-sans); font-size: 0.875rem; font-weight: 600;
+  padding: 0 20px; min-height: 44px; border-radius: 8px; border: 1px solid transparent;
+  cursor: pointer; transition: all 150ms ease-out;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.gx-btn:active { transform: scale(0.97); }
+.gx-btn-p { background: var(--accent); color: #FFF; }
+.gx-btn-p:hover { background: var(--accent-hover); box-shadow: var(--accent-glow); }
+
+/* ── Main Layout ──────────────────────────────────── */
+.gx-layout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ── Sidebar (Mini-cal & Filters) ─────────────────── */
+.gx-sidebar {
+  width: 280px;
+  border-right: 1px solid var(--border);
+  background: var(--bg);
+  padding: 24px;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+/* Mini Calendar */
+.gx-mini-cal { margin-bottom: 32px; }
+.gx-mc-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.gx-mc-month { font-family: var(--font-sans); font-size: 0.8125rem; font-weight: 600; color: var(--ink); text-transform: capitalize; }
+.gx-mc-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.gx-mc-day-name {
+  font-family: var(--font-mono); font-size: 0.5625rem; font-weight: 500;
+  text-align: center; color: var(--ink-faint); margin-bottom: 4px; text-transform: uppercase;
+}
+.gx-mc-cell {
+  aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink);
+  border-radius: 4px; cursor: pointer; transition: background 150ms ease-out;
+}
+.gx-mc-cell:hover:not(.gx-mc-today) { background: var(--bg-soft); }
+.gx-mc-faint { color: var(--ink-faint); }
+.gx-mc-active { background: var(--accent-dim); color: var(--accent); font-weight: 500; }
+.gx-mc-today { background: var(--accent); color: #FFF; font-weight: 500; }
+.gx-mc-today:hover { background: var(--accent-hover); }
+
+/* Filter Section */
+.gx-fs { margin-bottom: 24px; }
+.gx-fs-title {
+  font-family: var(--font-sans); font-size: 0.6875rem; font-weight: 600;
+  color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.08em;
+  margin-bottom: 12px;
+}
+.gx-f-item {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 8px; cursor: pointer;
+}
+.gx-f-item:hover .gx-f-lbl { color: var(--ink); }
+.gx-f-lbl {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 0.8125rem; color: var(--ink-soft); transition: color 150ms;
+}
+.gx-f-box {
+  appearance: none; width: 14px; height: 14px; border-radius: 3px;
+  border: 1px solid var(--border); background: var(--bg); cursor: pointer;
+  position: relative; transition: all 150ms;
+}
+.gx-f-box:checked { background: var(--accent); border-color: var(--accent); }
+.gx-f-box:checked::after {
+  content: ''; position: absolute; left: 4px; top: 1px; width: 4px; height: 8px;
+  border: solid #FFF; border-width: 0 1.5px 1.5px 0; transform: rotate(45deg);
+}
+.gx-f-color {
+  width: 10px; height: 10px; border-radius: 50%;
+}
+.gx-f-count {
+  font-family: var(--font-mono); font-size: 0.625rem; color: var(--ink-faint);
+}
+
+/* ── Calendar Grid ────────────────────────────────── */
+.gx-grid {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-elevated);
+  overflow-y: auto;
+  position: relative;
+}
+
+/* Header (Days) */
+.gx-grid-hdr {
+  display: grid;
+  grid-template-columns: 60px repeat(var(--cols, 7), 1fr);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-elevated);
+  position: sticky; top: 0; z-index: 5;
+}
+.gx-gh-empty { border-right: 1px solid var(--border); }
+.gx-gh-day {
+  padding: 0 8px; min-height: 44px; border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; justify-content: center; align-items: center;
+  cursor: pointer;
+}
+.gx-gh-day:hover { background-color: var(--bg-soft); }
+.gx-gh-day:last-child { border-right: none; }
+.gx-gh-name {
+  font-size: 0.75rem; font-weight: 600; color: var(--ink-soft); text-transform: uppercase;
+}
+.gx-gh-num {
+  font-family: var(--font-display); font-size: 1.75rem; font-weight: 700;
+  color: var(--ink); line-height: 1.1; margin-top: 2px;
+}
+.gx-gh-today .gx-gh-name { color: var(--accent); }
+.gx-gh-today .gx-gh-num { color: var(--accent); }
+
+/* Body */
+.gx-grid-body {
+  display: grid;
+  grid-template-columns: 60px repeat(var(--cols, 7), 1fr);
+  position: relative;
+}
+/* Time column */
+.gx-gb-times {
+  border-right: 1px solid var(--border);
+  background: var(--bg-elevated);
+  position: relative;
+}
+.gx-gb-time {
+  height: 60px; /* 1 hour = 60px */
+  position: relative;
+}
+.gx-gb-time-lbl {
+  position: absolute; top: -8px; right: 8px;
+  font-family: var(--font-mono); font-size: 0.6875rem; color: var(--ink-faint);
+  font-feature-settings: "tnum";
+}
+
+/* Day columns */
+.gx-gb-col {
+  border-right: 1px solid var(--border);
+  position: relative;
+  background-image: linear-gradient(to bottom, var(--border) 1px, transparent 1px);
+  background-size: 100% 60px; /* matches hour height */
+}
+.gx-gb-col:last-child { border-right: none; }
+.gx-gb-col-today { background-color: var(--accent-dim); }
+
+/* Slot click area */
+.gx-slot {
+  height: 30px; /* 30 min slots */
+  width: 100%;
+  cursor: pointer;
+  transition: background 150ms;
+}
+.gx-slot:hover {
+  background-color: var(--bg-soft);
+}
+
+/* ── Appointment Blocks ───────────────────────────── */
+.gx-appt {
+  position: absolute;
+  left: 4px; right: 8px;
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+  cursor: pointer;
+  overflow: hidden;
+  transition: transform 120ms ease-out, box-shadow 120ms;
+}
+.gx-appt:hover { transform: translateY(-1px); box-shadow: var(--shadow-sm); z-index: 4!important; }
+.gx-appt:active { transform: scale(0.98); }
+
+/* Types */
+.gx-appt-1st {
+  background: var(--accent-dim);
+  border-left: 3px solid var(--accent);
+  color: var(--accent);
+}
+.gx-appt-ctrl {
+  background: rgba(22, 128, 60, 0.1);
+  border-left: 3px solid var(--state-ok);
+  color: var(--state-ok);
+}
+.gx-appt-fu {
+  background: rgba(180, 83, 9, 0.1);
+  border-left: 3px solid var(--state-warn);
+  color: var(--state-warn);
+}
+.gx-appt-blocked {
+  background: var(--bg-soft);
+  border-left: 3px solid var(--ink-faint);
+  color: var(--ink-soft);
+}
+
+.gx-at-title { font-size: 0.8125rem; font-weight: 600; line-height: 1.2; margin-bottom: 2px; }
+.gx-at-sub {
+  font-family: var(--font-mono); font-size: 0.6875rem; font-weight: 500;
+  opacity: 0.8; line-height: 1.2;
+}
+
+/* ── NOW Line ─────────────────────────────────────── */
+.gx-now-line {
+  position: absolute;
+  left: 0; right: 0;
+  height: 2px;
+  background: var(--accent);
+  z-index: 3;
+  pointer-events: none;
+}
+.gx-now-dot {
+  position: absolute;
+  left: -4px; top: -3px;
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--accent);
+}
+
+@media (max-width: 1024px) {
+  /* We let tailwind classes handle the modal state for the sidebar */
+  .gx-sidebar-desktop { display: none; }
+}

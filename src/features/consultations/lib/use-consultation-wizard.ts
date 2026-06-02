@@ -32,7 +32,7 @@ import { logApiError } from "@/lib/observability/error-logger";
 import { usePatients, useClinicalRecords, patientKeys } from "@/features/patients/lib/use-patients-queries";
 import { usePatientsRealtime } from "@/features/patients/lib/use-patients-realtime";
 import { useClinicalRecordsRealtime } from "@/features/patients/lib/use-clinical-records-realtime";
-import { useTemplates } from "@/features/consultations/lib/use-consultation-queries";
+import { useTemplates, useClinicalFormTemplates } from "@/features/consultations/lib/use-consultation-queries";
 import { useTemplatesRealtime } from "@/features/consultations/lib/use-templates-realtime";
 
 import type {
@@ -62,13 +62,14 @@ export function useConsultationWizard(tenant: TenantProfile | null) {
   const { data: patients = [], isLoading: patientsLoading } = usePatients(tenant);
   const { data: records = [], isLoading: recordsLoading } = useClinicalRecords(tenant);
   const { data: templates = [], isLoading: templatesLoading } = useTemplates(tenant);
+  const { data: formTemplates = [], isLoading: formTemplatesLoading } = useClinicalFormTemplates(tenant);
 
   // M-23: Suscripción en tiempo real a pacientes, consultas y plantillas
   usePatientsRealtime(tenant);
   useClinicalRecordsRealtime(tenant);
   useTemplatesRealtime(tenant);
 
-  const dataLoading = patientsLoading || recordsLoading || templatesLoading;
+  const dataLoading = patientsLoading || recordsLoading || templatesLoading || formTemplatesLoading;
 
   const [wizardOpen, setWizardOpen] = useState(false);
   const [step, setStep] = useState(1);
@@ -98,6 +99,32 @@ export function useConsultationWizard(tenant: TenantProfile | null) {
       });
     };
   }, [tenant?.doctor_id]);
+
+  const effectiveUiPreferences = useMemo(() => {
+    // Si hay una plantilla de formulario activa, sobrescribe las preferencias
+    if (formTemplates && formTemplates.length > 0) {
+      const activeTemplate = formTemplates[0]; // Ya viene ordenada y filtrada por is_active
+      const schema = (activeTemplate.schema as any[]) || [];
+      const hasBlock = (type: string) => schema.some(b => b.type === type);
+      
+      return {
+        ...uiPreferences,
+        hide_vital_signs: !hasBlock("vital_signs"),
+        hide_family_history: !hasBlock("family_history"),
+        hide_personal_history: !hasBlock("personal_history"),
+        hide_habits: !hasBlock("habits"),
+        hide_female_history: !hasBlock("female_history"),
+        hide_pediatric_history: !hasBlock("pediatric_history"),
+        hide_review_of_systems: !hasBlock("review_of_systems"),
+        hide_physical_exam: !hasBlock("physical_exam"),
+        hide_diagnosis: !hasBlock("diagnosis"),
+        hide_treatment_plan: !hasBlock("treatment_plan"),
+        hide_medical_orders: !hasBlock("medical_orders"),
+        hide_paraclinicals: !hasBlock("paraclinicals"),
+      };
+    }
+    return uiPreferences;
+  }, [formTemplates, uiPreferences]);
 
   // M-02: setForm estable — no cierra sobre `records` para evitar re-renders O(n)
   // en componentes hijos cada vez que cambia la lista de registros.
@@ -364,9 +391,11 @@ export function useConsultationWizard(tenant: TenantProfile | null) {
         buildPdfPreviewData,
         onSuccess: (_successMessage) => {
           const savedPatientId = form.patientId;
-          clinical.setSelectedPatientId(savedPatientId);
-          resetWizard();
           router.push("/pacientes");
+          // Set selected patient and reset wizard state
+          // doing it after the push ensures smooth transition
+          clinical.setSelectedPatientId(savedPatientId);
+          setTimeout(() => resetWizard(), 100);
         },
       },
     );
@@ -433,7 +462,7 @@ export function useConsultationWizard(tenant: TenantProfile | null) {
     pendingFollowUp,
     selectedPatientTimelineId,
     setSelectedPatientTimelineId,
-    uiPreferences,
+    uiPreferences: effectiveUiPreferences,
     toggleSectionVisibility,
 
     // CIE

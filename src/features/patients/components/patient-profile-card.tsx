@@ -3,9 +3,10 @@
 /**
  * components/patients/PatientProfileCard.tsx
  * Tarjeta de perfil del paciente seleccionado. Presentacional.
+ * Diseñada para funcionar dentro de un slide-over panel (max-width ~500px).
  */
 
-import { Trash2, ClipboardList, Clock } from "lucide-react";
+import { Trash2, ClipboardList, Clock, Phone } from "lucide-react";
 import { PATIENT_STATUS_OPTIONS, type PatientRecord, type PatientStatus } from "@/features/patients/types";
 import { PatientStatusBadge } from "@/features/patients/components/patient-status-badge";
 import { formatDate } from "@/lib/ui/format-date";
@@ -29,106 +30,69 @@ export function PatientProfileCard({
   onStatusChange,
   onDeleteRequest,
 }: Props) {
-  if (!patient) {
-    return (
-      <article className="rounded-3xl border border-border bg-card p-6 shadow-sm">
-        <EmptyState
-          icon={<EmptyStateIconPatients />}
-          title="Ningún paciente seleccionado"
-          description="Selecciona un paciente de la lista para ver su perfil y su historial clínico."
-          size="md"
-        />
-      </article>
-    );
-  }
+  if (!patient) return null;
 
   return (
-    <article className="relative overflow-hidden rounded-3xl border border-border bg-card p-6 shadow-sm">
-      {/* Ambient gradient */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            "radial-gradient(ellipse 60% 50% at 100% 0%, rgba(15,118,110,0.07) 0%, transparent 60%)",
-        }}
-      />
-
-      <div className="relative flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-        {/* Identity */}
-        <div className="space-y-1.5">
-          <p className="text-xs font-semibold uppercase tracking-widest text-accent">
-            Perfil del paciente
-          </p>
-          <div className="flex items-center gap-3">
-            <h2 className="text-2xl font-extrabold tracking-tight text-ink">
-              {patient.full_name}
-            </h2>
-            <PatientStatusBadge status={patient.status ?? "activo"} />
-          </div>
-          <p className="text-sm text-ink-soft">
-            {patient.document_number}
-            {patient.birth_date ? ` · ${formatDate(patient.birth_date)}` : ""}
-            {patient.phone ? ` · 📞 ${patient.phone}` : ""}
-          </p>
-        </div>
-
-        {/* Stats */}
-        <div className="grid gap-3 sm:grid-cols-2 lg:w-72">
-          <div className="rounded-2xl border border-border/60 bg-bg-soft/60 p-4">
-            <div className="flex items-center gap-2">
-              <ClipboardList className="h-4 w-4 text-accent" aria-hidden />
-              <p className="text-xs font-semibold uppercase tracking-wider text-ink-soft">
-                Consultas
-              </p>
-            </div>
-            <p className="mt-2 text-3xl font-extrabold text-ink">{patientHistory.length}</p>
-          </div>
-          <div className="rounded-2xl border border-border/60 bg-bg-soft/60 p-4">
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-accent" aria-hidden />
-              <p className="text-xs font-semibold uppercase tracking-wider text-ink-soft">
-                Última atención
-              </p>
-            </div>
-            <p className="mt-2 text-sm font-bold text-ink">
-              {patientHistory[0] ? formatDate(patientHistory[0].created_at) : "—"}
-            </p>
-          </div>
-        </div>
-
-        {/* Status selector */}
-        <div className="rounded-2xl border border-border/60 bg-bg-soft/60 p-4 lg:w-56">
-          <label className="block space-y-2 text-sm font-medium text-ink-soft">
-            <span>Estado del paciente</span>
-            <select
-              className="hce-input disabled:cursor-not-allowed disabled:opacity-70"
-              value={patient.status ?? "activo"}
-              disabled={statusSaving}
-              onChange={(e) => onStatusChange(e.target.value as PatientStatus)}
-            >
-              {(Object.keys(PATIENT_STATUS_OPTIONS) as PatientStatus[]).map((s) => (
-                <option key={s} value={s}>
-                  {PATIENT_STATUS_OPTIONS[s].label}
-                </option>
-              ))}
-            </select>
-          </label>
-          {statusMessage ? (
-            <p className="mt-2 text-xs text-ink-soft">{statusMessage}</p>
-          ) : null}
+    <article className="flex flex-col gap-6">
+      {/* ── Identity ── */}
+      <div>
+        <h2 className="text-3xl font-extrabold tracking-tight text-ink leading-none mb-2">
+          {patient.full_name}
+        </h2>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-ink-soft">
+          {patient.document_number && (
+            <span className="font-mono text-xs tabular-nums bg-bg-soft border border-border px-1.5 py-0.5 rounded-md text-ink">{patient.document_number}</span>
+          )}
+          {patient.birth_date && (
+            <span>{formatDate(patient.birth_date)}</span>
+          )}
+          {patient.phone && (
+            <span className="inline-flex items-center gap-1">
+              <Phone className="h-3 w-3" aria-hidden />
+              {patient.phone}
+            </span>
+          )}
         </div>
       </div>
 
-      {/* Delete */}
-      <button
-        type="button"
-        onClick={onDeleteRequest}
-        className="mt-5 inline-flex items-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
-      >
-        <Trash2 className="h-3.5 w-3.5" aria-hidden />
-        Eliminar paciente
-      </button>
+      {/* ── Metrics ── */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="flex flex-col justify-center rounded-2xl border border-border bg-bg-soft/50 p-4">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-ink-soft mb-1 flex items-center gap-1.5">
+            <ClipboardList className="w-3.5 h-3.5 text-accent" />
+            Atenciones
+          </span>
+          <span className="text-xl font-black text-ink">{patientHistory.length}</span>
+        </div>
+        <div className="flex flex-col justify-center rounded-2xl border border-border bg-bg-soft/50 p-4">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-ink-soft mb-1 flex items-center gap-1.5">
+            <Clock className="w-3.5 h-3.5 text-accent" />
+            Última vez
+          </span>
+          <span className="text-sm font-bold text-ink mt-0.5">
+            {patientHistory[0] ? formatDate(patientHistory[0].created_at) : "N/A"}
+          </span>
+        </div>
+        <div className="flex flex-col justify-center rounded-2xl border border-border bg-bg-soft/50 p-4 relative group transition-colors hover:border-accent/30 hover:bg-accent/5">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-ink-soft mb-1 flex items-center gap-1.5">
+            Estado
+          </span>
+          <select
+             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+             value={patient.status ?? "activo"}
+             disabled={statusSaving}
+             onChange={(e) => onStatusChange(e.target.value as PatientStatus)}
+          >
+             {(Object.keys(PATIENT_STATUS_OPTIONS) as PatientStatus[]).map((s) => (
+                <option key={s} value={s}>{PATIENT_STATUS_OPTIONS[s].label}</option>
+             ))}
+          </select>
+          <span className="text-sm font-bold text-ink mt-0.5 pointer-events-none capitalize flex items-center justify-between">
+            {PATIENT_STATUS_OPTIONS[patient.status ?? "activo"]?.label ?? "Activo"}
+            <svg className="w-3 h-3 text-ink-soft" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+          </span>
+        </div>
+      </div>
     </article>
   );
 }
