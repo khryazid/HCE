@@ -87,7 +87,7 @@ export function CalendarView() {
   });
 
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [viewMode, setViewMode] = useState<'day' | 'week' | 'month'>('week');
+  const [viewMode, setViewMode] = useState<'day' | 'week' | 'month' | 'list'>('week');
 
   useEffect(() => {
     if (typeof window !== "undefined" && window.innerWidth < 768) {
