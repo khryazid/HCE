@@ -416,7 +416,7 @@ html {
 
 /* ── Sticky action bar */
 @utility hce-sticky-action-bar {
-  @apply sticky bottom-4 border p-4;
+  @apply sticky bottom-20 lg:bottom-4 border p-4;
   border-radius: var(--radius-xl);
   background: color-mix(in srgb, var(--card) 96%, transparent);
   border-color: var(--border);
