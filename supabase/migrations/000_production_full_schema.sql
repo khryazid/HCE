@@ -46,6 +46,14 @@ create table if not exists public.clinics (
   updated_at          timestamptz not null default now()
 );
 
+-- Parche para migraciones: agregar columnas si no existen
+do $$
+begin
+  alter table public.clinics add column if not exists plan_type text not null default 'individual';
+  alter table public.clinics add column if not exists subscription_status text default 'trial';
+  alter table public.clinics add column if not exists owner_user_id uuid references auth.users(id) on delete set null;
+end $$;
+
 -- ⚠️  NOTA: Limpieza de Supabase Storage (bucket clinic_assets)
 -- Cuando se elimina una clínica o cuenta de usuario, los archivos
 -- almacenados en el bucket `clinic_assets` NO se borran por cascade
@@ -90,6 +98,14 @@ create table if not exists public.profiles (
   updated_at              timestamptz not null default now(),
   unique (clinic_id, doctor_id)
 );
+
+-- Parche para migraciones: agregar is_platform_admin y terms si no existen
+do $$
+begin
+  alter table public.profiles add column if not exists is_platform_admin boolean not null default false;
+  alter table public.profiles add column if not exists terms_accepted_at timestamptz default null;
+  alter table public.profiles add column if not exists terms_version text default null;
+end $$;
 
 -- Index for fast platform admin lookup during login
 create index if not exists idx_profiles_platform_admin
@@ -285,6 +301,16 @@ create table if not exists public.clinic_members (
   created_at            timestamptz not null default now(),
   unique (clinic_id, doctor_id)
 );
+
+-- Parche para migraciones: agregar nuevas columnas si no existen
+do $$
+begin
+  alter table public.clinic_members add column if not exists is_active boolean not null default true;
+  alter table public.clinic_members add column if not exists custom_permissions jsonb not null default '{}'::jsonb;
+  alter table public.clinic_members add column if not exists invited_by_member_id uuid references public.clinic_members(id) on delete set null;
+  alter table public.clinic_members add column if not exists terms_accepted_at timestamptz default null;
+  alter table public.clinic_members add column if not exists terms_version text default null;
+end $$;
 
 -- Parche para migraciones: actualizar constraint de roles y migrar admin→owner
 do $$

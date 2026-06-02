@@ -178,22 +178,6 @@
 .gx-footer-lang button { background: none; border: none; font-size: 0.8125rem; color: var(--ink-soft); cursor: pointer; transition: color 150ms; }
 .gx-footer-lang button:hover { color: var(--ink); }
 
-@media (max-width: 1024px) {
-  .gx-hero-title { font-size: 3.5rem; }
-  .gx-bento { grid-template-columns: 1fr; }
-  .gx-b-large { grid-column: span 1; }
-  .gx-m-frame { height: 400px; }
-}
-@media (max-width: 768px) {
-  .gx-hero-title { font-size: 2.5rem; }
-  .gx-hero { padding: 140px 24px 80px; }
-  .gx-mockup, .gx-bento { padding: 0 24px; }
-  .gx-nav { padding: 16px 24px; }
-  .gx-nav-links { display: none; }
-  .gx-showcase { grid-template-columns: 1fr; padding: 40px 24px; gap: 40px; }
-  .gx-showcase-right { position: relative; top: 0; height: 400px; }
-}
-
 /* ── Showcase (Sticky Scroll) ─────────────────────── */
 .gx-showcase {
   max-width: 1200px; margin: 0 auto; padding: 80px 40px 160px;
@@ -247,6 +231,12 @@
   opacity: 1; transform: scale(1); filter: blur(0);
 }
 
+.gx-showcase-img-mobile {
+  display: none;
+  width: 100%; border-radius: 16px; margin-top: 24px;
+  border: 1px solid var(--border); box-shadow: var(--shadow-md);
+}
+
 /* ── FAQ & Contact ────────────────────────────────────── */
 .gx-faq-grid {
   display: grid; grid-template-columns: 1fr 1fr; gap: 32px; max-width: 1000px; margin: 0 auto; text-align: left;
@@ -271,8 +261,52 @@
   display: flex; align-items: center; justify-content: center;
 }
 
+/* ── Pricing Table ────────────────────────────────────── */
+.gx-pricing-table th, .gx-pricing-table td {
+  padding: 16px;
+}
+.gx-pricing-table tbody {
+  font-size: 0.9375rem;
+}
+.gx-pricing-table tbody tr:not(.gx-pt-group) {
+  border-bottom: 1px solid var(--border-subtle);
+}
+.gx-pt-group td {
+  background: var(--bg-soft); padding: 12px 16px; font-weight: 600; font-size: 0.8125rem; text-transform: uppercase; color: var(--ink-soft);
+}
+
+/* ── Media Queries (AT THE END FOR PRIORITY) ───────────────── */
+@media (max-width: 1024px) {
+  .gx-hero-title { font-size: 3.5rem; }
+  .gx-bento { grid-template-columns: 1fr; }
+  .gx-b-large { grid-column: span 1; }
+  .gx-m-frame { height: 400px; }
+  
+  .gx-showcase { grid-template-columns: 1fr; gap: 40px; padding: 60px 40px; }
+  .gx-showcase-right { display: none !important; }
+  .gx-showcase-img-mobile { display: block !important; }
+  .gx-showcase-item { height: auto; min-height: auto; padding: 40px 0; opacity: 1 !important; transform: none !important; }
+  .gx-showcase-item.active { opacity: 1; }
+  
+  .gx-split { grid-template-columns: 1fr !important; gap: 40px !important; }
+}
+
 @media (max-width: 768px) {
+  .gx-hero-title { font-size: 2.5rem; }
+  .gx-hero { padding: 140px 24px 80px; }
+  .gx-mockup, .gx-bento { padding: 0 24px; }
+  .gx-nav { padding: 16px 24px; }
+  .gx-nav-links { display: none; }
+  .gx-showcase { padding: 40px 24px; gap: 32px; }
+  .gx-showcase-title { font-size: 2rem; }
+  
+  section { padding-left: 24px !important; padding-right: 24px !important; }
   .gx-faq-grid { grid-template-columns: 1fr; }
+  
+  .gx-pricing-table th { font-size: 0.8125rem; padding: 12px 6px !important; }
+  .gx-pricing-table td { font-size: 0.8125rem; padding: 12px 6px !important; }
+  .gx-pricing-table tbody { font-size: 0.8125rem; }
+  .gx-pt-group td { font-size: 0.75rem; padding: 8px 6px !important; }
 }
 
 
