@@ -4738,3 +4738,75 @@ begin
     where clinic_id = p_clinic_id and deleted_at >= p_target_timestamp;
 end;
 $$;
+
+-- ============================================================================
+-- AUDIT FIXES: PHASE V (DATA TIERING & INFORMED CONSENTS)
+-- ============================================================================
+
+-- Hueco 13: Retención Legal de Expedientes (Archive a 5 años)
+-- Tabla estructurada sin constraints complejos para abaratar almacenamiento en frío
+create table if not exists public.archive_clinical_records (
+    id uuid primary key,
+    clinic_id uuid not null,
+    patient_id uuid not null,
+    doctor_id uuid not null,
+    archived_at timestamp with time zone default timezone('utc'::text, now()) not null,
+    original_created_at timestamp with time zone not null,
+    payload jsonb not null
+);
+
+alter table public.archive_clinical_records enable row level security;
+-- Solo dueños o super admins pueden consultar el archivo muerto
+create policy "archive_select" on public.archive_clinical_records for select using (
+    clinic_id in (select get_user_clinic_ids()) and
+    get_member_role(clinic_id) = 'owner'
+);
+
+-- RPC para mover registros antiguos (ideal para correr por pg_cron mensual)
+create or replace function public.archive_old_records(retention_years integer default 5)
+returns integer
+language plpgsql
+security definer
+as $$
+declare
+    moved_count integer;
+begin
+    -- Mover expedientes de pacientes con más de 'retention_years' sin actividad
+    with old_records as (
+        select cr.id, cr.clinic_id, cr.patient_id, cr.doctor_id, cr.created_at, row_to_json(cr)::jsonb as payload
+        from public.clinical_records cr
+        where cr.created_at < now() - (retention_years || ' years')::interval
+          and cr.deleted_at is null
+    ),
+    inserted as (
+        insert into public.archive_clinical_records (id, clinic_id, patient_id, doctor_id, original_created_at, payload)
+        select id, clinic_id, patient_id, doctor_id, created_at, payload from old_records
+        returning id
+    )
+    delete from public.clinical_records
+    where id in (select id from inserted);
+    
+    get diagnostics moved_count = ROW_COUNT;
+    return moved_count;
+end;
+$$;
+
+-- Hueco 14: Consentimiento Informado Digital (Inmutable)
+create table if not exists public.informed_consents (
+    id uuid primary key default gen_random_uuid(),
+    clinic_id uuid references public.clinics(id) on delete cascade not null,
+    patient_id uuid references public.patients(id) on delete cascade not null,
+    procedure_name text not null,
+    cryptographic_hash text not null, -- Sha256(patient_id + procedure + timestamp + salt)
+    ip_address varchar not null,
+    device_fingerprint text,
+    signed_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+alter table public.informed_consents enable row level security;
+create policy "consents_select" on public.informed_consents for select using (
+    clinic_id in (select get_user_clinic_ids())
+);
+create policy "consents_insert" on public.informed_consents for insert with check (
+    clinic_id in (select get_user_clinic_ids())
+);
