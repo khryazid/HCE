@@ -4351,5 +4351,86 @@ $$;
 revoke all on function public.search_patient_by_identification(uuid, text) from anon;
 grant execute on function public.search_patient_by_identification(uuid, text) to authenticated;
 
+-- ============================================================
+-- 16. SEGURIDAD ADICIONAL (AUDITORÍA MÓDULOS III, IV, V)
+-- ============================================================
+
+-- 1. Permisos JSONB y RLS
+create or replace function public.has_custom_permission(p_clinic_id uuid, p_permission_key text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1 from public.clinic_members
+    where clinic_id = p_clinic_id
+      and doctor_id = auth.uid()
+      and is_active = true
+      and custom_permissions ? p_permission_key
+      and (custom_permissions ->> p_permission_key)::boolean = true
+  );
+$$;
+
+drop policy if exists "patients_tenant_select" on public.patients;
+create policy "patients_tenant_select" on public.patients for select to authenticated
+  using (
+    auth.uid() is not null
+    and clinic_id = any (public.get_user_clinic_ids())
+    and (
+      public.get_member_role(clinic_id) in ('owner', 'doctor', 'clinic_admin')
+      or public.has_custom_permission(clinic_id, 'can_view_patients')
+    )
+  );
+
+drop policy if exists "records_tenant_select" on public.clinical_records;
+create policy "records_tenant_select" on public.clinical_records for select to authenticated
+  using (
+    auth.uid() is not null
+    and clinic_id = any (public.get_user_clinic_ids())
+    and (
+      public.get_member_role(clinic_id) in ('owner', 'doctor', 'clinic_admin')
+      or public.has_custom_permission(clinic_id, 'can_view_records')
+    )
+  );
+
+-- 2. Prevención de Enumeración y Vacation Mode
+alter table public.doctor_settings add column if not exists vacation_end_date timestamptz;
+
+create or replace function public.get_user_clinic_ids()
+returns uuid[]
+language sql stable security definer
+set search_path = public
+as $$
+  select array(
+    select clinic_id from public.profiles where doctor_id = auth.uid()
+    union
+    select clinic_id from public.clinic_members where doctor_id = auth.uid() and is_active = true
+    union
+    -- Delegación activa (Vacation Mode) con expiración automática
+    select ds.organization_id 
+    from public.doctor_settings ds
+    inner join public.clinic_members cm on ds.vacation_redirect_member_id = cm.id
+    where cm.doctor_id = auth.uid()
+      and ds.vacation_mode = true
+      and (ds.vacation_end_date is null or ds.vacation_end_date > now())
+  );
+$$;
+
+-- RLS for roles técnicos (Lab)
+drop policy if exists "Médicos pueden leer órdenes de su clínica" on public.lab_orders;
+create policy "Médicos pueden leer órdenes de su clínica" on public.lab_orders for select
+  using (
+    auth.uid() is not null
+    and clinic_id = any (public.get_user_clinic_ids())
+    and (
+      public.get_member_role(clinic_id) in ('owner', 'doctor', 'clinic_admin')
+      or public.get_member_role(clinic_id) in ('lab', 'imaging')
+    )
+  );
+
+-- 3. Normalización Contable (foreign key para turnos de caja)
+alter table public.cash_transactions add column if not exists cash_shift_id uuid references public.cash_shifts(id) on delete set null;
 
 commit;
