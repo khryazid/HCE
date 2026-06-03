@@ -69,7 +69,10 @@ export default function LandingClient({ proPrice, clinicPrice }: { proPrice: num
           <a href="#offline" className="gx-nav-link">Offline</a>
           <a href="#pricing" className="gx-nav-link">Precios</a>
           <span className="gx-nav-link" onClick={() => setTheme(t => t === "light" ? "dark" : "light")} style={{userSelect:"none"}}>Tema: {theme}</span>
-          <Link href="/login" prefetch={false} className="gx-btn gx-btn-s" style={{padding:"8px 16px", fontSize:"0.8125rem"}}>Iniciar Sesión</Link>
+        </div>
+        <div className="gx-nav-actions">
+          <Link href="/login" prefetch={false} className="gx-btn gx-btn-s" style={{padding:"8px 12px", fontSize:"0.8125rem"}}>Ingresar</Link>
+          <Link href="/registro" prefetch={false} className="gx-btn gx-btn-p gx-hide-mobile" style={{padding:"8px 12px", fontSize:"0.8125rem"}}>Registro</Link>
         </div>
       </nav>
 
@@ -465,11 +468,9 @@ export default function LandingClient({ proPrice, clinicPrice }: { proPrice: num
       </footer>
 
       {/* ── WhatsApp Floating CTA ── */}
-      <a href="https://wa.me/1234567890?text=Hola,%20quiero%20informaci%C3%B3n%20sobre%20Glyphix%20para%20mi%20consultorio" target="_blank" rel="noopener noreferrer" style={{
-        position: "fixed", bottom: 24, right: 24, background: "#25D366", color: "white", padding: "12px 20px", borderRadius: 100, display: "flex", alignItems: "center", gap: 8, boxShadow: "0 8px 24px rgba(37, 211, 102, 0.4)", textDecoration: "none", fontWeight: 600, zIndex: 50, transition: "transform 0.2s"
-      }} className="gx-wa-btn">
-        <Ico d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
-        Hablemos por WhatsApp
+      <a href="https://wa.me/1234567890?text=Hola,%20quiero%20informaci%C3%B3n%20sobre%20Glyphix%20para%20mi%20consultorio" target="_blank" rel="noopener noreferrer" className="gx-wa-btn">
+        <Ico d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" s={24} />
+        <span className="gx-wa-text">Hablemos por WhatsApp</span>
       </a>
       
     </div>

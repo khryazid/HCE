@@ -3184,3 +3184,48 @@ drop trigger if exists trg_auto_provision_admin on auth.users;
 create trigger trg_auto_provision_admin
   after insert on auth.users
   for each row execute function public.handle_new_user_admin();
+
+-- ==== TABLES FOR LAB EXAMS AND CLINIC SETTINGS ====
+
+create table if not exists public.lab_exams (
+  id uuid default gen_random_uuid() primary key,
+  clinic_id uuid references public.clinics (id) on delete cascade not null,
+  name text not null,
+  category text not null check (category in ('Laboratorio Clínico', 'Imagenología', 'Genética', 'Patología', 'Otro')),
+  default_price numeric(10,2) default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.lab_exams enable row level security;
+
+create policy "Usuarios pueden ver examenes de su clinica" on public.lab_exams for select using (
+  clinic_id in (select clinic_id from public.clinic_members where doctor_id = auth.uid() and is_active = true)
+  or clinic_id in (select id from public.clinics where owner_user_id = auth.uid())
+);
+
+create policy "Usuarios pueden modificar examenes de su clinica" on public.lab_exams for all using (
+  clinic_id in (select clinic_id from public.clinic_members where doctor_id = auth.uid() and is_active = true)
+  or clinic_id in (select id from public.clinics where owner_user_id = auth.uid())
+);
+
+create table if not exists public.clinic_settings (
+  clinic_id uuid primary key references public.clinics (id) on delete cascade,
+  lab_letterhead_url text,
+  lab_footer_text text,
+  imaging_letterhead_url text,
+  imaging_footer_text text,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.clinic_settings enable row level security;
+
+create policy "Usuarios pueden ver configuraciones de su clinica" on public.clinic_settings for select using (
+  clinic_id in (select clinic_id from public.clinic_members where doctor_id = auth.uid() and is_active = true)
+  or clinic_id in (select id from public.clinics where owner_user_id = auth.uid())
+);
+
+create policy "Usuarios pueden actualizar configuraciones de su clinica" on public.clinic_settings for all using (
+  clinic_id in (select clinic_id from public.clinic_members where doctor_id = auth.uid() and is_active = true)
+  or clinic_id in (select id from public.clinics where owner_user_id = auth.uid())
+);

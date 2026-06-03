@@ -364,7 +364,7 @@ export default function ConsultationsView() {
                   )}
 
                   {/* ACTION BAR MOBILE (visible solo en pantallas pequeñas) */}
-                  <div className="lg:hidden hce-sticky-action-bar flex flex-col gap-3 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-4 mt-8 border-t border-border">
+                  <div className="lg:hidden flex flex-col gap-3 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-4 mt-8 border-t border-border">
                     <p className="font-bold text-ink text-center">Consulta lista para guardar</p>
                     <div className="flex flex-row gap-3">
                       <button

@@ -42,7 +42,7 @@ export function ClinicDashboardClient() {
   }
 
   return (
-    <div className="p-6">
+    <div className="w-full">
       <ClinicAdminView clinicId={tenant.clinic_id} />
     </div>
   );
