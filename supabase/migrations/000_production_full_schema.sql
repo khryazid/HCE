@@ -4456,10 +4456,10 @@ create table if not exists public.triage_records (
 
 alter table public.triage_records enable row level security;
 create policy "triage_records_select" on public.triage_records for select using (
-    clinic_id in (select get_user_clinic_ids())
+    clinic_id = any(get_user_clinic_ids())
 );
 create policy "triage_records_insert" on public.triage_records for insert with check (
-    clinic_id in (select get_user_clinic_ids()) and
+    clinic_id = any(get_user_clinic_ids()) and
     (get_member_role(clinic_id) in ('owner', 'doctor') or has_custom_permission(clinic_id, 'can_perform_triage'))
 );
 
@@ -4481,7 +4481,7 @@ create policy "lab_results_select" on public.lab_results for select using (
     exists (
         select 1 from public.lab_orders
         where lab_orders.id = lab_results.order_id
-        and lab_orders.clinic_id in (select get_user_clinic_ids())
+        and lab_orders.clinic_id = any(get_user_clinic_ids())
     )
 );
 
@@ -4507,11 +4507,11 @@ create table if not exists public.department_order_items (
 
 alter table public.department_orders enable row level security;
 create policy "dept_orders_select" on public.department_orders for select using (
-    clinic_id in (select get_user_clinic_ids())
+    clinic_id = any(get_user_clinic_ids())
 );
 alter table public.department_order_items enable row level security;
 create policy "dept_order_items_select" on public.department_order_items for select using (
-    exists (select 1 from public.department_orders where id = order_id and clinic_id in (select get_user_clinic_ids()))
+    exists (select 1 from public.department_orders where id = order_id and clinic_id = any(get_user_clinic_ids()))
 );
 
 -- 4. PATIENT LEDGERS (Cuenta Maestra)
@@ -4527,7 +4527,7 @@ create table if not exists public.patient_ledgers (
 
 alter table public.patient_ledgers enable row level security;
 create policy "patient_ledgers_select" on public.patient_ledgers for select using (
-    clinic_id in (select get_user_clinic_ids())
+    clinic_id = any(get_user_clinic_ids())
 );
 
 -- Add ledger_id to cash_transactions
@@ -4632,7 +4632,7 @@ create table if not exists public.audit_logs (
 alter table public.audit_logs enable row level security;
 -- Solo dueños o super admins podrían ver los logs, pero la app inserta usando security definer.
 create policy "audit_logs_insert" on public.audit_logs for insert to authenticated with check (
-    clinic_id in (select get_user_clinic_ids())
+    clinic_id = any(get_user_clinic_ids())
 );
 
 -- RPC for logging a clinical read (e.g. Snooping detection)
@@ -4676,16 +4676,16 @@ alter table public.prescriptions enable row level security;
 alter table public.prescription_items enable row level security;
 
 create policy "prescriptions_select" on public.prescriptions for select using (
-    clinic_id in (select get_user_clinic_ids())
+    clinic_id = any(get_user_clinic_ids())
 );
 create policy "prescriptions_insert" on public.prescriptions for insert with check (
-    clinic_id in (select get_user_clinic_ids())
+    clinic_id = any(get_user_clinic_ids())
 );
 create policy "prescription_items_select" on public.prescription_items for select using (
-    exists (select 1 from public.prescriptions where id = prescription_id and clinic_id in (select get_user_clinic_ids()))
+    exists (select 1 from public.prescriptions where id = prescription_id and clinic_id = any(get_user_clinic_ids()))
 );
 create policy "prescription_items_insert" on public.prescription_items for insert with check (
-    exists (select 1 from public.prescriptions where id = prescription_id and clinic_id in (select get_user_clinic_ids()))
+    exists (select 1 from public.prescriptions where id = prescription_id and clinic_id = any(get_user_clinic_ids()))
 );
 
 -- RPC for Public Pharmacy Verification
@@ -4758,7 +4758,7 @@ create table if not exists public.archive_clinical_records (
 alter table public.archive_clinical_records enable row level security;
 -- Solo dueños o super admins pueden consultar el archivo muerto
 create policy "archive_select" on public.archive_clinical_records for select using (
-    clinic_id in (select get_user_clinic_ids()) and
+    clinic_id = any(get_user_clinic_ids()) and
     get_member_role(clinic_id) = 'owner'
 );
 
@@ -4805,8 +4805,8 @@ create table if not exists public.informed_consents (
 
 alter table public.informed_consents enable row level security;
 create policy "consents_select" on public.informed_consents for select using (
-    clinic_id in (select get_user_clinic_ids())
+    clinic_id = any(get_user_clinic_ids())
 );
 create policy "consents_insert" on public.informed_consents for insert with check (
-    clinic_id in (select get_user_clinic_ids())
+    clinic_id = any(get_user_clinic_ids())
 );
