@@ -46,8 +46,8 @@ export async function POST(req: Request) {
       .eq("doctor_id", user.id)
       .maybeSingle();
 
-    const isAdmin = profileData || (memberData && (memberData.role === "owner" || memberData.role === "clinic_admin"));
-    const isDoctor = memberData && memberData.role === "doctor";
+    const isAdmin = memberData && (memberData.role === "owner" || memberData.role === "clinic_admin");
+    const isDoctor = memberData && (memberData.role === "doctor");
 
     if (!isAdmin && !isDoctor) {
       return NextResponse.json(
@@ -56,9 +56,18 @@ export async function POST(req: Request) {
       );
     }
 
+    // Doctors can ONLY invite assistants assigned to themselves
     if (isDoctor && role !== "assistant") {
       return NextResponse.json(
         { error: "Los médicos solo pueden invitar a sus propios asistentes" },
+        { status: 403 }
+      );
+    }
+
+    // Only owner/clinic_admin can invite: doctor, clinic_admin, receptionist, lab, imaging, surgery
+    if (!isAdmin && ["doctor", "clinic_admin", "receptionist", "lab", "imaging", "surgery"].includes(role)) {
+      return NextResponse.json(
+        { error: "Solo el dueño o administrador de la clínica puede invitar este rol" },
         { status: 403 }
       );
     }
@@ -106,26 +115,45 @@ export async function POST(req: Request) {
         .from("clinic_members")
         .select("*", { count: "exact", head: true })
         .eq("clinic_id", clinic_id)
-        .eq("role", "receptionist");
+        .eq("role", "receptionist")
+        .eq("is_active", true);
 
-      if ((receptionistCount ?? 0) >= 3) {
+      // Spec: máximo 1 recepcionista por organización
+      if ((receptionistCount ?? 0) >= 1) {
         return NextResponse.json(
-          { error: `Has alcanzado el límite máximo de 3 accesos para recepcionistas.` },
+          { error: `Has alcanzado el límite máximo de 1 acceso para recepcionista.` },
           { status: 403 },
         );
       }
     }
 
-    if (role === "lab" || role === "imaging") {
+    if (role === "lab") {
       const { count: labCount } = await supabase
         .from("clinic_members")
         .select("*", { count: "exact", head: true })
         .eq("clinic_id", clinic_id)
-        .in("role", ["lab", "imaging"]);
+        .eq("role", "lab")
+        .eq("is_active", true);
 
       if ((labCount ?? 0) >= 3) {
         return NextResponse.json(
-          { error: `Has alcanzado el límite máximo de 3 accesos para laboratorios e imagenología.` },
+          { error: `Has alcanzado el límite máximo de 3 accesos para laboratorio.` },
+          { status: 403 },
+        );
+      }
+    }
+
+    if (role === "imaging") {
+      const { count: imagingCount } = await supabase
+        .from("clinic_members")
+        .select("*", { count: "exact", head: true })
+        .eq("clinic_id", clinic_id)
+        .eq("role", "imaging")
+        .eq("is_active", true);
+
+      if ((imagingCount ?? 0) >= 3) {
+        return NextResponse.json(
+          { error: `Has alcanzado el límite máximo de 3 accesos para imagenología.` },
           { status: 403 },
         );
       }

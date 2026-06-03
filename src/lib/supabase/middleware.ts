@@ -209,7 +209,7 @@ export async function updateSession(request: NextRequest) {
     try {
       const { data: memberData } = await supabase
         .from("clinic_members")
-        .select("role, is_active")
+        .select("role, is_active, clinic_id")
         .eq("doctor_id", user.id)
         .limit(1)
         .maybeSingle();
@@ -217,6 +217,36 @@ export async function updateSession(request: NextRequest) {
       if (memberData && memberData.is_active) {
         const role = memberData.role === "admin" ? "owner" : memberData.role;
         const pathname = request.nextUrl.pathname;
+
+        // ── Plan Clínica route check ──
+        // Routes that require Plan Clínica: /referencias, /recepcion, /laboratorio, etc.
+        const CLINIC_PLAN_ROUTES = [
+          "/administracion", "/recepcion", "/laboratorio", "/imagen", 
+          "/cirugia", "/referencias"
+        ];
+        
+        const requiresClinicPlan = CLINIC_PLAN_ROUTES.some(
+          (prefix) => pathname === prefix || pathname.startsWith(prefix + "/")
+        );
+
+        if (requiresClinicPlan) {
+          try {
+            const { data: clinicData } = await supabase
+              .from("clinics")
+              .select("plan_type")
+              .eq("id", memberData.clinic_id ?? "")
+              .maybeSingle();
+
+            if (!clinicData || clinicData.plan_type !== "clinica") {
+              const dashboard = ROLE_DASHBOARDS[role] || "/dashboard";
+              const url = request.nextUrl.clone();
+              url.pathname = dashboard;
+              return NextResponse.redirect(url);
+            }
+          } catch {
+            // If plan_type check fails, allow through (fail-open for this check)
+          }
+        }
 
         // Simplified route access map for Edge runtime
         // Must stay in sync with src/lib/guards/route-guard.ts ROUTE_ACCESS

@@ -2,9 +2,23 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { CashTransaction, CashTransactionInsert, CashShift, CashShiftInsert } from "../types";
 
-export function useCashTransactions(clinicId: string, startDate?: Date, endDate?: Date) {
+/**
+ * Fetch cash transactions filtered by role's section_type.
+ * - owner/doctor/assistant: see section_type = 'doctor'
+ * - lab/imaging/surgery: see their own section_type
+ * - clinic_admin: sees all sections (pass sectionType = null)
+ */
+export function useCashTransactions(
+  clinicId: string, 
+  startDate?: Date, 
+  endDate?: Date,
+  options?: { sectionType?: string | null; role?: string }
+) {
+  const sectionType = options?.sectionType;
+  const role = options?.role;
+
   return useQuery({
-    queryKey: ["cash-flow", clinicId, startDate?.toISOString(), endDate?.toISOString()],
+    queryKey: ["cash-flow", clinicId, startDate?.toISOString(), endDate?.toISOString(), sectionType, role],
     queryFn: async () => {
       const supabase = getSupabaseClient();
       let query = (supabase as any)
@@ -16,6 +30,24 @@ export function useCashTransactions(clinicId: string, startDate?: Date, endDate?
           )
         `)
         .eq("clinic_id", clinicId);
+
+      // Apply section_type filter based on role
+      // clinic_admin (sectionType = null) sees all; others see their section
+      if (sectionType !== null && sectionType !== undefined) {
+        query = query.eq("section_type", sectionType);
+      } else if (role && !["clinic_admin", "owner"].includes(role)) {
+        // Default: role-based filtering for non-admin roles
+        const roleToSection: Record<string, string> = {
+          doctor: "doctor",
+          assistant: "doctor",
+          receptionist: "doctor",
+          lab: "lab",
+          imaging: "imaging",
+          surgery: "surgery",
+        };
+        const section = roleToSection[role] ?? "doctor";
+        query = query.eq("section_type", section);
+      }
 
       if (startDate && endDate) {
         query = query.gte("created_at", startDate.toISOString()).lte("created_at", endDate.toISOString());

@@ -98,3 +98,80 @@ export function useUpdateDepartmentOrder() {
     },
   });
 }
+
+/**
+ * Add results to a department order and mark it as done.
+ * Used by lab/imaging/surgery to submit completed results.
+ */
+export function useAddOrderResults() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      orderId,
+      resultNotes,
+      completedByMemberId,
+    }: {
+      orderId: string;
+      resultNotes: string;
+      completedByMemberId: string;
+    }) => {
+      const supabase = getSupabaseClient();
+      const { data, error } = await supabase
+        .from("department_orders")
+        .update({
+          result_notes: resultNotes,
+          status: "done",
+          completed_by_member_id: completedByMemberId,
+          completed_at: new Date().toISOString(),
+        })
+        .eq("id", orderId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["department-orders"] });
+    },
+  });
+}
+
+/**
+ * Mark an order as in_progress.
+ * Used when a department starts working on an order.
+ */
+export function useStartOrder() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (orderId: string) => {
+      const supabase = getSupabaseClient();
+      const { data, error } = await supabase
+        .from("department_orders")
+        .update({ status: "in_progress" })
+        .eq("id", orderId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["department-orders"] });
+    },
+  });
+}
+
+/**
+ * Helper: get department type from user role.
+ */
+export function getDepartmentTypeFromRole(role: string): DepartmentType | null {
+  const map: Record<string, DepartmentType> = {
+    lab: "lab",
+    imaging: "imaging",
+    surgery: "surgery",
+  };
+  return map[role] ?? null;
+}

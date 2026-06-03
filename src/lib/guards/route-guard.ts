@@ -38,7 +38,7 @@ const ROLE_DASHBOARDS: Record<OrgRole, string> = {
  * Order matters — first match wins.
  * If a route prefix is not listed here, it's accessible by all authenticated users.
  */
-const ROUTE_ACCESS: Array<{ prefix: string; roles: OrgRole[] }> = [
+export const ROUTE_ACCESS: Array<{ prefix: string; roles: OrgRole[]; requiresClinicPlan?: boolean }> = [
   // Owner / Doctor routes (Plan Individual + Clínica)
   { prefix: "/dashboard",     roles: ["owner", "doctor"] },
   // receptionist has conditional access via doctor_settings.receptionist_enabled
@@ -51,19 +51,19 @@ const ROUTE_ACCESS: Array<{ prefix: string; roles: OrgRole[] }> = [
   { prefix: "/caja",          roles: ["owner", "doctor", "assistant", "receptionist", "clinic_admin", "lab", "imaging", "surgery"] },
   { prefix: "/ajustes",       roles: ["owner", "doctor", "clinic_admin"] },
   
-  // Clinic Admin routes — 100% administrative, NO clinical access
-  { prefix: "/administracion", roles: ["clinic_admin", "owner"] },
+  // Clinic Admin routes — 100% administrative, NO clinical access (Plan Clínica only)
+  { prefix: "/administracion", roles: ["clinic_admin", "owner"], requiresClinicPlan: true },
 
-  // Receptionist routes
-  { prefix: "/recepcion",     roles: ["receptionist"] },
+  // Receptionist routes (Plan Clínica only)
+  { prefix: "/recepcion",     roles: ["receptionist"], requiresClinicPlan: true },
 
-  // Department routes — each role accesses ONLY their department
-  { prefix: "/laboratorio",   roles: ["lab"] },
-  { prefix: "/imagen",        roles: ["imaging"] },
-  { prefix: "/cirugia",       roles: ["surgery"] },
+  // Department routes — each role accesses ONLY their department (Plan Clínica only)
+  { prefix: "/laboratorio",   roles: ["lab"], requiresClinicPlan: true },
+  { prefix: "/imagen",        roles: ["imaging"], requiresClinicPlan: true },
+  { prefix: "/cirugia",       roles: ["surgery"], requiresClinicPlan: true },
 
   // References (inter-clinic referrals — Plan Clínica only)
-  { prefix: "/referencias",   roles: ["owner", "doctor"] },
+  { prefix: "/referencias",   roles: ["owner", "doctor"], requiresClinicPlan: true },
 
   // Docs/Manual — accessible by all roles
   { prefix: "/docs",          roles: ["owner", "doctor", "assistant", "clinic_admin", "receptionist", "lab", "imaging", "surgery"] },
@@ -89,6 +89,16 @@ function roleHasRouteAccess(role: OrgRole, pathname: string): boolean {
   if (!rule) return true;
 
   return rule.roles.includes(role);
+}
+
+/**
+ * Check if a route requires Plan Clínica and whether the org has it.
+ */
+function routeRequiresClinicPlan(pathname: string): boolean {
+  const rule = ROUTE_ACCESS.find(
+    (r) => pathname === r.prefix || pathname.startsWith(r.prefix + "/")
+  );
+  return rule?.requiresClinicPlan === true;
 }
 
 /**
@@ -154,8 +164,9 @@ type GuardResult =
  * @param params.customPermissions - JSONB custom permissions
  * @param params.pathname - The requested route
  * @param params.isPlatformAdmin - Whether the user is a platform admin
+ * @param params.planType - The organization's plan type ('individual' | 'clinica')
  */
-function evaluateRouteGuard(params: {
+export function evaluateRouteGuard(params: {
   hasSession: boolean;
   isActive: boolean;
   subscriptionStatus: string | null | undefined;
@@ -163,8 +174,9 @@ function evaluateRouteGuard(params: {
   customPermissions: Record<string, boolean>;
   pathname: string;
   isPlatformAdmin: boolean;
+  planType?: "individual" | "clinica";
 }): GuardResult {
-  const { hasSession, isActive, subscriptionStatus, role, customPermissions, pathname, isPlatformAdmin } = params;
+  const { hasSession, isActive, subscriptionStatus, role, customPermissions, pathname, isPlatformAdmin, planType } = params;
 
   // Platform admin accessing /platform/* routes — always allowed
   if (isPlatformAdmin && pathname.startsWith("/platform")) {
@@ -191,6 +203,16 @@ function evaluateRouteGuard(params: {
     return { allowed: false, redirect: "/sin-plan", reason: "Subscription is cancelled" };
   }
 
+  // Step 2.5: Plan type check — routes that require Plan Clínica
+  if (routeRequiresClinicPlan(pathname) && planType !== "clinica") {
+    const dashboard = getDashboardForRole(role);
+    return {
+      allowed: false,
+      redirect: dashboard,
+      reason: `Route '${pathname}' requires Plan Clínica but org has plan '${planType ?? "unknown"}'`,
+    };
+  }
+
   // Step 3: Role-based route access
   if (!roleHasRouteAccess(role, pathname)) {
     const dashboard = getDashboardForRole(role);
@@ -212,3 +234,6 @@ function evaluateRouteGuard(params: {
 
   return { allowed: true };
 }
+
+export { ROLE_DASHBOARDS };
+export type { GuardResult };

@@ -27,6 +27,7 @@ export type TenantProfile = {
   subscription_status?: string | null;
   subscription_expires_at?: string | null;
   plan: "basic" | "clinic";
+  planType: "individual" | "clinica";
   role: OrgRole;
   is_active: boolean;
   is_platform_admin: boolean;
@@ -84,6 +85,7 @@ function withSpecialties(profile: {
   full_name: string;
   specialty: string[];
   plan: "basic" | "clinic";
+  planType?: "individual" | "clinica";
   subscription_status?: string | null;
   subscription_expires_at?: string | null;
   role?: string;
@@ -96,7 +98,7 @@ function withSpecialties(profile: {
   terms_version?: string | null;
 }): TenantProfile {
   // Map the DB column name `specialty` to the canonical `specialties` field.
-  const { specialty, role, ui_preferences, onboarding_state, is_active, is_platform_admin, custom_permissions, member_id, ...rest } = profile;
+  const { specialty, role, ui_preferences, onboarding_state, is_active, is_platform_admin, custom_permissions, member_id, planType, ...rest } = profile;
   
   const defaultOnboardingState = { step: 1, completed: false };
   const parsedOnboardingState = onboarding_state && typeof onboarding_state === "object"
@@ -106,6 +108,7 @@ function withSpecialties(profile: {
   return { 
     ...rest, 
     specialties: specialty, 
+    planType: planType ?? "individual",
     role: normalizeRole(role),
     is_active: is_active ?? true,
     is_platform_admin: is_platform_admin ?? false,
@@ -146,9 +149,25 @@ export async function loadTenantProfile(userId: string): Promise<TenantProfile |
     .eq("doctor_id", userId)
     .maybeSingle();
 
+  // Load plan_type from the clinics table (organization-level)
+  let planType: "individual" | "clinica" = "individual";
+  try {
+    const { data: clinicData } = await supabase
+      .from("clinics")
+      .select("plan_type")
+      .eq("id", data.clinic_id)
+      .maybeSingle();
+    if (clinicData?.plan_type === "clinica") {
+      planType = "clinica";
+    }
+  } catch {
+    // If plan_type column doesn't exist yet, default to individual
+  }
+
   return withSpecialties({
     ...data,
     plan: data.plan as "basic" | "clinic",
+    planType,
     role: memberData?.role || "owner",
     is_active: memberData?.is_active ?? true,
     is_platform_admin: data.is_platform_admin ?? false,
