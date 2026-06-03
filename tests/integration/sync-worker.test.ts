@@ -46,8 +46,8 @@ describe('Sync Worker Integration Tests', () => {
     };
 
     vi.mocked(indexeddb.getSyncQueueItemsByStatus).mockResolvedValue([pendingItem as any]);
-    vi.mocked(indexeddb.updateSyncItemStatus).mockResolvedValue();
-    vi.mocked(indexeddb.pruneOldSyncQueueItems).mockResolvedValue();
+    vi.mocked(indexeddb.updateSyncItemStatus).mockResolvedValue(undefined);
+    vi.mocked(indexeddb.pruneOldSyncQueueItems).mockResolvedValue(undefined);
 
     const result = await flushSyncQueue({});
 
@@ -89,8 +89,8 @@ describe('Sync Worker Integration Tests', () => {
     };
 
     vi.mocked(indexeddb.getSyncQueueItemsByStatus).mockResolvedValue([pendingItem as any]);
-    vi.mocked(indexeddb.updateSyncItemStatus).mockResolvedValue();
-    vi.mocked(indexeddb.pruneOldSyncQueueItems).mockResolvedValue();
+    vi.mocked(indexeddb.updateSyncItemStatus).mockResolvedValue(undefined);
+    vi.mocked(indexeddb.pruneOldSyncQueueItems).mockResolvedValue(undefined);
 
     const result = await flushSyncQueue({});
 
