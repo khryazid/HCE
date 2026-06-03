@@ -489,32 +489,28 @@ create table if not exists public.lab_orders (
 alter table public.lab_orders enable row level security;
 
 drop policy if exists "Médicos pueden leer órdenes de su clínica" on public.lab_orders;
-create policy "Médicos pueden leer órdenes de su clínica"
-  on public.lab_orders for select
+create policy "Médicos pueden leer órdenes de su clínica" on public.lab_orders for select
   using (
     auth.uid() is not null
     and clinic_id = any (public.get_user_clinic_ids())
   );
 
 drop policy if exists "Médicos pueden insertar órdenes en su clínica" on public.lab_orders;
-create policy "Médicos pueden insertar órdenes en su clínica"
-  on public.lab_orders for insert
+create policy "Médicos pueden insertar órdenes en su clínica" on public.lab_orders for insert
   with check (
     auth.uid() = doctor_id
     and clinic_id = any (public.get_user_clinic_ids())
   );
 
 drop policy if exists "Médicos pueden actualizar órdenes en su clínica" on public.lab_orders;
-create policy "Médicos pueden actualizar órdenes en su clínica"
-  on public.lab_orders for update
+create policy "Médicos pueden actualizar órdenes en su clínica" on public.lab_orders for update
   using (
     auth.uid() is not null
     and clinic_id = any (public.get_user_clinic_ids())
   );
 
 drop policy if exists "Médicos pueden eliminar órdenes de su clínica" on public.lab_orders;
-create policy "Médicos pueden eliminar órdenes de su clínica"
-  on public.lab_orders for delete
+create policy "Médicos pueden eliminar órdenes de su clínica" on public.lab_orders for delete
   using (
     auth.uid() is not null
     and clinic_id = any (public.get_user_clinic_ids())
@@ -549,8 +545,7 @@ create table if not exists public.medical_referrals (
 alter table public.medical_referrals enable row level security;
 
 drop policy if exists "Médicos pueden leer referencias de su clínica" on public.medical_referrals;
-create policy "Médicos pueden leer referencias de su clínica"
-  on public.medical_referrals for select
+create policy "Médicos pueden leer referencias de su clínica" on public.medical_referrals for select
   using (
     auth.uid() is not null
     and (
@@ -560,16 +555,14 @@ create policy "Médicos pueden leer referencias de su clínica"
   );
 
 drop policy if exists "Médicos pueden crear referencias" on public.medical_referrals;
-create policy "Médicos pueden crear referencias"
-  on public.medical_referrals for insert
+create policy "Médicos pueden crear referencias" on public.medical_referrals for insert
   with check (
     auth.uid() = referring_doctor_id
     and clinic_id = any (public.get_user_clinic_ids())
   );
 
 drop policy if exists "Médicos pueden actualizar referencias" on public.medical_referrals;
-create policy "Médicos pueden actualizar referencias"
-  on public.medical_referrals for update
+create policy "Médicos pueden actualizar referencias" on public.medical_referrals for update
   using (
     auth.uid() is not null
     and (
@@ -579,8 +572,7 @@ create policy "Médicos pueden actualizar referencias"
   );
 
 drop policy if exists "Médicos pueden eliminar referencias" on public.medical_referrals;
-create policy "Médicos pueden eliminar referencias"
-  on public.medical_referrals for delete
+create policy "Médicos pueden eliminar referencias" on public.medical_referrals for delete
   using (
     auth.uid() is not null
     and clinic_id = any (public.get_user_clinic_ids())
@@ -614,24 +606,21 @@ create table if not exists public.cash_transactions (
 alter table public.cash_transactions enable row level security;
 
 drop policy if exists "Usuarios de la clínica pueden ver transacciones" on public.cash_transactions;
-create policy "Usuarios de la clínica pueden ver transacciones"
-  on public.cash_transactions for select
+create policy "Usuarios de la clínica pueden ver transacciones" on public.cash_transactions for select
   using (
     auth.uid() is not null
     and clinic_id = any (public.get_user_clinic_ids())
   );
 
 drop policy if exists "Usuarios de la clínica pueden insertar transacciones" on public.cash_transactions;
-create policy "Usuarios de la clínica pueden insertar transacciones"
-  on public.cash_transactions for insert
+create policy "Usuarios de la clínica pueden insertar transacciones" on public.cash_transactions for insert
   with check (
     auth.uid() = user_id
     and clinic_id = any (public.get_user_clinic_ids())
   );
 
 drop policy if exists "Usuarios de la clínica pueden anular transacciones" on public.cash_transactions;
-create policy "Usuarios de la clínica pueden anular transacciones"
-  on public.cash_transactions for update
+create policy "Usuarios de la clínica pueden anular transacciones" on public.cash_transactions for update
   using (
     auth.uid() is not null
     and clinic_id = any (public.get_user_clinic_ids())
@@ -854,8 +843,7 @@ alter table public.appointments         enable row level security;
 -- Cualquier médico puede leer la clínica a la que pertenece.
 -- Solo el service_role puede crear/modificar clínicas (sin policies de escritura para authenticated).
 drop policy if exists "clinics_select" on public.clinics;
-create policy "clinics_select"
-  on public.clinics for select to authenticated
+create policy "clinics_select" on public.clinics for select to authenticated
   using (
     id in (
       select clinic_id from public.profiles where doctor_id = auth.uid()
@@ -867,13 +855,11 @@ create policy "clinics_select"
 -- ── profiles ─────────────────────────────────────────────────
 -- Solo el propio médico puede leer/escribir su perfil.
 drop policy if exists "profiles_tenant_select" on public.profiles;
-create policy "profiles_tenant_select"
-  on public.profiles for select to authenticated
+create policy "profiles_tenant_select" on public.profiles for select to authenticated
   using (doctor_id = auth.uid());
 
 drop policy if exists "profiles_tenant_write" on public.profiles;
-create policy "profiles_tenant_write"
-  on public.profiles for all to authenticated
+create policy "profiles_tenant_write" on public.profiles for all to authenticated
   using (doctor_id = auth.uid())
   with check (doctor_id = auth.uid());
 
@@ -881,8 +867,7 @@ create policy "profiles_tenant_write"
 -- Acceso por clinic_id del perfil del médico autenticado.
 -- Cualquier médico de la misma clínica puede ver y escribir pacientes.
 drop policy if exists "patients_tenant_select" on public.patients;
-create policy "patients_tenant_select"
-  on public.patients for select to authenticated
+create policy "patients_tenant_select" on public.patients for select to authenticated
   using (
     deleted_at is null and
     (exists (
@@ -893,8 +878,7 @@ create policy "patients_tenant_select"
   );
 
 drop policy if exists "patients_tenant_insert" on public.patients;
-create policy "patients_tenant_insert"
-  on public.patients for insert to authenticated
+create policy "patients_tenant_insert" on public.patients for insert to authenticated
   with check (
     exists (
       select 1 from public.profiles p
@@ -904,8 +888,7 @@ create policy "patients_tenant_insert"
   );
 
 drop policy if exists "patients_tenant_update" on public.patients;
-create policy "patients_tenant_update"
-  on public.patients for update to authenticated
+create policy "patients_tenant_update" on public.patients for update to authenticated
   using (
     exists (
       select 1 from public.profiles p
@@ -923,8 +906,7 @@ create policy "patients_tenant_update"
 
 -- ── clinical_records ─────────────────────────────────────────
 drop policy if exists "records_tenant_select" on public.clinical_records;
-create policy "records_tenant_select"
-  on public.clinical_records for select to authenticated
+create policy "records_tenant_select" on public.clinical_records for select to authenticated
   using (
     deleted_at is null and
     (exists (
@@ -935,8 +917,7 @@ create policy "records_tenant_select"
   );
 
 drop policy if exists "records_tenant_insert" on public.clinical_records;
-create policy "records_tenant_insert"
-  on public.clinical_records for insert to authenticated
+create policy "records_tenant_insert" on public.clinical_records for insert to authenticated
   with check (
     exists (
       select 1 from public.profiles p
@@ -946,8 +927,7 @@ create policy "records_tenant_insert"
   );
 
 drop policy if exists "records_tenant_update" on public.clinical_records;
-create policy "records_tenant_update"
-  on public.clinical_records for update to authenticated
+create policy "records_tenant_update" on public.clinical_records for update to authenticated
   using (
     exists (
       select 1 from public.profiles p
@@ -965,8 +945,7 @@ create policy "records_tenant_update"
 
 -- ── specialty_data ───────────────────────────────────────────
 drop policy if exists "specialty_tenant_select" on public.specialty_data;
-create policy "specialty_tenant_select"
-  on public.specialty_data for select to authenticated
+create policy "specialty_tenant_select" on public.specialty_data for select to authenticated
   using (
     exists (
       select 1 from public.profiles p
@@ -976,8 +955,7 @@ create policy "specialty_tenant_select"
   );
 
 drop policy if exists "specialty_tenant_write" on public.specialty_data;
-create policy "specialty_tenant_write"
-  on public.specialty_data for all to authenticated
+create policy "specialty_tenant_write" on public.specialty_data for all to authenticated
   using (
     exists (
       select 1 from public.profiles p
@@ -996,43 +974,36 @@ create policy "specialty_tenant_write"
 -- ── audit_logs ───────────────────────────────────────────────
 -- INSERT propio + SELECT propio. UPDATE y DELETE bloqueados permanentemente.
 drop policy if exists "audit_tenant_insert" on public.audit_logs;
-create policy "audit_tenant_insert"
-  on public.audit_logs for insert to authenticated
+create policy "audit_tenant_insert" on public.audit_logs for insert to authenticated
   with check (doctor_id = auth.uid());
 
 drop policy if exists "audit_tenant_select" on public.audit_logs;
-create policy "audit_tenant_select"
-  on public.audit_logs for select to authenticated
+create policy "audit_tenant_select" on public.audit_logs for select to authenticated
   using (doctor_id = auth.uid());
 
 drop policy if exists "audit_no_update" on public.audit_logs;
-create policy "audit_no_update"
-  on public.audit_logs as restrictive for update to authenticated
+create policy "audit_no_update" on public.audit_logs as restrictive for update to authenticated
   using (false);
 
 drop policy if exists "audit_no_delete" on public.audit_logs;
-create policy "audit_no_delete"
-  on public.audit_logs as restrictive for delete to authenticated
+create policy "audit_no_delete" on public.audit_logs as restrictive for delete to authenticated
   using (false);
 
 -- ── follow_up_tasks ──────────────────────────────────────────
 -- Cada médico solo ve y escribe sus propias tareas de seguimiento.
 drop policy if exists "followup_tenant_select" on public.follow_up_tasks;
-create policy "followup_tenant_select"
-  on public.follow_up_tasks for select to authenticated
+create policy "followup_tenant_select" on public.follow_up_tasks for select to authenticated
   using (doctor_id = auth.uid());
 
 drop policy if exists "followup_tenant_write" on public.follow_up_tasks;
-create policy "followup_tenant_write"
-  on public.follow_up_tasks for all to authenticated
+create policy "followup_tenant_write" on public.follow_up_tasks for all to authenticated
   using (doctor_id = auth.uid())
   with check (doctor_id = auth.uid());
 
 -- ── appointments ─────────────────────────────────────────────
 -- Cada médico de la clínica puede ver y escribir en la agenda compartida de su clínica
 drop policy if exists "appointments_tenant_select" on public.appointments;
-create policy "appointments_tenant_select"
-  on public.appointments for select to authenticated
+create policy "appointments_tenant_select" on public.appointments for select to authenticated
   using (
     exists (
       select 1 from public.profiles p
@@ -1042,8 +1013,7 @@ create policy "appointments_tenant_select"
   );
 
 drop policy if exists "appointments_tenant_write" on public.appointments;
-create policy "appointments_tenant_write"
-  on public.appointments for all to authenticated
+create policy "appointments_tenant_write" on public.appointments for all to authenticated
   using (
     exists (
       select 1 from public.profiles p
@@ -1064,8 +1034,8 @@ create policy "appointments_tenant_write"
 drop policy if exists "push_subscriptions_tenant_select" on public.push_subscriptions;
 -- A-05: Corregido operador OR ambiguo — se agregan paréntesis para que
 -- `doctor_id = auth.uid()` sea condición obligatoria en todos los casos.
-create policy "push_subscriptions_tenant_select"
-  on public.push_subscriptions for select to authenticated
+drop policy if exists "push_subscriptions_tenant_select" on public.push_subscriptions;
+create policy "push_subscriptions_tenant_select" on public.push_subscriptions for select to authenticated
   using (
     doctor_id = auth.uid()
     and (
@@ -1079,8 +1049,7 @@ create policy "push_subscriptions_tenant_select"
   );
 
 drop policy if exists "push_subscriptions_tenant_write" on public.push_subscriptions;
-create policy "push_subscriptions_tenant_write"
-  on public.push_subscriptions for all to authenticated
+create policy "push_subscriptions_tenant_write" on public.push_subscriptions for all to authenticated
   using (
     doctor_id = auth.uid()
     and (
@@ -1107,20 +1076,17 @@ create policy "push_subscriptions_tenant_write"
 -- ── treatment_templates ──────────────────────────────────────
 -- Cada médico solo puede ver, crear, editar y borrar sus propias plantillas.
 drop policy if exists "treatment_templates_select" on public.treatment_templates;
-create policy "treatment_templates_select"
-  on public.treatment_templates for select to authenticated
+create policy "treatment_templates_select" on public.treatment_templates for select to authenticated
   using (doctor_id = auth.uid());
 
 drop policy if exists "treatment_templates_write" on public.treatment_templates;
-create policy "treatment_templates_write"
-  on public.treatment_templates for all to authenticated
+create policy "treatment_templates_write" on public.treatment_templates for all to authenticated
   using (doctor_id = auth.uid())
   with check (doctor_id = auth.uid());
 
 -- ── clinic_members ───────────────────────────────────────────
 drop policy if exists "clinic_members_select" on public.clinic_members;
-create policy "clinic_members_select"
-  on public.clinic_members for select to authenticated
+create policy "clinic_members_select" on public.clinic_members for select to authenticated
   using (
     exists (
       select 1 from public.profiles p
@@ -1134,15 +1100,13 @@ create policy "clinic_members_select"
 -- en la clínica (sin ser admin) hacer INSERT/UPDATE/DELETE en clinic_members,
 -- lo que habilitaba auto-escalada de privilegios.
 drop policy if exists "clinic_members_write" on public.clinic_members;
-create policy "clinic_members_write"
-  on public.clinic_members for all to authenticated
+create policy "clinic_members_write" on public.clinic_members for all to authenticated
   using  (public.is_clinic_admin(public.clinic_members.clinic_id))
   with check (public.is_clinic_admin(public.clinic_members.clinic_id));
 
 -- ── invitations ──────────────────────────────────────────────
 drop policy if exists "invitations_select" on public.invitations;
-create policy "invitations_select"
-  on public.invitations for select to authenticated
+create policy "invitations_select" on public.invitations for select to authenticated
   using (
     organization_id in (
       select clinic_id from public.profiles where doctor_id = auth.uid()
@@ -1152,8 +1116,7 @@ create policy "invitations_select"
   );
 
 drop policy if exists "invitations_insert" on public.invitations;
-create policy "invitations_insert"
-  on public.invitations for insert to authenticated
+create policy "invitations_insert" on public.invitations for insert to authenticated
   with check (
     public.is_clinic_admin(organization_id)
     or exists (
@@ -1165,8 +1128,7 @@ create policy "invitations_insert"
   );
 
 drop policy if exists "invitations_update" on public.invitations;
-create policy "invitations_update"
-  on public.invitations for update to authenticated
+create policy "invitations_update" on public.invitations for update to authenticated
   using (
     public.is_clinic_admin(organization_id)
     or exists (
@@ -1179,8 +1141,7 @@ create policy "invitations_update"
 
 -- ── doctor_settings ──────────────────────────────────────────
 drop policy if exists "doctor_settings_select" on public.doctor_settings;
-create policy "doctor_settings_select"
-  on public.doctor_settings for select to authenticated
+create policy "doctor_settings_select" on public.doctor_settings for select to authenticated
   using (
     organization_id in (
       select clinic_id from public.profiles where doctor_id = auth.uid()
@@ -1190,8 +1151,7 @@ create policy "doctor_settings_select"
   );
 
 drop policy if exists "doctor_settings_write" on public.doctor_settings;
-create policy "doctor_settings_write"
-  on public.doctor_settings for all to authenticated
+create policy "doctor_settings_write" on public.doctor_settings for all to authenticated
   using (
     member_id in (
       select id from public.clinic_members where doctor_id = auth.uid()
@@ -2122,18 +2082,16 @@ $$;
 -- Actualizar politicas de escritura para verificar suscripcion
 
 -- patients
-DROP POLICY IF EXISTS "patients_tenant_insert" ON public.patients;
-CREATE POLICY "patients_tenant_insert"
-  ON public.patients FOR INSERT TO authenticated
+drop policy if exists "patients_tenant_insert" on public.patients;
+create policy "patients_tenant_insert" on public.patients FOR INSERT TO authenticated
   WITH CHECK (
     (exists (select 1 from public.profiles p where p.doctor_id = auth.uid() and p.clinic_id = public.patients.clinic_id)
      or public.is_clinic_member(public.patients.clinic_id))
     AND has_active_subscription(public.patients.clinic_id)
   );
 
-DROP POLICY IF EXISTS "patients_tenant_update" ON public.patients;
-CREATE POLICY "patients_tenant_update"
-  ON public.patients FOR UPDATE TO authenticated
+drop policy if exists "patients_tenant_update" on public.patients;
+create policy "patients_tenant_update" on public.patients FOR UPDATE TO authenticated
   USING (
     (exists (select 1 from public.profiles p where p.doctor_id = auth.uid() and p.clinic_id = public.patients.clinic_id)
      or public.is_clinic_member(public.patients.clinic_id))
@@ -2146,18 +2104,16 @@ CREATE POLICY "patients_tenant_update"
   );
 
 -- clinical_records
-DROP POLICY IF EXISTS "records_tenant_insert" ON public.clinical_records;
-CREATE POLICY "records_tenant_insert"
-  ON public.clinical_records FOR INSERT TO authenticated
+drop policy if exists "records_tenant_insert" on public.clinical_records;
+create policy "records_tenant_insert" on public.clinical_records FOR INSERT TO authenticated
   WITH CHECK (
     (exists (select 1 from public.profiles p where p.doctor_id = auth.uid() and p.clinic_id = public.clinical_records.clinic_id)
      or public.is_clinic_member(public.clinical_records.clinic_id))
     AND has_active_subscription(public.clinical_records.clinic_id)
   );
 
-DROP POLICY IF EXISTS "records_tenant_update" ON public.clinical_records;
-CREATE POLICY "records_tenant_update"
-  ON public.clinical_records FOR UPDATE TO authenticated
+drop policy if exists "records_tenant_update" on public.clinical_records;
+create policy "records_tenant_update" on public.clinical_records FOR UPDATE TO authenticated
   USING (
     (exists (select 1 from public.profiles p where p.doctor_id = auth.uid() and p.clinic_id = public.clinical_records.clinic_id)
      or public.is_clinic_member(public.clinical_records.clinic_id))
@@ -2170,9 +2126,8 @@ CREATE POLICY "records_tenant_update"
   );
 
 -- appointments
-DROP POLICY IF EXISTS "appointments_tenant_write" ON public.appointments;
-CREATE POLICY "appointments_tenant_write"
-  ON public.appointments FOR ALL TO authenticated
+drop policy if exists "appointments_tenant_write" on public.appointments;
+create policy "appointments_tenant_write" on public.appointments FOR ALL TO authenticated
   USING (
     (exists (select 1 from public.profiles p where p.doctor_id = auth.uid() and p.clinic_id = public.appointments.clinic_id)
      or public.is_clinic_member(public.appointments.clinic_id))
@@ -2195,14 +2150,12 @@ ON CONFLICT (id) DO NOTHING;
 -- Ahora el path DEBE comenzar con el clinic_id del usuario autenticado:
 --   clinic_assets/{clinic_id}/logo.png
 --   clinic_assets/{clinic_id}/firma.png
-DROP POLICY IF EXISTS "clinic_assets_select" ON storage.objects;
-CREATE POLICY "clinic_assets_select"
-  ON storage.objects FOR SELECT TO public
+drop policy if exists "clinic_assets_select" on storage.objects;
+create policy "clinic_assets_select" on storage.objects FOR SELECT TO public
   USING (bucket_id = 'clinic_assets');
 
-DROP POLICY IF EXISTS "clinic_assets_insert" ON storage.objects;
-CREATE POLICY "clinic_assets_insert"
-  ON storage.objects FOR INSERT TO authenticated
+drop policy if exists "clinic_assets_insert" on storage.objects;
+create policy "clinic_assets_insert" on storage.objects FOR INSERT TO authenticated
   WITH CHECK (
     bucket_id = 'clinic_assets'
     AND (storage.foldername(name))[1] IN (
@@ -2217,9 +2170,8 @@ CREATE POLICY "clinic_assets_insert"
     )
   );
 
-DROP POLICY IF EXISTS "clinic_assets_update" ON storage.objects;
-CREATE POLICY "clinic_assets_update"
-  ON storage.objects FOR UPDATE TO authenticated
+drop policy if exists "clinic_assets_update" on storage.objects;
+create policy "clinic_assets_update" on storage.objects FOR UPDATE TO authenticated
   USING (
     bucket_id = 'clinic_assets'
     AND (storage.foldername(name))[1] IN (
@@ -2247,9 +2199,8 @@ CREATE POLICY "clinic_assets_update"
     )
   );
 
-DROP POLICY IF EXISTS "clinic_assets_delete" ON storage.objects;
-CREATE POLICY "clinic_assets_delete"
-  ON storage.objects FOR DELETE TO authenticated
+drop policy if exists "clinic_assets_delete" on storage.objects;
+create policy "clinic_assets_delete" on storage.objects FOR DELETE TO authenticated
   USING (
     bucket_id = 'clinic_assets'
     AND (storage.foldername(name))[1] IN (
@@ -2664,10 +2615,8 @@ end $$;
 -- Solo createTenantProfileWithTrial (service_role) puede asignar subscription.
 
 DROP POLICY IF EXISTS "profiles_tenant_write" ON public.profiles;
-DROP POLICY IF EXISTS "profiles_tenant_insert" ON public.profiles;
-
-CREATE POLICY "profiles_tenant_insert"
-  ON public.profiles FOR INSERT TO authenticated
+drop policy if exists "profiles_tenant_insert" on public.profiles;
+create policy "profiles_tenant_insert" on public.profiles FOR INSERT TO authenticated
   WITH CHECK (
     doctor_id = auth.uid()
     AND subscription_status IS NULL
@@ -2680,9 +2629,8 @@ CREATE POLICY "profiles_tenant_insert"
 -- Los campos de billing (subscription_status, subscription_expires_at,
 -- stripe_customer_id, stripe_subscription_id) son inmutables desde el cliente:
 -- solo service_role puede modificarlos (webhook handler y createTenantProfileWithTrial).
-DROP POLICY IF EXISTS "profiles_tenant_update" ON public.profiles;
-CREATE POLICY "profiles_tenant_update"
-  ON public.profiles FOR UPDATE TO authenticated
+drop policy if exists "profiles_tenant_update" on public.profiles;
+create policy "profiles_tenant_update" on public.profiles FOR UPDATE TO authenticated
   USING (doctor_id = auth.uid())
   WITH CHECK (
     doctor_id = auth.uid()
@@ -2698,9 +2646,8 @@ CREATE POLICY "profiles_tenant_update"
 -- ── HAL-14: audit_logs SELECT para admins de clínica ─────────────────────────
 -- Un admin de clínica puede supervisar los audit logs de su clínica completa.
 
-DROP POLICY IF EXISTS "audit_tenant_select" ON public.audit_logs;
-CREATE POLICY "audit_tenant_select"
-  ON public.audit_logs FOR SELECT TO authenticated
+drop policy if exists "audit_tenant_select" on public.audit_logs;
+create policy "audit_tenant_select" on public.audit_logs FOR SELECT TO authenticated
   USING (
     doctor_id = auth.uid()
     OR public.is_clinic_admin(clinic_id)
@@ -3104,8 +3051,7 @@ alter table public.cash_shifts enable row level security;
 
 -- Policies for cash_shifts
 drop policy if exists "Usuarios pueden ver turnos de su clínica" on public.cash_shifts;
-create policy "Usuarios pueden ver turnos de su clínica"
-  on public.cash_shifts for select
+create policy "Usuarios pueden ver turnos de su clínica" on public.cash_shifts for select
   using (
     auth.uid() is not null
     and clinic_id in (
@@ -3116,8 +3062,7 @@ create policy "Usuarios pueden ver turnos de su clínica"
   );
 
 drop policy if exists "Usuarios pueden insertar turnos en su clínica" on public.cash_shifts;
-create policy "Usuarios pueden insertar turnos en su clínica"
-  on public.cash_shifts for insert
+create policy "Usuarios pueden insertar turnos en su clínica" on public.cash_shifts for insert
   with check (
     auth.uid() is not null
     and auth.uid() = user_id
@@ -3129,8 +3074,7 @@ create policy "Usuarios pueden insertar turnos en su clínica"
   );
 
 drop policy if exists "Usuarios pueden actualizar sus propios turnos" on public.cash_shifts;
-create policy "Usuarios pueden actualizar sus propios turnos"
-  on public.cash_shifts for update
+create policy "Usuarios pueden actualizar sus propios turnos" on public.cash_shifts for update
   using (
     auth.uid() = user_id
     and clinic_id in (
@@ -3306,8 +3250,7 @@ alter table public.referrals enable row level security;
 
 -- Members of the organization can read referrals they sent or received
 drop policy if exists "referrals_select" on public.referrals;
-create policy "referrals_select"
-  on public.referrals for select to authenticated
+create policy "referrals_select" on public.referrals for select to authenticated
   using (
     organization_id in (
       select clinic_id from public.clinic_members
@@ -3318,8 +3261,7 @@ create policy "referrals_select"
 
 -- Only doctors/owners can create referrals
 drop policy if exists "referrals_insert" on public.referrals;
-create policy "referrals_insert"
-  on public.referrals for insert to authenticated
+create policy "referrals_insert" on public.referrals for insert to authenticated
   with check (
     exists (
       select 1 from public.clinic_members
@@ -3332,8 +3274,7 @@ create policy "referrals_insert"
 
 -- Recipients can update (mark as viewed/responded)
 drop policy if exists "referrals_update" on public.referrals;
-create policy "referrals_update"
-  on public.referrals for update to authenticated
+create policy "referrals_update" on public.referrals for update to authenticated
   using (
     -- The recipient (to_member) can update
     to_member_id in (
@@ -3412,8 +3353,7 @@ alter table public.department_orders enable row level security;
 -- Doctors/owners can see all orders in their org
 -- Department roles can see only orders for their department
 drop policy if exists "dept_orders_select" on public.department_orders;
-create policy "dept_orders_select"
-  on public.department_orders for select to authenticated
+create policy "dept_orders_select" on public.department_orders for select to authenticated
   using (
     -- Doctors and owners see all orders in their org
     exists (
@@ -3435,8 +3375,7 @@ create policy "dept_orders_select"
 
 -- Only doctors/owners can create orders
 drop policy if exists "dept_orders_insert" on public.department_orders;
-create policy "dept_orders_insert"
-  on public.department_orders for insert to authenticated
+create policy "dept_orders_insert" on public.department_orders for insert to authenticated
   with check (
     exists (
       select 1 from public.clinic_members
@@ -3449,8 +3388,7 @@ create policy "dept_orders_insert"
 
 -- Department members and the ordering doctor can update (e.g., mark as done)
 drop policy if exists "dept_orders_update" on public.department_orders;
-create policy "dept_orders_update"
-  on public.department_orders for update to authenticated
+create policy "dept_orders_update" on public.department_orders for update to authenticated
   using (
     -- The ordering doctor
     ordered_by_member_id in (
@@ -3601,8 +3539,7 @@ $$;
 
 -- SELECT policy
 drop policy if exists "patients_tenant_select" on public.patients;
-create policy "patients_tenant_select"
-  on public.patients for select to authenticated
+create policy "patients_tenant_select" on public.patients for select to authenticated
   using (
     deleted_at is null
     and (
@@ -3638,8 +3575,7 @@ create policy "patients_tenant_select"
 
 -- INSERT policy (only owner/doctor can create)
 drop policy if exists "patients_tenant_insert" on public.patients;
-create policy "patients_tenant_insert"
-  on public.patients for insert to authenticated
+create policy "patients_tenant_insert" on public.patients for insert to authenticated
   with check (
     (
       exists (
@@ -3660,8 +3596,7 @@ create policy "patients_tenant_insert"
 
 -- UPDATE policy (only owner/doctor can edit)
 drop policy if exists "patients_tenant_update" on public.patients;
-create policy "patients_tenant_update"
-  on public.patients for update to authenticated
+create policy "patients_tenant_update" on public.patients for update to authenticated
   using (
     (
       exists (
@@ -3757,8 +3692,7 @@ grant execute on function public.search_patient_by_identification(text) to authe
 --   clinic_admin, lab, imaging, surgery, receptionist: NO ACCESS
 
 drop policy if exists "records_tenant_select" on public.clinical_records;
-create policy "records_tenant_select"
-  on public.clinical_records for select to authenticated
+create policy "records_tenant_select" on public.clinical_records for select to authenticated
   using (
     deleted_at is null
     and (
@@ -3798,8 +3732,7 @@ create policy "records_tenant_select"
   );
 
 drop policy if exists "records_tenant_insert" on public.clinical_records;
-create policy "records_tenant_insert"
-  on public.clinical_records for insert to authenticated
+create policy "records_tenant_insert" on public.clinical_records for insert to authenticated
   with check (
     doctor_id = auth.uid()
     and (
@@ -3820,8 +3753,7 @@ create policy "records_tenant_insert"
   );
 
 drop policy if exists "records_tenant_update" on public.clinical_records;
-create policy "records_tenant_update"
-  on public.clinical_records for update to authenticated
+create policy "records_tenant_update" on public.clinical_records for update to authenticated
   using (
     doctor_id = auth.uid()
     and (
@@ -3856,8 +3788,7 @@ create policy "records_tenant_update"
 --   lab/imaging/surgery: NO access
 
 drop policy if exists "appointments_tenant_select" on public.appointments;
-create policy "appointments_tenant_select"
-  on public.appointments for select to authenticated
+create policy "appointments_tenant_select" on public.appointments for select to authenticated
   using (
     -- Owner/Doctor: only THEIR appointments
     (
@@ -3908,8 +3839,7 @@ create policy "appointments_tenant_select"
 
 -- WRITE policy for appointments
 drop policy if exists "appointments_tenant_write" on public.appointments;
-create policy "appointments_tenant_write"
-  on public.appointments for all to authenticated
+create policy "appointments_tenant_write" on public.appointments for all to authenticated
   using (
     (
       -- Doctor/owner can write their own appointments
@@ -4006,9 +3936,8 @@ end $$;
 --   surgery: see section_type = 'surgery'
 --   clinic_admin: see ALL section_types (read-only from API layer)
 
-drop policy if exists "Usuarios de la clínica pueden ver transacciones" on public.cash_transactions;
-create policy "cash_transactions_role_select"
-  on public.cash_transactions for select to authenticated
+drop policy if exists "cash_transactions_role_select" on public.cash_transactions;
+create policy "cash_transactions_role_select" on public.cash_transactions for select to authenticated
   using (
     auth.uid() is not null
     and clinic_id = any (public.get_user_clinic_ids())
@@ -4028,9 +3957,8 @@ create policy "cash_transactions_role_select"
   );
 
 -- Keep existing insert/update policies but ensure section_type is set
-drop policy if exists "Usuarios de la clínica pueden insertar transacciones" on public.cash_transactions;
-create policy "cash_transactions_role_insert"
-  on public.cash_transactions for insert to authenticated
+drop policy if exists "cash_transactions_role_insert" on public.cash_transactions;
+create policy "cash_transactions_role_insert" on public.cash_transactions for insert to authenticated
   with check (
     auth.uid() = user_id
     and clinic_id = any (public.get_user_clinic_ids())
@@ -4038,9 +3966,8 @@ create policy "cash_transactions_role_insert"
     and public.get_member_role(clinic_id) != 'clinic_admin'
   );
 
-drop policy if exists "Usuarios de la clínica pueden anular transacciones" on public.cash_transactions;
-create policy "cash_transactions_role_update"
-  on public.cash_transactions for update to authenticated
+drop policy if exists "cash_transactions_role_update" on public.cash_transactions;
+create policy "cash_transactions_role_update" on public.cash_transactions for update to authenticated
   using (
     auth.uid() is not null
     and clinic_id = any (public.get_user_clinic_ids())
@@ -4064,8 +3991,7 @@ alter table public.appointments
 -- ════════════════════════════════════════════════════════════
 
 drop policy if exists "clinic_assets_insert" on storage.objects;
-create policy "clinic_assets_insert"
-  on storage.objects for insert to authenticated
+create policy "clinic_assets_insert" on storage.objects for insert to authenticated
   with check (
     bucket_id = 'clinic_assets'
     and (storage.foldername(name))[1] in (
@@ -4081,8 +4007,7 @@ create policy "clinic_assets_insert"
   );
 
 drop policy if exists "clinic_assets_update" on storage.objects;
-create policy "clinic_assets_update"
-  on storage.objects for update to authenticated
+create policy "clinic_assets_update" on storage.objects for update to authenticated
   using (
     bucket_id = 'clinic_assets'
     and (storage.foldername(name))[1] in (
@@ -4111,8 +4036,7 @@ create policy "clinic_assets_update"
   );
 
 drop policy if exists "clinic_assets_delete" on storage.objects;
-create policy "clinic_assets_delete"
-  on storage.objects for delete to authenticated
+create policy "clinic_assets_delete" on storage.objects for delete to authenticated
   using (
     bucket_id = 'clinic_assets'
     and (storage.foldername(name))[1] in (
@@ -4132,9 +4056,8 @@ create policy "clinic_assets_delete"
 -- 9. FIX H-10: cash_shifts RLS — user_id → doctor_id
 -- ════════════════════════════════════════════════════════════
 
-drop policy if exists "Usuarios pueden ver turnos de su clínica" on public.cash_shifts;
-create policy "cash_shifts_select"
-  on public.cash_shifts for select
+drop policy if exists "cash_shifts_select" on public.cash_shifts;
+create policy "cash_shifts_select" on public.cash_shifts for select
   using (
     auth.uid() is not null
     and clinic_id in (
@@ -4144,9 +4067,8 @@ create policy "cash_shifts_select"
     )
   );
 
-drop policy if exists "Usuarios pueden insertar turnos en su clínica" on public.cash_shifts;
-create policy "cash_shifts_insert"
-  on public.cash_shifts for insert
+drop policy if exists "cash_shifts_insert" on public.cash_shifts;
+create policy "cash_shifts_insert" on public.cash_shifts for insert
   with check (
     auth.uid() is not null
     and auth.uid() = user_id
@@ -4157,9 +4079,8 @@ create policy "cash_shifts_insert"
     )
   );
 
-drop policy if exists "Usuarios pueden actualizar sus propios turnos" on public.cash_shifts;
-create policy "cash_shifts_update"
-  on public.cash_shifts for update
+drop policy if exists "cash_shifts_update" on public.cash_shifts;
+create policy "cash_shifts_update" on public.cash_shifts for update
   using (
     auth.uid() = user_id
     and clinic_id in (
@@ -4287,8 +4208,8 @@ drop policy if exists "referrals_insert" on public.referrals;
 drop policy if exists "referrals_update" on public.referrals;
 
 -- SELECT: doctor sees sent + received; department sees incoming
-create policy "referrals_select"
-  on public.referrals for select to authenticated
+drop policy if exists "referrals_select" on public.referrals;
+create policy "referrals_select" on public.referrals for select to authenticated
   using (
     -- Plan check: org must be clinica
     exists (
@@ -4316,8 +4237,8 @@ create policy "referrals_select"
   );
 
 -- INSERT: only owner/doctor can create referrals
-create policy "referrals_insert"
-  on public.referrals for insert to authenticated
+drop policy if exists "referrals_insert" on public.referrals;
+create policy "referrals_insert" on public.referrals for insert to authenticated
   with check (
     exists (
       select 1 from public.clinics c
@@ -4328,8 +4249,8 @@ create policy "referrals_insert"
   );
 
 -- UPDATE: recipient or sender can update
-create policy "referrals_update"
-  on public.referrals for update to authenticated
+drop policy if exists "referrals_update" on public.referrals;
+create policy "referrals_update" on public.referrals for update to authenticated
   using (
     exists (
       select 1 from public.clinics c
@@ -4357,8 +4278,7 @@ create policy "referrals_update"
 -- ════════════════════════════════════════════════════════════
 
 drop policy if exists "records_tenant_delete" on public.clinical_records;
-create policy "records_tenant_delete"
-  on public.clinical_records for delete to authenticated
+create policy "records_tenant_delete" on public.clinical_records for delete to authenticated
   using (
     doctor_id = auth.uid()
     and (
