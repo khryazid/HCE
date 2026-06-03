@@ -3199,11 +3199,13 @@ create table if not exists public.lab_exams (
 
 alter table public.lab_exams enable row level security;
 
+drop policy if exists "Usuarios pueden ver examenes de su clinica" on public.lab_exams;
 create policy "Usuarios pueden ver examenes de su clinica" on public.lab_exams for select using (
   clinic_id in (select clinic_id from public.clinic_members where doctor_id = auth.uid() and is_active = true)
   or clinic_id in (select id from public.clinics where owner_user_id = auth.uid())
 );
 
+drop policy if exists "Usuarios pueden modificar examenes de su clinica" on public.lab_exams;
 create policy "Usuarios pueden modificar examenes de su clinica" on public.lab_exams for all using (
   clinic_id in (select clinic_id from public.clinic_members where doctor_id = auth.uid() and is_active = true)
   or clinic_id in (select id from public.clinics where owner_user_id = auth.uid())
@@ -3220,11 +3222,13 @@ create table if not exists public.clinic_settings (
 
 alter table public.clinic_settings enable row level security;
 
+drop policy if exists "Usuarios pueden ver configuraciones de su clinica" on public.clinic_settings;
 create policy "Usuarios pueden ver configuraciones de su clinica" on public.clinic_settings for select using (
   clinic_id in (select clinic_id from public.clinic_members where doctor_id = auth.uid() and is_active = true)
   or clinic_id in (select id from public.clinics where owner_user_id = auth.uid())
 );
 
+drop policy if exists "Usuarios pueden actualizar configuraciones de su clinica" on public.clinic_settings;
 create policy "Usuarios pueden actualizar configuraciones de su clinica" on public.clinic_settings for all using (
   clinic_id in (select clinic_id from public.clinic_members where doctor_id = auth.uid() and is_active = true)
   or clinic_id in (select id from public.clinics where owner_user_id = auth.uid())
