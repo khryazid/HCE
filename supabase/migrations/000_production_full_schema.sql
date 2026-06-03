@@ -4434,3 +4434,101 @@ create policy "Médicos pueden leer órdenes de su clínica" on public.lab_order
 alter table public.cash_transactions add column if not exists cash_shift_id uuid references public.cash_shifts(id) on delete set null;
 
 commit;
+
+-- ============================================================================
+-- AUDIT FIXES: CLINICAL WORKFLOWS (TRIAGE, LAB RESULTS, SURGERY ITEMS, LEDGER)
+-- ============================================================================
+
+-- 1. TRIAGE RECORDS (Consultorio)
+create table if not exists public.triage_records (
+    id uuid primary key default gen_random_uuid(),
+    patient_id uuid references public.patients(id) on delete cascade not null,
+    clinic_id uuid references public.clinics(id) on delete cascade not null,
+    appointment_id uuid references public.appointments(id) on delete set null,
+    blood_pressure varchar,
+    heart_rate integer,
+    temperature numeric,
+    weight numeric,
+    notes text,
+    created_by uuid references auth.users(id) not null,
+    created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+alter table public.triage_records enable row level security;
+create policy "triage_records_select" on public.triage_records for select using (
+    clinic_id in (select get_user_clinic_ids())
+);
+create policy "triage_records_insert" on public.triage_records for insert with check (
+    clinic_id in (select get_user_clinic_ids()) and
+    (get_member_role(clinic_id) in ('owner', 'doctor') or has_custom_permission(clinic_id, 'can_perform_triage'))
+);
+
+-- 2. LAB RESULTS (Datos Estructurados)
+create table if not exists public.lab_results (
+    id uuid primary key default gen_random_uuid(),
+    order_id uuid references public.lab_orders(id) on delete cascade not null,
+    biomarker_name varchar not null,
+    value_numeric numeric,
+    value_text varchar,
+    unit varchar,
+    reference_range varchar,
+    flag varchar check (flag in ('high', 'low', 'normal', 'critical')),
+    created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+alter table public.lab_results enable row level security;
+create policy "lab_results_select" on public.lab_results for select using (
+    exists (
+        select 1 from public.lab_orders
+        where lab_orders.id = lab_results.order_id
+        and lab_orders.clinic_id in (select get_user_clinic_ids())
+    )
+);
+
+-- 3. DEPARTMENT ORDERS & ITEMS (Surgery Extras)
+create table if not exists public.department_orders (
+    id uuid primary key default gen_random_uuid(),
+    clinic_id uuid references public.clinics(id) on delete cascade not null,
+    patient_id uuid references public.patients(id) on delete cascade not null,
+    department_type varchar check (department_type in ('lab', 'imaging', 'surgery')),
+    status varchar check (status in ('pending', 'in_progress', 'done')),
+    created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+create table if not exists public.department_order_items (
+    id uuid primary key default gen_random_uuid(),
+    order_id uuid references public.department_orders(id) on delete cascade not null,
+    item_name varchar not null,
+    quantity integer default 1 not null,
+    unit_price numeric not null default 0,
+    is_extra boolean default false,
+    created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+alter table public.department_orders enable row level security;
+create policy "dept_orders_select" on public.department_orders for select using (
+    clinic_id in (select get_user_clinic_ids())
+);
+alter table public.department_order_items enable row level security;
+create policy "dept_order_items_select" on public.department_order_items for select using (
+    exists (select 1 from public.department_orders where id = order_id and clinic_id in (select get_user_clinic_ids()))
+);
+
+-- 4. PATIENT LEDGERS (Cuenta Maestra)
+create table if not exists public.patient_ledgers (
+    id uuid primary key default gen_random_uuid(),
+    patient_id uuid references public.patients(id) on delete cascade not null,
+    clinic_id uuid references public.clinics(id) on delete cascade not null,
+    total_due numeric not null default 0,
+    total_paid numeric not null default 0,
+    status varchar check (status in ('open', 'closed', 'void')),
+    created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+alter table public.patient_ledgers enable row level security;
+create policy "patient_ledgers_select" on public.patient_ledgers for select using (
+    clinic_id in (select get_user_clinic_ids())
+);
+
+-- Add ledger_id to cash_transactions
+alter table public.cash_transactions add column if not exists ledger_id uuid references public.patient_ledgers(id) on delete set null;

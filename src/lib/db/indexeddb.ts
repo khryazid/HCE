@@ -307,6 +307,11 @@ export async function enqueueSyncItem(item: SyncQueueItem) {
     }
   }
 
+  const payloadStr = JSON.stringify(item.payload);
+  if (payloadStr.length > 5 * 1024 * 1024) {
+    throw new Error("STORAGE_UPLOAD_REQUIRED: El archivo excede los 5MB y no puede procesarse offline. Requiere conexión activa para subir directamente al servidor.");
+  }
+
   const db = await getOfflineDb();
   
   const payloadToEncrypt = {
