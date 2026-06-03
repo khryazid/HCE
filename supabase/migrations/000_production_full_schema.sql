@@ -4532,3 +4532,83 @@ create policy "patient_ledgers_select" on public.patient_ledgers for select usin
 
 -- Add ledger_id to cash_transactions
 alter table public.cash_transactions add column if not exists ledger_id uuid references public.patient_ledgers(id) on delete set null;
+
+-- ============================================================================
+-- AUDIT FIXES: PHASE III (EXPORT PORTABILITY AND CLOCK-DRIFT TIMESTAMPS)
+-- ============================================================================
+
+-- Hueco 6: Portabilidad Segura por Doctor (Data Export)
+create or replace function public.export_doctor_clinical_data(target_doctor_id uuid)
+returns jsonb
+language plpgsql
+security definer
+as $$
+declare
+    caller_id uuid;
+    is_authorized boolean;
+    result jsonb;
+begin
+    caller_id := auth.uid();
+    
+    -- Autorización: el propio médico, o un owner de alguna clínica donde el médico esté
+    if caller_id = target_doctor_id then
+        is_authorized := true;
+    else
+        select true into is_authorized
+        from public.clinic_members cm1
+        join public.clinic_members cm2 on cm1.clinic_id = cm2.clinic_id
+        where cm1.user_id = caller_id 
+          and cm1.role = 'owner'
+          and cm1.is_active = true
+          and cm2.user_id = target_doctor_id
+        limit 1;
+        
+        if is_authorized is null then
+            raise exception 'No autorizado para exportar datos de este médico';
+        end if;
+    end if;
+
+    -- Extraer y empaquetar
+    select jsonb_build_object(
+        'doctor_id', target_doctor_id,
+        'patients', (select jsonb_agg(p.*) from public.patients p where p.doctor_id = target_doctor_id),
+        'clinical_records', (select jsonb_agg(cr.*) from public.clinical_records cr where cr.doctor_id = target_doctor_id),
+        'specialty_data', (select jsonb_agg(sd.*) from public.specialty_data sd where sd.doctor_id = target_doctor_id)
+    ) into result;
+
+    return result;
+end;
+$$;
+
+-- Hueco 8: Prevención de Clock-Drift Offline (Server-side timestamps)
+create or replace function public.enforce_sane_timestamps()
+returns trigger as $$
+begin
+    -- If created_at is more than 24h in the future, cap it to now
+    if NEW.created_at > now() + interval '1 day' then
+        NEW.created_at = now();
+    end if;
+    -- If created_at is unreasonably old (e.g., before 2024), cap it to now.
+    if NEW.created_at < '2024-01-01'::timestamptz then
+        NEW.created_at = now();
+    end if;
+    
+    return NEW;
+end;
+$$ language plpgsql;
+
+create trigger enforce_sane_timestamps_patients
+    before insert or update on public.patients
+    for each row execute function public.enforce_sane_timestamps();
+
+create trigger enforce_sane_timestamps_records
+    before insert or update on public.clinical_records
+    for each row execute function public.enforce_sane_timestamps();
+
+create trigger enforce_sane_timestamps_triage
+    before insert or update on public.triage_records
+    for each row execute function public.enforce_sane_timestamps();
+
+create trigger enforce_sane_timestamps_specialty
+    before insert or update on public.specialty_data
+    for each row execute function public.enforce_sane_timestamps();
