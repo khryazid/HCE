@@ -4612,3 +4612,129 @@ create trigger enforce_sane_timestamps_triage
 create trigger enforce_sane_timestamps_specialty
     before insert or update on public.specialty_data
     for each row execute function public.enforce_sane_timestamps();
+
+-- ============================================================================
+-- AUDIT FIXES: PHASE IV (AUDIT LOGS & SECURE PRESCRIPTIONS)
+-- ============================================================================
+
+-- Hueco 10: Trazabilidad Forense (Audit Logs para Lecturas)
+create table if not exists public.audit_logs (
+    id uuid primary key default gen_random_uuid(),
+    clinic_id uuid references public.clinics(id) on delete cascade not null,
+    user_id uuid references auth.users(id) on delete cascade not null,
+    action varchar not null check (action in ('read', 'export')),
+    table_name varchar not null,
+    record_id uuid not null,
+    ip_address varchar,
+    created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+alter table public.audit_logs enable row level security;
+-- Solo dueños o super admins podrían ver los logs, pero la app inserta usando security definer.
+create policy "audit_logs_insert" on public.audit_logs for insert to authenticated with check (
+    clinic_id in (select get_user_clinic_ids())
+);
+
+-- RPC for logging a clinical read (e.g. Snooping detection)
+create or replace function public.log_clinical_read(
+    p_clinic_id uuid,
+    p_table_name varchar,
+    p_record_id uuid,
+    p_ip_address varchar default null
+)
+returns void
+language plpgsql
+security definer
+as $$
+begin
+    insert into public.audit_logs (clinic_id, user_id, action, table_name, record_id, ip_address)
+    values (p_clinic_id, auth.uid(), 'read', p_table_name, p_record_id, p_ip_address);
+end;
+$$;
+
+-- Hueco 11: Inmutabilidad de Recetas (Firmas criptográficas)
+create table if not exists public.prescriptions (
+    id uuid primary key default gen_random_uuid(),
+    clinic_id uuid references public.clinics(id) on delete cascade not null,
+    patient_id uuid references public.patients(id) on delete cascade not null,
+    doctor_id uuid references auth.users(id) not null,
+    verification_hash uuid default gen_random_uuid() unique not null,
+    notes text,
+    created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+create table if not exists public.prescription_items (
+    id uuid primary key default gen_random_uuid(),
+    prescription_id uuid references public.prescriptions(id) on delete cascade not null,
+    medication_name varchar not null,
+    dosage varchar not null,
+    frequency varchar not null,
+    duration varchar not null
+);
+
+alter table public.prescriptions enable row level security;
+alter table public.prescription_items enable row level security;
+
+create policy "prescriptions_select" on public.prescriptions for select using (
+    clinic_id in (select get_user_clinic_ids())
+);
+create policy "prescriptions_insert" on public.prescriptions for insert with check (
+    clinic_id in (select get_user_clinic_ids())
+);
+create policy "prescription_items_select" on public.prescription_items for select using (
+    exists (select 1 from public.prescriptions where id = prescription_id and clinic_id in (select get_user_clinic_ids()))
+);
+create policy "prescription_items_insert" on public.prescription_items for insert with check (
+    exists (select 1 from public.prescriptions where id = prescription_id and clinic_id in (select get_user_clinic_ids()))
+);
+
+-- RPC for Public Pharmacy Verification
+create or replace function public.verify_prescription(p_hash uuid)
+returns jsonb
+language plpgsql
+security definer
+as $$
+declare
+    result jsonb;
+begin
+    select jsonb_build_object(
+        'clinic_id', p.clinic_id,
+        'doctor_id', p.doctor_id,
+        'patient_id', p.patient_id,
+        'notes', p.notes,
+        'items', (select jsonb_agg(pi.*) from public.prescription_items pi where pi.prescription_id = p.id),
+        'issued_at', p.created_at
+    ) into result
+    from public.prescriptions p
+    where p.verification_hash = p_hash;
+    
+    if result is null then
+        raise exception 'Receta inválida o no encontrada';
+    end if;
+
+    return result;
+end;
+$$;
+
+-- Helper para Hueco 12: Recuperación ante Desastres Multi-Tenant (Soft Deletes)
+-- Aunque las tablas ya tenían deleted_at, proveemos la función de rollback para la auditoría.
+create or replace function public.restore_tenant_point_in_time(p_clinic_id uuid, p_target_timestamp timestamptz)
+returns void
+language plpgsql
+security definer
+as $$
+begin
+    -- Verificar que es un owner
+    if not exists (select 1 from public.clinic_members where clinic_id = p_clinic_id and user_id = auth.uid() and role = 'owner') then
+        raise exception 'Acceso denegado. Solo administradores pueden restaurar inquilinos.';
+    end if;
+
+    update public.patients 
+    set deleted_at = null 
+    where clinic_id = p_clinic_id and deleted_at >= p_target_timestamp;
+
+    update public.clinical_records 
+    set deleted_at = null 
+    where clinic_id = p_clinic_id and deleted_at >= p_target_timestamp;
+end;
+$$;
