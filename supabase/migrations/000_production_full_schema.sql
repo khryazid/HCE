@@ -3235,6 +3235,273 @@ create policy "Usuarios pueden actualizar configuraciones de su clinica" on publ
 );
 
 
+
+
+-- ============================================================
+-- 011_referrals.sql
+-- Inter-doctor referral system (Plan Clínica only)
+-- ============================================================
+--
+-- Enables doctors within the same organization to refer patients
+-- to other doctors or to specialized departments (lab, imaging, surgery).
+--
+-- Referenced by: CLAUDE.md Section 4 — Esquema de Base de Datos
+-- ============================================================
+
+begin;
+
+-- ════════════════════════════════════════════════════════════
+-- 1. CREATE referrals TABLE
+-- ════════════════════════════════════════════════════════════
+
+create table if not exists public.referrals (
+  id                    uuid primary key default gen_random_uuid(),
+  organization_id       uuid not null references public.clinics(id) on delete cascade,
+  from_member_id        uuid not null references public.clinic_members(id) on delete cascade,
+  -- to_member_id is NULL when referring to a department instead of a specific doctor
+  to_member_id          uuid references public.clinic_members(id) on delete set null,
+  -- to_department is NULL when referring to a specific doctor
+  to_department         text check (to_department in ('lab', 'imaging', 'surgery')),
+  patient_id            uuid not null references public.patients(id) on delete cascade,
+  consultation_id       uuid references public.clinical_records(id) on delete set null,
+  note                  text,
+  include_full_history  boolean not null default false,
+  status                text not null default 'pending' check (status in ('pending', 'viewed', 'responded')),
+  response_note         text,
+  created_at            timestamptz not null default now(),
+  responded_at          timestamptz,
+
+  -- At least one destination must be specified
+  constraint referrals_destination_check check (
+    to_member_id is not null or to_department is not null
+  )
+);
+
+-- ════════════════════════════════════════════════════════════
+-- 2. INDEXES
+-- ════════════════════════════════════════════════════════════
+
+create index if not exists idx_referrals_org
+  on public.referrals (organization_id, status);
+
+create index if not exists idx_referrals_from_member
+  on public.referrals (from_member_id, status);
+
+create index if not exists idx_referrals_to_member
+  on public.referrals (to_member_id, status)
+  where to_member_id is not null;
+
+create index if not exists idx_referrals_to_department
+  on public.referrals (organization_id, to_department, status)
+  where to_department is not null;
+
+create index if not exists idx_referrals_patient
+  on public.referrals (patient_id);
+
+-- ════════════════════════════════════════════════════════════
+-- 3. RLS POLICIES
+-- ════════════════════════════════════════════════════════════
+
+alter table public.referrals enable row level security;
+
+-- Members of the organization can read referrals they sent or received
+drop policy if exists "referrals_select" on public.referrals;
+create policy "referrals_select"
+  on public.referrals for select to authenticated
+  using (
+    organization_id in (
+      select clinic_id from public.clinic_members
+      where doctor_id = auth.uid()
+        and is_active = true
+    )
+  );
+
+-- Only doctors/owners can create referrals
+drop policy if exists "referrals_insert" on public.referrals;
+create policy "referrals_insert"
+  on public.referrals for insert to authenticated
+  with check (
+    exists (
+      select 1 from public.clinic_members
+      where clinic_id = organization_id
+        and doctor_id = auth.uid()
+        and role in ('owner', 'doctor')
+        and is_active = true
+    )
+  );
+
+-- Recipients can update (mark as viewed/responded)
+drop policy if exists "referrals_update" on public.referrals;
+create policy "referrals_update"
+  on public.referrals for update to authenticated
+  using (
+    -- The recipient (to_member) can update
+    to_member_id in (
+      select id from public.clinic_members where doctor_id = auth.uid()
+    )
+    -- Or the sender can update (e.g., cancel)
+    or from_member_id in (
+      select id from public.clinic_members where doctor_id = auth.uid()
+    )
+    -- Or admin/owner of the org
+    or public.is_clinic_admin(organization_id)
+  );
+
+commit;
+
+
+-- ============================================================
+-- 012_department_orders.sql
+-- Department orders for lab, imaging, and surgery
+-- ============================================================
+--
+-- Tracks orders placed by doctors to specialized departments.
+-- Each department (lab, imaging, surgery) sees only their own orders.
+--
+-- Referenced by: CLAUDE.md Section 4 — Esquema de Base de Datos
+-- ============================================================
+
+begin;
+
+-- ════════════════════════════════════════════════════════════
+-- 1. CREATE department_orders TABLE
+-- ════════════════════════════════════════════════════════════
+
+create table if not exists public.department_orders (
+  id                    uuid primary key default gen_random_uuid(),
+  organization_id       uuid not null references public.clinics(id) on delete cascade,
+  department_type       text not null check (department_type in ('lab', 'imaging', 'surgery')),
+  patient_id            uuid not null references public.patients(id) on delete cascade,
+  ordered_by_member_id  uuid not null references public.clinic_members(id) on delete cascade,
+  -- Optional link to the referral that triggered this order
+  referral_id           uuid references public.referrals(id) on delete set null,
+  status                text not null default 'pending' check (status in ('pending', 'in_progress', 'done')),
+  -- Department-specific fields
+  title                 text,
+  notes                 text,
+  result_notes          text,
+  completed_by_member_id uuid references public.clinic_members(id) on delete set null,
+  created_at            timestamptz not null default now(),
+  updated_at            timestamptz not null default now(),
+  completed_at          timestamptz
+);
+
+-- ════════════════════════════════════════════════════════════
+-- 2. INDEXES
+-- ════════════════════════════════════════════════════════════
+
+create index if not exists idx_dept_orders_org_type
+  on public.department_orders (organization_id, department_type, status);
+
+create index if not exists idx_dept_orders_patient
+  on public.department_orders (patient_id);
+
+create index if not exists idx_dept_orders_ordered_by
+  on public.department_orders (ordered_by_member_id);
+
+create index if not exists idx_dept_orders_status
+  on public.department_orders (organization_id, status)
+  where status != 'done';
+
+-- ════════════════════════════════════════════════════════════
+-- 3. RLS POLICIES
+-- ════════════════════════════════════════════════════════════
+
+alter table public.department_orders enable row level security;
+
+-- Doctors/owners can see all orders in their org
+-- Department roles can see only orders for their department
+drop policy if exists "dept_orders_select" on public.department_orders;
+create policy "dept_orders_select"
+  on public.department_orders for select to authenticated
+  using (
+    -- Doctors and owners see all orders in their org
+    exists (
+      select 1 from public.clinic_members
+      where clinic_id = organization_id
+        and doctor_id = auth.uid()
+        and role in ('owner', 'doctor')
+        and is_active = true
+    )
+    -- Department members see only their department's orders
+    or exists (
+      select 1 from public.clinic_members
+      where clinic_id = organization_id
+        and doctor_id = auth.uid()
+        and role = department_type
+        and is_active = true
+    )
+  );
+
+-- Only doctors/owners can create orders
+drop policy if exists "dept_orders_insert" on public.department_orders;
+create policy "dept_orders_insert"
+  on public.department_orders for insert to authenticated
+  with check (
+    exists (
+      select 1 from public.clinic_members
+      where clinic_id = organization_id
+        and doctor_id = auth.uid()
+        and role in ('owner', 'doctor')
+        and is_active = true
+    )
+  );
+
+-- Department members and the ordering doctor can update (e.g., mark as done)
+drop policy if exists "dept_orders_update" on public.department_orders;
+create policy "dept_orders_update"
+  on public.department_orders for update to authenticated
+  using (
+    -- The ordering doctor
+    ordered_by_member_id in (
+      select id from public.clinic_members where doctor_id = auth.uid()
+    )
+    -- Or the department member
+    or exists (
+      select 1 from public.clinic_members
+      where clinic_id = organization_id
+        and doctor_id = auth.uid()
+        and role = department_type
+        and is_active = true
+    )
+    -- Or admin/owner
+    or public.is_clinic_admin(organization_id)
+  );
+
+-- ════════════════════════════════════════════════════════════
+-- 4. TRIGGER: updated_at
+-- ════════════════════════════════════════════════════════════
+
+drop trigger if exists trg_dept_orders_updated_at on public.department_orders;
+create trigger trg_dept_orders_updated_at
+  before update on public.department_orders
+  for each row execute function public.bump_updated_at();
+
+commit;
+
+
+-- ============================================================
+-- 013_fix_referrals_grants.sql
+-- Fix: GRANT permissions on referrals so Supabase type generator
+-- can introspect the table. Also grants on department_orders
+-- for consistency.
+-- ============================================================
+
+begin;
+
+-- The Supabase type generator uses the anon/authenticated roles
+-- to introspect tables. Without explicit GRANTs, tables created
+-- outside of Supabase migrations UI don't get auto-granted.
+
+grant select, insert, update, delete on public.referrals to authenticated;
+grant select on public.referrals to anon;
+
+grant select, insert, update, delete on public.department_orders to authenticated;
+grant select on public.department_orders to anon;
+
+commit;
+
+
 -- ============================================================
 -- 20260603_rbac_security_fixes.sql
 -- Critical security fixes for role-based access control
