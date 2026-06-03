@@ -13,11 +13,7 @@ export function useLabOrders(clinicId: string) {
           *,
           patients (
             full_name,
-            document_number,
-            phone
-          ),
-          profiles:doctor_id (
-            full_name
+            document_number
           )
         `)
         .eq("clinic_id", clinicId)
@@ -25,8 +21,7 @@ export function useLabOrders(clinicId: string) {
 
       if (error) throw error;
       return data as unknown as (LabOrder & {
-        patients: { full_name: string; document_number: string; phone: string | null } | null;
-        profiles: { full_name: string } | null;
+        patients: { full_name: string; document_number: string } | null;
       })[];
     },
     enabled: !!clinicId,

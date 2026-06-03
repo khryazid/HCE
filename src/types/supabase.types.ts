@@ -367,6 +367,35 @@ export type Database = {
           },
         ]
       }
+      clinic_settings: {
+        Row: {
+          clinic_id: string
+          lab_footer_text: string | null
+          lab_letterhead_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          clinic_id: string
+          lab_footer_text?: string | null
+          lab_letterhead_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          clinic_id?: string
+          lab_footer_text?: string | null
+          lab_letterhead_url?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_settings_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: true
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clinical_form_templates: {
         Row: {
           clinic_id: string
@@ -749,6 +778,44 @@ export type Database = {
           {
             foreignKeyName: "invitations_organization_id_fkey"
             columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lab_exams: {
+        Row: {
+          category: string
+          clinic_id: string
+          created_at: string
+          default_price: number
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          clinic_id: string
+          created_at?: string
+          default_price?: number
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          clinic_id?: string
+          created_at?: string
+          default_price?: number
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lab_exams_clinic_id_fkey"
+            columns: ["clinic_id"]
             isOneToOne: false
             referencedRelation: "clinics"
             referencedColumns: ["id"]
@@ -1325,10 +1392,12 @@ export type Database = {
         }
         Returns: boolean
       }
+      claim_followup_tasks: { Args: { p_doctor_id: string }; Returns: number }
       expire_old_invitations: { Args: never; Returns: undefined }
       expire_stale_trials: { Args: never; Returns: undefined }
       get_config_secret: { Args: { p_key: string }; Returns: string }
       get_member_role: { Args: { check_clinic_id: string }; Returns: string }
+      get_user_clinic_ids: { Args: never; Returns: string[] }
       get_user_id_by_email: { Args: { email_input: string }; Returns: string }
       has_active_subscription: { Args: { c_id: string }; Returns: boolean }
       is_clinic_admin: { Args: { check_clinic_id: string }; Returns: boolean }
@@ -1418,7 +1487,7 @@ type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
 
 type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
-type Tables<
+export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
@@ -1447,7 +1516,7 @@ type Tables<
       : never
     : never
 
-type TablesInsert<
+export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
@@ -1472,7 +1541,7 @@ type TablesInsert<
       : never
     : never
 
-type TablesUpdate<
+export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
@@ -1497,7 +1566,7 @@ type TablesUpdate<
       : never
     : never
 
-type Enums<
+export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
@@ -1514,7 +1583,7 @@ type Enums<
     ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
 
-type CompositeTypes<
+export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
@@ -1531,7 +1600,7 @@ type CompositeTypes<
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
 
-const Constants = {
+export const Constants = {
   public: {
     Enums: {},
   },

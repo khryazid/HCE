@@ -12,19 +12,23 @@ import { TeamPanel } from "@/features/dashboard/components/team-panel";
 import { PaymentSettingsPanel } from "@/features/dashboard/components/payment-settings-panel";
 import { ClinicalFormBuilderPanel } from "@/features/dashboard/components/clinical-form-builder-panel";
 import { CashRegisterSettingsPanel } from "@/features/dashboard/components/cash-register-settings-panel";
+import { useTenant } from "@/lib/supabase/tenant-context";
 
 type TabId = "perfil" | "consultas" | "facturacion" | "equipo" | "avanzado";
 
 export function AjustesClient({ isOnboarding = false }: { isOnboarding?: boolean }) {
-  const [activeTab, setActiveTab] = useState<TabId>("perfil");
+  const { tenant } = useTenant();
 
-  const tabs = [
+  const defaultTabs = [
     { id: "perfil", label: "Perfil Profesional", icon: <User className="w-4 h-4" /> },
     { id: "consultas", label: "Constructor de Consultas", icon: <FormInput className="w-4 h-4" /> },
     { id: "facturacion", label: "Pagos y Facturación", icon: <CreditCard className="w-4 h-4" /> },
     { id: "equipo", label: "Equipo Clínico", icon: <Users className="w-4 h-4" /> },
     { id: "avanzado", label: "Avanzado y Sistema", icon: <Settings2 className="w-4 h-4" /> },
   ];
+
+  const tabs = defaultTabs;
+  const [activeTab, setActiveTab] = useState<string>(tabs[0].id);
 
   const currentTabIndex = tabs.findIndex(t => t.id === activeTab);
   

@@ -68,6 +68,7 @@
   transition: color 150ms; text-decoration: none;
 }
 .gx-nav-link:hover { color: var(--ink); }
+.gx-nav-actions { display: flex; gap: 12px; align-items: center; }
 
 /* ── Hero ─────────────────────────────────────────── */
 .gx-hero {
@@ -275,6 +276,18 @@
   background: var(--bg-soft); padding: 12px 16px; font-weight: 600; font-size: 0.8125rem; text-transform: uppercase; color: var(--ink-soft);
 }
 
+/* ── WhatsApp Floating Button ─────────────────────────── */
+.gx-wa-btn {
+  position: fixed; bottom: 24px; right: 24px; background: #25D366; color: white;
+  padding: 12px 20px; border-radius: 100px; display: flex; align-items: center; gap: 8px;
+  box-shadow: 0 8px 24px rgba(37, 211, 102, 0.4); text-decoration: none; font-weight: 600;
+  z-index: 50; transition: transform 0.2s, box-shadow 0.2s;
+}
+.gx-wa-btn:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 12px 32px rgba(37, 211, 102, 0.5);
+}
+
 /* ── Media Queries (AT THE END FOR PRIORITY) ───────────────── */
 @media (max-width: 1024px) {
   .gx-hero-title { font-size: 3.5rem; }
@@ -295,8 +308,9 @@
   .gx-hero-title { font-size: 2.5rem; }
   .gx-hero { padding: 140px 24px 80px; }
   .gx-mockup, .gx-bento { padding: 0 24px; }
-  .gx-nav { padding: 16px 24px; }
+  .gx-nav { padding: 16px 24px; justify-content: space-between; }
   .gx-nav-links { display: none; }
+  .gx-hide-mobile { display: none !important; }
   .gx-showcase { padding: 40px 24px; gap: 32px; }
   .gx-showcase-title { font-size: 2rem; }
   
@@ -307,6 +321,16 @@
   .gx-pricing-table td { font-size: 0.8125rem; padding: 12px 6px !important; }
   .gx-pricing-table tbody { font-size: 0.8125rem; }
   .gx-pt-group td { font-size: 0.75rem; padding: 8px 6px !important; }
+  
+  .gx-wa-btn {
+    padding: 14px;
+    border-radius: 50%;
+    bottom: 16px;
+    right: 16px;
+  }
+  .gx-wa-text {
+    display: none;
+  }
 }
 
 

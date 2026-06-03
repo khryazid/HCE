@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { LogoutButton } from "@/features/auth/components/logout-button";
 import { useOverdueCount } from "@/features/dashboard/hooks/use-overdue-count";
 import { useTenant } from "@/lib/supabase/tenant-context";
@@ -55,8 +56,9 @@ function getNavItems(role?: string, plan?: string): NavItem[] {
   if (role === "lab") {
     return [
       { href: "/laboratorio",    label: "Laboratorio",    icon: <FlaskConical className="w-[16px] h-[16px]" /> },
+      { href: "/pacientes",      label: "Pacientes",      icon: <Users className="w-[16px] h-[16px]" /> },
       { href: "/caja",           label: "Caja",           icon: <Receipt className="w-[16px] h-[16px]" /> },
-      { href: "/docs",           label: "Manual",         icon: <HelpCircle className="w-[16px] h-[16px]" /> },
+      { href: "/laboratorio/ajustes", label: "Ajustes Lab",   icon: <Settings className="w-[16px] h-[16px]" /> },
     ];
   }
 
@@ -66,6 +68,7 @@ function getNavItems(role?: string, plan?: string): NavItem[] {
       { href: "/imagen",         label: "Imagenología",   icon: <ScanLine className="w-[16px] h-[16px]" /> },
       { href: "/caja",           label: "Caja",           icon: <Receipt className="w-[16px] h-[16px]" /> },
       { href: "/docs",           label: "Manual",         icon: <HelpCircle className="w-[16px] h-[16px]" /> },
+      { href: "/imagen/ajustes", label: "Ajustes Imagen", icon: <Settings className="w-[16px] h-[16px]" /> },
     ];
   }
 
@@ -101,6 +104,9 @@ function getNavItems(role?: string, plan?: string): NavItem[] {
   if (plan === "clinic") {
     baseItems.push(
       { href: "/laboratorio",  label: "Laboratorio",  icon: <FlaskConical className="w-[16px] h-[16px]" /> },
+      { href: "/laboratorio/ajustes", label: "Ajustes Lab", icon: <FlaskConical className="w-[16px] h-[16px]" /> },
+      { href: "/imagen",       label: "Imagenología", icon: <ScanLine className="w-[16px] h-[16px]" /> },
+      { href: "/imagen/ajustes", label: "Ajustes Imagen", icon: <ScanLine className="w-[16px] h-[16px]" /> },
       { href: "/cirugia",      label: "Cirugía",      icon: <Scissors className="w-[16px] h-[16px]" /> },
       { href: "/referencias",  label: "Referencias",  icon: <Search className="w-[16px] h-[16px]" /> },
     );
@@ -109,8 +115,13 @@ function getNavItems(role?: string, plan?: string): NavItem[] {
   baseItems.push(
     { href: "/caja",         label: "Caja",         icon: <Receipt className="w-[16px] h-[16px]" /> },
     { href: "/ajustes",      label: "Ajustes",      icon: <Settings className="w-[16px] h-[16px]" /> },
-    { href: "/docs",         label: "Manual",       icon: <HelpCircle className="w-[16px] h-[16px]" /> },
   );
+
+  if (role !== "lab") {
+    baseItems.push(
+      { href: "/docs",       label: "Manual",       icon: <HelpCircle className="w-[16px] h-[16px]" /> },
+    );
+  }
 
   return baseItems;
 }
@@ -196,8 +207,26 @@ function ConnectionStatus() {
     label = "Pendiente";
   }
 
+  const handleClick = () => {
+    if (!isOnline) {
+      toast.error("Sin conexión a Internet", { description: "Estás trabajando en modo offline. Los cambios se guardarán en tu dispositivo." });
+    } else if (hasErrors) {
+      toast.error("Error de Sincronización", { description: "Hubo problemas sincronizando algunos datos. Se reintentará automáticamente." });
+    } else if (isSyncing) {
+      toast.info("Sincronizando...", { description: "Tus datos se están guardando en la nube de forma segura." });
+    } else if (hasPending) {
+      toast.warning("Sincronización pendiente", { description: "Hay datos en espera para ser enviados al servidor." });
+    } else {
+      toast.success("Conectado y Sincronizado", { description: "Todos tus datos están respaldados en la nube." });
+    }
+  };
+
   return (
-    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-bg-soft border border-border" title={label}>
+    <button 
+      onClick={handleClick}
+      className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-bg-soft border border-border transition-colors hover:bg-bg active:scale-95 cursor-pointer" 
+      title={label}
+    >
       <span className="relative flex h-2 w-2 shrink-0">
         {isSyncing ? (
           <>
@@ -208,10 +237,10 @@ function ConnectionStatus() {
           <span className={`relative inline-flex h-2 w-2 rounded-full ${dotColor}`}></span>
         )}
       </span>
-      <span className={`text-xs uppercase font-semibold tracking-wider hidden xl:inline-block ${textColor}`}>
+      <span className={`text-xs uppercase font-semibold tracking-wider hidden md:inline-block ${textColor}`}>
         {label}
       </span>
-    </div>
+    </button>
   );
 }
 
@@ -396,6 +425,7 @@ export function BottomNav() {
 
 /* ── Mobile FAB ────────────────────────────────────── */
 export function MobileFab() {
+  const { tenant } = useTenant();
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -410,7 +440,12 @@ export function MobileFab() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  if (pathname.includes("/agenda") || pathname.includes("/consultas")) {
+  if (pathname.includes("/agenda") || pathname.includes("/consultas") || pathname.includes("/administracion")) {
+    return null;
+  }
+
+  const isMedicalStaff = tenant?.role === "owner" || tenant?.role === "doctor";
+  if (!isMedicalStaff) {
     return null;
   }
 

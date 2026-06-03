@@ -13,7 +13,7 @@ export function DashboardOnboardingGuard({ isAdmin = false }: { isAdmin?: boolea
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { tenant, loading } = useTenant();
+  const { tenant, session, loading } = useTenant();
   const [ready, setReady] = useState(false);
   const [needsTerms, setNeedsTerms] = useState(false);
   const supabase = getSupabaseClient();
@@ -33,11 +33,14 @@ export function DashboardOnboardingGuard({ isAdmin = false }: { isAdmin?: boolea
       return () => clearTimeout(t);
     }
 
-    const isBillingPage = pathname === "/billing";
-    const isProfileSetupPage = pathname === "/ajustes";
+    const isBillingPage = pathname === "/billing" || pathname.startsWith("/billing/");
+    const isProfileSetupPage = pathname === "/ajustes" || pathname.startsWith("/ajustes/");
     const isOnboardingPage = pathname.startsWith("/onboarding");
 
     if (!tenant) {
+      // If there is no session at all, we are likely logging out. Let TenantProvider handle the redirect to /login.
+      if (!session) return;
+      
       if (isOnboardingPage) {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setReady(true);
@@ -102,8 +105,8 @@ export function DashboardOnboardingGuard({ isAdmin = false }: { isAdmin?: boolea
         return;
       }
 
-      // clinic_admin or owner of a clinic plan → restrict to admin routes
-      if (isReady && (tenant.role === "clinic_admin" || (tenant.role === "owner" && tenant.plan === "clinic"))) {
+      // clinic_admin → restrict to admin routes
+      if (isReady && tenant.role === "clinic_admin") {
         const adminAllowedRoutes = ["/administracion"];
         const isAllowed = adminAllowedRoutes.some(r => pathname === r || pathname.startsWith(r + "/"));
         if (!isAllowed && !isBillingPage && !isProfileSetupPage) {
@@ -136,6 +139,9 @@ export function DashboardOnboardingGuard({ isAdmin = false }: { isAdmin?: boolea
         };
         const myDash = roleDashboards[tenant.role] || "/dashboard";
         const roleAllowedRoutes = [myDash, "/caja", "/docs"];
+        if (tenant.role === "lab") roleAllowedRoutes.push("/laboratorio/ajustes");
+        if (tenant.role === "imaging") roleAllowedRoutes.push("/imagen/ajustes");
+        
         const isAllowed = roleAllowedRoutes.some(r => pathname === r || pathname.startsWith(r + "/"));
         if (!isAllowed && !isBillingPage && !isProfileSetupPage) {
           router.replace(myDash);
@@ -170,8 +176,8 @@ export function DashboardOnboardingGuard({ isAdmin = false }: { isAdmin?: boolea
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-bg/80 backdrop-blur-sm">
-      <div className="hce-surface flex flex-col items-center p-8 text-center shadow-2xl">
+    <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-bg/80 backdrop-blur-sm p-4">
+      <div className="hce-surface flex flex-col items-center p-8 text-center shadow-2xl rounded-3xl w-full max-w-md mx-auto">
         <svg
           className="h-10 w-10 animate-spin text-accent"
           xmlns="http://www.w3.org/2000/svg"
