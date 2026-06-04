@@ -4485,16 +4485,7 @@ create policy "lab_results_select" on public.lab_results for select using (
     )
 );
 
--- 3. DEPARTMENT ORDERS & ITEMS (Surgery Extras)
-create table if not exists public.department_orders (
-    id uuid primary key default gen_random_uuid(),
-    clinic_id uuid references public.clinics(id) on delete cascade not null,
-    patient_id uuid references public.patients(id) on delete cascade not null,
-    department_type varchar check (department_type in ('lab', 'imaging', 'surgery')),
-    status varchar check (status in ('pending', 'in_progress', 'done')),
-    created_at timestamp with time zone default timezone('utc'::text, now()) not null
-);
-
+-- 3. DEPARTMENT ORDER ITEMS (Surgery Extras)
 create table if not exists public.department_order_items (
     id uuid primary key default gen_random_uuid(),
     order_id uuid references public.department_orders(id) on delete cascade not null,
@@ -4505,13 +4496,9 @@ create table if not exists public.department_order_items (
     created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
-alter table public.department_orders enable row level security;
-create policy "dept_orders_select" on public.department_orders for select using (
-    clinic_id = any(get_user_clinic_ids())
-);
 alter table public.department_order_items enable row level security;
 create policy "dept_order_items_select" on public.department_order_items for select using (
-    exists (select 1 from public.department_orders where id = order_id and clinic_id = any(get_user_clinic_ids()))
+    exists (select 1 from public.department_orders where id = order_id and organization_id = any(get_user_clinic_ids()))
 );
 
 -- 4. PATIENT LEDGERS (Cuenta Maestra)
@@ -4618,23 +4605,6 @@ create trigger enforce_sane_timestamps_specialty
 -- ============================================================================
 
 -- Hueco 10: Trazabilidad Forense (Audit Logs para Lecturas)
-create table if not exists public.audit_logs (
-    id uuid primary key default gen_random_uuid(),
-    clinic_id uuid references public.clinics(id) on delete cascade not null,
-    user_id uuid references auth.users(id) on delete cascade not null,
-    action varchar not null check (action in ('read', 'export')),
-    table_name varchar not null,
-    record_id uuid not null,
-    ip_address varchar,
-    created_at timestamp with time zone default timezone('utc'::text, now()) not null
-);
-
-alter table public.audit_logs enable row level security;
--- Solo dueños o super admins podrían ver los logs, pero la app inserta usando security definer.
-create policy "audit_logs_insert" on public.audit_logs for insert to authenticated with check (
-    clinic_id = any(get_user_clinic_ids())
-);
-
 -- RPC for logging a clinical read (e.g. Snooping detection)
 create or replace function public.log_clinical_read(
     p_clinic_id uuid,
@@ -4647,8 +4617,16 @@ language plpgsql
 security definer
 as $$
 begin
-    insert into public.audit_logs (clinic_id, user_id, action, table_name, record_id, ip_address)
-    values (p_clinic_id, auth.uid(), 'read', p_table_name, p_record_id, p_ip_address);
+    insert into public.audit_logs (clinic_id, doctor_id, event_type, resource_type, resource_id, changes, metadata)
+    values (
+        p_clinic_id, 
+        auth.uid(), 
+        'read_snooping', 
+        p_table_name, 
+        p_record_id, 
+        '{"action": "read"}'::jsonb, 
+        jsonb_build_object('ip_address', p_ip_address)
+    );
 end;
 $$;
 
