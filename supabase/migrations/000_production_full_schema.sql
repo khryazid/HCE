@@ -4,7 +4,7 @@
 -- ============================================================
 --
 -- REGLAS DE ESTE ARCHIVO:
---   1. Un solo archivo. Toda la definición de la BD vive aquí.
+--   1. Un so lo archivo. Toda la definición de la BD vive aquí.
 --      No se crean archivos de migración separados.
 --   2. Idempotente. Puede ejecutarse sobre una BD vacía o ya
 --      existente sin romper datos. Usa IF NOT EXISTS / IF EXISTS
