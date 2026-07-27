@@ -416,8 +416,9 @@ export function AuthForm({ mode }: AuthFormProps) {
         )}
 
         <div className="gx-field">
-          <label className="gx-label">Correo Electrónico</label>
+          <label className="gx-label" htmlFor="email-field">Correo Electrónico</label>
           <Input
+            id="email-field"
             type="email"
             autoComplete="email"
             placeholder="tu-correo@empresa.com"
