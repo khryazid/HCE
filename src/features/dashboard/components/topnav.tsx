@@ -333,26 +333,28 @@ export function BottomNav() {
   const overdueCount = useOverdueCount();
   const { tenant } = useTenant();
   const navItems = getNavItems(tenant?.role, tenant?.plan);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [menuPathname, setMenuPathname] = useState<string | null>(null);
+  const isMenuOpen = menuPathname === pathname;
 
   // Show only up to 4 primary items in the bottom bar to avoid crowding
   const primaryItems = navItems.slice(0, 4);
   const hasMore = navItems.length > 4;
 
-  useEffect(() => {
-    setIsMenuOpen(false);
-  }, [pathname]);
+  const closeMenu = () => setMenuPathname(null);
+  const toggleMenu = () => {
+    setMenuPathname((currentPathname) => (currentPathname === pathname ? null : pathname));
+  };
 
   return (
     <>
       {/* Drawer */}
       {isMenuOpen && (
         <div className="fixed inset-0 z-[60] lg:hidden">
-          <div className="absolute inset-0 bg-ink/40 backdrop-blur-sm transition-opacity" onClick={() => setIsMenuOpen(false)} />
+          <div className="absolute inset-0 bg-ink/40 backdrop-blur-sm transition-opacity" onClick={closeMenu} />
           <div className="absolute bottom-0 left-0 right-0 bg-card rounded-t-3xl p-6 shadow-2xl animate-in slide-in-from-bottom-full duration-300">
             <div className="flex items-center justify-between mb-6">
               <h3 className="font-display font-bold text-lg text-ink">Menú Principal</h3>
-              <button onClick={() => setIsMenuOpen(false)} className="p-2 bg-bg-soft rounded-full text-ink-soft hover:text-ink transition-colors">
+              <button onClick={closeMenu} className="p-2 bg-bg-soft rounded-full text-ink-soft hover:text-ink transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -363,7 +365,7 @@ export function BottomNav() {
                   <Link
                     key={item.href}
                     href={item.href}
-                    onClick={() => setIsMenuOpen(false)}
+                    onClick={closeMenu}
                     className={`flex flex-col items-center justify-center gap-2 p-2 rounded-2xl transition-all ${
                       isActive ? "bg-accent/10 text-accent" : "text-ink-soft hover:bg-bg-soft hover:text-ink"
                     }`}
@@ -409,7 +411,7 @@ export function BottomNav() {
         {/* 'More' Button */}
         {hasMore && (
           <button
-            onClick={() => setIsMenuOpen(true)}
+            onClick={toggleMenu}
             className={`relative flex flex-1 flex-col items-center justify-center gap-1 py-2 text-xs font-medium transition-colors ${isMenuOpen ? "text-ink" : "text-ink-faint hover:text-ink-soft"}`}
           >
             <div className={`relative flex transition-transform ${isMenuOpen ? "scale-110" : "scale-100"}`}>

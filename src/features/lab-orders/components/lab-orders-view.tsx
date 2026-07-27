@@ -317,7 +317,7 @@ export function LabOrdersView({ clinicId, userId, memberId }: LabOrdersViewProps
                     <option key={p.id} value={p.id}>{p.full_name} ({p.document_number || "Sin ID"})</option>
                   ))}
                 </select>
-                <p className="text-[10px] text-ink-soft">Si es nuevo, regístralo en la pestaña "Pacientes" primero.</p>
+                <p className="text-[10px] text-ink-soft">Si es nuevo, regístralo en la pestaña &quot;Pacientes&quot; primero.</p>
               </div>
               <div className="space-y-2">
                 <label className="text-xs font-semibold uppercase text-ink-soft">Categoría</label>
@@ -336,7 +336,7 @@ export function LabOrdersView({ clinicId, userId, memberId }: LabOrdersViewProps
                 <label className="text-xs font-semibold uppercase text-ink-soft">Exámenes del Catálogo</label>
                 <div className="border border-input rounded-md min-h-[80px] max-h-32 overflow-y-auto p-2 bg-transparent grid grid-cols-2 md:grid-cols-3 gap-2">
                   {(!examsCatalog || examsCatalog.filter(ex => ex.category === walkinData.category).length === 0) && (
-                    <p className="text-xs text-ink-soft col-span-full p-2">No hay exámenes en esta categoría. Agrégalos en "Ajustes".</p>
+                    <p className="text-xs text-ink-soft col-span-full p-2">No hay exámenes en esta categoría. Agrégalos en &quot;Ajustes&quot;.</p>
                   )}
                   {examsCatalog?.filter(ex => ex.category === walkinData.category).map(exam => (
                     <label key={exam.id} className="flex items-center gap-2 text-sm cursor-pointer">

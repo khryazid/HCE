@@ -274,7 +274,7 @@ export default function LandingClient({ proPrice, clinicPrice }: { proPrice: num
                  <Ico d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" s={16}/>
                  <Ico d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" s={16}/>
                </div>
-               <p style={{fontSize: "0.9375rem", color: "var(--ink)", marginBottom: 16, fontStyle: "italic"}}>"{testimonial.quote}"</p>
+               <p style={{fontSize: "0.9375rem", color: "var(--ink)", marginBottom: 16, fontStyle: "italic"}}>&ldquo;{testimonial.quote}&rdquo;</p>
                <p style={{fontSize: "0.8125rem", color: "var(--ink-soft)", fontWeight: 600}}>- {testimonial.author}</p>
              </div>
           ))}
