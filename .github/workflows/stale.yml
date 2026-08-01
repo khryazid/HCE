@@ -12,7 +12,7 @@ jobs:
     name: 🧹 Clean up stale items
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/stale@v9
+      - uses: actions/stale@v11
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           stale-issue-message: 'Este Issue ha estado inactivo por 60 días y será cerrado en 7 días si no hay más actividad. Si el problema persiste, por favor deja un comentario.'
